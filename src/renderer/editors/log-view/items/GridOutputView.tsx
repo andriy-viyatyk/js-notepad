@@ -62,7 +62,15 @@ export function GridOutputView({ entry, model: vm }: GridOutputViewProps) {
     const itemState = vm.state.use(s => s.itemsState[entry.id] ?? {});
 
     const baseGridData = useMemo(
-        () => getGridDataWithColumns(entry.data, normalizeColumns(entry.columns)),
+        () => {
+            const data = getGridDataWithColumns(entry.data, normalizeColumns(entry.columns));
+            // `grid-utils` now produces av-grid columns (US-1020), and this view still renders
+            // the React grid until US-1022 moves it. The two `Column` types differ only in
+            // strictness — av-grid's `name` is optional and its `filterType` is wider — and
+            // `getGridDataWithColumns` always sets a name, so the shapes agree at runtime. The
+            // cast goes when this view does.
+            return { ...data, columns: data.columns as unknown as Column[] };
+        },
         [entry.data, entry.columns],
     );
 

@@ -1,29 +1,31 @@
-import { SetStateAction } from "react";
 import { TComponentState } from "../../core/state/state";
 import { type EditorStateBase, type RestoreData } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
 import {
+    type CellEditEvent,
     type CellFocus,
     type Column,
-    type TFilter,
-    type TSortColumn,
-    type TOnGetFilterOptions,
+    type DataGridInstance,
+    type DataType,
+    type DeleteColumnsEvent,
+    type DeleteRowsEvent,
+    type Filter,
+    type GetFilterOptions,
+    type SortColumn,
     defaultCompare,
     filterRows,
     rowsToCsvText,
-} from "../../uikit";
+} from "../../uikit/DataGrid";
 import { parseObject } from "../../core/utils/parse-utils";
 import { csvToRecords } from "../../core/utils/csv-utils";
-import { resolveState } from "../../core/utils/utils";
 import {
-    createIdColumn,
     getGridDataWithColumns,
     getRowKey,
-    idColumnKey,
     nextColumnKeys,
-    removeIdColumn,
+    registerRow,
+    registerRows,
 } from "./utils/grid-utils";
 import { formatFromEditorId, type GridFormat, type GridEditorId } from "./util";
 import { errMessage } from "../../../shared/utils";
@@ -35,6 +37,31 @@ export type GridQueueEvent =
 export type GridQueueRequest = never;
 
 /**
+ * What is remembered about one column, and the whole of it.
+ *
+ * Deliberately **not** av-grid's `Column` (US-1020 / D2). The old grid persisted its own
+ * `Column` objects, which made a third-party type the on-disk contract in two places — the
+ * descriptor in `openFiles.txt` and the `editorSettings:<id>` slot inside a `.pnb` notebook —
+ * so a field rename upstream became a migration over users' disks. It also invited a
+ * function-valued hook onto a `JSON.stringify` path, which would fail asymmetrically: surviving
+ * a Grid↔Monaco switch, vanishing after a restart.
+ *
+ * These five fields are all the editor has ever actually written. Everything else on a column
+ * is either derived from the data (width detection, data type) or a default.
+ *
+ * Legacy note: descriptors written before US-1020 carry the old grid's misspelled
+ * `resizible`, plus `filterType: "options"` which is now av-grid's default. Both are read and
+ * dropped by `toColumnSetting`.
+ */
+export interface GridColumnSetting {
+    key: string;
+    name?: string;
+    width?: number | `${number}%`;
+    hidden?: boolean;
+    dataType?: DataType;
+}
+
+/**
  * HS1 — Grid's editor-keyed view-state slot shape. Lives on
  * `host.editorSettings[this.editorId]` so it survives Grid↔Monaco switches
  * (host outlives the editor) AND app restarts (host descriptor rides
@@ -42,13 +69,43 @@ export type GridQueueRequest = never;
  * by a `state.subscribe` mirror set up in the same call.
  */
 interface GridViewSettings {
-    columns: Column[];
-    filters: TFilter[];
+    columns: GridColumnSetting[];
+    filters: Filter[];
     search: string;
-    sortColumn: TSortColumn | undefined;
+    sortColumn: SortColumn | undefined;
     csvDelimiter: string;
     csvWithColumns: boolean;
     focus: CellFocus | undefined;
+}
+
+/** Project a live column down to what is worth remembering. */
+function toColumnSetting(column: Column): GridColumnSetting {
+    const setting: GridColumnSetting = { key: String(column.key) };
+    if (column.name !== undefined) setting.name = column.name;
+    if (column.width !== undefined) setting.width = column.width;
+    if (column.hidden !== undefined) setting.hidden = column.hidden;
+    if (column.dataType !== undefined) setting.dataType = column.dataType;
+    return setting;
+}
+
+/**
+ * Merge remembered column settings onto freshly detected columns.
+ *
+ * Two jobs. It restores the user's column order, widths, hidden flags and types — and it
+ * **drops settings whose key is no longer in the data**, which is not housekeeping but a
+ * correctness requirement: av-grid rejects a column set with a key nothing carries, so feeding
+ * a stale remembered set into `create()` would fail the grid outright where the old React grid
+ * rendered an empty column. Persisted settings describe the file as it was, and files change
+ * between sessions.
+ */
+function buildColumns(detected: Column[], settings: GridColumnSetting[]): Column[] {
+    if (!settings.length) return detected;
+    const byKey = new Map(detected.map((c) => [String(c.key), c]));
+    const merged = settings
+        .filter((s) => byKey.has(s.key))
+        .map((s) => ({ ...byKey.get(s.key)!, ...s }) as Column);
+    // A remembered set that has gone entirely stale is not a reason to show no columns.
+    return merged.length ? merged : detected;
 }
 
 export interface GridEditorState extends EditorStateBase {
@@ -56,14 +113,20 @@ export interface GridEditorState extends EditorStateBase {
     columns: Column[];
     focus: CellFocus | undefined;
     search: string;
-    filters: TFilter[];
-    sortColumn: TSortColumn | undefined;
+    filters: Filter[];
+    sortColumn: SortColumn | undefined;
     csvDelimiter: string;
     csvWithColumns: boolean;
 
     // View-derived — present on state for reactive reads; stripped from
     // getRestoreData (GR8 / MO5 pattern).
-    rows: any[];
+    //
+    // US-1020 / D1: `rows` is **not** here. av-grid owns the live row array — it writes
+    // `row[key] = value` itself on an edit — and immer's autoFreeze would deep-freeze any array
+    // put into this state, so a row in reactive state is a row av-grid cannot write to. The
+    // count is kept because the footer needs it reactively; the rows themselves live on
+    // `_rows` / the grid.
+    rowCount: number;
     displayedRowCount: number | undefined;
     error: string | undefined;
 }
@@ -80,7 +143,7 @@ export const defaultGridEditorState: GridEditorState = {
     sortColumn: undefined,
     csvDelimiter: ",",
     csvWithColumns: false,
-    rows: [],
+    rowCount: 0,
     displayedRowCount: undefined,
     error: undefined,
 };
@@ -104,6 +167,29 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
     private _changedContent = "";
     private _maxRowId = 0;
 
+    /**
+     * The rows, before a grid exists to own them (US-1020 / D1).
+     *
+     * Parsing happens in `onHostAttached`, which runs before the view mounts, so there has to be
+     * somewhere to put them that is not reactive state. After `setGrid` this is only the seed
+     * that was handed over; `liveRows()` is what everything reads.
+     */
+    private _rows: any[] = [];
+
+    /** The live grid, between `setGrid(grid)` and `setGrid(null)`. */
+    private _grid: DataGridInstance | undefined;
+
+    /** One serialize per tick, however many cells the edit touched. */
+    private _serializeQueued = false;
+
+    /**
+     * What is remembered about the columns — the persisted form, kept in step with the live set.
+     *
+     * Held here rather than in state because it is not what the grid is given: the live columns
+     * are rebuilt from it against the current data on every parse.
+     */
+    private _columnSettings: GridColumnSetting[] = [];
+
     /** Narrowed queue typed for Grid's event union. */
     readonly typedQueue: ComponentQueue<GridQueueEvent, GridQueueRequest>;
 
@@ -115,6 +201,53 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
             GridQueueEvent,
             GridQueueRequest
         >;
+    }
+
+    // ── The grid handle (US-1020 / D1) ──────────────────────────────────
+
+    /**
+     * Take or release the grid instance. Called by `GridBody` through `onGrid`.
+     *
+     * On attach the remembered sort and focus are applied here rather than passed as options,
+     * because both are *initial* options in av-grid and this is the one moment they are known to
+     * be the restored values rather than something the user has since changed.
+     */
+    setGrid = (grid: DataGridInstance | null): void => {
+        this._grid = grid ?? undefined;
+        if (!grid) return;
+
+        const { sortColumn, focus } = this.state.get();
+        if (sortColumn) grid.setSort(sortColumn);
+        if (focus) grid.setFocus(focus);
+        this.setRowCount(grid.getRows().length);
+    };
+
+    /** The rows, wherever they currently live. */
+    private liveRows(): any[] {
+        return (this._grid?.getRows() as any[] | undefined) ?? this._rows;
+    }
+
+    /** The rows, for a caller outside this model that must not mutate them. */
+    getRows(): any[] {
+        return [...this.liveRows()];
+    }
+
+    /**
+     * The rows as the view passes them back to the grid on every render.
+     *
+     * Read through to the grid rather than copied, and not the `_rows` seed: av-grid **replaces**
+     * its row array when rows are added (`const source = [...options.rows]`), so a cached seed
+     * goes stale and handing it back would silently drop the row the user just added. Reading the
+     * grid's own array means the identity the shim diffs is always the one av-grid already has,
+     * so the push is either skipped or a no-op — never a rollback.
+     */
+    rowsForGrid(): readonly any[] {
+        return this.liveRows();
+    }
+
+    private setRowCount(count: number): void {
+        if (this.state.get().rowCount === count) return;
+        this.state.update((s) => { s.rowCount = count; });
     }
 
     focus(): void {
@@ -150,7 +283,7 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
             data.focus !== undefined;
         if (hasLegacy) {
             this._pendingLegacySettings = {
-                columns: data.columns ?? [],
+                columns: (data.columns ?? []).map(toColumnSetting),
                 filters: data.filters ?? [],
                 search: data.search ?? "",
                 sortColumn: data.sortColumn,
@@ -232,8 +365,15 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         // disk-write rate is unchanged.
         this.mirrorHostSettings<GridViewSettings>(
             (saved) => {
+                // Columns do not go into state here. They are settings, not columns: the live
+                // set is built at parse time by merging them onto what the data actually has
+                // (`buildColumns`), because a remembered key the file no longer carries would
+                // fail av-grid's column validation outright. `toColumnSetting` also narrows a
+                // legacy descriptor, dropping the old grid's `resizible` and `filterType`.
+                if (saved.columns !== undefined) {
+                    this._columnSettings = saved.columns.map(toColumnSetting);
+                }
                 this.state.update((s) => {
-                    if (saved.columns !== undefined) s.columns = saved.columns;
                     if (saved.filters !== undefined) s.filters = saved.filters;
                     if (saved.search !== undefined) s.search = saved.search;
                     if (saved.sortColumn !== undefined) s.sortColumn = saved.sortColumn;
@@ -245,7 +385,7 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
                 });
             },
             (s) => ({
-                columns: s.columns,
+                columns: this._columnSettings,
                 filters: s.filters,
                 search: s.search,
                 sortColumn: s.sortColumn,
@@ -296,8 +436,8 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         // G17 — encrypted content gate. Surface a clear message via the
         // same channel <EditorError> renders for parse failures.
         if (this._host?.state.get().encrypted) {
+            this.setRows([], this.state.get().columns);
             this.state.update((s) => {
-                s.rows = [];
                 s.error = "Content is encrypted. Unlock the file to view as grid.";
             });
             return;
@@ -316,38 +456,54 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
             rowsInput = [parsed];
         }
         if (rowsInput) {
-            const hasSavedColumns = !resetColumns && this.state.get().columns.length > 0;
             const data = getGridDataWithColumns(rowsInput);
             this._maxRowId = data.rows.length;
-            this.state.update((s) => {
-                s.rows = data.rows;
-                if (!hasSavedColumns) {
-                    s.columns = data.columns;
-                }
-            });
+            const columns = resetColumns
+                ? data.columns
+                : buildColumns(data.columns, this._columnSettings);
+            this.setRows(data.rows, columns);
         } else {
-            this.state.update((s) => {
-                s.rows = [];
-            });
+            this.setRows([], this.state.get().columns);
         }
     }
 
+    /**
+     * Hand a fresh row set to the grid, or hold it for the grid to come.
+     *
+     * `setRows` rather than a `rows` prop push: it keeps the scroll position and reuses every
+     * cell already on screen, and it is the only path that works once av-grid owns the array
+     * (D1). The columns go through state, because that is what the view passes at `create()`.
+     */
+    private setRows(rows: any[], columns: Column[]): void {
+        this._rows = rows;
+        const columnsChanged = columns !== this.state.get().columns;
+        this.state.update((s) => {
+            s.rowCount = rows.length;
+            if (columnsChanged) s.columns = columns;
+        });
+        if (columnsChanged) this._columnSettings = columns.map(toColumnSetting);
+        this._grid?.setRows(rows);
+    }
+
     private initEmptyPage(): void {
-        const rows = createIdColumn([{}]);
+        // A single blank row with a single column `a`, so an empty file is somewhere to start
+        // typing rather than a grid with nothing in it. The column must carry a `render` or the
+        // key would match nothing in `{}` — av-grid rejects a column no row has — so the blank
+        // page declares its one column as the data's, and the row supplies the key instead.
+        const rows: any[] = [{ a: undefined }];
+        registerRows(rows);
         const columns: Column[] = [
             {
                 key: "a",
                 name: "a",
                 dataType: "string",
                 width: 100,
-                resizible: true,
-                filterType: "options",
+                resizable: true,
             },
         ];
         this._maxRowId = rows.length;
+        this.setRows(rows, columns);
         this.state.update((s) => {
-            s.rows = rows;
-            s.columns = columns;
             s.error = undefined;
         });
         // Queue post-mount focus to cell 0,0.
@@ -388,13 +544,108 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         return res;
     }
 
-    // ── Data mutation API (replaces today's GridViewModel methods) ──────
+    // ── av-grid callbacks (US-1020 / D1) ─────────────────────────
 
-    setFocus = (focus?: SetStateAction<CellFocus | undefined>): void => {
+    /**
+     * Every one of these returns `void`, never `false`.
+     *
+     * av-grid reads `false` as "veto this operation", which is the door back to the controlled
+     * model D1 rules out: the grid would stop writing and this model would have to re-apply every
+     * mutation itself, against rows immer has frozen. Here the grid performs the change and the
+     * model's only job is to notice, so the file gets written.
+     */
+
+    onEdit = (_edit: CellEditEvent): void => {
+        this.scheduleSerialize();
+    };
+
+    // `onAddRows` and `onDeleteRows` both fire *before* the change — that is what makes a `false`
+    // return able to refuse it — so neither can read the new row count. `scheduleSerialize`'s
+    // microtask runs after, and syncs the count there.
+    onAddRows = (): void => {
+        this.scheduleSerialize();
+    };
+
+    onDeleteRows = (_e: DeleteRowsEvent): void => {
+        this.scheduleSerialize();
+    };
+
+    /**
+     * Columns changed — added, deleted, resized or reordered, whatever caused it.
+     *
+     * One callback for all of them because av-grid fires this after any change to the column
+     * set, so there is nothing for a per-cause handler to do that this cannot. The remembered
+     * settings are re-derived here, which is what makes a resize or a reorder survive a restart.
+     */
+    onColumnsChange = (columns: Column[]): void => {
+        this._columnSettings = columns.map(toColumnSetting);
         this.state.update((s) => {
-            s.focus = focus ? resolveState(focus, () => s.focus) : undefined;
+            s.columns = columns;
         });
     };
+
+    /**
+     * Columns are about to be deleted — drop the data under them first.
+     *
+     * The property has to go from every row or it would come back on the next parse, and the
+     * rows are av-grid's now, so this writes through them in place rather than rebuilding the
+     * array. `onColumnsChange` follows and records the narrowed set.
+     */
+    onDeleteColumns = (e: DeleteColumnsEvent): void => {
+        this.stripColumnData(e.columnKeys);
+    };
+
+    /** Drop the deleted columns' data from every row, in place — the rows are av-grid's. */
+    private stripColumnData(columnKeys: readonly string[]): void {
+        for (const row of this.liveRows()) {
+            if (!row || typeof row !== "object") continue;
+            for (const key of columnKeys) delete row[key];
+        }
+        this.scheduleSerialize();
+    }
+
+    onFocusChange = (focus: CellFocus | undefined): void => {
+        this.state.update((s) => {
+            s.focus = focus;
+        });
+    };
+
+    onFiltersChange = (filters: Filter[]): void => {
+        this.state.update((s) => {
+            s.filters = filters;
+        });
+    };
+
+    onSortChange = (sort: SortColumn | undefined): void => {
+        this.state.update((s) => {
+            s.sortColumn = sort;
+        });
+    };
+
+    onVisibleRowsChange = (rows: readonly any[]): void => {
+        this.setDisplayedRowCount(rows.length);
+    };
+
+    /** What a blank row contains, and the one place a minted row gets its identity. */
+    newRow = (): any => {
+        const row: any = {};
+        registerRow(row, (this._maxRowId++).toString());
+        return row;
+    };
+
+    /** What a blank column looks like — the next unused spreadsheet-style letter. */
+    newColumn = (): Column => {
+        const [key] = nextColumnKeys(this.state.get().columns, 1);
+        return {
+            key,
+            name: key,
+            dataType: "string",
+            width: 100,
+            resizable: true,
+        };
+    };
+
+    // ── Search ───────────────────────────────────────────────
 
     setSearch = (search: string): void => {
         this.state.update((s) => {
@@ -408,86 +659,100 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         });
     };
 
-    setFilters = (value: SetStateAction<TFilter[]>): void => {
-        this.state.update((s) => {
-            s.filters = resolveState(value, () => this.state.get().filters);
-        });
-    };
+    // ── Script API support ────────────────────────────────────
 
+    /**
+     * Write one cell, addressed by row key.
+     *
+     * Deliberately not `grid.setCellValue(rowIndex, colIndex, ...)`: that takes indices into the
+     * *displayed* rows, which diverge from source order the moment the grid is sorted or
+     * filtered, so a script would silently edit a different row than it named.
+     */
     editRow = (columnKey: string, rowKey: string, value: any): void => {
-        this.state.update((s) => {
-            const row = s.rows.find((r) => getRowKey(r) === rowKey);
-            if (row) (row as any)[columnKey] = value;
-        });
+        const row = this.liveRows().find((r) => getRowKey(r) === rowKey);
+        if (!row) return;
+        row[columnKey] = value;
+        this._grid?.refresh();
+        this.scheduleSerialize();
     };
 
-    onAddRows = (count: number, insertIndex?: number): any[] => {
-        const newRows = Array.from({ length: count }, () => ({
-            [idColumnKey]: (this._maxRowId++).toString(),
-        }));
-        this.state.update((s) => {
-            if (insertIndex !== undefined) s.rows.splice(insertIndex, 0, ...newRows);
-            else s.rows.push(...newRows);
-        });
-        return newRows;
+    addRows = (count = 1, insertIndex?: number): any[] => {
+        const rows = Array.from({ length: count }, () => this.newRow());
+        if (this._grid) {
+            const added = this._grid.addRows(rows, insertIndex);
+            this.setRowCount(this.liveRows().length);
+            this.scheduleSerialize();
+            return added;
+        }
+        if (insertIndex !== undefined) this._rows.splice(insertIndex, 0, ...rows);
+        else this._rows.push(...rows);
+        this.setRowCount(this._rows.length);
+        this.scheduleSerialize();
+        return rows;
     };
 
-    onDeleteRows = (rowKeys: string[]): void => {
-        this.state.update((s) => {
-            s.rows = s.rows.filter((r) => !rowKeys.includes(getRowKey(r)));
-        });
+    deleteRows = (rowKeys: string[]): void => {
+        if (this._grid) {
+            this._grid.deleteRows(rowKeys);
+        } else {
+            this._rows = this._rows.filter((r) => !rowKeys.includes(getRowKey(r)));
+        }
+        this.setRowCount(this.liveRows().length);
+        this.scheduleSerialize();
     };
 
-    setColumns = (columns: SetStateAction<Column[]>): void => {
-        const newColumns = resolveState(columns, () => this.state.get().columns);
-        this.state.update((s) => {
-            s.columns = newColumns;
-        });
-    };
-
-    onAddColumns = (count: number, insertBeforeKey?: string): Column[] => {
-        const currentColumns = this.state.get().columns;
-        const newColumns: Column[] = nextColumnKeys(currentColumns, count).map((key) => ({
+    addColumns = (count = 1, insertBeforeKey?: string): Column[] => {
+        const current = this.state.get().columns;
+        const newColumns: Column[] = nextColumnKeys(current, count).map((key) => ({
             key,
             name: key,
             dataType: "string",
             width: 100,
-            resizible: true,
-            filterType: "options",
+            resizable: true,
         }));
-        let index = currentColumns.length;
+        let index = current.length;
         if (insertBeforeKey) {
-            const foundIndex = currentColumns.findIndex((c) => c.key === insertBeforeKey);
-            if (foundIndex >= 0) index = foundIndex;
+            const found = current.findIndex((c) => c.key === insertBeforeKey);
+            if (found >= 0) index = found;
         }
-        this.state.update((s) => {
-            s.columns.splice(index, 0, ...newColumns);
-        });
+        if (this._grid) {
+            // `onColumnsChange` records the new set; nothing to write here.
+            return this._grid.addColumns(newColumns, index);
+        }
+        const columns = [...current];
+        columns.splice(index, 0, ...newColumns);
+        this.onColumnsChange(columns);
         return newColumns;
     };
 
-    onDeleteColumns = (columnKeys: (keyof any | string)[]): void => {
-        this.onUpdateRows((rows) =>
-            rows.map((row) => {
-                const newRow = { ...row };
-                for (const key of columnKeys) delete newRow[key];
-                return newRow;
-            }),
+    deleteColumns = (columnKeys: string[]): void => {
+        this.stripColumnData(columnKeys);
+        if (this._grid) {
+            this._grid.deleteColumns(columnKeys);
+            return;
+        }
+        this.onColumnsChange(
+            this.state.get().columns.filter((c) => !columnKeys.includes(String(c.key))),
         );
-        this.state.update((s) => {
-            s.columns = s.columns.filter((c) => !columnKeys.includes(c.key));
-        });
     };
 
+    /**
+     * Rewrite every row through a mapper, for `ColumnsOptions` applying a key or type change.
+     *
+     * Replaces the array rather than writing through it, because that is what the caller's
+     * mapper produces — so the identities have to be carried over, or every row would get a
+     * fresh key and the focus would land nowhere.
+     */
     onUpdateRows = (updateFunc: (rows: any[]) => any[]): void => {
-        const rows = this.state.get().rows;
-        const updatedRows = updateFunc(rows);
-        if (updatedRows !== rows) {
-            this.state.update((s) => {
-                s.rows = updatedRows;
-            });
-            this.onDataChanged();
-        }
+        const rows = this.liveRows();
+        const updated = updateFunc(rows);
+        if (updated === rows) return;
+        updated.forEach((row, i) => {
+            const previous = rows[i];
+            if (previous && row !== previous) registerRow(row, getRowKey(previous));
+        });
+        this.setRows(updated, this.state.get().columns);
+        this.scheduleSerialize();
     };
 
     // ── CSV options ─────────────────────────────────────────────────────
@@ -504,12 +769,12 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         });
     };
 
-    // ── Filter options (consumed by the GridBody-owned FiltersModel) ────
+    // ── Filter options (handed to av-grid's filter popover) ─────────
 
-    onGetOptions: TOnGetFilterOptions = (columns, filters, columnKey, search) => {
+    onGetOptions: GetFilterOptions = (columns, filters, columnKey, search) => {
         const uniqueValues = new Set<any>();
         filterRows(
-            this.state.get().rows,
+            this.liveRows(),
             columns,
             search,
             filters?.filter((f) => f.columnKey !== columnKey),
@@ -543,18 +808,39 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
     }
 
     private getJsonContent(): string {
-        return JSON.stringify(removeIdColumn(this.state.get().rows), null, 4);
+        return JSON.stringify(this.liveRows(), null, 4);
     }
 
     private getCsvContent(): string {
-        const { rows, csvDelimiter, csvWithColumns, columns } = this.state.get();
-        return rowsToCsvText(rows, columns, csvWithColumns, csvDelimiter);
+        const { csvDelimiter, csvWithColumns, columns } = this.state.get();
+        return rowsToCsvText(this.liveRows(), columns, csvWithColumns, csvDelimiter);
     }
 
     private getJsonlContent(): string {
-        return removeIdColumn(this.state.get().rows)
+        return this.liveRows()
             .map((row) => JSON.stringify(row))
             .join("\n");
+    }
+
+    /**
+     * Write the rows back to the text host, once per tick.
+     *
+     * Deferred rather than synchronous, for two reasons. av-grid's own documentation disagrees
+     * with itself about whether `onEdit` fires before or after the value is written — `editable`
+     * says after, `onEdit` says before — and a microtask is correct either way, where a
+     * synchronous read could serialize the row as it was and write a one-edit-stale file with
+     * nothing to show that anything went wrong. And it coalesces: a range delete or a 100-cell
+     * paste fires `onEdit` per cell, which becomes one `changeContent` instead of a hundred —
+     * one dirty transition, one undo step.
+     */
+    private scheduleSerialize(): void {
+        if (this._serializeQueued) return;
+        this._serializeQueued = true;
+        void Promise.resolve().then(() => {
+            this._serializeQueued = false;
+            this.setRowCount(this.liveRows().length);
+            this.onDataChanged();
+        });
     }
 
     onDataChanged = (): void => {

@@ -362,7 +362,7 @@ up, per this programme's convention.
 | Task | Description | Status |
 |---|---|---|
 | [US-1019](../tasks/US-1019-adopt-av-grid/README.md) | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | **Implemented** — steps 2-7 landed; the "before" measurement is outstanding |
-| US-1020 | `editors/grid/` — the JSON/CSV grid editor. Five files, the persisted view state, the filter bar, and the context menu that closes Rule 6 | Planned |
+| [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md) | `editors/grid/` — the JSON/CSV grid editor. Seven files, the persisted view state, the filter bar, and the context menu that closes Rule 6 for this consumer | **Implemented** — C4-10's first invocation shipped as av-grid 2.2.1; app testing outstanding |
 | US-1021 | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | Planned |
 | US-1022 | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | Planned |
 | US-1023 | Delete `uikit/AVGrid/` — 29 files, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
@@ -581,3 +581,76 @@ hand-performed drag. This is the one place the task ran out of order, and the co
 recorded where US-1023 will look for it: **the BEFORE build is commit `44739cb0`**, buildable in a
 worktree, and `measurement.md` now says so and says why the current tree must not be used instead.
 Nothing is lost; the reading is deferred, not forfeited.
+
+### 2026-08-22 — US-1020 planned: two decisions the epic had backwards, and C4-10's first real bill
+
+The task document is [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md). Planning it settled
+three questions with independent agents and turned up four findings. Three of them are epic-level.
+
+**C4-10 has its first invocation, and it is a blocker rather than a nicety.** av-grid's
+`validateColumns` **throws** on a column whose key is absent from the row data, and it samples
+*exactly one row* to decide. Persephone's column detection unions keys across ~1,000 sampled rows —
+correct for JSON — so an array as ordinary as `[{a:1},{a:2,b:3}]` is a hard failure at `create()`:
+a blank editor, not a blank column. No host-side reconcile can fix it without either dropping
+legitimate columns or discarding the widths and types the detection exists to compute. And the
+library contradicts itself: `inferColumns` unions the first 50 rows via `sampleKeys()`, so
+`create({ rows })` and `create({ rows, columns: inferColumns(rows) })` can disagree — the grid
+rejects a column set it would have inferred itself. So this is a library bug, not an accommodation,
+and US-1020 stops, lands the change, bumps the pin, and continues, exactly as C4-10 prescribes. The
+fix keeps the throw (the file's own thesis is that silence is the failure mode to avoid) and fixes
+the oracle instead.
+
+**The control inversion is not absorbed by the consumer keeping control — that option does not
+exist.** The epic assumed each consumer would absorb the inversion in the model that owns its view
+state, which is right, but left open whether the model keeps owning `rows`. It cannot:
+`TComponentState.update` uses immer with default `autoFreeze`, so rows in reactive state are
+**deep-frozen**, and av-grid's `editable` path writes `row[key] = value` itself — which throws
+against a frozen row in a strict-mode module. Verified empirically, not reasoned about. So av-grid
+owns the live row array and the model keeps a seed plus a reactive count. Expect the same conclusion
+in US-1021 and US-1022 wherever rows live in a `TComponentState`, which is most of them; the
+alternative would mean re-implementing every affordance the library ships behind a veto, at 1,000
+immer passes per 100×10 paste.
+
+**Two pieces of the epic's predicted work turn out to be deletions.** GR3's page-focus
+`restoreScroll()` effect is deleted rather than ported — av-grid detects the hidden-and-reshown case
+itself with a `scrollLost` flag, and deliberately distinguishes it from a scroll whose event has not
+been delivered yet, which is the bug a naive port reintroduces. And the old grid's special case for
+right-click over an open cell editor reproduces itself for free: av-grid declines to
+`preventDefault()` there so the platform can offer Cut/Paste, and in Persephone that event reaches
+`GlobalEventService`, which shows the app's default menu. Both are worth checking for in the
+remaining consumers before porting anything that looks like plumbing.
+
+**And US-1019 shipped a bug in the context-menu adapter.** `showGridContextMenu` never stops the
+event, but `GlobalEventService.handleContextMenu` is a document-level listener that shows a menu
+without checking `defaultPrevented`, and `showAppPopupMenu` closes any open menu as its first
+statement. So the grid's menu is closed by the generic Copy/Inspect one that replaces it — a silent,
+total loss of the feature. One line (`e.event.stopPropagation()`, which the old grid also did),
+fixed in US-1020. It went unnoticed because US-1019's story panels were never visually run, which is
+the cost of leaving that acceptance criterion unchecked rather than a surprise about the design.
+
+### 2026-08-22 — US-1020 implemented: what the consumer tasks should expect
+
+Landed against av-grid 2.2.1. Three findings generalise past this consumer, and the remaining two
+are recorded in [the task](../tasks/US-1020-grid-editor-av-grid/README.md).
+
+**The freeze question has to be asked separately for rows and for columns, and the answers differ.**
+D1 established that rows cannot live in a `TComponentState` — immer freezes them and av-grid writes
+`row[key] = value` itself. Columns turned out to be the opposite: av-grid never mutates a column or
+the column array in place (`ColumnsModel` resizes with `{ ...c, width }`, `addColumns` copies with
+`[...existing]`), so frozen columns are safe and the live column array can stay in reactive state.
+US-1021 and US-1022 should check the same two questions rather than carrying either answer over.
+
+**`isStatusColumn` does not mean in av-grid what it meant in the React grid.** There it was a header
+flag — no resize, no drag-reorder. In av-grid it also **blocks editing**. Every remaining consumer
+that sets it on an editable column will silently become read-only, which is not a crash and not a
+console warning. `editors/grid/components/ColumnsOptions.tsx` had it on all three of its columns and
+would have shipped a popover that could not edit anything.
+
+**Column validation makes call *order* matter where it did not before.** `setColumns` validates the
+new keys against the rows the grid currently holds and exempts only keys it already has, so any
+operation that renames a key has to write the row data first. The React grid validated nothing, so
+no existing call site has that ordering.
+
+And av-grid's own array-replacement semantics mean **a cached `rows` reference is a bug**: the
+library replaces its row array on add, so a host that hands a stale seed back through a prop push
+silently drops the row the user just added. Read through to `getRows()` instead.

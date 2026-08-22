@@ -70,7 +70,19 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
 
         // These listeners belong to the floating branch, so they exist exactly
         // while an open branch is attached to the overlay layer.
-        this.listen(document, "mousedown", this.onDocumentMouseDown);
+        // `pointerdown`, not `mousedown`.
+        //
+        // `mousedown` is a *compatibility* event: calling `preventDefault()` on the `pointerdown`
+        // that precedes it suppresses it entirely. That is the standard way to stop the browser
+        // starting a native text selection on a press-and-drag, so any component doing a drag
+        // gesture legitimately does it — av-grid does it on every data cell to keep a range
+        // drag-select from highlighting the page. The result was a context menu that would not
+        // close when the user clicked a grid cell, while clicking the grid's whitespace (no
+        // preventDefault) or anywhere else in the app closed it normally.
+        //
+        // Dismissal must not depend on an event a legitimate gesture is allowed to suppress.
+        // `pointerdown` always fires, is not cancellable away, and covers touch and pen for free.
+        this.listen(document, "pointerdown", this.onDocumentPointerDown);
         this.listen(document, "keydown", this.onDocumentKeyDown);
 
         if (this.props.contentView) {
@@ -301,7 +313,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         });
     }
 
-    private readonly onDocumentMouseDown = (event: MouseEvent): void => {
+    private readonly onDocumentPointerDown = (event: PointerEvent): void => {
         if (!this.model.internalRef || this.model.internalRef.contains(event.target as Node)) return;
         const target = event.target instanceof Element ? event.target : null;
         if (target?.closest('[data-type="tooltip"]')) return;

@@ -16,7 +16,10 @@ Overview of all active and planned epics and tasks.
     against av-grid 2.2.0; lint/typecheck/build-prod clean. Outstanding: the Rule 4 "before"
     measurement (needs `npm run dist` from commit `44739cb0` and a hand drag) and the dev-server
     check of the layered `@import`
-  - [ ] US-1020: `editors/grid/` — the JSON/CSV grid editor
+  - [ ] [US-1020: `editors/grid/` — the JSON/CSV grid
+    editor](tasks/US-1020-grid-editor-av-grid/README.md) — **implemented**; lint/typecheck/
+    build-prod clean, not yet tested in the app. F1 shipped as av-grid **2.2.1** (811 tests pass),
+    tagged locally but **not published** — push the tag, then `npm install` to fix the lock
   - [ ] US-1021: `components/git-tree/` — including the `BranchTreeCell` swimlane rewrite
   - [ ] US-1022: `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`
   - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C

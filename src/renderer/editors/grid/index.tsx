@@ -11,7 +11,7 @@ import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 import { GridEditor, defaultGridEditorState } from "./GridEditor";
 import { GridBody, getVisibleRowsLabel } from "./GridBody";
-import type { AVGridModel } from "../../uikit";
+import type { DataGridInstance } from "../../uikit/DataGrid";
 import type { GridEditorId } from "./util";
 
 function GridEditorView({ model }: { model: EditorModel }) {
@@ -19,7 +19,7 @@ function GridEditorView({ model }: { model: EditorModel }) {
     // Shared mutable holder for the AVGridModel ref — GridBody forwards it
     // here so GridToolbarBits / GridFooterBits can read it for the columns
     // popover and the visible-row count label.
-    const gridRefHolder = useRef<AVGridModel<any> | null>(null);
+    const gridRefHolder = useRef<DataGridInstance<any> | null>(null);
     return (
         <TextChrome
             model={model}
@@ -44,7 +44,7 @@ function GridToolbarBits({
     gridRefHolder,
 }: {
     editor: GridEditor;
-    gridRefHolder: React.MutableRefObject<AVGridModel<any> | null>;
+    gridRefHolder: React.MutableRefObject<DataGridInstance<any> | null>;
 }) {
     return (
         <>
@@ -112,7 +112,7 @@ function GridFooterBits({
 }) {
     // Re-render when totals or filter set change.
     editor.state.use((s) => ({
-        r: s.rows.length,
+        r: s.rowCount,
         f: s.filters.length,
         v: s.displayedRowCount,
     }));
@@ -147,10 +147,9 @@ export type { GridFormat, GridEditorId } from "./util";
 // Re-exports kept for outside callers (utils + popovers).
 export type { GridData, GridColumn } from "./utils/grid-utils";
 export {
-    idColumnKey,
     getRowKey,
-    createIdColumn,
-    removeIdColumn,
+    registerRow,
+    registerRows,
     getGridDataWithColumns,
     nextColumnKeys,
 } from "./utils/grid-utils";

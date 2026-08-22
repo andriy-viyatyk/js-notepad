@@ -1,4 +1,4 @@
-import { detectColumnWidth, type Column } from "../../../uikit";
+import { detectColumnWidth, type Column } from "../../../uikit/DataGrid";
 
 export interface GridData {
     columns: Column[];
@@ -37,8 +37,7 @@ function detectColumns(data: any[]): Column[] {
                         name: key,
                         key,
                         width: 100,
-                        resizible: true,
-                        filterType: "options",
+                        resizable: true,
                     });
                     columnTypes.set(key, newColumnTypes());
                 }
@@ -76,26 +75,53 @@ function detectColumns(data: any[]): Column[] {
     return columns;
 }
 
-export const idColumnKey = "#intrnl-id";
+/**
+ * Row identity, held beside the rows rather than inside them.
+ *
+ * This replaced a `#intrnl-id` property spread into every row and stripped again on every save
+ * (US-1020 / D3). That scheme mutated the user's own data, which cost a save path in every
+ * serializer and carried a real bug: JSON that already contained the key got a visible column
+ * whose values were overwritten with row indices and then deleted on save.
+ *
+ * **Why not av-grid's inference.** It probes only the first non-null row for an id-shaped
+ * property and, finding one, uses `String(row[that])` for every row. Grid rows here are
+ * arbitrary user JSON, which very often has an `id`: duplicates would collapse two rows into
+ * one identity — so focus, editing, selection and delete address the wrong row — rows missing
+ * it would all become `"undefined"`, and because the cell is editable a user typing into it
+ * would change a row's identity mid-interaction.
+ *
+ * **Why the key is the row index.** A `focus.rowKey` of `"12"` persisted before a restart has
+ * to resolve to row 12 afterwards, against row objects rebuilt from text by a fresh parse.
+ * Seeding by index is what makes that work; av-grid's own WeakMap fallback does not survive a
+ * `setRows` that rebuilds the objects.
+ */
+const rowKeys = new WeakMap<object, string>();
 
-export function getRowKey(row: any) {
-    return row?.[idColumnKey] ?? "";
-}
+/** Keys minted for rows that reached `getRowKey` unregistered. Never collides with an index. */
+let nextRowKey = 0;
 
-export function createIdColumn(data: any[]) {
-    return data.map((row, index) => ({
-        ...row,
-        [idColumnKey]: index.toString(),
-    }))
-}
-
-export function removeIdColumn(rows?: readonly any[]): any[] | undefined {
-    if (!rows) return undefined;
-    return rows.map((row) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { [idColumnKey]: _, ...rest } = row;
-        return rest;
+/** Give each row its index as an identity. The parse-time counterpart of the old id column. */
+export function registerRows(rows: readonly any[], startIndex = 0): void {
+    rows.forEach((row, i) => {
+        if (row && typeof row === "object") rowKeys.set(row, String(startIndex + i));
     });
+}
+
+/** Register one row under an explicit key — for a blank row minted by `newRow`. */
+export function registerRow(row: any, key: string): void {
+    if (row && typeof row === "object") rowKeys.set(row, key);
+}
+
+export function getRowKey(row: any): string {
+    if (!row || typeof row !== "object") return "";
+    let key = rowKeys.get(row);
+    if (key === undefined) {
+        // A row nothing registered still needs to be unique: sharing a key would make the grid
+        // treat two rows as one. The old scheme returned `""` for all of them.
+        key = `r${nextRowKey++}`;
+        rowKeys.set(row, key);
+    }
+    return key;
 }
 
 function getGridData(
@@ -114,7 +140,10 @@ function getGridData(
         }
     }
 
-    rows = createIdColumn(rows);
+    // Identity is assigned rather than injected, so the ordering that used to matter here —
+    // detect the columns *before* adding the id property, or it became a visible column — is
+    // gone with it.
+    registerRows(rows);
 
     return { columns, rows };
 }
@@ -135,7 +164,7 @@ export function getGridDataWithColumns(
                 name: column.title ?? column.key,
                 width: column.width ?? existing?.width ?? 100,
                 dataType: column.dataType ?? existing?.dataType,
-                resizible: true,
+                resizable: true,
             };
             return c;
         });
