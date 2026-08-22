@@ -680,7 +680,7 @@ persephone/
 │   ├── AppTargetModel.ts   # Automation adapter (IBrowserTarget) for the app's own UI (pageId "app")
 │   └── commands.ts         # browser_* MCP command handlers
 │
-├── uikit/                  # UIKit — Standalone Component Library (EPIC-025)
+├── uikit/                  # UIKit — standalone component library
 │   │                       # Canonical home for reusable primitives. Must not import from
 │   │                       # api/, ui/, editors/, or app-specific code. Authoring rules
 │   │                       # live in uikit/CLAUDE.md. See uikit-vs-components-split.md
@@ -728,13 +728,20 @@ persephone/
 │   ├── Dialog/             # Modal dialog
 │   ├── Notification/       # Alert / toast notification + AlertsBar
 │   ├── Progress/           # Progress overlay + screen lock
-│   ├── RenderGrid/         # Foundational virtualization (sticky regions, RenderFlexGrid)
+│   ├── RenderGrid/         # React virtualization survivor (sticky regions, RenderFlexGrid)
+│   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool
 │   ├── AVGrid/             # Composite data grid (uses RenderGrid; filters, sorting, edit)
 │   └── shared/             # Internal helpers (overlay layer, slots, and React/vanilla seams)
+│       ├── async-ref.ts    # Callback-backed asynchronous DOM reference
 │       ├── vanilla-view.ts # Framework-free view lifecycle, ownership, binding, and cleanup
 │       ├── keyed-list.ts   # Keyed DOM reconciliation with minimal cursor moves
 │       ├── subtree-swap.ts # Owned conditional subtree replacement
-│       └── mount.tsx       # React host and nested React-root boundary adapters
+│       ├── deps-gate.ts    # Fixed-length repaint/dependency identity gate
+│       ├── element-id.ts   # Shared DOM id allocation for generated elements
+│       ├── fill-slot.ts    # React-valued slot bridge
+│       ├── mount.tsx       # React host and nested React-root boundary adapters
+│       ├── react-compat.ts # Residual React prop/event/ref bridge
+│       └── slots.ts        # Neutral icon and slot-content types/resolution
 │
 ├── components/             # Persephone-Coupled Components (KEEP-only)
 │   │                       # Each remaining folder uses app.* APIs, page model, file

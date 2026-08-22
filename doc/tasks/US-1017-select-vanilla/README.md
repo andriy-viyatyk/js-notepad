@@ -1,7 +1,7 @@
 # US-1017: `Select` — four effects, async item loading, and the Rule 4 number
 
 **Epic:** [EPIC-056](../../epics/EPIC-056.md) (De-React C3)
-**Status:** Implemented — awaiting user testing
+**Status:** Implemented 2026-08-22
 **Created:** 2026-08-22
 
 ## Goal

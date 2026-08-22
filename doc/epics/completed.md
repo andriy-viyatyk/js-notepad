@@ -4,6 +4,27 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-056 — [De-React Epic C3 — Virtualization engine, data views and dropdowns](EPIC-056.md)
+
+Converted the vanilla virtualization engine, data views, and dropdown composites while preserving
+their React-facing APIs: `VirtualGrid`, `ListBox`, `Tree`, `MultiListBox`, `Select`, `MultiSelect`,
+and `Autocomplete`. The epic recorded the memo-dependency and model-driver rules, removed the C3
+effects, drained `Panel` from production `uikit/` consumers, and measured the final Rule 4 search
+interaction at 217 raw MutationObserver records (19 in the anchor pane and 198 in the overlay layer).
+
+Verification: `npm run typecheck`, `npm run lint`, and `git diff --check` passed. Epic-level architecture
+review, developer-documentation, and user-documentation checks completed; review findings around
+vanilla lifecycle guards and native event handling were fixed before closure.
+
+- [x] [US-1013: The vanilla virtualization engine — `VirtualGrid`](../tasks/US-1013-virtual-grid-engine/README.md)
+- [x] [US-1014: `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine](../tasks/US-1014-listbox-vanilla/README.md)
+- [x] [US-1015: `Tree` — rows, DnD, keyboard, and the largest model in `uikit/`](../tasks/US-1015-tree-vanilla/README.md)
+- [x] [US-1016: `MultiListBox` — checkbox rows and the select-all header](../tasks/US-1016-multilistbox-vanilla/README.md)
+- [x] [US-1017: `Select` — four effects, async item loading, and the Rule 4 number](../tasks/US-1017-select-vanilla/README.md)
+- [x] [US-1018: `MultiSelect` and `Autocomplete` — the last two dropdowns and `Panel`'s eviction](../tasks/US-1018-multiselect-autocomplete-vanilla/README.md)
+
+---
+
 ## EPIC-055 — [De-React Epic C2 — Floating layer and composites](EPIC-055.md)
 
 Converted the floating layer and composite UIKit surfaces to vanilla views behind their existing

@@ -38,10 +38,10 @@ import "./ListItem.css";
 export class ListItemView extends VanillaView<ListItemProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
-    private checkHost!: HTMLSpanElement;
-    private iconHost!: HTMLSpanElement;
-    private labelHost!: HTMLSpanElement;
-    private trailingHost!: HTMLSpanElement;
+    private checkHost: HTMLSpanElement | undefined;
+    private iconHost: HTMLSpanElement | undefined;
+    private labelHost: HTMLSpanElement | undefined;
+    private trailingHost: HTMLSpanElement | undefined;
 
     private checkGlyph: SVGElement | undefined;
     /** Last value written to the check glyph, so a re-render does not rebuild the `svg`. */
@@ -125,6 +125,12 @@ export class ListItemView extends VanillaView<ListItemProps> {
             ref: _ref,
             ...rest
         } = props;
+
+        const checkHost = this.checkHost;
+        const iconHost = this.iconHost;
+        const labelHost = this.labelHost;
+        const trailingHost = this.trailingHost;
+        if (!checkHost || !iconHost || !labelHost || !trailingHost) return;
 
         const root = this.root;
         root.dataset.type = "list-item";

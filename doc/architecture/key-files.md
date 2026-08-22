@@ -35,11 +35,15 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
 | Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
 | Conditional subtree ownership (stable `PropertyKey` keys, replacement-before-disposal, and root detachment) | `/src/renderer/uikit/shared/subtree-swap.ts` |
+| Callback-backed asynchronous DOM references used by virtualized views | `/src/renderer/uikit/shared/async-ref.ts` |
+| Stable repaint/dependency identity gate for fixed-length signatures | `/src/renderer/uikit/shared/deps-gate.ts` |
+| Shared DOM id allocation for generated component elements | `/src/renderer/uikit/shared/element-id.ts` |
 | React/vanilla boundary adapters (`mountVanilla` stable host, `mountReact`/`mountReactHandle` owned roots, and commit-safe host replacement) | `/src/renderer/uikit/shared/mount.tsx` |
 | React-valued slot bridge (host ownership, React-root reuse, and deferred disposal across React commits) | `/src/renderer/uikit/shared/fill-slot.ts` |
 | Native bridge for residual React props/events (`applyRestProps`, branded-event facade, and ref cleanup) | `/src/renderer/uikit/shared/react-compat.ts` |
 | Non-React component model driver (initial prop pump, explicit mount/update/dispose, and zero-effect guard) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
+| Framework-free virtualization engine (render-window calculation, pooled cells, sticky regions, scroll/resize handling, and scheduled repaint) | `/src/renderer/uikit/VirtualGrid/` |
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
 | Git-root detection for Markdown wiki links (walk up to nearest `.git`, cached) | `/src/renderer/editors/markdown/detect-git-root.ts` |
 | Markdown heading anchors (GitHub-style slug ids + `-1`/`-2` dedupe; exports `slugifyHeading`, reused by `MarkdownBlock.scrollToAnchor` to match a `#fragment` against heading text so Azure-DevOps and GitHub dialects meet) | `/src/renderer/editors/markdown/rehypeHeadingIds.ts` |
@@ -122,8 +126,12 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Draw editor              | `/src/renderer/editors/draw/DrawEditor.ts`        |
 | Rest Client editor       | `/src/renderer/editors/rest-client/RestClientEditor.ts` |
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
-| Base virtualization      | `/src/renderer/uikit/RenderGrid/RenderGrid.tsx`   |
+| Framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualGridView.ts` |
+| React virtualization survivor (ReactNode cell contract; retained for app-layer consumers until its later migration) | `/src/renderer/uikit/RenderGrid/RenderGrid.tsx` |
 | Advanced grid            | `/src/renderer/uikit/AVGrid/AVGrid.tsx`           |
+| Virtualized list view (DOM rows, keyed reconciliation, selection/scroll projection, and `VirtualGrid` integration) | `/src/renderer/uikit/ListBox/ListBoxView.ts` |
+| Virtualized tree view (DOM rows, keyed reconciliation, DnD/keyboard integration, and `VirtualGrid` integration) | `/src/renderer/uikit/Tree/TreeView.ts` |
+| Dropdown composite views (`Select`, `MultiSelect`, and `Autocomplete`) | `/src/renderer/uikit/Select/SelectView.ts`, `/src/renderer/uikit/MultiSelect/MultiSelectView.ts`, `/src/renderer/uikit/Autocomplete/AutocompleteView.ts` |
 | Tree keyboard interaction (arrow/Home/End/Page/Enter gestures and the transient multi-selection range anchor; selection itself remains controlled by the consumer) | `/src/renderer/uikit/Tree/TreeKeyboardHandler.ts` |
 | Tree trait/native-file drag-and-drop interaction (drag state, nested enter/leave handling, and delayed hover expansion) | `/src/renderer/uikit/Tree/TreeDndModel.ts` |
 | Multi-list-box selection and filtering model (controlled selected values, local search/active-row state, and trait-aware source mapping) | `/src/renderer/uikit/MultiListBox/MultiListBoxModel.ts` |
@@ -131,7 +139,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Tree primitive (lazy expansion state lives in `TreeState.expanded`, keyed by source `value`; `getExpandedMap()` is the one truth a consumer should persist — `onExpandChange` is a notification, not a ledger. `collapseDescendants` closes a whole subtree in the same state write as the toggled row, which lazy consumers that drop a collapsed row's children **must** opt into) | `/src/renderer/uikit/Tree/TreeModel.ts` |
 | UIKit library            | `/src/renderer/uikit/`                            |
 | UIKit authoring rules    | `/src/renderer/uikit/CLAUDE.md`                   |
-| Focus-aware list selection contract (Explorer two-state look — blurred gray / focused blue via `:focus-within` + `data-focus-selection`. Keyed off each row's own `[data-selected]`, so a multi-selection paints with no styling change; `[data-active]` stays singular). The shared `selection-style.ts` module is **deleted** (EPIC-056 C3-7); the look now lives as four independent per-component copies | `/src/renderer/uikit/ListBox/ListItem.css`, `/src/renderer/uikit/Tree/Tree.css` + `TreeItem.css`, `/src/renderer/uikit/SelectableRow/SelectableRow.css`, `/src/renderer/ui/sidebar/FolderItem.tsx` |
+| Focus-aware list selection contract (Explorer two-state look — blurred gray / focused blue via `:focus-within` + `data-focus-selection`. Keyed off each row's own `[data-selected]`, so a multi-selection paints with no styling change; `[data-active]` stays singular). Each owner keeps a scoped copy so the rules do not depend on cross-file stylesheet order | `/src/renderer/uikit/ListBox/ListItem.css`, `/src/renderer/uikit/Tree/Tree.css` + `TreeItem.css`, `/src/renderer/uikit/SelectableRow/SelectableRow.css`, `/src/renderer/ui/sidebar/FolderItem.tsx` |
 | Selectable-row primitive (Rule-7-clean bespoke-row host for the focus-aware selection; `selected`/`active` props) | `/src/renderer/uikit/SelectableRow/SelectableRow.tsx` |
 | Tree multi-selection gestures (opt-in `multiSelect`: Ctrl/Shift+click, Ctrl+A, Shift+Arrow/Home/End/PageUp/Down; the Tree stores NO selection — it derives the current set via `isSelected` per visible row, holds only a transient `anchorValue`, and emits the result through `onSelectionChange` for the consumer to store. Row visuals need nothing extra: N rows carry `[data-selected]`, one carries `[data-active]`) | `/src/renderer/uikit/Tree/TreeModel.ts` |
 | Color tokens             | `/src/renderer/theme/color.ts`                    |

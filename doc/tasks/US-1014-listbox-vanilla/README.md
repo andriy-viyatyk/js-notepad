@@ -1,7 +1,7 @@
 # US-1014: `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine
 
 **Epic:** [EPIC-056](../../epics/EPIC-056.md) (De-React C3)
-**Status:** Implemented — awaiting user testing
+**Status:** Implemented 2026-08-21
 **Blocked by:** [US-1013](../US-1013-virtual-grid-engine/README.md) — done
 **Blocks:** US-1016 (`MultiListBox`), US-1017 (`Select`), US-1018 (`Autocomplete` half)
 

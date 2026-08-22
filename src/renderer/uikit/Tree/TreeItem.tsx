@@ -1,7 +1,8 @@
 import React from "react";
 import { mountVanilla } from "../shared/mount";
+import { toPublicEvent } from "../shared/react-compat";
 import type { IconRef, SlotText } from "../shared/slots";
-import { TreeItemView } from "./TreeItemView";
+import { TreeItemView, type TreeItemViewProps } from "./TreeItemView";
 
 // --- Types ---
 
@@ -76,5 +77,17 @@ export interface TreeItemProps
 // --- Component ---
 
 export function TreeItem(props: TreeItemProps): React.ReactElement {
-    return mountVanilla(TreeItemView, props);
+    const { onChevronClick, ...viewProps } = props;
+    const nativeCallback = onChevronClick
+        ? (event: MouseEvent): void => {
+              onChevronClick(
+                  toPublicEvent(event) as unknown as React.MouseEvent<HTMLButtonElement>,
+              );
+          }
+        : undefined;
+
+    return mountVanilla(TreeItemView, {
+        ...viewProps,
+        onChevronClickNative: nativeCallback,
+    } as TreeItemViewProps);
 }

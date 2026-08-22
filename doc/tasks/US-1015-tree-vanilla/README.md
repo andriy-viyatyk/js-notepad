@@ -4,7 +4,7 @@ Part of [EPIC-056](../../epics/EPIC-056.md) (De-React Epic C3). Follows
 [US-1013](../US-1013-virtual-grid-engine/README.md) (the engine) and
 [US-1014](../US-1014-listbox-vanilla/README.md) (the first data view on it).
 
-**Status:** Implemented 2026-08-22 — awaiting user testing.
+**Status:** Implemented 2026-08-22.
 
 Verification: `npx tsc --noEmit`, `npm run lint` and `git diff --check` clean; all acceptance greps
 pass; six offscreen runtime probes green (arms and their attribute removals, state-driven repaint

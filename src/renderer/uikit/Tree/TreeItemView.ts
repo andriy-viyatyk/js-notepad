@@ -4,7 +4,6 @@ import {
     bindRef,
     clearRestListeners,
     createRestPropsState,
-    toPublicEvent,
     type RestPropsState,
 } from "../shared/react-compat";
 import { fillSlot } from "../shared/fill-slot";
@@ -46,15 +45,20 @@ const defaultIndentSize = 16;
  * flex rules. React rendered each only when its content was present, so both are attached and
  * detached rather than left empty in the flex flow.
  */
-export class TreeItemView extends VanillaView<TreeItemProps> {
+export interface TreeItemViewProps extends TreeItemProps {
+    /** Native-only callback used by TreeView; public React callbacks are adapted by TreeItem.tsx. */
+    onChevronClickNative?: (event: MouseEvent) => void;
+}
+
+export class TreeItemView extends VanillaView<TreeItemViewProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
-    private chevronHost!: HTMLSpanElement;
-    private iconHost!: HTMLSpanElement;
-    private labelHost!: HTMLSpanElement;
-    private trailingHost!: HTMLSpanElement;
+    private chevronHost: HTMLSpanElement | undefined;
+    private iconHost: HTMLSpanElement | undefined;
+    private labelHost: HTMLSpanElement | undefined;
+    private trailingHost: HTMLSpanElement | undefined;
 
-    private indents!: TreeIndents;
+    private indents: TreeIndents | undefined;
 
     private chevronMode: ChevronMode | undefined;
     private chevronButton: HTMLButtonElement | undefined;
@@ -117,7 +121,7 @@ export class TreeItemView extends VanillaView<TreeItemProps> {
         this.setRef(props.ref);
     }
 
-    private applyProps(props: TreeItemProps): void {
+    private applyProps(props: TreeItemViewProps): void {
         const {
             name,
             id,
@@ -148,8 +152,16 @@ export class TreeItemView extends VanillaView<TreeItemProps> {
             trailingVisibility = "always",
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             ref: _ref,
+            onChevronClickNative: _onChevronClickNative,
             ...rest
         } = props;
+
+        const chevronHost = this.chevronHost;
+        const iconHost = this.iconHost;
+        const labelHost = this.labelHost;
+        const trailingHost = this.trailingHost;
+        const indents = this.indents;
+        if (!chevronHost || !iconHost || !labelHost || !trailingHost || !indents) return;
 
         const root = this.root;
         root.dataset.type = "tree-item";
@@ -169,7 +181,7 @@ export class TreeItemView extends VanillaView<TreeItemProps> {
         root.setAttribute("aria-level", String(level + 1));
         setAttr(root, "aria-disabled", disabled ? "true" : undefined);
 
-        this.indents.sync(level, indentSize);
+        indents.sync(level, indentSize);
         this.setChevron(props);
         this.setIcon(icon);
         this.setLabel(label, searchText);
@@ -233,9 +245,7 @@ export class TreeItemView extends VanillaView<TreeItemProps> {
         // Read the handler from the live props at event time: this element outlives the row it was
         // created for, so a captured closure would call the previous row's callback.
         button.addEventListener("click", (event) => {
-            this.props.onChevronClick?.(
-                toPublicEvent(event) as unknown as React.MouseEvent<HTMLButtonElement>,
-            );
+            this.props.onChevronClickNative?.(event);
         });
         this.chevronButton = button;
         this.chevronHost.append(button);

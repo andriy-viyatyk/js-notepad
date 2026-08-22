@@ -58,9 +58,9 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
 
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
-    private input!: InputView;
-    private chevron!: IconButtonView;
-    private popover!: PopoverView;
+    private input: InputView | undefined;
+    private chevron: IconButtonView | undefined;
+    private popover: PopoverView | undefined;
 
     /**
      * The list inside the open dropdown, or undefined while closed. Owned by the floating branch —
@@ -99,10 +99,14 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         // Built before the input, because its root is the input's `endSlot`.
         this.chevron = this.child(new IconButtonView(this.chevronProps()));
         this.chevron.mount();
+        this.listen(this.chevron.root, "mousedown", this.handleChevronMouseDown);
 
         this.input = this.child(new InputView(this.inputProps()));
         this.root.append(this.input.root);
         this.input.mount();
+        if (this.inputElement) {
+            this.listen(this.inputElement, "keydown", this.handleInputKeyDown);
+        }
 
         // `PopoverView`'s own root is `display: contents`; the floating branch lives in the overlay
         // layer, so this append contributes no box.
@@ -154,12 +158,17 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
 
     /** The single consequence of both the prop pump and a state write. */
     private syncChildren(): void {
+        const input = this.input;
+        const chevron = this.chevron;
+        const popover = this.popover;
+        if (!input || !chevron || !popover) return;
+
         const open = this.model.state.get().open;
         this.root.dataset.state = open ? "open" : "closed";
 
-        this.chevron.update(this.chevronProps());
-        this.input.update(this.inputProps());
-        this.popover.update(this.popoverProps());
+        chevron.update(this.chevronProps());
+        input.update(this.inputProps());
+        popover.update(this.popoverProps());
 
         if (open) {
             this.listView?.update(this.listProps());
@@ -183,7 +192,6 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
             readOnly: true,
             onFocus: this.model.onInputFocus,
             onClick: this.model.onInputClick,
-            onKeyDown: this.handleInputKeyDown,
             "aria-haspopup": "listbox",
             "aria-expanded": this.model.state.get().open,
             "aria-controls": this.model.popoverId,
@@ -207,7 +215,6 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
             tabIndex: -1,
             // `disabled` only — see the class comment.
             disabled: props.disabled,
-            onMouseDown: this.handleChevronMouseDown,
             onClick: this.model.onChevronClick,
         };
     }
@@ -296,17 +303,14 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
     // Native event unwrapping
     // -----------------------------------------------------------------------
 
-    /*
-     * `applyRestProps` installs these on the real elements and delivers a `toPublicEvent` facade, so
-     * the model takes the native event and the view unwraps it — the `PathInputView` seam.
-     */
+    /** Native listeners attached to the child Input and chevron roots after they mount. */
 
-    private readonly handleInputKeyDown = (event: React.SyntheticEvent<HTMLElement>): void => {
-        this.model.onInputKeyDown(event.nativeEvent as KeyboardEvent);
+    private readonly handleInputKeyDown = (event: KeyboardEvent): void => {
+        this.model.onInputKeyDown(event);
     };
 
-    private readonly handleChevronMouseDown = (event: React.SyntheticEvent<HTMLElement>): void => {
-        this.model.onChevronMouseDown(event.nativeEvent as MouseEvent);
+    private readonly handleChevronMouseDown = (event: MouseEvent): void => {
+        this.model.onChevronMouseDown(event);
     };
 
     // -----------------------------------------------------------------------

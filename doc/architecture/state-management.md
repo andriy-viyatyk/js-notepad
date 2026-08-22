@@ -17,7 +17,7 @@ All state primitives live in `/src/renderer/core/state/`.
 | `TGlobalState<T>` | Application-wide state (cleared on logout) | `api/` modules |
 | `TComponentState<T>` | Component-scoped state (with `useComponentModel`) | React components |
 | `TModel<T>` | Stateful business logic (non-React) | Models, services |
-| `TComponentModel<T, P>` | React component model with props, effects, memos | React components |
+| `TComponentModel<T, P>` | Component model with props, effects, and memos; adapted by React or a vanilla driver | React components, `VanillaView` classes |
 | `TDialogModel<T, R>` | Dialog/modal with async result | Dialogs |
 | `EditorModel<T, R>` | Editor instance (every editor subclasses this) | Editors |
 
@@ -65,7 +65,7 @@ state.update(s => {
 });
 ```
 
-**Design Note:** Both `TGlobalState` and `TComponentState` extend `TOneState` with the same API. The distinction is organizational — `TGlobalState` clears on logout, `TComponentState` is scoped to a React component's lifetime via `useComponentModel`.
+**Design Note:** Both `TGlobalState` and `TComponentState` extend `TOneState` with the same API. The distinction is organizational — `TGlobalState` clears on logout, while `TComponentState` is scoped to a component model's lifetime via `useComponentModel` or `createComponentModelDriver`.
 
 ### Large Accumulating Collections Don't Belong in State
 

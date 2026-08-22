@@ -1,6 +1,6 @@
 # US-1018 — `MultiSelect` and `Autocomplete` vanilla conversion
 
-**Epic:** [EPIC-056 — De-React C3](../../epics/EPIC-056.md) · **Status:** planned ·
+**Epic:** [EPIC-056 — De-React C3](../../epics/EPIC-056.md) · **Status:** Implemented ·
 **Created:** 2026-08-22
 
 ## Goal

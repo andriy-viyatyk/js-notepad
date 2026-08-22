@@ -55,14 +55,14 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
 
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
-    private searchRow!: HTMLDivElement;
-    private selectAllRow!: HTMLDivElement;
-    private selectAllIconHost!: HTMLSpanElement;
-    private selectAllLabelHost!: HTMLSpanElement;
-    private listWrapper!: HTMLDivElement;
+    private searchRow: HTMLDivElement | undefined;
+    private selectAllRow: HTMLDivElement | undefined;
+    private selectAllIconHost: HTMLSpanElement | undefined;
+    private selectAllLabelHost: HTMLSpanElement | undefined;
+    private listWrapper: HTMLDivElement | undefined;
 
-    private input!: InputView;
-    private list!: ListBoxView<T>;
+    private input: InputView | undefined;
+    private list: ListBoxView<T> | undefined;
 
     private selectAllGlyph: SVGElement | undefined;
     private appliedCheckState: CheckState | undefined;
@@ -169,25 +169,32 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
 
     /** The single consequence of both the prop pump and a state write. */
     private syncChildren(): void {
+        const searchRow = this.searchRow;
+        const selectAllRow = this.selectAllRow;
+        const listWrapper = this.listWrapper;
+        const input = this.input;
+        const list = this.list;
+        if (!searchRow || !selectAllRow || !listWrapper || !input || !list) return;
+
         const props = this.props;
 
         const showSearch = props.showSearch ?? true;
-        if (showSearch && !this.searchRow.isConnected) {
-            this.root.insertBefore(this.searchRow, this.listWrapper);
-        } else if (!showSearch && this.searchRow.isConnected) {
-            this.searchRow.remove();
+        if (showSearch && !searchRow.isConnected) {
+            this.root.insertBefore(searchRow, listWrapper);
+        } else if (!showSearch && searchRow.isConnected) {
+            searchRow.remove();
         }
 
         const selectAll = props.selectAll ?? false;
-        if (selectAll && !this.selectAllRow.isConnected) {
-            this.root.insertBefore(this.selectAllRow, this.listWrapper);
-        } else if (!selectAll && this.selectAllRow.isConnected) {
-            this.selectAllRow.remove();
+        if (selectAll && !selectAllRow.isConnected) {
+            this.root.insertBefore(selectAllRow, listWrapper);
+        } else if (!selectAll && selectAllRow.isConnected) {
+            selectAllRow.remove();
         }
         if (selectAll) this.syncSelectAll(props);
 
-        this.input.update(this.inputProps());
-        this.list.update(this.listProps());
+        input.update(this.inputProps());
+        list.update(this.listProps());
     }
 
     /**
@@ -195,6 +202,11 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
      * it three times from two getters, each of which walks the filtered item list.
      */
     private syncSelectAll(props: MultiListBoxProps<T>): void {
+        const selectAllRow = this.selectAllRow;
+        const selectAllIconHost = this.selectAllIconHost;
+        const selectAllLabelHost = this.selectAllLabelHost;
+        if (!selectAllRow || !selectAllIconHost || !selectAllLabelHost) return;
+
         const model = this.model;
         const checkState: CheckState = model.allVisibleSelected
             ? "true"
@@ -203,22 +215,22 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
                 : "false";
 
         if (this.appliedCheckState !== checkState) {
-            this.selectAllRow.dataset.checked = checkState;
-            this.selectAllRow.setAttribute("aria-checked", checkState);
+            selectAllRow.dataset.checked = checkState;
+            selectAllRow.setAttribute("aria-checked", checkState);
             // Direct DOM, never `fillSlot`: an `IconName` needs no React root. Gated on the applied
             // value so a re-sync does not rebuild the `svg`.
             const next = createIconElement(
                 checkState === "true" ? "checked" : checkState === "mixed" ? "indeterminate" : "unchecked",
             );
-            if (this.selectAllGlyph) this.selectAllIconHost.replaceChild(next, this.selectAllGlyph);
-            else this.selectAllIconHost.append(next);
+            if (this.selectAllGlyph) selectAllIconHost.replaceChild(next, this.selectAllGlyph);
+            else selectAllIconHost.append(next);
             this.selectAllGlyph = next;
             this.appliedCheckState = checkState;
         }
 
         const label = props.selectAllLabel ?? "Select all";
         if (this.appliedSelectAllLabel !== label) {
-            this.selectAllLabelHost.textContent = label;
+            selectAllLabelHost.textContent = label;
             this.appliedSelectAllLabel = label;
         }
     }

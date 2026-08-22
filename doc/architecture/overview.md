@@ -118,7 +118,7 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 | **content/** | Content I/O pipeline — providers, transformers, pipes | `ContentPipe.ts`, `parsers.ts`, `resolvers.ts`, `providers/`, `transformers/` |
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
 | **automation/** | Playwright-compatible browser MCP tools, CDP, input, refs | `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
-| **uikit/** | Standalone reusable component library; complex primitives may expose both a React face and a framework-free `VanillaView` over the same model | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `RenderGrid/`, `AVGrid/`, … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
+| **uikit/** | Standalone reusable component library; complex primitives may expose both a React face and a framework-free `VanillaView` over the same model | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `VirtualGrid/`, `RenderGrid/`, `AVGrid/`, … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
 | **components/** | Persephone-coupled components only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/` |
 | **core/** | State primitives, utilities | `state/` (TOneState, TModel), `utils/` |
 | **theme/** | Design tokens, themes | `color.ts`, `themes/` |

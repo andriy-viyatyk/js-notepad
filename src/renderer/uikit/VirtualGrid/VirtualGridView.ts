@@ -107,16 +107,16 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
     readonly model: VirtualGridModel;
     readonly pool = new CellPool();
 
-    private container!: HTMLDivElement;
-    private area!: HTMLDivElement;
-    private regions!: Record<RegionKey, HTMLDivElement>;
+    private container: HTMLDivElement | undefined;
+    private area: HTMLDivElement | undefined;
+    private regions: Record<RegionKey, HTMLDivElement> | undefined;
 
     /**
      * Cells currently attached to each region. Only ever holds cells this view appended, so the
      * sync can never remove a region's structural children — which is what makes `addOverlay`
      * safe against the paint.
      */
-    private attached!: Record<RegionKey, Set<HTMLElement>>;
+    private attached: Record<RegionKey, Set<HTMLElement>> | undefined;
 
     private rafId?: number;
     private paintScheduled = false;
@@ -188,7 +188,11 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
      * Call it from `onMount()` onward — the regions do not exist before the view is mounted.
      */
     addOverlay(el: HTMLElement, region: "content" | "header" = "content"): void {
-        this.regions[region === "header" ? "stickyTop" : "cells"].append(el);
+        const regions = this.regions;
+        if (!regions) {
+            throw new Error("VirtualGridView.addOverlay() must be called from mount() or later.");
+        }
+        regions[region === "header" ? "stickyTop" : "cells"].append(el);
     }
 
     // -----------------------------------------------------------------------
@@ -335,6 +339,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
 
     private paint(): void {
         if (this.inert) return;
+        if (!this.container || !this.area || !this.regions || !this.attached) return;
 
         // A synchronous paint satisfies any frame already queued.
         if (this.rafId !== undefined) {

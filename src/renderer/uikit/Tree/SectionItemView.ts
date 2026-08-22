@@ -33,9 +33,9 @@ const defaultIndentSize = 16;
 export class SectionItemView extends VanillaView<SectionItemProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
-    private labelHost!: HTMLSpanElement;
+    private labelHost: HTMLSpanElement | undefined;
     private labelCleanup: (() => void) | undefined;
-    private indents!: TreeIndents;
+    private indents: TreeIndents | undefined;
 
     private refCleanup: () => void = () => undefined;
     private boundRef: React.Ref<HTMLDivElement> | undefined;
@@ -77,6 +77,10 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
             ...rest
         } = props;
 
+        const labelHost = this.labelHost;
+        const indents = this.indents;
+        if (!labelHost || !indents) return;
+
         const root = this.root;
         root.dataset.type = "tree-section";
         if (name === undefined) root.removeAttribute("data-name");
@@ -85,8 +89,8 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
         else root.id = id;
         root.setAttribute("role", "presentation");
 
-        this.indents.sync(level, indentSize);
-        this.labelCleanup = fillSlot(this.labelHost, label);
+        indents.sync(level, indentSize);
+        this.labelCleanup = fillSlot(labelHost, label);
 
         applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
     }

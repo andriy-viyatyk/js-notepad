@@ -8,6 +8,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.23 (Upcoming)
 
+### Improvements
+
+- **Large trees, lists, and dropdowns stay more responsive** — File Explorer trees, selection lists, and searchable dropdowns now update and scroll more smoothly when they contain many items. Keyboard navigation, filtering, selection, and existing editor workflows are unchanged.
+
 ### Bug Fixes
 
 - **Session restore no longer risks losing open tabs if interrupted** — If Persephone was closed, crashed, or lost power while it was still restoring your previous session (for example, right after opening a large number of tabs), a save triggered during that window could overwrite the saved session with an empty or partial tab list. Restore now finishes before any save is allowed to run, so an interrupted restore can no longer erase your tabs for next time.

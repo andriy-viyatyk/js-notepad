@@ -59,7 +59,7 @@ interface AutocompleteContentProps {
  * `scrollToRowAfterPaint` correctly.
  */
 class AutocompleteContentView extends VanillaView<AutocompleteContentProps> {
-    private list!: ListBoxView<IListBoxItem>;
+    private list: ListBoxView<IListBoxItem> | undefined;
 
     private headerRow: HTMLDivElement | undefined;
     private headerHost: HTMLSpanElement | undefined;
@@ -89,12 +89,19 @@ class AutocompleteContentView extends VanillaView<AutocompleteContentProps> {
     }
 
     private sync(props: AutocompleteContentProps): void {
+        const list = this.list;
+        if (!list) return;
+
         const present = props.header != null && props.header !== false;
         if (present) {
+            const headerHost = this.headerHost;
+            const actionHost = this.actionHost;
+            if (!headerHost || !actionHost) return;
+
             const row = this.headerRow ?? this.createHeaderRow();
-            if (!row.isConnected) this.root.insertBefore(row, this.list.root);
-            this.headerCleanup = fillSlot(this.headerHost!, props.header);
-            this.actionCleanup = fillSlot(this.actionHost!, props.headerAction);
+            if (!row.isConnected) this.root.insertBefore(row, list.root);
+            this.headerCleanup = fillSlot(headerHost, props.header);
+            this.actionCleanup = fillSlot(actionHost, props.headerAction);
         } else if (this.headerRow?.isConnected) {
             this.headerRow.remove();
         }
@@ -155,8 +162,8 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
 
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
-    private input!: InputView;
-    private popover!: PopoverView;
+    private input: InputView | undefined;
+    private popover: PopoverView | undefined;
 
     /**
      * The dropdown contents, or undefined while closed. Owned by the floating branch — created by
@@ -193,6 +200,9 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
         this.input = this.child(new InputView(this.inputProps()));
         this.root.append(this.input.root);
         this.input.mount();
+        if (this.inputElement) {
+            this.listen(this.inputElement, "keydown", this.handleInputKeyDown);
+        }
 
         // `PopoverView`'s own root is `display: contents`; the floating branch lives in the overlay
         // layer, so this append contributes no box.
@@ -240,11 +250,15 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
 
     /** The single consequence of both the prop pump and a state write. */
     private syncChildren(): void {
+        const input = this.input;
+        const popover = this.popover;
+        if (!input || !popover) return;
+
         // `state.open`, not `popoverOpen` — see the class comment.
         this.root.dataset.state = this.model.state.get().open ? "open" : "closed";
 
-        this.input.update(this.inputProps());
-        this.popover.update(this.popoverProps());
+        input.update(this.inputProps());
+        popover.update(this.popoverProps());
 
         if (this.model.popoverOpen) {
             this.contentView?.update(this.contentProps());
@@ -268,7 +282,6 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
             autoFocus: props.autoFocus,
             onFocus: this.model.onInputFocus,
             onClick: this.model.onInputClick,
-            onKeyDown: this.handleInputKeyDown,
             startSlot: props.startSlot,
             endSlot: props.endSlot,
             width: props.width,
@@ -355,12 +368,9 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
 
     // -----------------------------------------------------------------------
 
-    /*
-     * `applyRestProps` delivers a `toPublicEvent` facade, so the model takes the native event and
-     * the view unwraps it — the `PathInputView` seam.
-     */
-    private readonly handleInputKeyDown = (event: React.SyntheticEvent<HTMLElement>): void => {
-        this.model.onInputKeyDown(event.nativeEvent as KeyboardEvent);
+    /** Native listener attached to the child Input's field after it mounts. */
+    private readonly handleInputKeyDown = (event: KeyboardEvent): void => {
+        this.model.onInputKeyDown(event);
     };
 
     private modelProps(props: AutocompleteViewProps): AutocompleteProps {

@@ -1,7 +1,7 @@
 # US-1016 — `MultiListBox` vanilla conversion
 
 **Epic:** [EPIC-056 — De-React C3](../../epics/EPIC-056.md)
-**Status:** Implemented 2026-08-22 — awaiting user testing (unreviewed epic task)
+**Status:** Implemented 2026-08-22
 
 ## Goal
 

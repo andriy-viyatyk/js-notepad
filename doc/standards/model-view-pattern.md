@@ -130,7 +130,7 @@ class MyViewModel extends TComponentModel<MyViewState, MyViewProps> {
         this.props.onSelect?.(this.state.get().items[index]);
     };
 
-    handleKeyDown = (e: React.KeyboardEvent) => {
+    handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Enter") {
             this.state.update((s) => { s.isOpen = !s.isOpen; });
         }
@@ -243,6 +243,29 @@ into markup. `replaceChildren` is allowed for a region the view owns outright, n
 [`KeyedList`](../../src/renderer/uikit/shared/keyed-list.ts)-managed container. For conditional
 owned roots, use [`SubtreeSwap`](../../src/renderer/uikit/shared/subtree-swap.ts); both helpers
 are direct imports from `uikit/shared/`, not public `uikit/index.ts` exports.
+
+## Virtualized DOM views
+
+Large collection views use [`VirtualGrid`](../../src/renderer/uikit/VirtualGrid/) rather than a
+React render loop. `VirtualGridModel` owns the measured render window, sticky-region geometry,
+scroll/resize handling, dirty-cell information, and the pooled elements that have scrolled out of
+view. `VirtualGridView` owns the DOM shell and schedules paints from the model's repaint callback.
+
+The cell contract is deliberately framework-free: `renderCell` returns an `HTMLElement` or
+`undefined`, and the engine applies the computed pixel geometry to that element. A cell renderer
+should update an existing `previous` element when possible, use `recycle()` only for a detached
+pooled element, and overwrite every property it owns because pooled elements retain their previous
+contents, attributes, classes, and listeners. The engine's `RerenderInfo` is a dirty set: report the
+smallest changed scope (`cells`, `rows`, `columns`, or `all`) so a state change does not repaint
+unrelated visible cells.
+
+`ListBoxView` and `TreeView` compose this engine for virtualized rows. Their model state and view
+props must expose every value that changes cell output through a stable repaint signature or an
+explicit state-to-view callback. Do not rely on an incidental parent render to recreate a row
+renderer: in a vanilla view there is no render pass to hide a missing dependency. Geometry that
+depends on a scrollbar or a newly attached container is recomputed from the view's measured DOM,
+and scroll-to-row requests that arrive before a usable paint remain pending until the paint path
+can satisfy them.
 
 ## Effects and the vanilla driver
 

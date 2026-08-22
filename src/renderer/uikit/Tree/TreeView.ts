@@ -81,7 +81,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     private arm: Arm | undefined;
     private grid: VirtualGridView | null = null;
     private gridHost: HTMLDivElement | undefined;
-    private messageHost!: HTMLDivElement;
+    private messageHost: HTMLDivElement | undefined;
     private spinner: SpinnerView | undefined;
     private lastActiveIndex: number | null | undefined = undefined;
     private lastEmptyMessage: TreeProps<T>["emptyMessage"] | undefined = undefined;
@@ -220,13 +220,16 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
      * and `root.tabIndex = -1` is not the same as no `tabindex` at all.
      */
     private applyArm(props: TreeProps<T>): void {
+        const messageHost = this.messageHost;
+        if (!messageHost) return;
+
         const arm = this.armFor(props);
         const changed = arm !== this.arm;
         this.arm = arm;
 
         if (arm === "real") {
             if (changed) {
-                this.messageHost.remove();
+                messageHost.remove();
                 this.enterRealArm(props);
             } else {
                 this.grid?.update(this.gridProps(props));
@@ -234,7 +237,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         } else {
             if (changed) {
                 this.leaveRealArm();
-                this.root.append(this.messageHost);
+                this.root.append(messageHost);
             }
             // Only when the content can actually have changed: re-running `fillSlot` every update
             // would move the spinner element and rewrite the text node for nothing.
@@ -312,6 +315,9 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     }
 
     private fillMessage(arm: Arm, props: TreeProps<T>): void {
+        const messageHost = this.messageHost;
+        if (!messageHost) return;
+
         if (arm === "loading") {
             if (!this.spinner) {
                 this.spinner = new SpinnerView({ size: 16 });
@@ -319,10 +325,10 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             }
             const fragment = document.createDocumentFragment();
             fragment.append(this.spinner.root, document.createTextNode("loading…"));
-            fillSlot(this.messageHost, fragment);
+            fillSlot(messageHost, fragment);
             return;
         }
-        fillSlot(this.messageHost, props.emptyMessage ?? "no items");
+        fillSlot(messageHost, props.emptyMessage ?? "no items");
     }
 
     private gridProps(props: TreeProps<T>) {
@@ -444,8 +450,8 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             // A fresh closure per render is fine here — it is a row *prop*, not the engine's
             // `renderCell`, and `update()` re-supplies it with the current index on every render, so
             // a recycled row never calls the previous row's handler.
-            onChevronClick: (event: React.MouseEvent) => {
-                this.model.onChevronClick(event as unknown as MouseEvent, index);
+            onChevronClickNative: (event: MouseEvent) => {
+                this.model.onChevronClick(event, index);
             },
         };
     }

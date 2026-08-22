@@ -238,9 +238,9 @@ existing av-grid. Nothing needs to be invented to get there.
 | `uikit/Menu/types.ts` | `api/types/events` (`MenuItem`) | Real — a re-export of an app type |
 | `uikit/RenderGrid/RenderFlexGrid.tsx` | `shared/utils` | Real |
 
-Four files, once AVGrid is gone. Closing them is cheap and belongs in Epic C.
+Four files were closed during C1–C3; once AVGrid is gone, no `uikit/` → app-layer leak remains.
 
-**Status at C3 open (2026-08-21): closed, except AVGrid's.** `ListBoxModel` and `TreeModel` now read
+**Status at C3 close (2026-08-22): closed, except AVGrid's.** `ListBoxModel` and `TreeModel` now read
 `core/events/context-menu`, `Menu/types` no longer re-exports an app type, and `RenderFlexGrid`
 imports `core/utils/*` rather than `shared/utils`. The only remaining violation is
 `uikit/AVGrid/model/ContextMenuModel.tsx`, which dies with AVGrid in C4 — so it stays as the single
@@ -553,20 +553,13 @@ Candidate tasks:
   `setPropsInternal` / `_initInternal` / `onUnmountInternal`; `ComponentQueue` gains a plain
   `subscribe` path in place of its hook.
 - **`mountVanilla` / `mountReact`** — the two-way adapter pair.
-- **Storybook harness** — teach `editors/storybook/` to host a vanilla view alongside the React
-  one (open decision #6). The `Story` record is already mostly neutral *data*: `id`, `name`,
-  `section`, `defaultProps` and the serializable `PropDef` union carry no React types, so the
-  component browser and the property editor need no change at all. Only two fields are
-  React-typed — `component: React.ComponentType<P>` and `previewChildren?: () => ReactNode` — and
-  only one render call, `LivePreview.tsx:61`. Add an optional `vanillaComponent` field beside
-  `component` and branch there: React renders as today, and when the vanilla field is present it
-  mounts through `mountVanilla` in a second pane, so the two are compared side by side
-  (EPIC-053 B5). Two of the 38 stories
-  (`Checkbox.story.ts`, `Label.story.ts`) are already plain `.ts` with no JSX, which is the
-  existence proof that the format is nearly framework-free. Doing this here makes the harness
-  `mountVanilla`'s first consumer, so the adapter is exercised before any production call site
-  depends on it. `previewChildren` stays React-only until Epic C answers the subtree-slot question
-  (Epic P D4) — which is fine, because the leaf components converted first do not use it.
+- **Storybook harness** — the existing `editors/storybook/` preview exercises the vanilla
+  implementation through each converted component's unchanged React-facing shim. The original
+  plan considered a second `vanillaComponent` field and side-by-side panes, but the public React
+  face now calls `mountVanilla` itself, so a second pane would render the same implementation twice
+  and add no comparison signal. `Story` remains a small React-facing record with serializable
+  prop definitions; `previewChildren` remains the temporary React-only slot seam until later
+  conversions remove it.
 - **Pilot** — one real component converted end to end to validate the contract before Epic C
   scales it to 44.
 - **Authoring rules** — update `uikit/CLAUDE.md` and `model-view-pattern.md` for vanilla views.
@@ -588,10 +581,9 @@ If the migration stops after Epic C, it was still worth doing.
 
 #### Split into four epics (user decision, 2026-08-19)
 
-*C1 shipped as [EPIC-054](epics/completed.md). C2 shipped as [EPIC-055](epics/EPIC-055.md). C3 is
-scheduled as [EPIC-056](epics/EPIC-056.md). The next free epic number is **EPIC-057**; C4 gets its
-doc and its ID when it is genuinely next up, the way this programme has scheduled every epic so
-far.*
+*C1 shipped as [EPIC-054](epics/completed.md). C2 shipped as [EPIC-055](epics/EPIC-055.md). C3
+is implemented as [EPIC-056](epics/EPIC-056.md). The next free epic number is **EPIC-057**; C4 gets its doc
+and its ID when it is genuinely next up, the way this programme has scheduled every epic so far.*
 
 At scheduling time this was measured against the tree and **split into four independently
 schedulable epics** rather than run as one. Whole, it would have been 44 components and 14,671
@@ -630,7 +622,7 @@ foundation and is not: of its 716 production JSX tags, 636 are in `editors/` and
 `components/`, against **6 inside `uikit/`**. It is app-facing styling sugar, so it gets no
 vanilla equivalent — vanilla views write plain elements with semantic classes in their own
 stylesheets, which is VSCode's pattern. `Panel` stays React-only and drains away as Epics D and E
-convert its call sites. Scheduled as [EPIC-054](epics/EPIC-054.md).
+convert its call sites. Delivered in [EPIC-054](epics/EPIC-054.md).
 
 **C2 — Floating layer and composites.** `Popover`, `Menu`, `Dialog`, `Notification`, `Progress`,
 `DateInput`, `TagsInput`, `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack`,
@@ -641,7 +633,7 @@ establish the pattern. Note the dependency is **not** fully retired here —
 `editors/browser/BrowserTabsPanel.tsx` and `ui/dialogs/poppers/showPopupMenu.tsx` also import it
 and convert in Epics E and D. C2 is also the first epic that converts `TComponentModel` models
 (four of them, seven `effect()` calls), so B13's effect-shedding is first paid for here.
-Scheduled as [EPIC-055](epics/EPIC-055.md).
+Delivered in [EPIC-055](epics/EPIC-055.md).
 
 **`Select`, `MultiSelect` and `Autocomplete` are C3, not C2** *(user decision, 2026-08-20,
 EPIC-055 C2-1)*. All three render `<ListBox>` / `<MultiListBox>` in their dropdown, and `ListBox`
@@ -657,7 +649,7 @@ cannot land until C2 has produced a vanilla `Popover` and `Menu`, and the three 
 cannot land until `ListBox` has. This epic also resolves B15's one explicitly undecided item,
 `RenderFlexGrid.tsx`. **Its scope must be re-measured when it opens**, not inherited: it is now
 seven components, and whether the dropdown family deserves its own epic is a question for that
-point (EPIC-055 Concern 6). Scheduled as [EPIC-056](epics/EPIC-056.md).
+point (EPIC-055 Concern 6). Implemented in [EPIC-056](epics/EPIC-056.md).
 
 **What the C3 measurement changed** *(EPIC-056, 2026-08-21)*. The scope re-measure held the line
 estimate (7,578) but overturned two assumptions in this section. First, the absorption is **not a
@@ -676,7 +668,8 @@ React version's (B15). The only part of Epic C that reaches outside `uikit/`, th
 an adoption rather than a conversion, and therefore the one that is cleanly abortable on its own.
 
 **Verification runs through the Storybook harness** built in Epic B. Each converted component is
-exercised through its existing story, and the `data-name` contract
+exercised through its existing story; the public React shim mounts the vanilla implementation, and
+the `data-name` contract
 ([ui-element-contract.md](architecture/ui-element-contract.md)) makes the DOM before and after
 comparable — drivable from the `browser_*` tools. It is a visual harness, not an assertion suite;
 it shows a difference, it does not fail a build. Note that open decision #6's *side-by-side* form
@@ -748,9 +741,10 @@ library, exactly like av-grid. Dropping React support removes a consumer, not th
 
 *Added 2026-08-21 (user decision at EPIC-056 open). Temporary duplication during the migration is
 accepted — it is often the only way to keep Rule 2 — **on the condition that every duplicate is
-written down here when it is created, and that this epic cannot close while any entry is still in the
-tree**. Draining is not a guarantee: a component whose last consumer is gone still compiles, and
-nothing but this list notices.*
+written down here when it is created, and that the programme cannot close while any entry is still in
+the tree**. Draining is not a guarantee: a component whose last consumer is gone still compiles, and
+nothing but this list notices. An individual conversion epic may close with a documented survivor;
+the entry remains until the later epic that owns its last consumer removes it.*
 
 Each entry names what was kept, why, and what makes it collectable. Add a row in the epic that
 creates the duplicate, not in the epic that hopes to remove it.
@@ -790,7 +784,7 @@ Each of these changes the shape of an epic and should be settled before that epi
 | 3 | *Settled (2026-08-18, user decision):* **Scaffolding — deleted in Epic F.** There is no plan to consume UIKit from a React app, so once React leaves Persephone every UIKit component is vanilla-only with no React support. Rule 2 still governs the *migration* (a swap must not break call sites), but the React-facing signature is not a permanent contract, so Epic F is free to clean up the API. Keep the wrappers thin and mechanical in Epic C — do not invest in React ergonomics for something scheduled for deletion. | Epic C, Epic F |
 | 4 | *Settled (2026-08-18, user decision):* **CSS custom properties**, not generated class hooks. Scalar values (size, offset, width, color) are written to `element.style` as `--*` variables and consumed by a static rule; discrete boolean state uses a `data-*` attribute and a static rule, which is already the UIKit state model. Generated class hooks are rejected — they reintroduce a runtime style engine. This is the mechanism boards already use (`--p-*`), where a theme switch is a variable re-push and nothing walks the component tree. See [EPIC-052](epics/EPIC-052.md) A6. | Epic A |
 | 5 | *Settled (2026-08-18, user decision):* **Stays in-tree; designed for extraction, not extracted.** Packaging UIKit during the migration would compound two risky changes, so no package is built here. But the folder boundary is treated as a future package boundary from Epic C onward, so extraction stays a later decision rather than a rewrite. The eventual target shape — one source tree producing two products (Persephone + one or more libraries, so boards can consume UIKit the way they already consume av-grid) — is recorded in §7 "Epic F" as post-migration work. See §3.5 for the measured distance to that boundary. | Epic C |
-| 6 | *Settled (2026-08-18, user decision):* **Yes.** `editors/storybook/` gains a second render path so a story can host a vanilla view, and Epic C uses it to compare React and vanilla versions side by side. The work lands in Epic B as `mountVanilla`'s first consumer. Note this is Persephone's own in-app gallery, not the Storybook.js product — there is no such dependency. | Epic B |
+| 6 | *Settled:* **No second Storybook pane is needed.** Converted React-facing components mount their vanilla views through `mountVanilla`, so the existing story preview already exercises the implementation that ships. The in-app gallery is Persephone's own harness, not the Storybook.js product. | Epic C |
 
 ## 9. Abort criteria
 

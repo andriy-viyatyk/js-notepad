@@ -1,7 +1,7 @@
 # US-1013: The vanilla virtualization engine — `VirtualGrid`
 
 **Epic:** [EPIC-056 — De-React C3](../../epics/EPIC-056.md)
-**Status:** Implemented — awaiting user testing
+**Status:** Implemented 2026-08-21
 **Created:** 2026-08-21
 
 ## Goal
