@@ -1,11 +1,17 @@
 @layer app {
-    [data-type="file-grid"] [data-column-key="icon"] {
+    [data-type="file-grid"] {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
     }
 
-    .file-grid-folder {
-        font-size: 13px;
-        padding-bottom: 3px;
+    [data-type="file-grid"][data-compact="true"] {
+        --p-font-base: 12px;
+    }
+
+    [data-type="file-grid"] [data-column-key="icon"] {
+        overflow: hidden;
     }
 
     .git-status-badge {

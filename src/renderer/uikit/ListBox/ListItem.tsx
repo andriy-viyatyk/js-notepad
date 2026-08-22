@@ -15,6 +15,8 @@ export interface ListItemProps
     id?: string;
     /** Leading icon. */
     icon?: IconRef;
+    /** Direct DOM icon supplied by a vanilla parent; takes precedence over `icon`. */
+    iconElement?: Node;
     /** Label content. Link editor folder rows retain a styled rich label; string labels are highlighted. */
     label: React.ReactNode;
     /** Highlight matches in string labels. */

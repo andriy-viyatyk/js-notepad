@@ -1,0 +1,19 @@
+@layer app {
+    [data-type="file-list"] {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        outline: none;
+    }
+
+    [data-type="file-list"][data-compact="true"] {
+        font-size: var(--font-sm, 12px);
+    }
+
+    [data-type="file-list"] [data-part="search"] {
+        display: flex;
+        flex: 0 0 auto;
+        padding: var(--space-sm, 4px);
+    }
+}

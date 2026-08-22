@@ -48,6 +48,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
     private appliedChecked: boolean | undefined;
 
     private iconCleanup: (() => void) | undefined;
+    private appliedIconElement: Node | undefined;
     private labelCleanup: (() => void) | undefined;
     private trailingCleanup: (() => void) | undefined;
     /** Which mechanism currently owns the label host — they must never both write to it. */
@@ -105,6 +106,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
             name,
             id,
             icon,
+            iconElement,
             label,
             searchText,
             selected,
@@ -151,7 +153,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
         setAttr(root, "aria-disabled", disabled ? "true" : undefined);
 
         this.setCheck(!!checkbox, !!selected);
-        this.setIcon(icon);
+        this.setIcon(icon, iconElement);
         this.setLabel(label, searchText);
         this.setTrailing(trailing, selected, showSelectionIcon, selectionStyle, !!checkbox);
 
@@ -194,7 +196,14 @@ export class ListItemView extends VanillaView<ListItemProps> {
      * through `fillSlot`. Passing names through `fillSlot`'s React arm would put a root behind the
      * library's most common non-empty slot, which is the cost this whole design exists to avoid.
      */
-    private setIcon(icon: IconRef | undefined): void {
+    private setIcon(icon: IconRef | undefined, iconElement: Node | undefined): void {
+        if (iconElement !== undefined) {
+            if (this.appliedIconElement === iconElement) return;
+            this.appliedIconElement = iconElement;
+            this.iconCleanup = fillSlot(this.iconHost, iconElement);
+            return;
+        }
+        this.appliedIconElement = undefined;
         // A string is always an icon-name attempt, never content: `renderIcon` returned `null` for
         // an unknown name, so an unknown name must render nothing here too. Falling through to
         // `fillSlot` would write the name into the row as literal text.
@@ -279,6 +288,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
         this.labelCleanup?.();
         this.trailingCleanup?.();
         this.iconCleanup = undefined;
+        this.appliedIconElement = undefined;
         this.labelCleanup = undefined;
         this.trailingCleanup = undefined;
     }

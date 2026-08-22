@@ -58,7 +58,7 @@
     "@floating-ui/react": "^0.27.20",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@monaco-editor/react": "^4.7.0",
-    "av-grid": "2.2.3",
+    "av-grid": "2.2.4",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "csv-parse": "^7.0.1",

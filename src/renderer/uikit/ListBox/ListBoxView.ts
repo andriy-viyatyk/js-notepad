@@ -372,6 +372,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         return {
             id,
             icon: item.icon,
+            iconElement: item.iconElement,
             label: item.label,
             trailing: item.trailing,
             searchText: this.props.searchText,

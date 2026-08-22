@@ -18,6 +18,8 @@ export interface IListBoxItem {
     label: string;
     /** Leading icon. */
     icon?: IconRef;
+    /** Direct DOM icon supplied by a vanilla parent; takes precedence over `icon`. */
+    iconElement?: Node;
     /** Right-aligned trailing content (e.g. a status badge). Overrides the
      *  default selection check/chevron for this row when set. */
     trailing?: React.ReactNode;

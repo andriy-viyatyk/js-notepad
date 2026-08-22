@@ -228,7 +228,7 @@ condition.
 |------|-------|--------|
 | [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Planned |
 | [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
-| US-1027 | `components/file-list/` + `components/file-grid/` | Planned |
+| [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Implemented |
 | US-1028 | `components/file-search/` (first `RenderGrid` collection) | Planned |
 | US-1029 | `components/tree-provider/` | Planned |
 | US-1030 | `components/git-tree/` React remnants | Planned |
@@ -242,9 +242,14 @@ condition.
 ### Ordering
 
 US-1025 first: it is the enabling change, it is measurable on its own, and US-1026 depends on it.
-Then the `components/` leaves in any order — they are independent, and US-1027 is the cheapest place
-to establish the epic's pattern. Then the shell, where `ui/dialogs/` and `ui/secondary-views/` are the
-two with external contracts and should be done while attention is fresh. US-1036 is last by D9.
+US-1027's package prerequisite is **met**: `av-grid@2.2.4` widened `CellRenderer` and
+`HeaderRenderer` from `string | HTMLElement | null | undefined` to `string | Element | null |
+undefined`, was published on 2026-08-22 and is pinned exactly in `package.json`. US-1027 consumes
+that release rather than casting or wrapping SVG/IMG icon elements. With that done,
+the `components/` leaves can proceed in any order — they are independent, and US-1027 is the cheapest
+place to establish the epic's pattern. Then the shell, where `ui/dialogs/` and
+`ui/secondary-views/` are the two with external contracts and should be done while attention is
+fresh. US-1036 is last by D9.
 
 ### Verification
 
@@ -319,3 +324,43 @@ criterion that a grep can check.
 **Zero contexts, seven `useState`.** The measurement worth carrying forward: Epic P's value shows up
 here, not in Epic P. The hazards in this epic are structural (portals, the error boundary, the root
 flip), not stateful — which is the opposite of what the roadmap predicted for the shell.
+
+### 2026-08-22 — av-grid 2.2.4: the renderer element arm widens to `Element`
+
+US-1027 was written expecting av-grid's element arm to be usable for an icon cell. It was not, for a
+reason no amount of prose would have caught: `CellRenderer` and `HeaderRenderer` declared that arm as
+`HTMLElement`, and an `<svg>` built with `createElementNS` is an **`SVGElement`** — a *sibling* of
+`HTMLElement` in TypeScript's DOM types, not a subtype. US-1026's `createFileIconElement` returns
+`Element` precisely because its branches produce an `<svg>`, an `<img>` or a board glyph. So the one
+thing a consumer most often wants to put in a cell was the one thing the type rejected, and the only
+routes through were a cast that lies about the interface, or the wrapper span US-1026 spent a whole
+concern avoiding.
+
+Fixed upstream and published as **2.2.4**; Persephone is re-pinned exactly, and `typecheck`, `lint`
+and `build-prod` are green on it. Four things worth keeping.
+
+**This is C4-10's fourth invocation and the cheapest yet — two type lines, no runtime change.**
+`DataCell` appends what it is handed (`el.appendChild(rendered)`) and `HeaderCell` does the same;
+neither touches an `HTMLElement`-only member, so nothing else had to move. The library's own
+doc-comment already promised "a DOM element", which makes this the type catching up with its
+documented contract rather than a new capability. `Column.editor` stays `HTMLElement | CellEditor`
+deliberately — an editor is focused and read for its value, and `EditingModel` narrows on
+`instanceof HTMLElement`.
+
+**`HeaderRenderer` widened in the same release although nothing needs it yet.** Same declaration,
+same defect, and a header icon is as ordinary as a cell icon; leaving it asymmetric would have bought
+a second release for the identical reason.
+
+**The tests pin a type, so they had to be shown to fail as types.** All three compile only with the
+widening — verified by reverting `types.ts` and watching `tsc` reject each one, which is the only
+honest discriminator for a change with no runtime behaviour. Two also assert `namespaceURI`, because
+an `<svg>` parsed out of a *string* lands in the HTML namespace and is indistinguishable by `tagName`
+alone. The third pins that a renderer returning the **same node** keeps it across a repaint: the
+element branch has no `written` guard, so a per-row element cache is the supported way to keep one
+node alive, not an accident for a later optimisation to remove.
+
+**Process note for the rest of Epic D.** This epic's opening investigation did not predict an
+upstream dependency; it read the element arm as sufficient, and US-1027 is now the epic's only task
+with one. Two consecutive task documents asserted that a *type* was fine when it was not — US-1026
+on `getIcon`'s "arbitrary `ReactNode`", US-1027 on the element arm. The cheap habit that catches both:
+compile a throwaway snippet against the real signature before writing a claim about it into a plan.
