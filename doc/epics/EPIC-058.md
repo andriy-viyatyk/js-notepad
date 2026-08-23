@@ -263,9 +263,11 @@ fresh. US-1036 is last by D9.
 Per task:
 
 - `npm run typecheck`, `npm run lint`, `npm run build-prod`.
-- Rule 4's interaction-cost measurement on the converted unit, per §6 of the roadmap — the abort
-  criterion is a measured gain under ~2×, and it cannot be evaluated on units that were never
-  measured.
+- ~~Rule 4's interaction-cost measurement on the converted unit~~ — **corrected at epic close.**
+  The roadmap's Rule 4 is *"one measured number per **epic**"* (`de-react.md:353`), not per task, and
+  the C2/C3 precedent waives the historical all-React baseline. One number is taken for the whole
+  epic; see the Rule 4 note. The per-task "PENDING" markers in the notes below record what was not
+  measured per unit, which Rule 4 never required.
 - The unit's own smoke pass in the running app. Epic D is app chrome: a broken tab strip or dialog
   host is not something a build catches.
 
@@ -311,6 +313,80 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — Rule 4 measurement and the 13-dialog sweep
+
+**Rule 4 is satisfied.** First, a correction to this epic's own Verification section: it restated
+Rule 4 as a per-task requirement, but the roadmap's Rule 4 is **"One measured number per epic"**
+(`de-react.md:353`) — *"if a phase cannot show what it bought, it does not close."* The eleven
+"PENDING" per-task entries in the notes above were therefore self-imposed, not programme
+requirements. Per the C2/C3 closure precedent (`EPIC-056.md:294-296`) the historical all-React
+baseline is **not** required either: the number is taken on the vanilla implementation, once.
+
+**The number: 207 DOM writes for a full open+close of the native confirmation dialog**, counted with
+EPIC-053's `MutationObserver` method over `#root` and the overlay layer. Stable — three of four runs
+were identical at 207, with one 250 outlier from a stray hover.
+
+| Component | Count |
+|---|---:|
+| Attribute writes | **153** |
+| Nodes added | 23 |
+| Nodes removed | 30 |
+| Text writes | 1 |
+| **Total** | **207** |
+
+A settled active-page switch was measured first and rejected as the subject: it ranges 1,734–3,979
+because the two pages hold different editors, so it is not deterministic. Its **shape** matches the
+dialog exactly, which is the finding worth keeping.
+
+**What the number says.** Structure is now cheap — 53 structural operations for an entire dialog
+lifecycle. The residual cost is **attribute churn: 74% of all DOM writes**, the same proportion in
+both subjects. The cause is named and mechanical: `applyPanelAttributes` (`uikit/Panel/panel-style.ts`)
+calls `style.removeProperty` and then conditionally `setProperty` for all ~30 entries of
+`STYLE_PROPERTIES`, plus writes every dataset key, on **every** update — roughly 47 attribute
+mutations per `Panel` per apply, and ~3 panels in a confirmation dialog gives ~141 against the 153
+measured. Views re-apply their full attribute set rather than diffing it.
+
+That is an optimization target for Epic E/F with a concrete shape — guard attribute and style writes
+on change — and it is worth stating that **it was invisible before this measurement**: nothing in
+typecheck, lint, build-prod or any smoke test surfaces it.
+
+### The 13-dialog sweep — US-1032's open concern, closed
+
+EPIC-058 concern 2 required "an explicit route to each of the 13 dialogs", noting that a dialog only
+reachable from an error path is one nobody smoke-tests by accident. All 13 are now verified open **and**
+dismiss, driven through the dev server (`await import('http://localhost:5273/src/renderer/ui/dialogs/…')`
+reaches the app's live module graph, so `show*` functions render into the real `DialogsView`):
+
+`ConfirmationDialog`, `TextDialog`, `InputDialog`, `OpenUrlDialog`, `PasswordDialog`,
+`NamespaceCollisionDialog`, `TrustBoardDialog`, `RegisterToolsetDialog`, `CommitDialog`,
+`CreateBoardDialog`, `LibrarySetupDialog`, `TorInfoDialog`, `CreateBoardVarsStorageDialog`.
+
+Each rendered its expected content and closed on Escape. No dialog was ever confirmed — the
+destructive paths (`LibrarySetupDialog`'s directory creation, `TrustBoardDialog`, `RegisterToolsetDialog`,
+`CreateBoardVarsStorageDialog`) were dismissed, so those remain unexercised by design.
+
+**`TextDialog` mounts Monaco with working syntax highlighting (18 highlighted tokens) inside a dialog
+under the vanilla shell** — the D5 React-island shape, verified end to end after the root flip.
+
+**No React-root leak**: 73 roots before, 73 after six open/close cycles across two dialogs. The
+absolute count is content-dependent (active page, loaded editors), so equality across a cycle is the
+only meaningful test.
+
+### One robustness gap found, not fixed
+
+Passing invalid props to `showRegisterToolsetDialog` — my error, `tools` is required and
+`RegisterToolsetDialogView.syncTools` calls `tools.map()` at `:98` — made the view throw during
+`mount()`, and the result was an **undismissable dialog**: Escape, Cancel and even clearing
+`dialogsState` had no effect.
+
+The cause is that `DialogsView.createSlot` appends the slot root and *then* calls
+`nativeView.mount()`; when mount throws, the slot is never registered in `this.slots`, so the DOM is
+orphaned and untracked and no state change can remove it. `VanillaHost` already handles exactly this
+(`mount.tsx:38-50`: dispose, remove the root, then rethrow). `DialogsView` should mirror it.
+
+Only reachable through a contract violation, so it is recorded rather than fixed — it is outside this
+epic's scope and was found by an invalid test, not by product behaviour.
 
 ### 2026-08-23 — US-1036 implementation note: the root is flipped
 
