@@ -149,18 +149,30 @@ editors are not the largest conversions.
 | New dependencies added | — | **0** (E1-10); 4 transitive packages declared direct |
 | `editors/base` chrome | React | **unchanged, deliberately** — drains with its call sites (E1-8) |
 
-## How this epic is being run — READ THIS FIRST
+## How this epic is being run — ORCHESTRATOR ONLY (Claude Code)
+
+> **Codex: ignore this entire section.** It is the orchestrating agent's operating procedure, not task
+> context, and acting on it would be wrong — it tells the reader to commit, to delegate work to Codex,
+> and to make scope decisions. If you were pointed at this document by a delegation prompt, your scope
+> is **only** the task document you were given plus the **Decisions** section below (E1-1 … E1-10),
+> which is genuine design context. Skip from here to "## Decisions". Never commit, never run
+> `/review`, `/document` or `/userdoc`, and never edit this file or `doc/active-work.md`.
 
 *(User decision, 2026-08-24. This epic is executed **autonomously**: the user is not reviewing each
-step. If you are a fresh or post-compaction agent picking this up, this section is your operating
-procedure — follow it before reading anything else. It is recorded here, not only in the session, because
-the session will be compacted and this document will not.)*
+step. If you are a fresh or post-compaction **Claude Code** agent picking this up, this section is your
+operating procedure — follow it before reading anything else. It is recorded here, not only in the
+session, because the session will be compacted and this document will not.)*
 
 ### The loop, per task
 
 Work the **first `Planned` task** in [Linked Tasks](#linked-tasks) that has no blocking predecessor
 (see the ordering constraints below the table). For each one:
 
+0. **Scope what Codex is allowed to read.** Codex reads whatever you point it at, and this document's
+   procedure section reads like instructions — so a delegation prompt must name the task document and,
+   if epic context is needed, the **Decisions** section specifically. The fence at the top of this
+   section exists for the case where it reads the whole file anyway. Never tell Codex to "read
+   EPIC-059.md in full."
 1. **Delegate investigation to Codex** — thread A, per [`.claude/skills/codex-dev`](../../.claude/skills/codex-dev/SKILL.md).
    Codex writes `doc/tasks/US-XXXX-short-name/README.md` following `.claude/rules/task-docs.md`.
    Always pass the `developer-instructions` that make it read `CLAUDE.md` in full; `AGENTS.md` is the
@@ -176,9 +188,16 @@ Work the **first `Planned` task** in [Linked Tasks](#linked-tasks) that has no b
 4. **Delegate implementation to a fresh Codex thread.** Thread A is near its context limit by then and
    cannot be compacted over MCP. State in the prompt: no unit tests, do not commit, run
    `npm run typecheck` / `npm run lint` / `npm run build-prod` and fix what they report.
-5. **Smoke-verify** — `git status --short`, `git diff --stat`, confirm the three gates actually passed
-   (re-run them yourself if Codex's summary is vague), and read only the files you flagged as risky in
-   step 2.
+5. **Smoke-verify** — confirm the three gates actually passed (re-run them yourself if Codex's summary
+   is vague), and read only the files you flagged as risky in step 2.
+
+   **Isolate Codex's changes with the index** *(user tip, 2026-08-24)*. Before handing off, `git add`
+   everything you wrote yourself — the task document, epic edits, notes. Then Codex's implementation is
+   the **only** thing in the unstaged working tree, so `git diff` is exactly its output and
+   `git diff --stat` is an honest scope check against the plan's Files Changed table. Without this, your
+   own doc edits are mixed into the same diff and you end up re-reading your own prose to find its code.
+   It also catches the quiet failure mode: a file Codex touched that the plan never mentioned shows up
+   immediately instead of at review time.
 6. **Commit.** One commit per task, message naming the task and what it changed. Push.
 7. Mark the task `Done` in the table and add a Notes entry for anything a later task needs to know.
 
@@ -219,7 +238,7 @@ row the moment you defer something; do not batch them up at the end from memory.
 
 | Task | What to look at | How to reach it |
 |---|---|---|
-| *(none yet)* | | |
+| US-1042 | The converted **toolset editor** rendered on screen: header row (icon · title · Registered/Not-registered badge · Refresh pushed to the far right by the spacer), the Open Folder / Open Log buttons, and either the manifest-error list or the `Tools (n)` cards. Compare against the React version in `git show 8ed0ee0b:src/renderer/editors/toolset/ToolsetEditorView.tsx`. | Sidebar → Agent Tools → click a registered toolset. **Could not be reached autonomously:** the editor is only routed to from the registered-toolset list, and `create_toolset` requires a human confirmation prompt to register, so no toolset could be created without you. Everything reachable without one was verified — see the Notes entry for US-1042. |
 
 ## Decisions
 
@@ -452,7 +471,7 @@ new weight. `remark-gfm` and `rehype-raw` are already direct. `react-markdown` a
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the **`toolset`** editor | Planned |
+| US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the **`toolset`** editor | **Done** |
 | US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | Planned |
 | US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | Planned |
 | US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | Planned |
@@ -481,6 +500,18 @@ Chosen because `compare` is 108 lines whose entire content is a controlled Monac
 number isolates exactly what E1-3 changes: how much reconciliation sits between a keystroke and the
 widget. The secondary number — React roots per open editor, 1 → 0 — is a count, not a benchmark, and
 is reported alongside rather than as the headline.
+
+> **GATE — do not skip.** The "before" half of this number is **unrecoverable** once US-1043 lands.
+> Capture it as the *first step* of US-1043, before any code changes, and record it in the Notes
+> section below. If you reach US-1043's implementation and no baseline is recorded, stop and take it
+> first. This is the one measurement in the epic that cannot be reconstructed from the repository.
+
+**MCP measurement pitfall, found 2026-08-24.** `await import('http://localhost:5273/src/…')` from
+`execute_script` returns a **fresh module instance**, not the running app's singleton — an imported
+`editorRegistry` came back with zero definitions while the app was working normally. Reach live state
+through the scripting context's `app` object model instead, and instrument the real DOM directly
+(`document.getElementById("root")` *is* the app's root, so a `MutationObserver` there measures the real
+thing). Only use dev-server imports for pure functions and types.
 
 ## Concerns
 
@@ -519,6 +550,34 @@ is accepted.
   editors that fill them would multiply React roots 1 → up to 6 per open editor), and
   `hast-util-to-dom` is **not adopted** (E1-10 — the walker is hand-written, so the epic adds zero
   dependencies). Task count 7 → 6.
+- **US-1042 done.** Registry gains the `Component | View` discriminated union (a compile-time
+  invariant — `npm run typecheck` confirmed all 31 `Component:` providers, 5 `Body:` providers,
+  `register-editors.ts` and every reader compile untouched), normalization synthesizes the missing
+  React arm **inside `loadModule()` before the cache write** so there is one stable wrapper identity
+  per editor id, `AsyncEditorView` mounts a vanilla view with no React root, and `toolset` is the first
+  fully vanilla editor.
+
+  Five defects were found in review and fixed before commit, four of which the gates could not have
+  caught: **UTF-8 corruption** in four string literals, two of them user-visible (`—` and `•` in
+  `ui.notify` and the manifest-error list); **`SpacerView` never mounted**, so it had no
+  `data-type="spacer"` and therefore no flex growth, silently breaking the header layout — `this.child()`
+  registers ownership but does **not** mount; **retiring a vanilla view never detached its root**
+  (`vanilla-view.ts` documents that `dispose()` deliberately leaves the root attached), which would have
+  rendered two editors at once on a vanilla→vanilla switch and left dead DOM under the new React root on
+  vanilla→React; **React-root reuse across editor switches was lost**, a regression — the original code
+  deliberately kept `this.handle` and re-rendered into it, so blanket disposal added root churn plus a
+  synchronous unmount inside `onUpdate`; and **unguarded disposal**, which could throw out of `onUpdate`
+  into the state-notification path.
+
+  *Verified live over MCP:* repeated `monaco → md-view → monaco → md-view` switches on a scratch page
+  returned identical DOM counts every time with zero `[data-name="editor-error"]` nodes — no stale
+  accumulation and no root churn, which is exactly what the third and fourth defects were about. The
+  React path is intact. The toolset editor's own appearance is in Testing owed.
+
+  *Dismissed after checking, so it is not re-investigated:* `element.hidden` on the description/author
+  spans works — `Text.css` sets `display` only under `[data-truncate]`/`[data-align]`, there is no bare
+  `[data-type="text"]` display rule and no author `[hidden]` rule, so the UA `[hidden] { display: none }`
+  applies.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale

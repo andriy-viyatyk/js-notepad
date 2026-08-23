@@ -2,6 +2,7 @@ import type React from "react";
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
 import type { EditorConfig } from "./EditorConfig";
+import { mountVanilla, type VanillaViewCtor } from "../../uikit/shared/mount";
 
 export interface AcceptanceInput {
     fileName?: string;
@@ -15,7 +16,7 @@ export interface AcceptanceInput {
     mode?: "edit" | "view";
 }
 
-export interface EditorModule {
+type EditorModuleCommon = {
     /** Factory for a new editor instance. */
     createEditor(): EditorModel;
     /** File-open factory for standalone (no-host) editors whose construction
@@ -24,14 +25,24 @@ export interface EditorModule {
      *  or reading the target (archive). Editors without it open through the
      *  default text-host flow. */
     newEditorModel?(filePath?: string): Promise<EditorModel>;
-    /** The React component that renders this editor (with chrome). */
-    Component: React.ComponentType<{ model: EditorModel }>;
     /** Chrome-free body — the editor content WITHOUT `<TextChrome>`. Supplied
      *  by editors that can be embedded inside another editor (*  — notebook per-note dispatch renders `module.Body` so each note's editor
      *  has no page chrome). Only the language-gated embeddable editors (Grid,
      *  Markdown, Svg, Html, Mermaid) provide it. */
     Body?: React.ComponentType<{ model: EditorModel; editorConfig?: EditorConfig }>;
-}
+    BodyView?: VanillaViewCtor<{ model: EditorModel; editorConfig?: EditorConfig }>;
+};
+
+export type EditorModule = EditorModuleCommon & (
+    | {
+        Component: React.ComponentType<{ model: EditorModel }>;
+        View?: VanillaViewCtor<{ model: EditorModel }>;
+    }
+    | {
+        Component?: React.ComponentType<{ model: EditorModel }>;
+        View: VanillaViewCtor<{ model: EditorModel }>;
+    }
+);
 
 export interface EditorMatcher {
     /** File-open resolution priority for this file name (highest wins;
@@ -294,6 +305,25 @@ class EditorRegistry {
         const def = this.definitions.get(id);
         if (!def) throw new Error(`No editor registered for id: ${id}`);
         module = await def.loadModule();
+        if (!module.Component && module.View) {
+            const Ctor = module.View;
+            module = {
+                ...module,
+                Component: (props: { model: EditorModel }): React.ReactElement =>
+                    mountVanilla(Ctor, props),
+            };
+        }
+        if (module.BodyView && !module.Body) {
+            const Ctor = module.BodyView;
+            module = {
+                ...module,
+                Body: (props: { model: EditorModel; editorConfig?: EditorConfig }): React.ReactElement =>
+                    mountVanilla(Ctor, props),
+            };
+        }
+        if (!module.Component && !module.View) {
+            throw new Error(`Editor "${id}" has neither a React Component nor a vanilla View.`);
+        }
         this.modules.set(id, module);
         return module;
     }

@@ -8,14 +8,10 @@ import { ToolsetEditorView } from "./ToolsetEditorView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function ToolsetEditorComponent({ model }: { model: EditorModel }) {
-    return <ToolsetEditorView model={model as ToolsetEditorModel} />;
-}
-
 export const toolsetModule: EditorModule = {
     createEditor: () =>
         new ToolsetEditorModel(new TComponentState(getDefaultToolsetEditorState())),
-    Component: ToolsetEditorComponent,
+    View: ToolsetEditorView,
     newEditorModel: async (filePath?: string) => {
         const model = new ToolsetEditorModel(new TComponentState(getDefaultToolsetEditorState()));
         if (filePath) {

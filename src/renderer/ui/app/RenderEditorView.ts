@@ -1,6 +1,6 @@
 import { editorRegistry, type EditorOrHost } from "../../editors/base";
 import type { EditorModel } from "../../editors/base/EditorModel";
-import type { EditorViewModule, FileEditorComponent } from "../../editors/types";
+import type { EditorViewModule, FileEditorComponent, FileEditorView } from "../../editors/types";
 import { parseBoardEditorId } from "../../editors/board/custom-editor-registry";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { AsyncEditorView } from "./AsyncEditorView";
@@ -50,6 +50,9 @@ const getEditorModule = (editorId: string) => async (): Promise<EditorViewModule
     const defId = parseBoardEditorId(editorId) !== null ? "board-view" : editorId;
     const def = editorRegistry.getById(defId);
     if (!def) throw new Error(`No editor registered for id: ${editorId}`);
-    const module = await def.loadModule();
-    return { Editor: module.Component as unknown as FileEditorComponent };
+    const module = await editorRegistry.getModule(defId);
+    return {
+        Editor: module.Component as unknown as FileEditorComponent,
+        View: module.View as unknown as FileEditorView | undefined,
+    };
 };
