@@ -1,0 +1,31 @@
+@layer app {
+    [data-type="sidebar-show-main"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        align-self: stretch;
+        margin: -2px -4px -2px 0;
+        padding: 0 8px;
+        border: none;
+        border-left: 1px solid var(--color-border-light, currentColor);
+        background: var(--color-bg-dark, currentColor);
+        color: var(--color-icon-light, currentColor);
+        cursor: pointer;
+    }
+
+    [data-type="sidebar-show-main"] > svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    [data-type="sidebar-show-main"]:hover {
+        background: var(--color-bg-light, currentColor);
+        color: var(--color-icon-default, currentColor);
+    }
+
+    [data-type="sidebar-show-main"][data-active],
+    [data-type="sidebar-show-main"][data-active]:hover {
+        color: var(--color-misc-blue, currentColor);
+    }
+}

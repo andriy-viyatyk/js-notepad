@@ -146,8 +146,9 @@ A portal is React's answer to "render into a DOM node you do not own". In a vani
 
 The fourth cannot. `ui/secondary-views/secondary-view-registry.ts:12` documents its panel-header slot
 as *"Portal target for the panel header. Render title, buttons, etc. into this element via
-createPortal"*, and **10 files in `editors/` implement against it** (`archive`, `board`, `explorer`
-×3, `file-diff`, `git-tree`, `link-editor` ×3). Rule 2 forbids breaking them. The resolution costs
+createPortal"*, and **14 files in `editors/` implement against it** (`archive`, `board`, `explorer`
+×3, `file-diff`, `git-tree`, `link-editor` ×3, `mneme-root`, `notebook` ×2, `rest-client`). Rule 2
+forbids breaking them. The resolution costs
 nothing, because the contract is already a DOM element: the vanilla host exposes the same element,
 editors keep portalling into it, and Epic E retires the React arm one editor at a time as it converts
 them.
@@ -236,8 +237,8 @@ condition.
 | [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Implemented |
 | [US-1030](../tasks/US-1030-git-tree-vanilla/README.md) | `components/git-tree/` vanilla GitTree view | Implemented |
 | [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Implemented |
-| [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Planned |
-| US-1033 | `ui/secondary-views/` host and the registry contract | Planned |
+| [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Implemented |
+| [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Implemented |
 | US-1034 | `ui/sidebar/` and `MenuBar` | Planned |
 | US-1035 | `ui/tabs/` | Planned |
 | US-1036 | `ui/app/` and the root flip | Planned |
@@ -310,6 +311,52 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — US-1033 implementation note
+
+`SecondaryViews.tsx` is now a React face over a native `SecondaryViewsView`; the published
+`SecondaryViewProps` registry, its `loadComponent` React arm, `LazySecondaryView` and all 14 editor
+callers are untouched. `SideBarPanelHeader.tsx` lost only its Emotion `styled.button`, which moved to
+`SideBarPanelHeader.css` in `@layer app`.
+
+**Two scope decisions worth carrying forward.**
+
+The plan originally converted `SideBarPanelHeader`'s two `<Panel>` wrappers to plain flex `div`s.
+`CollapsiblePanelStack.css:50-54` sets `pointer-events: none` on `[data-type="panel"]` inside a panel
+header, which is what makes a click on the panel title fall through to the header and toggle it. Plain
+`div`s would have silently blocked that — typecheck, lint and build-prod all stay green. Both `<Panel>`s
+were kept, verified live at `pointer-events: none`. Since `uikit/Panel/Panel.tsx` is now a 152-line
+React face over `resolvePanelAttributes` and imports no Emotion, keeping them costs D6 nothing. **This
+unit therefore does not reach D10's "`<Panel>` tags outside `editors/` → 0"** — two remain, owned by
+the React component D4 keeps alive, and Epic E collects them when it converts the header for real.
+
+The native arm was **dropped entirely**: no `secondary-view-native-registry.ts`, no `nativeContent`
+arm on `CollapsiblePanelStack`. Every current `loadComponent` returns a React component and this task
+converts no editor panel, so the registry would have been an empty map and the stack change would have
+served zero call sites. US-1032's `dialog-view-registry.ts` was justified by 13 native views
+registering into it in the same task; an empty registry is not that pattern. The full design —
+native-first lookup, append-once `nativeContent` (with the `fill-slot.ts:125-140` reattachment
+evidence), and host-owned disposal because `CollapsiblePanelStackView.removePanel` never disposes
+anything — is recorded in the task document's Concerns for Epic E's first editor-panel conversion.
+No file under `src/renderer/uikit/` was modified.
+
+**Verified live** (app running from the source tree): host composition and persisted width; header
+portals populated on every panel, so the two-pass `headerRef` publication works; `pointer-events: none`
+on the title group with an actual header click flipping open/closed; panel content DOM nodes surviving
+an owner `setState` round-trip, so `onUpdate` reconciles without recreating records; a page switch away
+and back leaving all header portals populated with no stray or duplicated hosts and the inactive host
+hidden; every computed style of the migrated show-main button matching the old Emotion declaration
+against real theme variables. Splitter drag and sidebar close/reopen were confirmed by the user at the
+machine — synthetic pointer events cannot drive `SplitterView`, which requires real pointer capture
+(`SplitterView.ts:93`, `:103`).
+
+Rule 4 measurement: **PENDING** — no before/after interaction count is recorded for a sidebar panel
+switch.
+
+**D4's caller count was stale** and is corrected in this commit: 14 files in `editors/` implement
+against `headerRef`, not 10. The four the original enumeration missed are `mneme-root`, `notebook` (two
+panels) and `rest-client`. Note that a bare `grep -rln SideBarPanelHeader src/renderer/editors` returns
+16 — `GitChangesView.tsx:46` and `GitRefsView.tsx:23` mention it only in comments.
 
 ### 2026-08-23 — US-1031 implementation note
 
