@@ -10,7 +10,6 @@ Overview of all active and planned epics and tasks.
 
 - *(no epic)*
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
-  - [ ] US-1040: Cap menu popover height — `maxHeight` was inert because Popover's size middleware overwrote it
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
 
 ## Planned

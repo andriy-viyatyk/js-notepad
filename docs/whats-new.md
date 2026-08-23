@@ -16,6 +16,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Bug Fixes
 
+- **Long menus no longer fill the whole window** — A menu with many entries, such as the tab's language picker, could stretch to the full height of the window. Long menus are now capped and scroll instead; short menus are unchanged.
+
 - **Session restore no longer risks losing open tabs if interrupted** — If Persephone was closed, crashed, or lost power while it was still restoring your previous session (for example, right after opening a large number of tabs), a save triggered during that window could overwrite the saved session with an empty or partial tab list. Restore now finishes before any save is allowed to run, so an interrupted restore can no longer erase your tabs for next time.
 
 ---

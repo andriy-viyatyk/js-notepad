@@ -273,7 +273,10 @@ interface MenuItem {
 - **Search filtering** — shows search field when items > 20
 - **Submenu support** — items with `items[]` property render a submenu on hover
 - **Keyboard navigation** — arrow keys, Enter, Escape, Page Up/Down
-- **Dynamic sizing** — calculates width/height based on content
+- **Dynamic sizing** — calculates width/height based on content, bounded by the smaller of the
+  available space and the caller's `Popover` `maxHeight` (menus pass `MAX_HEIGHT`, 500px). Only a
+  numeric or `px` value participates; a `%`/`vh`/`calc()` string yields to the available space,
+  because it cannot be compared numerically.
 
 ## Adding a New Context Menu
 
