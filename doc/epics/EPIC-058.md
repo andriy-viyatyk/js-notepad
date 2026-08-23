@@ -69,7 +69,7 @@ figure in this programme to survive a re-measure.
 | Unit | Files | Lines | Note |
 |---|---:|---:|---|
 | `components/tree-provider/` | 14 | 3,560 | Largest unit; 1,921 lines already in `.ts` models |
-| `ui/dialogs/` | 19 | 2,233 | One host plus 15 dialogs plus the popper path |
+| `ui/dialogs/` | 19 | 2,233 | One host plus 13 dialogs plus the popper path |
 | `components/git-tree/` | 16 | 2,112 | Mostly `.ts` after C4; `GitTree.tsx` (514) is the React remnant |
 | `ui/sidebar/` | 13 | 2,110 | `MenuBar.tsx` (583) is the largest file in `ui/` after `PageTab` |
 | `ui/tabs/` | 3 | 829 | `PageTab.tsx` is 611 lines |
@@ -231,12 +231,12 @@ condition.
 | [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
 | [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Implemented |
 | [US-1028](../tasks/US-1028-file-search/README.md) | `components/file-search/` (first `RenderGrid` collection) | Implemented |
-| [US-1029](../tasks/US-1029-tree-provider/README.md) | Tree primitive seams for tree-provider | Planned |
-| [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Planned |
-| [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Planned |
+| [US-1029](../tasks/US-1029-tree-provider/README.md) | Tree primitive seams for tree-provider | Implemented |
+| [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Implemented |
+| [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Implemented |
 | [US-1030](../tasks/US-1030-git-tree-vanilla/README.md) | `components/git-tree/` vanilla GitTree view | Implemented |
-| [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Planned |
-| US-1032 | `ui/dialogs/` host, 15 dialogs, and the popper path | Planned |
+| [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Implemented |
+| [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Planned |
 | US-1033 | `ui/secondary-views/` host and the registry contract | Planned |
 | US-1034 | `ui/sidebar/` and `MenuBar` | Planned |
 | US-1035 | `ui/tabs/` | Planned |
@@ -284,10 +284,10 @@ At epic close:
    fixes itself when I interact with it") is most likely to appear, because a missed subscription in a
    tab strip is repaired by the next click the user makes anyway.
 
-2. **`ui/dialogs/` is 15 dialogs behind one host.** They are individually simple, but the task is
+2. **`ui/dialogs/` is 13 dialogs behind one host, plus the `AppPopupMenu` popup path.** They are individually simple, but the task is
    wide, and a dialog that is only reachable from an error path (`NamespaceCollisionDialog`,
    `TrustBoardDialog`, `PasswordDialog`) is a dialog nobody will smoke-test by accident. The task plan
-   needs an explicit route to each of the 15.
+   needs an explicit route to each of the 13 dialogs plus `AppPopupMenu`.
 
 3. **The secondary-view registry contract (D4) is the epic's one outward-facing change**, and its 10
    editor implementers are not converted here. If the compatibility arm turns out to need more than

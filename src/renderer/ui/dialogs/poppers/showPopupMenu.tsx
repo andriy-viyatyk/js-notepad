@@ -1,15 +1,16 @@
-import { useCallback, useMemo, useRef } from "react";
-
+import type { VirtualElement } from "@floating-ui/dom";
 import { TPopperModel } from "./types";
 import { closePopper, showPopper } from "./Poppers";
-import { VirtualElement } from "@floating-ui/react";
-import { Menu } from "../../../uikit/Menu";
+import { MenuView } from "../../../uikit/Menu/MenuView";
+import type { MenuProps } from "../../../uikit/Menu/MenuModel";
 import type { MenuItem } from "../../../uikit/Menu";
 import { CopyIcon, CursorIcon, EmptyIcon } from "../../../theme/icons";
-import { DefaultView, ViewPropsRO, Views } from "../../../core/state/view";
+import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { TComponentState } from "../../../core/state/state";
 import { overlayRegistry } from "../../../uikit/shared/overlayRegistry";
 import { api } from "../../../../ipc/renderer/api";
+import type { DialogViewProps } from "../dialog-view-registry";
+import { registerDialogView } from "../dialog-view-registry";
 
 const defaultAppPopupMenuState = {
     x: 0,
@@ -19,6 +20,7 @@ const defaultAppPopupMenuState = {
 };
 
 type AppPopupMenuState = typeof defaultAppPopupMenuState;
+type AppPopupMenuPositionState = Pick<AppPopupMenuState, "items" | "x" | "y">;
 
 class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
     addDefaultMenus = async () => {
@@ -88,7 +90,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                             activeElement.dispatchEvent(new Event("input", { bubbles: true }));
                         }
                     },
-                    icon: <CopyIcon />,
+                    icon: CopyIcon.createElement!({}),
                 });
             }
 
@@ -98,7 +100,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                     onClick: () => {
                         navigator.clipboard.writeText(selText ?? "");
                     },
-                    icon: <CopyIcon />,
+                    icon: CopyIcon.createElement!({}),
                     startGroup: true,
                 });
             }
@@ -111,7 +113,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                         const { x, y } = this.state.get();
                         api.inspectElement(x, y);
                     },
-                    icon: <CursorIcon />,
+                    icon: CursorIcon.createElement!({}),
                 });
             }
 
@@ -119,7 +121,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
             if (anyIcon) {
                 s.items.forEach((item) => {
                     if (!item.icon) {
-                        item.icon = <EmptyIcon />;
+                        item.icon = EmptyIcon.createElement!({});
                     }
                 });
             }
@@ -130,25 +132,20 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
 const defaultOffset = [8, 0] as [number, number];
 const showAppPopupMenuId = Symbol("AppPopupMenu");
 
-function AppPopupMenu({ model }: ViewPropsRO<AppPopupMenuModel>) {
-    const { items, x, y } = model.state.use();
-    const registeredRef = useRef<HTMLDivElement | null>(null);
+class AppPopupMenuView extends VanillaView<DialogViewProps> {
+    private readonly model: AppPopupMenuModel;
+    private readonly menuView: MenuView;
+    private readonly elementRef: VirtualElement;
+    private registeredRef: HTMLDivElement | null = null;
 
-    // Callback ref: register the Popover's floated root with overlayRegistry so
-    // page-level Tooltips are suppressed while the menu is open. Tooltips inside
-    // this subtree (e.g. on menu items themselves) remain allowed via
-    // overlayRegistry.isSuppressed's `contains()` check.
-    const setMenuRef = useCallback((el: HTMLDivElement | null) => {
-        if (registeredRef.current) {
-            overlayRegistry.unregister(registeredRef.current);
-        }
-        registeredRef.current = el;
-        if (el) overlayRegistry.register(el);
-    }, []);
-
-    const elementRef = useMemo<VirtualElement>(
-        () => ({
-            getBoundingClientRect() {
+    public constructor(props: DialogViewProps) {
+        const model = props.model as AppPopupMenuModel;
+        super(props, document.createElement("div"));
+        this.root.style.display = "contents";
+        this.model = model;
+        this.elementRef = {
+            getBoundingClientRect: () => {
+                const { x, y } = model.state.get();
                 return {
                     x,
                     y,
@@ -160,24 +157,47 @@ function AppPopupMenu({ model }: ViewPropsRO<AppPopupMenuModel>) {
                     height: 0,
                 };
             },
-        }),
-        [x, y],
-    );
+        };
+        this.menuView = this.child(new MenuView(this.menuProps(model.state.get())));
+    }
 
-    return (
-        <Menu
-            ref={setMenuRef}
-            name="app-popup-menu"
-            open
-            items={items}
-            elementRef={elementRef}
-            offset={defaultOffset}
-            onClose={() => model.close()}
-        />
-    );
+    protected onMount(): void {
+        this.menuView.mount();
+        this.bind(
+            this.model.state,
+            (state) => ({ items: state.items, x: state.x, y: state.y }),
+            (state) => this.menuView.update(this.menuProps(state)),
+        );
+    }
+
+    private menuProps(state: AppPopupMenuPositionState): MenuProps & {
+        ref: (element: HTMLDivElement | null) => void;
+    } {
+        return {
+            name: "app-popup-menu",
+            open: true,
+            items: state.items,
+            elementRef: this.elementRef,
+            offset: defaultOffset,
+            onClose: () => { void this.model.close(); },
+            ref: this.setMenuRef,
+        };
+    }
+
+    // Callback ref: register the Popover's floated root with overlayRegistry so
+    // page-level Tooltips are suppressed while the menu is open. Tooltips inside
+    // this subtree (e.g. on menu items themselves) remain allowed via
+    // overlayRegistry.isSuppressed's `contains()` check.
+    private readonly setMenuRef = (el: HTMLDivElement | null): void => {
+        if (this.registeredRef) {
+            overlayRegistry.unregister(this.registeredRef);
+        }
+        this.registeredRef = el;
+        if (el) overlayRegistry.register(el);
+    };
 }
 
-Views.registerView(showAppPopupMenuId, AppPopupMenu as DefaultView);
+registerDialogView(showAppPopupMenuId, AppPopupMenuView);
 
 export interface ShowAppPopupMenuOptions {
     /** Skip the default "Inspect" menu item (e.g. when the caller provides its own). */

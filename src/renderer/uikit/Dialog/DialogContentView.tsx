@@ -26,7 +26,7 @@ function setOptionalDataAttribute(
     else root.setAttribute(name, value);
 }
 
-function hasSlot(value: React.ReactNode): boolean {
+function hasSlot(value: React.ReactNode | Node): boolean {
     return value !== undefined && value !== null && value !== false;
 }
 
@@ -49,6 +49,10 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
     public constructor(props: DialogContentProps) {
         super(props, document.createElement("div"));
         this.root.classList.add("dialog-content-shell");
+    }
+
+    public setTitle(title: string | undefined): void {
+        if (this.titleBox) this.titleBox.textContent = title ?? "";
     }
 
     protected onMount(): void {
@@ -172,7 +176,7 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.headerButtonsHost = headerButtonsHost;
     }
 
-    private syncIcon(icon: IconRef | undefined): void {
+    private syncIcon(icon: IconRef | Node | undefined): void {
         if (!hasSlot(icon)) {
             this.iconCleanup?.();
             this.iconCleanup = undefined;

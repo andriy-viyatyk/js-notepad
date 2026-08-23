@@ -1,21 +1,22 @@
-import { showDialog } from "./Dialogs";
-import { Dialog, DialogContent, Panel, Text, Button, Input, Checkbox, Label } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
-import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
-import { api } from "../../../ipc/renderer/api";
+import { fs } from "../../api/fs";
 import { settings } from "../../api/settings";
+import { ui } from "../../api/ui";
 import { copyExampleScripts } from "../../api/library-service";
+import { api } from "../../../ipc/renderer/api";
+import { showDialog } from "./Dialogs";
+import { registerDialogView } from "./dialog-view-registry";
+import { LibrarySetupDialogView } from "./LibrarySetupDialogView";
+import { errMessage } from "../../../shared/utils";
 
-const nodefs = require("fs") as typeof import("fs");
+export const librarySetupDialogId = Symbol("librarySetupDialog");
 
-const librarySetupDialogId = Symbol("librarySetupDialog");
-
-interface LibrarySetupDialogProps {
+export interface LibrarySetupDialogProps {
     title?: string;
 }
 
-interface LibrarySetupDialogState extends LibrarySetupDialogProps {
+export interface LibrarySetupDialogState extends LibrarySetupDialogProps {
     folderPath: string;
     copyExamples: boolean;
     linking: boolean;
@@ -28,132 +29,76 @@ const defaultProps: LibrarySetupDialogState = {
     linking: false,
 };
 
-class LibrarySetupDialogModel extends TDialogModel<LibrarySetupDialogState, string | undefined> {
+export class LibrarySetupDialogModel extends TDialogModel<LibrarySetupDialogState, string | undefined> {
+    private viewDisposed = false;
+
     setFolderPath = (folderPath: string) => {
-        this.state.update((s) => { s.folderPath = folderPath; });
+        this.state.update((state) => { state.folderPath = folderPath; });
     };
 
     setCopyExamples = (copyExamples: boolean) => {
-        this.state.update((s) => { s.copyExamples = copyExamples; });
+        this.state.update((state) => { state.copyExamples = copyExamples; });
     };
 
-    setLinking = (linking: boolean) => {
-        this.state.update((s) => { s.linking = linking; });
-    };
-
-    handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(undefined);
-        }
-    };
-}
-
-function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
-    const state = model.state.use();
-    const { folderPath, copyExamples, linking } = state;
-
-    const handleBrowse = async () => {
+    browse = async () => {
         const result = await api.showOpenFolderDialog({
             title: "Select Script Library Folder",
         });
-        if (result && result.length > 0) {
-            model.setFolderPath(result[0]);
-        }
+        if (this.viewDisposed) return;
+        if (result && result.length > 0) this.setFolderPath(result[0]);
     };
 
-    const handleLink = async () => {
-        const trimmed = folderPath.trim();
-        if (!trimmed) return;
+    link = async () => {
+        const trimmed = this.state.get().folderPath.trim();
+        if (!trimmed || this.state.get().linking) return;
+        const copyExamples = this.state.get().copyExamples;
 
-        model.setLinking(true);
+        this.state.update((state) => { state.linking = true; });
         try {
-            if (!nodefs.existsSync(trimmed)) {
-                nodefs.mkdirSync(trimmed, { recursive: true });
+            if (!await fs.exists(trimmed)) {
+                await fs.mkdir(trimmed);
             }
+            if (this.viewDisposed) return;
 
             if (copyExamples) {
                 await copyExampleScripts(trimmed);
             }
+            if (this.viewDisposed) return;
 
             settings.set("script-library.path", trimmed);
-            model.close(trimmed);
-        } catch (err) {
-            const { ui } = await import("../../api/ui");
-            ui.notify(`Failed to link library: ${err.message}`, "error");
-            model.setLinking(false);
+            await this.close(trimmed);
+        } catch (error) {
+            if (this.viewDisposed) return;
+            ui.notify(`Failed to link library: ${errMessage(error)}`, "error");
+            this.state.update((state) => { state.linking = false; });
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && folderPath.trim()) {
-            e.preventDefault();
-            handleLink();
+    handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            void this.close(undefined);
+        }
+        if (event.key === "Enter" && this.state.get().folderPath.trim()) {
+            event.preventDefault();
+            void this.link();
         }
     };
 
-    return (
-        <Dialog name="library-setup-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
-            <DialogContent
-                title={state.title}
-                icon="folder-open"
-                onClose={() => model.close(undefined)}
-                minWidth={400}
-                maxWidth={600}
-            >
-                <Panel
-                    direction="column"
-                    paddingX="xxl"
-                    paddingY="xl"
-                    gap="lg"
-                    onKeyDown={handleKeyDown}
-                >
-                    <Panel direction="column" gap="xs">
-                        <Label>Folder:</Label>
-                        <Panel direction="row" gap="sm" align="center">
-                            <Panel flex>
-                                <Input
-                                    name="library-setup-folder"
-                                    value={folderPath}
-                                    onChange={model.setFolderPath}
-                                    placeholder="Select or type a folder path..."
-                                    autoFocus
-                                />
-                            </Panel>
-                            <Button name="library-setup-browse" onClick={handleBrowse}>Browse...</Button>
-                        </Panel>
-                    </Panel>
-                    <Panel direction="column" gap="xs">
-                        <Checkbox name="library-setup-copy-examples" checked={copyExamples} onChange={model.setCopyExamples}>
-                            Copy example scripts
-                        </Checkbox>
-                        <Panel paddingLeft="xxl">
-                            <Text size="xs" color="light">Won't overwrite existing files</Text>
-                        </Panel>
-                    </Panel>
-                </Panel>
-                <Panel direction="row" justify="end" gap="sm" padding="md">
-                    <Button name="library-setup-link" onClick={handleLink} disabled={!folderPath.trim() || linking}>
-                        {linking ? "Linking..." : "Link"}
-                    </Button>
-                    <Button name="library-setup-cancel" onClick={() => model.close(undefined)}>
-                        Cancel
-                    </Button>
-                </Panel>
-            </DialogContent>
-        </Dialog>
-    );
+    disposeView = () => {
+        this.viewDisposed = true;
+    };
 }
 
-Views.registerView(librarySetupDialogId, LibrarySetupDialog as DefaultView);
+registerDialogView(librarySetupDialogId, LibrarySetupDialogView);
 
 export function showLibrarySetupDialog(props?: LibrarySetupDialogProps): Promise<string | undefined> {
-    const modelState = {
-        ...defaultProps,
-        ...props,
-    };
-
-    const model = new LibrarySetupDialogModel(new TComponentState(modelState));
+    const model = new LibrarySetupDialogModel(
+        new TComponentState({
+            ...defaultProps,
+            ...props,
+        }),
+    );
     return showDialog({
         viewId: librarySetupDialogId,
         model,

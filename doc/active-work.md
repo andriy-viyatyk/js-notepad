@@ -19,7 +19,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1038: `CategoryView`](tasks/US-1038-category-view/README.md)
   - [ ] [US-1030: `components/git-tree/` vanilla GitTree view](tasks/US-1030-git-tree-vanilla/README.md)
   - [ ] [US-1031: `components/page-manager/` portal hosts → `appendChild`](tasks/US-1031-page-manager-append-child/README.md)
-  - [ ] US-1032: `ui/dialogs/` host, 15 dialogs, and the popper path
+  - [ ] [US-1032: `ui/dialogs/` host, 13 dialogs, and the popper path](tasks/US-1032-dialogs-vanilla/README.md)
   - [ ] US-1033: `ui/secondary-views/` host and the registry contract
   - [ ] US-1034: `ui/sidebar/` and `MenuBar`
   - [ ] US-1035: `ui/tabs/`

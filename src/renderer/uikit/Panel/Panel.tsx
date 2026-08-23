@@ -1,240 +1,12 @@
 import React from "react";
-import { spacing, gap as gapTokens, radius } from "../tokens";
-import "./Panel.css";
-
-// --- Types ---
-
-type Size = "none" | "xs" | "sm" | "md" | "lg" | "xl" | "xxl";
-type PaddingSize = Size | "xxxl";
-
-type Align = "start" | "center" | "end" | "stretch" | "baseline";
-type Justify = "start" | "center" | "end" | "between" | "around" | "evenly";
-type Direction = "row" | "column" | "row-reverse" | "column-reverse";
-type Overflow = "visible" | "hidden" | "auto" | "scroll";
-type Position = "relative" | "absolute" | "fixed";
-type WhiteSpace = "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
-type WordBreak = "normal" | "break-all" | "keep-all" | "break-word";
+import { resolvePanelAttributes, type PanelStyleProps } from "./panel-style";
 
 export interface PanelProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className">,
+        PanelStyleProps {
     ref?: React.Ref<HTMLDivElement>;
-    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
-     *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
-    name?: string;
-
-    /** Flex direction. Default: "row" (CSS default). */
-    direction?: Direction;
-    /** Allow children to wrap. Default: false. */
-    wrap?: boolean;
-
-    /** Flex shorthand on self. `true` → "1 1 auto"; number → "<n> 1 auto"; string passes through. */
-    flex?: boolean | number | string;
-    /** Set `flex-shrink: 0` when `false`. Use for sidebars that must keep their fixed width. */
-    shrink?: boolean;
-
-    /** Uniform padding. Side-specific props win over `paddingX`/`paddingY` win over `padding`. */
-    padding?: PaddingSize;
-    paddingX?: PaddingSize;
-    paddingY?: PaddingSize;
-    paddingTop?: PaddingSize;
-    paddingBottom?: PaddingSize;
-    paddingLeft?: PaddingSize;
-    paddingRight?: PaddingSize;
-
-    /** Gap between children. */
-    gap?: Size;
-
-    /** align-items. */
-    align?: Align;
-    /** justify-content. */
-    justify?: Justify;
-    /** align-self — overrides parent's `align-items` for this item only. Useful when the parent's alignment doesn't propagate as expected. */
-    alignSelf?: Align;
-
-    /** Fixed width/height in px (number) or any CSS length (string, e.g. "50%"). */
-    width?: number | string;
-    height?: number | string;
-    /** Max width — number → px, string passes through (e.g. "100%"). */
-    maxWidth?: number | string;
-    /** Min width — number → px, string passes through. */
-    minWidth?: number | string;
-    /** Max height — number → px, string passes through. */
-    maxHeight?: number | string;
-    /** Min height — number → px, string passes through. */
-    minHeight?: number | string;
-
-    overflow?: Overflow;
-    overflowX?: Overflow;
-    overflowY?: Overflow;
-
-    /**
-     * Scrollbar visibility for scrollable panels.
-     * - `"auto"` (default) — global VSCode-style fade-in scrollbar via the
-     *   `.scroll-container` class.
-     * - `"hidden"` — no scrollbar at all. Use when another visual indicator
-     *   (minimap, custom thumb) replaces it. Emits `data-scrollbar="hidden"`
-     *   and suppresses the `.scroll-container` class so the hover-reveal rule
-     *   cannot fight the override.
-     */
-    scrollbar?: "auto" | "hidden";
-
-    /** Controls whitespace handling for descendants. Use "pre-wrap" for log/code panes that contain real `\n` characters. */
-    whiteSpace?: WhiteSpace;
-
-    /** Controls how words break to fit the container. Use "break-word" for log/code panes with long unbreakable tokens (URLs, hashes). */
-    wordBreak?: WordBreak;
-
-    /** CSS position. Default: undefined (static). Use "relative" on parents of absolutely-positioned children. */
-    position?: Position;
-    /** CSS `inset` shorthand — number → px, string passes through. Sets all four sides at once. */
-    inset?: number | string;
-    /** Stack order. Use sparingly — overlays / popovers only. */
-    zIndex?: number;
-    /** CSS top — number → px, string passes through (e.g. "auto", "50%"). Use with `position` to anchor an edge. */
-    top?: number | string;
-    /** CSS right — number → px, string passes through. */
-    right?: number | string;
-    /** CSS bottom — number → px, string passes through. */
-    bottom?: number | string;
-    /** CSS left — number → px, string passes through. */
-    left?: number | string;
-
-    /** All four borders. */
-    border?: boolean;
-    borderTop?: boolean;
-    borderBottom?: boolean;
-    borderLeft?: boolean;
-    borderRight?: boolean;
-    /** Border color. Default: "subtle" (color.border.light). "default" uses color.border.default. "active" uses color.border.active for selection / active-state cues. */
-    borderColor?: "subtle" | "default" | "active";
-
-    /** Border radius from radius scale. */
-    rounded?: Size;
-    /** Drop shadow (Card-style elevation). */
-    shadow?: boolean;
-    /** Background fill. Maps to color.background.{default,light,dark,overlay}. */
-    background?: "default" | "light" | "dark" | "overlay";
-
-    /** Dim + disable pointer events on the whole panel. */
-    disabled?: boolean;
-    /**
-     * Dim the panel visually (opacity only) without disabling pointer events.
-     * Use when a row is in a "disabled but still re-enableable" state — the
-     * dim is the visual cue, but a child control (typically a checkbox) must
-     * remain clickable. Distinct from `disabled`, which also adds
-     * `pointer-events: none`. The two props may coexist.
-     */
-    dimmed?: boolean;
-
-    /**
-     * Mark the panel as a single clickable target (selectable cards / tiles /
-     * rows): shows a pointer cursor and a subtle hover background highlight.
-     * Cosmetic affordance only — wire the actual handler via `onClick`.
-     */
-    clickable?: boolean;
-
-    /**
-     * Collapse to `display: none` when the panel has no DOM children.
-     * Mirrors the legacy `:empty { display: none }` toolbar rule and
-     * works with conditional children (`{flag && <Btn/>}` rendering nothing).
-     */
-    hideWhenEmpty?: boolean;
-
-    /**
-     * When `true`, descendant elements with `data-visibility="parent-hover"` start hidden
-     * (`opacity: 0`, `pointer-events: none`) and fade in when this Panel is hovered or contains
-     * keyboard focus. UIKit primitives expose a typed `hideUntilParentHover` prop that emits
-     * the data attribute; plain HTML elements set the attribute directly. Layout-stable —
-     * children always reserve their space.
-     */
-    revealChildrenOnHover?: boolean;
-
-    /**
-     * Paints a 3 px left stripe in the corresponding accent colour, used to flag
-     * status-tinted rows (log levels, alerts, validation severities). The stripe replaces
-     * the regular `borderLeft` for the duration the accent is set — combine with `border`
-     * only if you also want the other three sides bordered.
-     */
-    accent?: "info" | "warn" | "error" | "success";
-
     children?: React.ReactNode;
 }
-
-// --- Token resolvers ---
-
-const ALIGN_MAP: Record<Align, string> = {
-    start: "flex-start",
-    center: "center",
-    end: "flex-end",
-    stretch: "stretch",
-    baseline: "baseline",
-};
-
-const JUSTIFY_MAP: Record<Justify, string> = {
-    start: "flex-start",
-    center: "center",
-    end: "flex-end",
-    between: "space-between",
-    around: "space-around",
-    evenly: "space-evenly",
-};
-
-function spaceVal(v?: PaddingSize): number | undefined {
-    if (v === undefined) return undefined;
-    if (v === "none") return 0;
-    return spacing[v];
-}
-
-function gapVal(v?: Size): number | undefined {
-    if (v === undefined) return undefined;
-    if (v === "none") return 0;
-    return gapTokens[v];
-}
-
-function radiusVal(v?: Size): number | string | undefined {
-    if (v === undefined) return undefined;
-    if (v === "none") return 0;
-    return radius[v as keyof typeof radius];
-}
-
-function flexVal(v: PanelProps["flex"]): string | undefined {
-    if (v === undefined || v === false) return undefined;
-    if (v === true) return "1 1 auto";
-    if (typeof v === "number") return `${v} 1 auto`;
-    return v;
-}
-
-function isScrollable(v?: Overflow): boolean {
-    return v === "auto" || v === "scroll";
-}
-
-/**
- * Drop `undefined` entries from the inline style object.
- *
- * React does not skip a style key whose value is `undefined` — it *clears* that property by
- * writing `""` to it. When a shorthand and its own longhands are both present, that clearing
- * destroys the shorthand: `{ overflow: "hidden", overflowX: undefined, overflowY: undefined }`
- * applies `overflow: hidden` and then removes both longhands, leaving the element with no
- * overflow at all. The same happens to `flex` via an unset `flexShrink`, which silently turns
- * `flex="0 0 auto"` into a shrinkable item.
- *
- * A key that is simply absent is never cleared, so removing the undefined entries makes the
- * shorthands survive. React's update path still clears a property that disappears between
- * renders, and it re-applies the new styles afterwards — so a shorthand that is still set
- * wins on the next commit.
- */
-function compactStyle(style: React.CSSProperties): React.CSSProperties {
-    const out: Record<string, unknown> = {};
-    // for-in rather than Object.entries — Panel renders on nearly every screen, and this
-    // avoids allocating an entry array per instance per render.
-    for (const key in style) {
-        const value = (style as Record<string, unknown>)[key];
-        if (value !== undefined) out[key] = value;
-    }
-    return out as React.CSSProperties;
-}
-
-// --- Component ---
 
 /**
  * Legacy, app-facing React layout shim. New vanilla views should use their own semantic
@@ -243,7 +15,7 @@ function compactStyle(style: React.CSSProperties): React.CSSProperties {
 export function Panel({ ref, ...props }: PanelProps) {
     const {
         name,
-        direction = "row",
+        direction,
         wrap,
         flex,
         shrink,
@@ -254,7 +26,7 @@ export function Panel({ ref, ...props }: PanelProps) {
         paddingBottom,
         paddingLeft,
         paddingRight,
-        gap: gapProp,
+        gap,
         align,
         justify,
         alignSelf,
@@ -296,30 +68,23 @@ export function Panel({ ref, ...props }: PanelProps) {
         ...rest
     } = props;
 
-    // Padding specificity: side > axis > all
-    const padTop    = paddingTop    ?? paddingY ?? padding;
-    const padBottom = paddingBottom ?? paddingY ?? padding;
-    const padLeft   = paddingLeft   ?? paddingX ?? padding;
-    const padRight  = paddingRight  ?? paddingX ?? padding;
-
-    // compactStyle is mandatory here — this object deliberately mixes the `flex` and
-    // `overflow` shorthands with their longhands, and undefined longhands would erase them.
-    const inlineStyle: React.CSSProperties = compactStyle({
-        flex: flexVal(flex),
-        flexShrink: shrink === false ? 0 : undefined,
-        flexWrap: wrap ? "wrap" : undefined,
-
-        paddingTop: spaceVal(padTop),
-        paddingBottom: spaceVal(padBottom),
-        paddingLeft: spaceVal(padLeft),
-        paddingRight: spaceVal(padRight),
-
-        gap: gapVal(gapProp),
-
-        alignItems: align ? ALIGN_MAP[align] : undefined,
-        justifyContent: justify ? JUSTIFY_MAP[justify] : undefined,
-        alignSelf: alignSelf ? ALIGN_MAP[alignSelf] : undefined,
-
+    const attributes = resolvePanelAttributes({
+        name,
+        direction,
+        wrap,
+        flex,
+        shrink,
+        padding,
+        paddingX,
+        paddingY,
+        paddingTop,
+        paddingBottom,
+        paddingLeft,
+        paddingRight,
+        gap,
+        align,
+        justify,
+        alignSelf,
         width,
         height,
         maxWidth,
@@ -329,9 +94,9 @@ export function Panel({ ref, ...props }: PanelProps) {
         overflow,
         overflowX,
         overflowY,
+        scrollbar,
         whiteSpace,
         wordBreak,
-
         position,
         inset,
         zIndex,
@@ -339,42 +104,47 @@ export function Panel({ ref, ...props }: PanelProps) {
         right,
         bottom,
         left,
-
-        borderRadius: radiusVal(rounded),
+        border,
+        borderTop,
+        borderBottom,
+        borderLeft,
+        borderRight,
+        borderColor,
+        rounded,
+        shadow,
+        background,
+        disabled,
+        dimmed,
+        clickable,
+        hideWhenEmpty,
+        revealChildrenOnHover,
+        accent,
     });
-
-    const scrollable =
-        isScrollable(overflow) || isScrollable(overflowX) || isScrollable(overflowY);
-    const hideScrollbar = scrollbar === "hidden";
-    // Panel is a legacy C1-1 shim: callers can override data-* values through residual props,
-    // while className is intentionally omitted from PanelProps. Keep this private marker as the
-    // stylesheet scope without changing the existing data-type precedence.
-    const rootClassName = `panel-root${scrollable && !hideScrollbar ? " scroll-container" : ""}`;
 
     return (
         <div
             ref={ref}
             data-type="panel"
-            data-name={name}
-            data-direction={direction}
-            data-bg={background || undefined}
-            data-border={border || undefined}
-            data-border-top={borderTop || undefined}
-            data-border-bottom={borderBottom || undefined}
-            data-border-left={borderLeft || undefined}
-            data-border-right={borderRight || undefined}
-            data-border-color={borderColor || undefined}
-            data-shadow={shadow || undefined}
-            data-disabled={disabled || undefined}
-            data-dimmed={dimmed || undefined}
-            data-clickable={clickable || undefined}
-            data-hide-when-empty={hideWhenEmpty || undefined}
-            data-reveal-on-hover={revealChildrenOnHover || undefined}
-            data-accent={accent || undefined}
-            data-scrollbar={hideScrollbar ? "hidden" : undefined}
-            className={rootClassName}
+            data-name={attributes.name}
+            data-direction={attributes.direction}
+            data-bg={attributes.background || undefined}
+            data-border={attributes.border || undefined}
+            data-border-top={attributes.borderTop || undefined}
+            data-border-bottom={attributes.borderBottom || undefined}
+            data-border-left={attributes.borderLeft || undefined}
+            data-border-right={attributes.borderRight || undefined}
+            data-border-color={attributes.borderColor || undefined}
+            data-shadow={attributes.shadow || undefined}
+            data-disabled={attributes.disabled || undefined}
+            data-dimmed={attributes.dimmed || undefined}
+            data-clickable={attributes.clickable || undefined}
+            data-hide-when-empty={attributes.hideWhenEmpty || undefined}
+            data-reveal-on-hover={attributes.revealOnHover || undefined}
+            data-accent={attributes.accent || undefined}
+            data-scrollbar={attributes.scrollbar || undefined}
+            className={attributes.className}
             {...rest}
-            style={inlineStyle}
+            style={attributes.inlineStyle}
         >
             {children}
         </div>

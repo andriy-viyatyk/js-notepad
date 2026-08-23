@@ -1,5 +1,6 @@
 import type React from "react";
 import { mountVanilla } from "../shared/mount";
+import type { SlotContent } from "../shared/fill-slot";
 import type { IconRef } from "../shared/slots";
 import { DialogContentView } from "./DialogContentView";
 import "./Dialog.css";
@@ -7,7 +8,7 @@ import "./Dialog.css";
 // --- Types ---
 
 export interface DialogContentProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "title"> {
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
     ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
@@ -15,7 +16,7 @@ export interface DialogContentProps
     /** Title text. */
     title?: string;
     /** Optional leading icon in the header. */
-    icon?: IconRef;
+    icon?: IconRef | Node;
     /** Close-X button click. When unset, the X is hidden. */
     onClose?: () => void;
     /** Inline buttons rendered between the title and the close X. */
@@ -29,7 +30,7 @@ export interface DialogContentProps
     minHeight?: number | string;
     maxHeight?: number | string;
 
-    children?: React.ReactNode;
+    children?: SlotContent;
 }
 
 export function DialogContent(props: DialogContentProps): React.ReactElement {

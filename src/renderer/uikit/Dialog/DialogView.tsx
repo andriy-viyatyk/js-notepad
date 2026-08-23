@@ -1,5 +1,5 @@
 import React, { useLayoutEffect } from "react";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import {
     applyRestProps,
     bindRef,
@@ -48,6 +48,18 @@ function setOptionalDataAttribute(
     else root.setAttribute(name, value);
 }
 
+function getNativeChildren(children: SlotContent): Node | undefined {
+    if (children instanceof Node) return children;
+    if (!Array.isArray(children) || !children.every((child) => child instanceof Node)) {
+        return undefined;
+    }
+    const fragment = document.createDocumentFragment();
+    children.forEach((child) => {
+        if (child instanceof Node) fragment.append(child);
+    });
+    return fragment;
+}
+
 export class DialogView extends VanillaView<DialogProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private childrenHost: HTMLSpanElement | undefined;
@@ -75,7 +87,12 @@ export class DialogView extends VanillaView<DialogProps> {
         this.childrenHost.dataset.part = "react-slot";
         this.childrenHost.style.display = "contents";
         this.root.append(this.childrenHost);
-        this.childrenCleanup = fillSlot(this.childrenHost, this.renderChildren());
+        const children = this.props.children;
+        const nativeChildren = getNativeChildren(children);
+        this.childrenCleanup = nativeChildren
+            ? fillSlot(this.childrenHost, nativeChildren)
+            : fillSlot(this.childrenHost, this.renderChildren(children));
+        if (nativeChildren) this.runFocusPass();
 
         this.own(() => this.childrenCleanup?.());
         this.own(() => this.clearRef());
@@ -86,7 +103,12 @@ export class DialogView extends VanillaView<DialogProps> {
         this.applyProps(props);
         this.setRef(props.ref);
         if (this.childrenHost) {
-            this.childrenCleanup = fillSlot(this.childrenHost, this.renderChildren());
+            const children = props.children;
+            const nativeChildren = getNativeChildren(children);
+            this.childrenCleanup = nativeChildren
+                ? fillSlot(this.childrenHost, nativeChildren)
+                : fillSlot(this.childrenHost, this.renderChildren(children));
+            if (nativeChildren) this.runFocusPass();
         }
     }
 
@@ -135,10 +157,10 @@ export class DialogView extends VanillaView<DialogProps> {
         this.boundRef = undefined;
     }
 
-    private renderChildren(): React.ReactElement {
+    private renderChildren(children: SlotContent): React.ReactElement {
         return (
             <>
-                {this.props.children}
+                {children}
                 <DialogCommitSignal onCommit={this.runFocusPass} />
             </>
         );

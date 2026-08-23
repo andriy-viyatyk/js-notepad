@@ -1,3 +1,5 @@
+import "./Text.css";
+
 export type TextVariant = "default" | "uppercased" | "link";
 export type TextColor =
     | "inherit"
@@ -93,4 +95,14 @@ export function applyTextAttributes(element: HTMLElement, attributes: TextElemen
         else element.dataset[key] = value;
     }
     element.style.color = attributes.freeformColor ?? "";
+}
+
+export function createTextElement(
+    value: string,
+    props: TextStyleProps = {},
+): HTMLSpanElement {
+    const element = document.createElement("span");
+    applyTextAttributes(element, resolveTextAttributes(props));
+    element.textContent = value;
+    return element;
 }

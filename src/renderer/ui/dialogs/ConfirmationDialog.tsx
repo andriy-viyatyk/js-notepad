@@ -1,12 +1,12 @@
 import { showDialog } from "./Dialogs";
-import { Dialog, DialogContent, Panel, Text, Button } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
-import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
+import { registerDialogView } from "./dialog-view-registry";
+import { ConfirmationDialogView } from "./ConfirmationDialogView";
 
-const confirmationDialogId = Symbol("confirmationDialog");
+export const confirmationDialogId = Symbol("confirmationDialog");
 
-interface ConfirmationDialogProps {
+export interface ConfirmationDialogProps {
     title?: string;
     message: string;
     buttons?: string[];
@@ -22,7 +22,7 @@ class ConfirmationDialogModel extends TDialogModel<
     ConfirmationDialogProps,
     string
 > {
-    handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
             e.preventDefault();
             this.close(undefined);
@@ -30,34 +30,7 @@ class ConfirmationDialogModel extends TDialogModel<
     };
 }
 
-function ConfirmationDialog({ model }: ViewPropsRO<ConfirmationDialogModel>) {
-    const state = model.state.use();
-
-    return (
-        <Dialog name="confirmation-dialog" onKeyDown={model.handleKeyDown}>
-            <DialogContent
-                title={state.title}
-                icon="confirm"
-                onClose={() => model.close(undefined)}
-                minWidth={300}
-                maxWidth={800}
-            >
-                <Panel direction="column" paddingX="xxl" paddingY="xl">
-                    <Text>{state.message}</Text>
-                </Panel>
-                <Panel direction="row" justify="end" gap="sm" padding="md">
-                    {state.buttons?.map((bt, i) => (
-                        <Button key={i} onClick={() => model.close(bt)}>
-                            {bt}
-                        </Button>
-                    ))}
-                </Panel>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-Views.registerView(confirmationDialogId, ConfirmationDialog as DefaultView);
+registerDialogView(confirmationDialogId, ConfirmationDialogView);
 
 export function showConfirmationDialog(props: ConfirmationDialogProps) {
     const modelState = {

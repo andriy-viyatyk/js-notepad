@@ -1,16 +1,10 @@
-import { useCallback } from "react";
-
 import { showDialog } from "./Dialogs";
-import { Dialog, DialogContent, Panel, Text, Button, Input, Label } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
-import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
+import { registerDialogView } from "./dialog-view-registry";
+import { PasswordDialogView } from "./PasswordDialogView";
 
-// =============================================================================
-// Model
-// =============================================================================
-
-const passwordDialogId = Symbol("passwordDialog");
+export const passwordDialogId = Symbol("passwordDialog");
 
 export interface PasswordDialogProps {
     mode: "encrypt" | "decrypt";
@@ -18,7 +12,7 @@ export interface PasswordDialogProps {
     message?: string;
 }
 
-interface PasswordDialogState extends PasswordDialogProps {
+export interface PasswordDialogState extends PasswordDialogProps {
     password: string;
     confirm: string;
     error: string;
@@ -33,115 +27,39 @@ const defaultPasswordDialogProps: PasswordDialogState = {
 
 class PasswordDialogModel extends TDialogModel<PasswordDialogState, string> {
     setPassword = (password: string) => {
-        this.state.update((s) => { s.password = password; s.error = ""; });
+        this.state.update((state) => { state.password = password; state.error = ""; });
     };
 
     setConfirm = (confirm: string) => {
-        this.state.update((s) => { s.confirm = confirm; s.error = ""; });
+        this.state.update((state) => { state.confirm = confirm; state.error = ""; });
     };
 
     setError = (error: string) => {
-        this.state.update((s) => { s.error = error; });
+        this.state.update((state) => { state.error = error; });
     };
 
-    handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(undefined);
-        }
-    };
-}
-
-// =============================================================================
-// Component
-// =============================================================================
-
-function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
-    const state = model.state.use();
-    const isDecrypt = state.mode === "decrypt";
-
-    const doSubmit = useCallback(() => {
-        const { password, confirm } = model.state.get();
+    submit = () => {
+        const { password, confirm, mode } = this.state.get();
         if (!password) {
-            model.setError("Password cannot be empty");
+            this.setError("Password cannot be empty");
             return;
         }
-        if (!isDecrypt && password !== confirm) {
-            model.setError("Passwords do not match");
+        if (mode !== "decrypt" && password !== confirm) {
+            this.setError("Passwords do not match");
             return;
         }
-        model.close(password);
-    }, [isDecrypt, model]);
+        void this.close(password);
+    };
 
-    const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
-            if (e.key === "Enter") {
-                doSubmit();
-            } else if (e.key === "Escape") {
-                model.close(undefined);
-            }
-        },
-        [doSubmit, model],
-    );
-
-    return (
-        <Dialog name="password-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
-            <DialogContent
-                title={isDecrypt ? "Decrypt File" : "Encrypt File"}
-                icon="lock"
-                onClose={() => model.close(undefined)}
-                minWidth={340}
-                maxWidth={500}
-            >
-                <Panel direction="column" paddingX="xxl" paddingY="xl" gap="md">
-                    {state.message && (
-                        <Text color="light">{state.message}</Text>
-                    )}
-                    <Panel direction="column" gap="xs">
-                        <Label>Password</Label>
-                        <Input
-                            name="password-dialog-password"
-                            type="password"
-                            value={state.password}
-                            onChange={model.setPassword}
-                            autoFocus
-                            onKeyDown={handleKeyDown}
-                        />
-                    </Panel>
-                    {!isDecrypt && (
-                        <Panel direction="column" gap="xs">
-                            <Label>Confirm Password</Label>
-                            <Input
-                                name="password-dialog-confirm"
-                                type="password"
-                                value={state.confirm}
-                                onChange={model.setConfirm}
-                                onKeyDown={handleKeyDown}
-                            />
-                        </Panel>
-                    )}
-                    {state.error && (
-                        <Text color="error" size="sm">{state.error}</Text>
-                    )}
-                </Panel>
-                <Panel direction="row" justify="end" gap="sm" padding="md">
-                    <Button name="password-submit" variant="primary" onClick={doSubmit}>
-                        {isDecrypt ? "Decrypt" : "Encrypt"}
-                    </Button>
-                    <Button name="password-cancel" onClick={() => model.close(undefined)}>
-                        Cancel
-                    </Button>
-                </Panel>
-            </DialogContent>
-        </Dialog>
-    );
+    handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            void this.close(undefined);
+        }
+    };
 }
 
-Views.registerView(passwordDialogId, PasswordDialog as DefaultView);
-
-// =============================================================================
-// Public API
-// =============================================================================
+registerDialogView(passwordDialogId, PasswordDialogView);
 
 export function showPasswordDialog(props?: Partial<PasswordDialogProps>) {
     const modelState = {

@@ -4,7 +4,6 @@ import {
     type TextElementAttributes,
     type TextStyleProps,
 } from "./text-style";
-import "./Text.css";
 
 export type { TextColor, TextElementAttributes, TextSize, TextStyleProps, TextVariant } from "./text-style";
 
