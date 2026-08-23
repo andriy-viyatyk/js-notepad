@@ -467,6 +467,35 @@ uses, so the mapping is not hand-rolled) — which is honest declaration of what
 new weight. `remark-gfm` and `rehype-raw` are already direct. `react-markdown` and
 `hast-util-to-jsx-runtime` leave with Epic F.
 
+### E1-11 — `compare` is not a registered editor module, so US-1043 converts a React island
+
+Found while taking the baseline, and it reshapes the task. `compare` appears nowhere in
+`editors/register-editors.ts`: there is no `compareModule`, no `Component:` arm, and it is never
+reached through `editorRegistry` or `AsyncEditorView`. It is a plain React component rendered directly
+by the **already-vanilla** `ui/app/PageContentView.ts`:
+
+```ts
+// PageContentView.updateCompare, :169-176
+this.compareHost = document.createElement("div");
+this.compareHandle = mountReactHandle(this.compareHost, this.compareElement(model, groupedModel, leftPageId));
+```
+
+Three consequences:
+
+- **US-1043 does not exercise the registration seam**, and does not need to — US-1042 already proved it
+  with `toolset`. The epic doc previously called `compare` "the second editor to go fully vanilla" via
+  the chrome-free shape; that phrasing was wrong about the mechanism, right about the outcome.
+- **It is a textbook Rule 1 conversion**: the parent (`PageContentView`) is already vanilla and stays
+  untouched in structure; the React child becomes a vanilla child. Nothing is converted alongside its
+  parent.
+- **It deletes a React root outright** rather than merely avoiding a new one — `updateCompare`'s
+  `mountReactHandle` call and `clearCompare`'s generation-guarded disposal both go, replaced by an owned
+  child view. That is the Rule 4 headline.
+
+`CompareEditor` also already holds its logic in a `TComponentModel` (`CompareEditorModel`, with
+`editorDidMount`/`dispose` and a `monaco.IDisposable` subscription), so the conversion is a view
+translation with the model largely intact — which is exactly the shape roadmap §3.1 predicted.
+
 ## Linked Tasks
 
 | Task | Title | Status |
@@ -501,10 +530,39 @@ number isolates exactly what E1-3 changes: how much reconciliation sits between 
 widget. The secondary number — React roots per open editor, 1 → 0 — is a count, not a benchmark, and
 is reported alongside rather than as the headline.
 
-> **GATE — do not skip.** The "before" half of this number is **unrecoverable** once US-1043 lands.
-> Capture it as the *first step* of US-1043, before any code changes, and record it in the Notes
-> section below. If you reach US-1043's implementation and no baseline is recorded, stop and take it
-> first. This is the one measurement in the epic that cannot be reconstructed from the repository.
+> **GATE — CLEARED 2026-08-24, before any US-1043 code.** Baseline recorded below. Do not re-open it.
+
+### Metric revised, and the baseline
+
+The typing half of the metric above was dropped after trying to take it. Three reasons:
+
+1. **It would have measured Monaco, not us.** Monaco repaints its own viewport on every keystroke, so
+   DOM writes during typing are dominated by the widget and the React wrapper's reconciliation is lost
+   in the noise. The metric would have been precise and uninformative.
+2. **It is not drivable autonomously.** Compare mode cannot be toggled from the scripting API —
+   `app._pages` is a `PageCollectionWrapper` exposing `group`/`ungroup`/`openDiff`/`closePage`, with no
+   compare-mode control — so an open→type→close cycle needs the UI.
+3. **What E1-3 removes is countable exactly.** See E1-11: compare mode's React root is created in one
+   named place, so the number is a fact about the code rather than a benchmark with error bars.
+
+**Headline number — React roots created for compare mode: 1 → 0.** `PageContentView.updateCompare`
+(`ui/app/PageContentView.ts:169-176`) calls `mountReactHandle`, so entering compare mode creates a
+React root and the whole `CompareEditor` subtree inside it. After US-1043 the vanilla view is a direct
+child and no root is created.
+
+**Measured baseline, on React, taken at `84ce5881`:**
+
+| Measurement | Value |
+|---|---:|
+| DOM mutations for a cold compare-editor mount | **2,001** |
+| Settle window | 2,525 ms |
+| Resulting `.monaco-diff-editor` nodes | 1 |
+
+Method — repeat exactly to get the "after" number: install a `MutationObserver` on
+`document.getElementById("root")` with `{childList, subtree, attributes, characterData}`, call
+`app._pages.openDiff({firstPath, secondPath})` on two small scratch text files, wait 2,500 ms, then
+disconnect and sum `records.length`. Restore the layout afterwards with `ungroup` + `closePage`; the
+files used were two 4-line text files differing on two lines.
 
 **MCP measurement pitfall, found 2026-08-24.** `await import('http://localhost:5273/src/…')` from
 `execute_script` returns a **fresh module instance**, not the running app's singleton — an imported
