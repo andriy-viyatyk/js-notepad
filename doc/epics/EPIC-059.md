@@ -16,7 +16,8 @@ or given chrome.** `EditorModule.Component` is typed `React.ComponentType`,
 `AsyncEditorView.renderEditor` creates a React root unconditionally, `<TextChrome>` wraps 14 editors
 as JSX, and 12 editors render Monaco through a React lifecycle wrapper.
 
-EPIC-059 builds that seam and proves it with three small editors. It converts no large editor. Its
+EPIC-059 builds that seam and proves it on four small editors — one per chrome shape, two of them
+going fully vanilla. It converts no large editor. Its
 whole purpose is that every epic after it can convert one editor per task with no shared work left to
 negotiate — which is the property the roadmap assumed Epic E already had.
 
@@ -143,7 +144,8 @@ editors are not the largest conversions.
 | `@monaco-editor/react` importers | 18 | **11** (6 repointed, `compare` converted) |
 | `react-markdown` importers | 1 | **0** |
 | React roots created per open editor | 1 | 0 for a converted editor |
-| Editors converted | 0 | 3 (image, compare, mermaid) — one per chrome shape (E1-2) |
+| Editors fully vanilla | 0 | **2** (`toolset`, `compare`) — the chrome-free shape |
+| Editors partly vanilla (body/actions inside a React chrome shell) | 0 | 2 (`image`, `mermaid`) |
 | New dependencies added | — | **0** (E1-10); 4 transitive packages declared direct |
 | `editors/base` chrome | React | **unchanged, deliberately** — drains with its call sites (E1-8) |
 
@@ -200,16 +202,24 @@ Work the **first `Planned` task** in [Linked Tasks](#linked-tasks) that has no b
   rebuild and main-window restart; if that fails, kill Vite and `npm start` fresh. Two attempts is the
   budget — then stop and wait. **Do not report a wedged renderer as a defect until a cold start
   reproduces it.**
-- **Visual verification with no user present:** try it yourself through the `browser_*` and
-  `execute_script` MCP tools first. If a check genuinely needs human eyes, record it under
-  [Testing owed](#testing-owed) below and carry on — the user clears the backlog before epic close.
+- **Visual verification with no user present.** Assume there is none: the user has stated the laptop
+  screen will usually be locked and the Persephone window not visible while this epic runs. Do what you
+  can yourself through the `browser_*` and `execute_script` MCP tools — a locked screen does not stop
+  MCP, so DOM assertions, `data-name` checks and script-driven state changes all still work. For
+  anything that genuinely needs human eyes (does it *look* right, is the spacing wrong, does the
+  animation stutter), **do not block and do not wait**: append a row to
+  [Testing owed](#testing-owed) and carry on to the next task. The user clears the whole backlog in one
+  pass before the epic closes.
 
 ### Testing owed
 
-Visual or interactive checks that could not be verified without the user. Cleared before the epic
-closes.
+Checks that need human eyes, deferred by the rule above. Every one of them is cleared with the user
+**before this epic closes** — an unchecked row is a blocker for epic completion, not a footnote. Add a
+row the moment you defer something; do not batch them up at the end from memory.
 
-*(none yet)*
+| Task | What to look at | How to reach it |
+|---|---|---|
+| *(none yet)* | | |
 
 ## Decisions
 
@@ -240,18 +250,35 @@ An additive vanilla arm on a React-typed registry, with no editor using it, is s
 infrastructure — a shape this programme has rejected twice during EPIC-058 review. So each seam task
 converts one real editor through the seam it adds:
 
-The three pilots were first chosen as "the three smallest editors". Measuring the chrome (E1-8) gave a
-better reason: **the editor population splits three ways by which shared chrome wraps it, and each
-shape converts differently.** One pilot per shape, and they happen to also be the smallest.
+The pilots were first chosen as "the three smallest editors". Measuring the chrome (E1-8) gave a better
+reason: **the editor population splits three ways by which shared chrome wraps it, and each shape
+converts differently.** One pilot per shape.
 
 | Shape | Editors | Pilot | What it proves |
 |---|---:|---|---|
-| Wrapped in `<TextChrome>` | **14** | **mermaid** (222 lines) | A vanilla body inside a React chrome shell; also provides `Body`, and is the `pre` override the markdown renderer needs |
-| Renders `<PageToolbar>` directly | **6** | **image** (105 lines) | The same shape one level shallower — archive, board-info, git-tree, video, category are its siblings |
-| No shared chrome | rest | **compare** (108 lines) | The only shape where the *whole* editor goes vanilla; also the smallest `DiffEditor` consumer, so it doubles as the Monaco-host proof |
+| No shared chrome | rest | **toolset** (167 lines, 2 files) | The registry's vanilla `View` arm end to end — the whole editor goes vanilla, no React anywhere in it |
+| Renders `<PageToolbar>` directly | **6** | **image** (105 lines) | Vanilla body *and* vanilla toolbar contributions inside a React chrome shell — the shape 6 editors will use |
+| Wrapped in `<TextChrome>` | **14** | **mermaid** (222 lines) | The same shape one level deeper, plus the `Body` arm; also the `pre` override the markdown renderer needs |
 
-Combined: 435 lines. Note the correction to the original pilot rationale — `image` is **not**
-chrome-free (`image/ImageView.tsx:60` renders `<PageToolbar>`); `compare` is the one that is.
+Plus **compare** (108 lines, chrome-free) as US-1043's Monaco-host consumer — the second editor to go
+fully vanilla.
+
+**`image` cannot be the seam's pilot, and that changed the plan.** The first draft named it for
+US-1042 on the strength of being the smallest editor. Reading it disqualifies it twice over:
+`ImageView.tsx:60` renders `<PageToolbar>`, so per E1-8 the editor keeps a React shell and is
+therefore still registered through the **React** `Component` arm — it cannot exercise the vanilla arm
+US-1042 ships, which violates E1-2's own rule. And of its 72 lines, roughly 45 are toolbar
+contributions and the body is the single `<ImageViewport>` line, so "convert the body" would have
+delivered almost nothing.
+
+`toolset` replaces it as the seam pilot and is better on every axis: chrome-free and Monaco-free, so
+the whole editor converts; 167 lines across 2 files; pure UIKit composition (`Panel`, `Text`,
+`Button`, `IconButton`, `Spacer` — all converted in C1); and **two independent reactive sources**
+(`model.state.use` over five fields, plus `toolsTrust.useIsTrusted`), so it exercises `bind()`
+properly rather than rendering once.
+
+`image` keeps a task of its own, correctly described: it proves the chrome-shell shape and collects a
+`WithMenu` render-prop call site (removal ledger, EPIC-055 C2-5) by moving to `openMenu`.
 
 ### E1-3 — The Monaco host is a vanilla view, not a wrapper replacement
 
@@ -347,6 +374,18 @@ the problem: converting the chrome while the editors that fill its slots are sti
 roots and DOM writes, so the chrome conversion would move it the wrong way and buy nothing — the
 slot contents are the same React trees either way.
 
+**The load-bearing mechanism is that the two nesting directions do not cost the same.** This is worth
+stating explicitly because the whole decision rests on it:
+
+| Direction | Adapter | Root cost |
+|---|---|---|
+| React parent hosts a vanilla child | `mountVanilla` | **Zero** — it is a React *component* in the existing tree (`uikit/shared/mount.tsx`), not a new root |
+| Vanilla parent hosts a React child | `fill-slot` → `mountReactHandle` | **One root per slot host** |
+
+So a React chrome shell wrapping vanilla bodies and vanilla toolbar contributions is free, while a
+vanilla chrome wrapping React contributions is not. Converting the chrome last is the cheap ordering,
+not merely the safe one.
+
 The direction that does work is Rule 1 read plainly: **convert the leaf, leave the container.** An
 editor keeps a thin React shell that renders `<TextChrome>` (or `<PageToolbar>`) around
 `mountVanilla(BodyView, { model })`. One React root for the chrome, zero for the body — no worse than
@@ -413,20 +452,22 @@ new weight. `remark-gfm` and `rehype-raw` are already direct. `react-markdown` a
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the `image` editor body | Planned |
+| US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the **`toolset`** editor | Planned |
 | US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | Planned |
 | US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | Planned |
-| US-1045 | Convert the `mermaid` editor body inside its React `TextChrome` shell — the `Body` arm's proof | Planned |
-| US-1046 | Secondary-view vanilla arm + convert one editor-owned panel | Planned |
-| US-1047 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned |
+| US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | Planned |
+| US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | Planned |
+| US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | Planned |
+| US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned |
 
-Six tasks. **A seventh — converting the `editors/base` chrome — was withdrawn by E1-8**, which found
-the conversion counterproductive rather than merely risky; the chrome drains with its call sites and
-carries a removal-ledger row instead.
+Seven tasks. Two changes from the first draft, both from reading the code rather than re-planning:
+**the `editors/base` chrome task was withdrawn** (E1-8 — counterproductive, not merely risky), and
+**US-1042's pilot changed from `image` to `toolset`** while `image` kept a task of its own (E1-2 —
+`image` cannot exercise the arm US-1042 ships, because it needs a React chrome shell).
 
-Ordering constraints: US-1042 first (everything else registers through it). US-1043 and US-1045 before
-US-1047 (E1-5: the `code` and `pre` overrides mount a Monaco block and a mermaid SVG). US-1044 and
-US-1046 are independent of the rest.
+Ordering constraints: **US-1042 first** — everything else registers through it. US-1043 and US-1046
+before US-1048 (E1-5: the `code` and `pre` overrides mount a Monaco block and a mermaid SVG). US-1044,
+US-1045 and US-1047 are independent of each other.
 
 ## Rule 4 — the measured number
 
