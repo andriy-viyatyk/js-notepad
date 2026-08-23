@@ -8,10 +8,10 @@ Detailed organization of the codebase. Verified against actual source files.
 persephone/
 ├── src/                    # Source code
 │   ├── main/               # Electron main process
-│   ├── renderer/           # React frontend (see below)
+│   ├── renderer/           # React + VanillaView frontend (see below)
 │   ├── ipc/                # IPC communication layer
 │   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine)
-│   ├── renderer.tsx        # Bootstrap entry point
+│   ├── renderer.tsx        # Async bootstrap; calls renderer/index.tsx mount(container)
 │   ├── preload.ts          # Preload script (main renderer)
 │   ├── board-shim.ts       # Board bridge shim entry — browser IIFE inlined into board HTML; boot, host trust gate, MessagePort plumbing, window.persephone
 │   ├── board-context-menu.ts # Browser-safe Board context menu, image and editable-field clipboard support
@@ -91,6 +91,13 @@ persephone/
 ```
 
 ## Renderer Structure
+
+The renderer entry is `src/renderer.tsx`: after asynchronous application bootstrap it calls
+`mount(container)` exported by `src/renderer/index.tsx`. The application shell and the coupled
+views under `ui/` and `components/` are framework-free `VanillaView` classes. Their `.tsx` files
+are thin React-facing mount faces retained for remaining React callers; the corresponding
+`*View.ts` files own DOM structure, bindings, and disposal. React roots are reserved for editor
+islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 
 ```
 /src/renderer/
@@ -259,31 +266,46 @@ persephone/
 │   └── open-with-default-app.ts # Hand a path to the OS shell (shell.openPath); shared by the tree context menu and Explorer double-click
 │
 ├── ui/                     # Application Shell
-│   ├── app/                # Root layout
-│   │   ├── MainPage.tsx            # Root component (header, tabs, editors, sidebar)
-│   │   ├── Pages.tsx               # Page container/router
-│   │   ├── RenderEditor.tsx        # Editor dispatcher
-│   │   ├── AsyncEditor.tsx         # Async editor loader
+│   ├── app/                # Root shell
+│   │   ├── MainPage.tsx            # React-facing mount face
+│   │   ├── MainPageView.ts         # Native root layout (header, tabs, editors, sidebar)
+│   │   ├── Pages.tsx               # React-facing page host face
+│   │   ├── PagesView.ts            # Native page container/router
+│   │   ├── RenderEditor.tsx        # React-facing editor dispatcher face
+│   │   ├── RenderEditorView.ts      # Native editor dispatcher
+│   │   ├── AsyncEditorView.ts      # Native async editor loader and React editor island
 │   │   └── index.ts
 │   ├── tabs/               # Tab bar
-│   │   ├── PageTabs.tsx            # Tab bar component
-│   │   ├── PageTab.tsx             # Individual tab
+│   │   ├── PageTabs.tsx            # React-facing tab bar face
+│   │   ├── PageTabsView.ts         # Native tab strip and scroll projection
+│   │   ├── PageTab.tsx             # React-facing individual-tab face
+│   │   ├── PageTabView.ts          # Native tab, drag, and activation behavior
 │   │   └── index.ts
 │   ├── sidebar/            # Sidebar/menu panel
-│   │   ├── MenuBar.tsx             # Top menu bar
-│   │   ├── OpenTabsList.tsx         # Open tabs list
-│   │   ├── RecentFileList.tsx       # Recent files panel
-│   │   ├── ToolsEditorsPanel.tsx    # Tools & Editors panel — pinned region + "Built-in Editors" / "Boards" / "Tools" segments (pin/unpin, drag reorder)
+│   │   ├── MenuBar.tsx             # React-facing menu-bar face
+│   │   ├── MenuBarView.ts          # Native top menu bar
+│   │   ├── OpenTabsList.tsx         # React-facing open-tabs face
+│   │   ├── OpenTabsListView.ts      # Native open-tabs list
+│   │   ├── RecentFileList.tsx       # React-facing recent-files face
+│   │   ├── RecentFileListView.ts    # Native recent-files panel
+│   │   ├── ToolsEditorsPanel.tsx    # React-facing Tools & Editors face
+│   │   ├── ToolsEditorsPanelView.ts # Native Tools & Editors panel
 │   │   ├── TrustedBoardsList.tsx    # "Boards" segment — trusted boards grouped by folder; open / pin / Remove (≡ untrust)
+│   │   ├── TrustedBoardsListView.tsx # Native list shell with editor-owned React tree arm
 │   │   ├── TrustedToolsList.tsx     # "Tools" segment — all registered toolsets across roots (ToolsTree); open / Remove (≡ untrust)
+│   │   ├── TrustedToolsListView.tsx  # Native list shell with editor-owned React tree arm
 │   │   ├── pinned-items.ts          # Unified PinnedRef model over the pinned-editors setting (editors + "board:<root>" pins)
 │   │   ├── tools-editors-registry.ts # Creatable items registry (editors + tools)
-│   │   ├── ScriptLibraryPanel.tsx   # Script library folder panel
-│   │   ├── FileList.tsx            # File browser list
+│   │   ├── ScriptLibraryPanel.tsx   # React-facing script-library face
+│   │   ├── ScriptLibraryPanelView.ts # Native script-library panel
 │   │   ├── FolderItem.tsx          # Folder tree item
+│   │   ├── FolderItemView.ts        # Native folder tree item
+│   │   ├── BuiltinEditorsListView.ts # Native built-in editor list
+│   │   ├── PinnedRailView.ts        # Native pinned rail
 │   │   └── index.ts
 │   ├── dialogs/            # Application dialogs
-│   │   ├── Dialogs.tsx             # Dialog manager/renderer
+│   │   ├── Dialogs.tsx             # React-facing dialog manager face
+│   │   ├── DialogsView.ts          # Native dialog host and slot ownership
 │   │   ├── Dialog.tsx              # Base dialog component
 │   │   ├── ConfirmationDialog.tsx
 │   │   ├── InputDialog.tsx
@@ -304,11 +326,13 @@ persephone/
 │   │   │   ├── showPopupMenu.tsx
 │   │   │   └── types.ts
 │   │   └── index.ts
-│   └── secondary-views/    # SecondaryViews — controlled panel host
-│       ├── SecondaryViews.tsx       # Controlled panel host — renders CollapsiblePanel per registered secondary
+│   └── secondary-views/    # SecondaryViews — native controlled panel host
+│       ├── SecondaryViews.tsx       # React-facing panel-host face
+│       ├── SecondaryViewsView.ts    # Native panel host; retains headerRef portal compatibility
 │       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
 │       ├── LazySecondaryView.tsx    # Dynamic panel component loader (dynamic import per panel ID)
-│       ├── SideBarPanelHeader.tsx   # Shared panel header (icon + badge + truncating title + pinned actions); portals into the header
+│       ├── SideBarPanelHeader.tsx   # React-facing shared panel-header face
+│       ├── SideBarPanelHeader.css   # Static panel-header styles
 │       ├── panel-key.ts             # Composite panel keys (`${editorId}::${panelId}`)
 │       └── secondary-view-registry.ts # Registry: panel ID → dynamic component factory
 │
@@ -747,10 +771,12 @@ persephone/
 │   │                       # Each remaining folder uses app.* APIs, page model, file
 │   │                       # system, or scripting — that's the criterion. No new pure
 │   │                       # primitives go here.
-│   ├── tree-provider/      # TreeProviderView (generic tree viewer) + CategoryView (the folder page a tree navigates to) — both over any ITreeProvider
-│   │   ├── TreeProviderView.tsx # Tree chrome and UIKit Tree wiring
+│   ├── tree-provider/      # TreeProviderView and CategoryView native views over any ITreeProvider
+│   │   ├── TreeProviderView.tsx # React-facing tree-view face
+│   │   ├── TreeProviderViewImpl.ts # Native tree chrome and UIKit Tree wiring
 │   │   ├── TreeProviderViewModel.ts # Tree loading, selection, actions, and drops
-│   │   ├── CategoryView.tsx # Folder-content view
+│   │   ├── CategoryView.tsx # React-facing folder-content face
+│   │   ├── CategoryViewImpl.ts # Native folder-content view and bounded editor island
 │   │   ├── CategoryViewModel.ts # Folder listing, selection, actions, and drops
 │   │   ├── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
 │   │   ├── plural-actions.tsx # Set-shaped actions shared by the tree + folder page: the multi-select gate, nested-item pruning, the plural menu, batch delete
@@ -759,12 +785,14 @@ persephone/
 │   │   ├── drop-dispatch.ts # Trait payload to provider-level move/import action resolution
 │   │   ├── href-utils.ts # Case-insensitive selection and normalized href helpers
 │   │   └── tree-drop-actions.ts # Move/import drop actions, taking a { path, title } target rather than a tree node so both views can call them
-│   ├── file-search/        # FileSearch — standalone file content search with virtualized results; accumulated rows live on the model, not in reactive state
-│   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
-│   ├── file-grid/          # FileGrid — DataGrid/av-grid file list (icon/path/status columns, header-as-label, sorting, range select + range-copy, single/double click, context-menu passthrough); git Changes panel; eventual FileList replacement (EPIC-031)
-│   ├── icons/              # FileIcon, LanguageIcon, TreeProviderItemIcon, favicon-cache
-│   ├── page-manager/       # Portal-based page/tab host (prevents iframe/webview reload on reorder)
-│   └── git-tree/           # Git history view (DataGrid/av-grid + SVG BranchTreeCell + swimlane layout) + git data submodels (GitTreeModel = commits, GitChangesModel = staged/unstaged status, GitStatusBadge) — shared by the git-tree editor + File Diff picker + Changes panel (EPIC-030/031)
+│   ├── file-search/        # FileSearch native view and React-facing face; virtualized results
+│   │   ├── FileSearch.tsx  # React-facing mount face
+│   │   └── FileSearchView.ts # Native search view and VirtualGrid renderer
+│   ├── file-list/          # FileList.tsx face + FileListView.ts native flat list
+│   ├── file-grid/          # FileGrid.tsx face + FileGridView.ts native DataGrid/av-grid list
+│   ├── icons/              # React-facing icon faces plus icon-elements.ts DOM resolvers
+│   ├── page-manager/       # Native append-only page/tab hosts with retained React islands
+│   └── git-tree/           # GitTree.tsx face + GitTreeView.ts native history view and git submodels
 │
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives
@@ -802,12 +830,13 @@ persephone/
 │
 ├── theme/                  # Styling
 │   ├── color.ts            # Color tokens (CSS custom properties)
-│   ├── GlobalStyles.tsx    # Global CSS reset
+│   ├── GlobalStyles.tsx    # React global-style island (the sole startup React root)
 │   ├── icons.tsx           # SVG icon components
 │   ├── icon-registry.ts    # Single-source-of-truth names for registered SVG icons
-│   ├── language-icons.tsx  # Language-specific icons
+│   ├── language-icons.ts   # Language-specific DOM-built icons
 │   ├── palette-colors.ts   # Color palette definitions
 │   ├── style-layers.css    # Shared cascade-layer order for static CSS
+│   ├── root.css            # Static #root geometry, before any React commit
 │   ├── theme-state.ts      # Shared active-theme snapshot and subscriptions
 │   ├── token-vars.ts       # App token CSS-variable generation and installation
 │   └── themes/             # Theme definitions and color resolution (9 themes)
@@ -816,7 +845,7 @@ persephone/
 │   ├── window.d.ts         # Window interface extension
 │   └── events.d.ts         # MouseEvent extension
 │
-└── index.tsx               # React root component (AppContent)
+└── index.tsx               # mount(container): application composition root
 ```
 
 ## Main Process Structure

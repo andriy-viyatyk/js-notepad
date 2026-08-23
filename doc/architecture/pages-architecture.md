@@ -10,9 +10,11 @@ page lifecycle, action taxonomy, and internal submodel structure.
 
 ## 1. Window Bootstrap Lifecycle
 
-The renderer initializes in a strict 3-layer sequence before React renders.
+The renderer initializes in a strict 3-layer sequence before the application mount runs.
 This ensures all systems are ready before the UI appears — no race conditions,
-no flash of empty state.
+no flash of empty state. `renderer.tsx` returns the `mount(container)` callback from
+`renderer/index.tsx`; the shell is native and React editor content is mounted only in explicit
+islands.
 
 ```mermaid
 graph TD
@@ -27,7 +29,7 @@ graph TD
     E2 -->|Phase 3: Ready| F["app.initEvents<br/>Layer 3"]
     F -->|Initialize services| F1["GlobalEventService<br/>KeyboardService<br/>WindowStateService<br/>RendererEventsService"]
     F1 --> G["api.windowReady<br/>Signal window ready"]
-    G -->|React renders| H["MainPage<br/>Tabs + Active Editor"]
+    G -->|mount(container)| H["MainPageView<br/>Tabs + Active Editor"]
     H -->|User interactions| I["Page operations"]
 
     E1 -->|✓ Success| E1a["Pages loaded from storage"]
@@ -457,7 +459,8 @@ PageModel holds a `secondaryViews[]` array of EditorModel instances that appear 
 - **Pattern A** (separate model): A dedicated EditorModel subclass, e.g., ExplorerEditorModel
 - **Pattern B** (mainEditor as secondary): The mainEditor registers itself in `secondaryViews[]` simultaneously, e.g., ArchiveEditorModel when browsing an archive
 - Lifecycle hooks: `beforeNavigateAway()`, `onMainEditorChanged()`, `onPanelExpanded()`
-- Portal-based headers: panel components use `createPortal()` to render into CollapsiblePanel headers
+- Header compatibility: the native secondary-view host exposes the same `headerRef` DOM targets;
+  the remaining React editor panels may still use `createPortal()` to render into them
 - Persistence: saved as `SecondaryModelDescriptor[]` in sidebar cache, with deduplication for Pattern B
 
 ---

@@ -92,6 +92,23 @@ rather than per item. `components/file-search/FileSearchModel.ts` does both.
 This is a scale exception, not a general licence: ordinary component state stays in `TOneState`,
 where Immer's copying is what makes selective subscription and change detection work.
 
+### Synchronous-write hazards in vanilla views
+
+Vanilla views share mutable fields and per-row records with the synchronous store-notification
+path. Treat every store write as a possible immediate refresh. A handler must capture any value it
+needs before the write, or derive it from a stable model/key afterward; never read a mutable view
+field or row record after a write that can notify the view. A React handler often captured a
+per-render constant, which hid this race; a `VanillaView` field does not have that snapshot behavior.
+
+Two related lifecycle details are easy to misread:
+
+- `VanillaView.update(props)` assigns `this.props` before calling `onUpdate(props)`. Inside that
+  hook, `this.props` is already the new value, never the previous props. Keep an old-value
+  comparison in the view if the transition itself matters.
+- A UIKit primitive's own `data-type` is part of its styling contract. Do not override it with an
+  app-specific value. Attribute-keyed CSS rules, including selection, drag, hover, and slot rules,
+  will no longer match; use an additive class or a separate data attribute instead.
+
 ### useOptionalState Hook
 
 `useOptionalState(state, selector, defaultValue)` — subscribes to a `TOneState` that may be null. Always calls `useState` + `useEffect` (stable hook count), returns `defaultValue` when state is null. Use this instead of `state?.use()` which is a conditional hook and violates React Rules of Hooks.

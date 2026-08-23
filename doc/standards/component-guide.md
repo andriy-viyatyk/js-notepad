@@ -28,6 +28,7 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Rule 7** — no Emotion outside `uikit/` in app code, and no `style=` / `className=` **on a UIKit component** (exception: `src/renderer/ui/` chrome). The `style`/`className` half of the rule scopes to UIKit components, not to raw HTML elements — an inline style object on a plain `<img>` or `<div>` in app code is fine, and is the intended escape hatch when a one-off element needs sizing that no UIKit primitive covers.
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
 - **Rule 9** — converted components may expose a framework-free `VanillaView`; follow the lifecycle, ownership, model-driver, and structural-helper contract in [`model-view-pattern.md`](./model-view-pattern.md).
+- **Primitive attribute contract** — never override a UIKit primitive's generated `data-type`; its CSS is keyed by that value. Use an additive class or a separate data attribute for app-specific state.
 - **Icon slots** — use `IconRef` for icon-bearing props. React faces resolve registry names with `renderIcon`; vanilla views narrow string values with `isIconName` and build SVG with `createIconElement`. A string is always a registry name, never literal fallback text. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
 
 The icon registry is the neutral boundary for reusable components. `IconName` is derived from the

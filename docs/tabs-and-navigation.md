@@ -34,6 +34,9 @@ If a file has unsaved changes, you'll be prompted to save before closing.
 | `Ctrl+Shift+Tab` | Switch to previous tab |
 | Click a tab | Switch to that tab |
 
+When you activate a tab that is outside the visible part of the tab bar, the tab bar scrolls just
+enough to bring it into view. Activating a tab that is already visible does not recenter the tab bar.
+
 ### Moving Tabs
 
 - **Reorder** — drag and drop tabs within the tab bar to rearrange them

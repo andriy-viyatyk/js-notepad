@@ -122,7 +122,7 @@ The user may say "review done tasks" or "run review for completed tasks" at any 
 | Add sidebar panels            | [/doc/architecture/secondary-views.md](doc/architecture/secondary-views.md) |
 | Work with scripting system    | [/doc/architecture/scripting.md](doc/architecture/scripting.md) |
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |
-| Check the frozen Emotion and inline-style baseline | [/doc/architecture/styling-inventory.md](doc/architecture/styling-inventory.md) |
+| Check the current Emotion and inline-style inventory | [/doc/architecture/styling-inventory.md](doc/architecture/styling-inventory.md) |
 | See active/planned work       | [/doc/active-work.md](doc/active-work.md) |
 | Find the file that owns a behavior | [/doc/architecture/key-files.md](doc/architecture/key-files.md) |
 | See future ideas              | [/doc/tasks/backlog.md](doc/tasks/backlog.md) |
@@ -150,11 +150,11 @@ Persephone (formerly js-notepad) is a Windows Notepad replacement for developers
 ## Tech Stack
 
 - **Runtime:** Electron 43 — [Castlabs ECS](https://github.com/castlabs/electron-releases) fork with Widevine DRM support (nodeIntegration: true, contextIsolation: false)
-- **Frontend:** React 19 with TypeScript
+- **Frontend:** React 19 islands plus framework-free `VanillaView` classes, all in TypeScript
 - **Editor:** Monaco Editor
 - **State:** Custom reactive primitives (TOneState, TGlobalState, TComponentState, TModel)
 - **Build:** Vite 8 (rolldown) — `scripts/dev.mjs` (dev server + HMR), `scripts/build-prod.mjs` (production bundle), electron-builder (installer/packaging)
-- **Styling:** Emotion for UIKit and one-of-a-kind app chrome; editor-local CSS for generated content and third-party/native hosts
+- **Styling:** Static/co-located CSS for the native shell and converted components; four residual Emotion importers for named React boundaries; editor-local CSS for generated content and third-party/native hosts
 
 ## Commands
 
@@ -170,15 +170,15 @@ npm run lint        # Run ESLint
 ```
 /src
   /main              # Electron main process
-  /renderer          # React frontend
+  /renderer          # React islands + VanillaView frontend
     /api             # Object Model — app.settings, app.pages, app.fs, app.proc, etc.
-    /ui              # Application shell — MainPage, tabs, sidebar, dialogs
+    /ui              # Native application shell — MainPage, tabs, sidebar, dialogs (React-facing faces remain)
     /editors         # ALL editors (text, grid, markdown, compare, notebook, board, …)
     /content         # Content delivery — providers, transformers, pipes
     /scripting       # Script execution, wrappers, editor facades, worker
     /automation      # Browser automation — Playwright-compatible MCP tools, CDP, snapshots
     /uikit           # Standalone component library (canonical home for reusable primitives)
-    /components      # Persephone-coupled components only (icons, page-manager, file-search, tree-provider)
+    /components      # Persephone-coupled views/models (icons, page-manager, file-search, tree-provider, file lists, git-tree)
     /core            # State primitives, utilities
     /theme           # Styling
   /ipc               # Inter-process communication
@@ -255,8 +255,8 @@ TextFileIOModel uses dual pipes: primary (source file) + cache (auto-save). Pipe
 ## Coding Standards (Quick Reference)
 
 - **TypeScript** for all new code
-- **Emotion** for UIKit and one-of-a-kind app chrome; editor-owned generated-content and integration styling stays in scoped local CSS
-- **Functional components** with hooks
+- **Static/co-located CSS** for native views and converted components; residual Emotion only at documented React boundaries; editor-owned generated-content and integration styling stays in scoped local CSS
+- **Functional React components** with hooks where React remains; use `VanillaView` classes for native views
 - **Direct imports** preferred over barrel imports (avoid circular deps)
 - **Meaningful names** - descriptive, no abbreviations
 - **No hardcoded colors** - All colors must come from `import color from "../../theme/color"`. Never use hex codes, `rgb()`/`rgba()`, or named colors directly in styled components or inline styles. If a needed color doesn't exist in `color`, add it to `color.ts` and all theme definitions in `/src/renderer/theme/themes/`.

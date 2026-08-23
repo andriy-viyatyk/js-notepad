@@ -730,11 +730,20 @@ independent of every conversion and lands in **C1**.
 
 **Scoped as [EPIC-058](epics/EPIC-058.md) on 2026-08-22.** The next free epic number is **EPIC-059**.
 
-`ui/` (tabs, sidebar, dialogs, MainPage) and `components/`. Flip the application root to vanilla;
-from here React survives only inside unconverted editors, via `mountReact`.
+`ui/` (tabs, sidebar, dialogs, MainPage) and `components/` are now native `VanillaView` shells and
+coupled views behind unchanged React-facing faces where compatibility requires them. The application
+root is mounted by `src/renderer/index.tsx`'s `mount(container)` callback; React survives in editor
+islands and explicit compatibility boundaries, via `mountReact`.
 
 Candidate tasks: icon set from `.tsx` components to a sprite or inline-SVG helper · page/tab host ·
 sidebar and menu bar · dialog host · secondary-views host · root flip.
+
+The shell's startup React root is now limited to `GlobalStyles`. The geometry of `#root` lives in
+static `theme/root.css`, loaded at entry before the shell measures layout. The secondary-view
+registry retains one React-compatible `headerRef` arm for editor callers, and `EditorErrorBoundary`
+remains the deliberate React class island around React editor content. The source-level
+`react-dom/server` importer is gone; any server exports still present in a bundled React package are
+packaging residue for the removal epic, not an application importer.
 
 Depends on Epic C being effectively complete.
 
@@ -796,13 +805,14 @@ creates the duplicate, not in the epic that hopes to remove it.
 
 | Survivor | Kept because | Collectable once | Created by |
 |---|---|---|---|
-| `uikit/Panel/` | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`; a vanilla twin was deliberately not written (C1) | Epics D and E convert its call sites; C3 removes the last `uikit/` one | C1 / EPIC-054 |
-| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`; 12 app-layer importers cannot be swapped without breaking Rule 2 (EPIC-056 C3-1) | C4 removed its AVGrid importer; Epics D and E still convert the 12 app-layer importers | C3 / EPIC-056 |
+| `uikit/Panel/` | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`; a vanilla twin was deliberately not written (C1) | Epic E converts the remaining editor call sites; two shell header wrappers remain deliberately for pointer-event behavior | C1 / EPIC-054 |
+| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`; ten app-layer importer files remain after the shell and file-search conversions | Epic E converts the remaining editor-owned importers | C3 / EPIC-056 |
 | `uikit/RenderGrid/RenderFlexGrid.tsx` | Variable-height virtualization with no av-grid counterpart and two `editors/` consumers (EPIC-056 C3-3) | Epic E converts `LogBody.tsx` and `NotebookBody.tsx` — either onto a vanilla variant or off flex rows entirely | C3 / EPIC-056 |
 | React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
 | `uikit/shared/highlight.ts` React form | Five editor consumers still use it: GraphBody, LinksList, LinkCategoryPanel, ExpandedNoteView, and NoteItemView (EPIC-056 C3-7) | Epics D and E convert those editor consumers | C3 / EPIC-056 |
+| `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
 
 **One entry is already collectable at the point C4 closes** (RenderGrid's former AVGrid importers),
 which is worth checking there rather than deferring to F on principle:

@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-08-22
-**Completed:** —
+**Completed:** 2026-08-24
 
 ## Overview
 
@@ -228,20 +228,20 @@ condition.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Implemented |
-| [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
-| [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Implemented |
-| [US-1028](../tasks/US-1028-file-search/README.md) | `components/file-search/` (first `RenderGrid` collection) | Implemented |
-| [US-1029](../tasks/US-1029-tree-provider/README.md) | Tree primitive seams for tree-provider | Implemented |
-| [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Implemented |
-| [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Implemented |
-| [US-1030](../tasks/US-1030-git-tree-vanilla/README.md) | `components/git-tree/` vanilla GitTree view | Implemented |
-| [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Implemented |
-| [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Implemented |
-| [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Implemented |
-| [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Implemented |
-| [US-1035](../tasks/US-1035-tabs-vanilla/README.md) | `ui/tabs/` | Implemented |
-| [US-1036](../tasks/US-1036-app-root-flip/README.md) | `ui/app/` and the root flip | Implemented |
+| [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Completed |
+| [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Completed |
+| [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Completed |
+| [US-1028](../tasks/US-1028-file-search/README.md) | `components/file-search/` (first `RenderGrid` collection) | Completed |
+| [US-1029](../tasks/US-1029-tree-provider/README.md) | Tree primitive seams for tree-provider | Completed |
+| [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Completed |
+| [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Completed |
+| [US-1030](../tasks/US-1030-git-tree-vanilla/README.md) | `components/git-tree/` vanilla GitTree view | Completed |
+| [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Completed |
+| [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Completed |
+| [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Completed |
+| [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Completed |
+| [US-1035](../tasks/US-1035-tabs-vanilla/README.md) | `ui/tabs/` | Completed |
+| [US-1036](../tasks/US-1036-app-root-flip/README.md) | `ui/app/` and the root flip | Completed |
 
 ### Ordering
 
@@ -313,6 +313,51 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-24 — epic close: review and documentation passes
+
+**Review.** Delegated to Codex over the whole range `c9453d3a..HEAD` (19 commits, 146 files,
++11,137/−7,917 in `src/`) and recorded at [`doc/reviews/EPIC-058-review.md`](../reviews/EPIC-058-review.md).
+Two findings; both were verified against source rather than accepted.
+
+**P1 — real, fixed.** `GitTreeView.onUpdate` read `this.props.sideSelect?.selectionKey` as the
+*previous* key, but `VanillaView.update()` assigns `this.props = props` **before** calling `onUpdate`
+(`uikit/shared/vanilla-view.ts:76`), so it was already the new value and the repaint guard could never
+fire. The smoking gun was a redundant `this.props = props;` inside the hook — written in the belief
+that `this.props` was still stale. Effect: after changing a left/right revision in Git Diff the L/R
+glyphs kept the old active marker until an unrelated repaint, violating the contract
+`side-select-cell.ts:42-48` documents. Fixed by tracking the key in a `sideSelectKey` field seeded at
+construction.
+
+This is a **fourth** instance of the epic's dominant hazard, and the most instructive: not a store
+write this time, but the base class assigning `this.props` before the hook runs. The general rule —
+now written into `doc/standards/model-view-pattern.md` — is that **inside `onUpdate`, `this.props` is
+never the previous value**; anything a view needs to compare against must live in a field it owns.
+
+**P2 — reclassified, not a defect.** `FileSearchModel.dispose` sets `disposed = true` before calling
+`cancelSearch()`, so the cancel is a no-op and a disposing view's worker runs to completion. That is
+**deliberate**, and the protocol proves it: `ipcMain.on(SearchChannel.cancel, …)` cancels by
+`event.sender.id` (`main/search-service.ts:164-166`) — per *window*, not per search — so a cancel from
+a disposed view would terminate whatever search that window is currently running, possibly another
+view's. Codex described the mechanism correctly but read a considered trade-off as a bug. The dead
+`cancelSearch()` call was removed and the reasoning written into the comment, because a call that
+looks like it cancels is what misled the review. Cancelling precisely needs the cancel message to
+carry a search id; filed as **US-1041**.
+
+Everything else came back clean, explicitly: no further read-after-store-write recurrence, no further
+UIKit `data-type` override, no further Emotion-to-CSS property loss or hit-testing change, no
+coding-standard violations, no further disposal or `fillSlot` misuse.
+
+**Documentation.** Both passes delegated to Codex. `/doc`: architecture overview, folder structure,
+key files, pages architecture, state management, styling inventory, the de-React ledger, the component
+guide and the model-view pattern. `CLAUDE.md` corrected where it had become factually wrong — the
+frontend is no longer "React 19", and Emotion is no longer the app-chrome styling story.
+`/userdoc`: only the two user-observable changes, both in the tab strip — an off-screen tab is scrolled
+into view on activation, and that scroll is minimal rather than centring. Everything else in this epic
+is an internal rewrite with no user-visible behaviour change, and the user docs say nothing about it.
+
+**Task folders are kept**, per roadmap Rule 8: the `doc/tasks/US-10*` folders survive until the whole
+De-React programme is swept.
 
 ### 2026-08-23 — Rule 4 measurement and the 13-dialog sweep
 

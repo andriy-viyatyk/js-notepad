@@ -4,6 +4,57 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-058 — [De-React Epic D — Shell and shared components](EPIC-058.md)
+
+Converted `src/renderer/ui/` (dialogs, secondary views, sidebar, tabs, MainPage) and
+`src/renderer/components/` (icons, page-manager, file-search, tree-provider, file-list, file-grid,
+git-tree) to vanilla views behind unchanged React-facing signatures, then **flipped the application
+root**: `src/renderer.tsx` is now `await bootstrap(); mount(container)`, `createRoot` appears only in
+`uikit/shared/mount.tsx`, and the app creates exactly one startup React root — the `GlobalStyles`
+Emotion island. Emotion importers went **21 → 4**, each with the owner D6 names; `react-dom/server`
+left `src/` entirely; React portal hosts went 4 → 1, kept deliberately as the published
+`SecondaryViewProps.headerRef` compatibility arm for 14 editor files; `EditorErrorBoundary` survives
+as the epic's one intentional React class component (D5). `#root`'s geometry moved out of Emotion into
+a static `theme/root.css` so first-paint layout no longer depends on a React commit.
+
+Rule 4: **207 DOM writes** for a full open+close of the native confirmation dialog (MutationObserver
+over `#root` and the overlay layer, stable across runs) — 153 attribute writes against 53 structural
+operations. Structure is now cheap; the residual cost is unconditional attribute rewriting at ~74% of
+all DOM writes in every subject measured, with a named cause in `applyPanelAttributes`. That is an
+Epic E/F optimization target that no build gate or smoke test surfaces.
+
+Verification: `npm run typecheck`, `npm run lint`, `npm run build-prod` and `git diff --check` passed
+throughout. All 13 dialogs were verified to open and dismiss, including Monaco mounting with syntax
+highlighting inside a dialog under the vanilla shell. The user verified at the machine what synthetic
+events cannot reach: drag-reorder of pinned rows, sidebar folders and tabs, tab drag-out and
+drag-between windows, splitter drags, `Ctrl+F` search routing, open animation and first-open focus,
+and a cold `npm start`. Epic-level review and both documentation passes completed; the review's one
+real finding (a `GitTreeView` repaint guard that could never fire, because `VanillaView.update()`
+assigns `this.props` before `onUpdate` runs) was fixed, and its second was reclassified as a
+documented trade-off with the follow-up filed as US-1041.
+
+Six defects were found *after* the build gates were green, five of them variations on one hazard: a
+React handler closure captures per-render constants, while a vanilla view's fields and per-row records
+are mutable and shared with the synchronous notification path. That rule is now recorded in
+`doc/standards/model-view-pattern.md`.
+
+- [x] [US-1025: Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out](../tasks/US-1025-icon-dom-builders/README.md)
+- [x] [US-1026: `components/icons/` vanilla DOM views](../tasks/US-1026-components-icons-vanilla-views/README.md)
+- [x] [US-1027: `components/file-list/` + `components/file-grid/`](../tasks/US-1027-file-list-grid/README.md)
+- [x] [US-1028: `components/file-search/` (first `RenderGrid` collection)](../tasks/US-1028-file-search/README.md)
+- [x] [US-1029: Tree primitive seams for tree-provider](../tasks/US-1029-tree-provider/README.md)
+- [x] [US-1037: `components/tree-provider/TreeProviderView`](../tasks/US-1037-tree-provider-view/README.md)
+- [x] [US-1038: `components/tree-provider/CategoryView`](../tasks/US-1038-category-view/README.md)
+- [x] [US-1030: `components/git-tree/` vanilla GitTree view](../tasks/US-1030-git-tree-vanilla/README.md)
+- [x] [US-1031: `components/page-manager/` portal hosts → `appendChild`](../tasks/US-1031-page-manager-append-child/README.md)
+- [x] [US-1032: `ui/dialogs/` host, 13 dialogs, and the popper path](../tasks/US-1032-dialogs-vanilla/README.md)
+- [x] [US-1033: `ui/secondary-views/` host and the registry contract](../tasks/US-1033-secondary-views-vanilla/README.md)
+- [x] [US-1034: `ui/sidebar/` and `MenuBar` (two slices)](../tasks/US-1034-sidebar-menubar/README.md)
+- [x] [US-1035: `ui/tabs/`](../tasks/US-1035-tabs-vanilla/README.md)
+- [x] [US-1036: `ui/app/` and the root flip](../tasks/US-1036-app-root-flip/README.md)
+
+---
+
 ## EPIC-057 — [De-React Epic C4 — AVGrid → av-grid](EPIC-057.md)
 
 Replaced the final React grid consumers with the pinned `av-grid@2.2.3` engine through the

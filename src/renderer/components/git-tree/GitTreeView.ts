@@ -188,6 +188,14 @@ export class GitTreeView extends VanillaView<GitTreeProps> {
     private structureKey: string;
     private maxColumns: number;
     private selectedHash: string | undefined;
+
+    /**
+     * Last applied `sideSelect.selectionKey`, tracked as a FIELD rather than read back off
+     * `this.props` in `onUpdate`. `VanillaView.update()` assigns `this.props = props` *before*
+     * calling `onUpdate` (`uikit/shared/vanilla-view.ts:76`), so `this.props` is already the new
+     * value there — reading it as "previous" made the repaint guard permanently false.
+     */
+    private sideSelectKey: string | undefined;
     private lastCommits: readonly unknown[] | undefined;
     private lastLeadingRows: GitCommitRow[] | undefined;
     private rows: GitCommitRow[];
@@ -242,6 +250,7 @@ export class GitTreeView extends VanillaView<GitTreeProps> {
         this.structureKey = this.getStructureKey(props);
         this.maxColumns = maxColumns;
         this.selectedHash = props.selectedHash;
+        this.sideSelectKey = props.sideSelect?.selectionKey;
         this.rows = rows;
         this.lastCommits = props.model.state.get().commits;
         this.lastLeadingRows = props.leadingRows;
@@ -267,9 +276,10 @@ export class GitTreeView extends VanillaView<GitTreeProps> {
             throw new Error("GitTreeView model identity cannot change while the view is mounted.");
         }
         const previousSelected = this.selectedHash;
-        const previousSideKey = this.props.sideSelect?.selectionKey;
+        const previousSideKey = this.sideSelectKey;
         const previousStructure = this.structureKey;
-        this.props = props;
+        // No `this.props = props` here: the base class already did it before calling this hook.
+        this.sideSelectKey = props.sideSelect?.selectionKey;
         this.sideSelectRef.current = props.sideSelect;
         this.updateStructure(previousStructure);
         this.gridView.update(this.gridProps());

@@ -376,7 +376,12 @@ export class FileSearchModel {
         // search after this model has gone away.
         this.disposed = true;
         this.currentSearchId = null;
-        this.cancelSearch();
+        // Deliberately NOT calling cancelSearch(): the main process cancels by
+        // `event.sender.id` (`main/search-service.ts:164-166`), i.e. per window rather than per
+        // search, so a cancel sent from a disposed view would terminate whatever search that window
+        // is currently running — possibly another view's. The cost is that this view's worker runs
+        // to completion. Cancelling precisely would need the cancel message to carry a search id;
+        // tracked as US-1041.
         this.ipcListeners.forEach(({ channel, handler }) => {
             ipcRenderer.removeListener(channel, handler);
         });

@@ -87,11 +87,18 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors) | `/src/renderer/editors/base/editorRegistry.ts`    |
 | File→editor matchers (the per-editor `acceptFile`/`switchOption`/`validForLanguage`/`detectsContent` rules + the numeric priority ladder that decides which editor OPENS a file — monaco 0, markdown 10, compound names 20, draw 50, viewers 100, category 200; `acceptFile` is name-only while `switchOption` is language-based, which is why language-only editors like `html-view` never claim a file on open) | `/src/renderer/editors/base/editor-matchers.ts` |
-| App shell (header strip, tab strip, status indicators, Menu Bar host) | `/src/renderer/ui/app/MainPage.tsx` |
+| Renderer entry and application composition root (`bootstrap()` initializes services/pages/events, then returns the native `mount(container)` callback) | `/src/renderer.tsx`, `/src/renderer/index.tsx` |
+| App shell face (header strip, tab strip, status indicators, Menu Bar host; unchanged React-facing signature) | `/src/renderer/ui/app/MainPage.tsx` |
+| App shell native view (header, tabs, page host, sidebar, status and overlay composition) | `/src/renderer/ui/app/MainPageView.ts` |
+| Native page/editor views (page host, editor dispatch, async editor island, and page-content bridge) | `/src/renderer/ui/app/PagesView.ts`, `/src/renderer/ui/app/RenderEditorView.ts`, `/src/renderer/ui/app/AsyncEditorView.ts`, `/src/renderer/ui/app/PageContentView.ts` |
+| Native tab strip and tab view (keyed DOM reuse, drag behavior, and activation scroll projection) | `/src/renderer/ui/tabs/PageTabsView.ts`, `/src/renderer/ui/tabs/PageTabView.ts` |
+| Native dialog and popper hosts (view registry, slot ownership, and overlay composition) | `/src/renderer/ui/dialogs/DialogsView.ts`, `/src/renderer/ui/dialogs/poppers/PoppersView.ts` |
+| Editor error boundary (deliberate React class island around React editor content) | `/src/renderer/ui/app/EditorErrorBoundary.tsx` |
 | UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
 | Secondary view registry| `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
 | Composite panel keys (sidebar) | `/src/renderer/ui/secondary-views/panel-key.ts` |
-| Shared sidebar panel header (icon + badge + truncating title + pinned actions; owns the header portal; standardized right-edge "show main view" zone-button via `onShowMain`/`showMainActive`/`showMainTitle` props) | `/src/renderer/ui/secondary-views/SideBarPanelHeader.tsx` |
+| Shared sidebar panel header face and native view (icon + badge + truncating title + pinned actions; native host preserves the `headerRef` portal compatibility contract) | `/src/renderer/ui/secondary-views/SideBarPanelHeader.tsx`, `/src/renderer/ui/secondary-views/SecondaryViewsView.ts` |
+| Native sidebar/menu views (Menu Bar, panels, lists, pinned rail, and folder rows) | `/src/renderer/ui/sidebar/*View.ts`, `/src/renderer/ui/sidebar/*View.tsx` |
 | Shared global overlay host | `/src/renderer/uikit/shared/overlayLayer.ts` |
 | Editor registration (table-driven: one `EDITORS` row per editor with a literal `import()` per row for code splitting; `match` derives from `EDITOR_MATCHERS[id]`, `accepts` defaults from the matcher or `-1`; monaco/file-diff override `accepts`; row order breaks `resolveForFile` ties; ends with the `preloadContentHostModules()` warm-up) | `/src/renderer/editors/register-editors.ts`       |
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
@@ -110,6 +117,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code  | `/src/renderer/editors/shared/ColorizedCode.tsx`  |
 | Editor icon resolver (tab + sidebar panel headers; `noLanguage`/`getIcon` vs `LanguageIcon`) | `/src/renderer/components/icons/EditorIcon.tsx` |
+| DOM icon resolvers (file/language/board icon elements; no renderer `react-dom/server` dependency) | `/src/renderer/components/icons/icon-elements.ts`, `/src/renderer/theme/language-icons.ts`, `/src/renderer/editors/board/board-glyph-element.ts` |
 | Tree-provider item icon and HTTP favicon cache (directory/provider icons plus shared favicon lookup for link and browser surfaces) | `/src/renderer/components/icons/TreeProviderItemIcon.tsx`, `/src/renderer/components/icons/favicon-cache.ts` |
 | Notebook editor          | `/src/renderer/editors/notebook/NotebookEditor.ts` |
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
@@ -151,6 +159,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Theme color resolution and startup application (`resolveColor`, theme cycling, synchronous initial theme and token installation) | `/src/renderer/theme/themes/index.ts` |
 | App design-token CSS variables (`APP_TOKEN_VARS`, numeric scale mapper, idempotent `:root` installation) | `/src/renderer/theme/token-vars.ts` |
 | Static CSS cascade-layer order | `/src/renderer/theme/style-layers.css` |
+| Static application-root geometry (absolute/flex `#root` layout, loaded before shell measurement) | `/src/renderer/theme/root.css` |
+| Global-style React island (the only React root created by application startup) | `/src/renderer/theme/GlobalStyles.tsx` |
 | SVG icon registry and dual React/DOM resolver (`renderIcon` / `createIconElement`, including icon-name narrowing) | `/src/renderer/theme/icon-registry.ts`, `/src/renderer/uikit/shared/slots.ts`, `/src/renderer/theme/icons.tsx` |
 | App theme cycling (`cycleAppTheme(direction)` — cycle + persist to settings; shared by the host `KeyboardService` shortcut and the `board:cycleTheme` message forwarded out of a board frame, so both paths behave identically) | `/src/renderer/api/cycle-app-theme.ts` |
 | Theme definitions        | `/src/renderer/theme/themes/`                     |
@@ -203,6 +213,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | File-clipboard service (main; Windows-Explorer copy/paste interop — CF_HDROP read/write via the snip exe; degrades to empty when the exe is missing) | `/src/main/clip-service.ts` |
 | Native OS file drag-out service (main; `startOsFileDrag` via `webContents.startDrag` — real CF_HDROP so Windows Explorer / Teams accept the dragged file; win32-only, shell icon via `app.getFileIcon` + fallback) | `/src/main/os-drag-service.ts` |
 | Provider-backed tree view model (the Explorer, Archive, Mneme, Script-library and link-category trees; lazy `list()` per expanded folder, `buildTree` refresh, expansion persisted as `expandedPaths`. `buildTree` re-lists children ONLY for currently-expanded paths, so a collapsed folder's subtree is dropped on every refresh — which is why the view opts into `Tree`'s `collapseDescendants`) | `/src/renderer/components/tree-provider/TreeProviderViewModel.ts` |
+| Native provider-tree and folder-content views (React-facing faces remain for editor-owned callers; CategoryView retains its bounded editor-rendering island) | `/src/renderer/components/tree-provider/TreeProviderViewImpl.ts`, `/src/renderer/components/tree-provider/CategoryViewImpl.ts` |
+| File-search native view (progress bindings, result-version repainting, and VirtualGrid cell renderer) | `/src/renderer/components/file-search/FileSearchView.ts` |
 | Provider-tree plural selection (`state.selectedValues` — flat visible order, last entry is the primary row; fed by the Tree's `onSelectionChange` when the consumer opts into `multiSelect`. `operationItems`/`operationNodes` prune any selected item living inside a selected folder before EVERY plural action — a folder-level action already covers its descendants; `pruneSelectionToVisible` drops selections hidden by a collapse, wired to `onExpandChange(false)` + the `collapseAll` ref path but deliberately NOT to `buildTree`, where it would race `adoptSelection`/`revealItem`. `dragItemsFor(node)` decides what a drag carries — the whole selection when the row is in it, else that row alone — and feeds both the native OS drag-out and the in-process trait payload. The set-shaped work itself is not tree-specific and lives in the two shared modules below; this model supplies the nodes and re-lists afterwards) | `/src/renderer/components/tree-provider/TreeProviderViewModel.ts` |
 | Shared plural tree-provider actions (`supportsMultiSelect` — the one place that answers "may this provider be multi-selected", currently `type === "file"`; `pruneNestedItems` — drops any item living inside a selected folder, applied at every plural entry point because a folder-level action already covers its descendants; `buildMultiItemMenuItems` — the `Copy Paths (N)` / `Cut (N)` / `Copy (N)` / `Delete (N)` menu; `deleteItemsBatch` — one count-only confirm for N items, returning `"none" \| "single" \| "batch"` so a single-item delete keeps the caller's existing per-item path untouched) | `/src/renderer/components/tree-provider/plural-actions.tsx` |
 | Shared tree-provider drop actions (`moveItemsInto` / `importFilesInto` / `dropOsFilesInto`, all taking a `DropTarget` of `{ path, title }` rather than a tree node — which is what lets the Explorer tree and the folder page share them. `moveItemsInto`'s branch order is load-bearing: `provider.moveToCategory` first, then a batched same-source file move onto `copyPathsInto`, then a single-item `provider.rename` for providers like Mneme) | `/src/renderer/components/tree-provider/tree-drop-actions.ts` |
@@ -230,8 +242,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git service (main)       | `/src/main/git-service.ts`                        |
 | Git IPC types            | `/src/ipc/git-ipc.ts`                             |
 | Git renderer API         | `/src/renderer/api/git.ts`                        |
-| Git Tree component       | `/src/renderer/components/git-tree/GitTree.tsx`   |
-| Git Tree native view     | `/src/renderer/components/git-tree/GitTreeView.ts` |
+| Git Tree React-facing face | `/src/renderer/components/git-tree/GitTree.tsx` |
+| Git Tree native view       | `/src/renderer/components/git-tree/GitTreeView.ts` |
 | Git ref palette bridge   | `/src/renderer/components/git-tree/git-ref-color.ts` |
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
 | Git changes (status) model + stage/unstage/reset/commit (+ branch, identity) | `/src/renderer/components/git-tree/GitChangesModel.ts` |
@@ -252,8 +264,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.tsx` |
 | File Diff editor (single shared `fileTree` model) | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |
 | Git Diff "File History" panel | `/src/renderer/editors/file-diff/GitDiffRevisionsSecondaryView.tsx` |
-| Flat file list (icons + single-click) | `/src/renderer/components/file-list/FileList.tsx` |
-| DataGrid-based file list (range select + sorting + range-copy) | `/src/renderer/components/file-grid/FileGrid.tsx` |
+| Flat file list (icons + single-click; React-facing face over native view) | `/src/renderer/components/file-list/FileList.tsx`, `/src/renderer/components/file-list/FileListView.ts` |
+| DataGrid-based file list (range select + sorting + range-copy; React-facing face over native view) | `/src/renderer/components/file-grid/FileGrid.tsx`, `/src/renderer/components/file-grid/FileGridView.ts` |
 | Process execution (`app.proc.execute` — renderer client; supplies the `ipcRenderer` transport plus the compile-time drift guard against the script-facing types) | `/src/renderer/api/proc.ts` |
 | Process execution (script-facing types `IProc`/`IExecuteHandle`) | `/src/renderer/api/types/proc.d.ts` |
 | `execute()` handle state machine (`createExecuteHandle`, `RunnerError`) — one implementation for both clients, which pass only an `ExecuteTransport` (`send` + `subscribe`), so the renderer IPC path and the board `MessagePort` path cannot drift. Lives in `shared/` and stays dependency-free because the board shim bundles it into a browser IIFE | `/src/shared/execute-handle.ts` |

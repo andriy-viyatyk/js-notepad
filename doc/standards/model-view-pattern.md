@@ -218,6 +218,25 @@ resources in FIFO registration order, then `onDispose()`. Every cleanup is attem
 error is rethrown after the full cleanup snapshot. The base makes the view inert but does not
 detach its root; the adapter or structural helper that attached the root owns detachment.
 
+### Vanilla update and event hazards
+
+`VanillaView.update(props)` stores the new props before it calls `onUpdate(props)`. Therefore
+`this.props` is already the new value inside `onUpdate`; it is never the previous props. If a view
+needs to compare old and new values, keep the old snapshot explicitly and update it after the
+comparison.
+
+Store writes are synchronous notifications. A handler that writes to a model may cause the view
+to refresh its fields and per-row records before the handler returns. Capture values needed after
+the write before performing it, and do not read a mutable `this.*` field or row record after a
+write unless the refreshed value is explicitly what the handler wants. React closures commonly
+capture per-render constants, so a direct translation that reads a mutable view field can create a
+race that typecheck, lint, and production builds will not detect.
+
+Never replace a UIKit primitive's generated `data-type` with an app-specific value. Primitive CSS
+is keyed by that attribute, so overriding it detaches every attribute-keyed rule for the primitive,
+including selection, drag, hover, and slot styling. Add a class or a separate data attribute for
+application-specific state.
+
 ## Binding and direct DOM work
 
 Use `bind(state, selector, apply)` for a state-to-DOM projection that must remain synchronized. The
