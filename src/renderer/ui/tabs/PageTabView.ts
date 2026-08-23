@@ -406,13 +406,20 @@ export class PageTabView extends VanillaView<PageTabProps> {
     }
 
     private onLanguageClick(event: React.SyntheticEvent<HTMLElement>): void {
-        if (!this.isActive && (event.nativeEvent as MouseEvent).ctrlKey) {
+        // Capture BEFORE `showPage`. `pagesModel.showPage` notifies synchronously, which runs this
+        // view's own active-state binding and flips `this.isActive` to true mid-handler — so reading
+        // it afterwards always says "active" and the menu opens on the very first click. A tab must
+        // be activated first and only reveal its buttons on a second click, which is why pinned tabs
+        // can afford to be icon-width. The React original was immune because `isActive` was a value
+        // captured in that render's closure, not a mutable field.
+        const wasActive = this.isActive;
+        if (!wasActive && (event.nativeEvent as MouseEvent).ctrlKey) {
             this.handleClick(event.nativeEvent as MouseEvent);
             return;
         }
         const pageId = this.props.model.id;
         pagesModel.showPage(pageId);
-        if (!this.isActive) return;
+        if (!wasActive) return;
         this.focusedBeforeLanguageMenu = document.activeElement instanceof HTMLElement
             ? document.activeElement
             : null;

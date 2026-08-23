@@ -32,19 +32,6 @@ function buildGlobalStyles() {
             font-weight: var(--vscode-editor-font-weight, normal);
         }
 
-        #root {
-            overflow: hidden;
-            position: absolute;
-            top: 2px;
-            bottom: 2px;
-            left: 2px;
-            right: 2px;
-            display: flex;
-            flex-direction: column;
-            outline: 1px solid ${color.border.default};
-            border-radius: 8px;
-        }
-
         /* Include the custom scrollbar styles */
         ::-webkit-scrollbar {
             width: 16px;

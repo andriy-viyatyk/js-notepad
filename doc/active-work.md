@@ -23,7 +23,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1033: `ui/secondary-views/` host and the registry contract](tasks/US-1033-secondary-views-vanilla/README.md)
   - [ ] [US-1034: `ui/sidebar/` and `MenuBar`](tasks/US-1034-sidebar-menubar/README.md)
   - [ ] [US-1035: `ui/tabs/`](tasks/US-1035-tabs-vanilla/README.md)
-  - [ ] US-1036: `ui/app/` and the root flip
+  - [ ] [US-1036: `ui/app/` and the root flip](tasks/US-1036-app-root-flip/README.md)
 
 - *(no epic)*
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)

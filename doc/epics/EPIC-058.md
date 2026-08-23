@@ -228,7 +228,7 @@ condition.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Planned |
+| [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Implemented |
 | [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
 | [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Implemented |
 | [US-1028](../tasks/US-1028-file-search/README.md) | `components/file-search/` (first `RenderGrid` collection) | Implemented |
@@ -241,7 +241,7 @@ condition.
 | [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Implemented |
 | [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Implemented |
 | [US-1035](../tasks/US-1035-tabs-vanilla/README.md) | `ui/tabs/` | Implemented |
-| US-1036 | `ui/app/` and the root flip | Planned |
+| [US-1036](../tasks/US-1036-app-root-flip/README.md) | `ui/app/` and the root flip | Implemented |
 
 ### Ordering
 
@@ -311,6 +311,122 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — US-1036 implementation note: the root is flipped
+
+**The application creates no React root of its own.** `src/renderer.tsx` is now
+`const mount = await bootstrap(); mount(container)` with no React import, and `createRoot` appears
+**only** in `uikit/shared/mount.tsx`. `src/renderer/index.tsx` exports `mount(container)` instead of a
+default `AppContent` element, preserving the old child order: global-styles host, MainPage, Dialogs,
+ProgressOverlay, AlertsBar, Poppers.
+
+**Emotion importers renderer-wide are now exactly D6's four** — `theme/GlobalStyles.tsx`,
+`core/state/view.tsx`, `uikit/RenderGrid/RenderGrid.tsx`, `uikit/Tree/Tree.story.tsx`. No file under
+`src/renderer/uikit/` was modified by the conversion itself.
+
+**`#root`'s geometry moved out of Emotion, and that was a review finding rather than a tidy-up.**
+`GlobalStyles` owned `#root` entirely — `position: absolute`, the 2px insets, `display: flex`,
+`flex-direction: column`, `overflow: hidden`. `mountReactHandle` calls `root.render()` with **no**
+`flushSync` (`mount.tsx:135-136`), so a React-mounted `GlobalStyles` commits *after* the current task,
+while `PageTabsView.onMount` measures `scrollWidth`/`clientWidth` synchronously at `:111`. The shell
+would therefore have measured an unstyled `#root` on first paint and been silently corrected by the
+`ResizeObserver` at `:89` — §6.1's masked-defect class exactly. Resolved by moving those rules to a
+static `theme/root.css` imported at entry beside `style-layers.css`, which removes the ordering
+dependency instead of papering over it with `flushSync`. **DOM order is not commit order**, and that
+distinction is the transferable lesson.
+
+**Every non-visual compatibility host appended to `#root` carries `display: contents`**, because
+`#root` is a flex column and a bare host div would become a layout item — the same reason
+`VanillaHost` does it (`mount.tsx:89`).
+
+**One startup React root remains, and it is the sanctioned one.** `index.tsx` initially mounted
+`AlertsBar`, which is *only* a React face over `mountVanilla(AlertsBarView, {})` — so the flip was
+creating a React root purely to wrap a vanilla view, precisely what D9 exists to remove.
+`AlertsBarView` is now exported (a one-word additive change with a single immediate consumer) and
+instantiated directly. Startup React roots: **2 → 1**, and the survivor is `GlobalStyles`, whose owner
+D6 names.
+
+**The residual React-root population, measured live.** 25 roots with a browser page and four tabs
+open: **1** startup shell root (GlobalStyles), **3** editor islands
+(`pages-container`, `page-editor-container`, one panel), and **21** `react-slot` icon slots inside
+`icon-button`s, page tabs and one input `end-slot`. So after Epic D the residual React population is
+dominated by **icons**, not by structure — the direct consequence of `IconRef = IconName | ReactNode`
+and the React-element icons in `tools-editors-registry.ts`. Epic E and F should plan around that
+rather than around the shell.
+
+**Editor-island disposal** reuses US-1031's `PageSlot` discipline rather than a new variant: detach the
+React host from the page DOM first, then queue the retained handle's `dispose()`, guarded by the view's
+live/generation state. The retained handle's `render()` is used for ordinary updates — recreating the
+root would destroy Monaco's cursor, scroll, undo history and folding. `EditorErrorBoundary` survives as
+a React class component per D5 with only its Emotion moved out, the same treatment US-1033 gave
+`SideBarPanelHeader`.
+
+**Verified live** (HMR, then a cold `npm start`): `#root` resolves to `flex`/`absolute`/`column` from
+the static CSS; six children, every non-visual host `display: contents`; all three
+`-webkit-app-region` rules correct (header `drag`, header `button` `no-drag`, `.status-indicators`
+`no-drag`); page switch preserves the editor container, moves `data-active` and restores; a dialog
+opens and closes through the flipped host with the React-root count identical before and after. The
+user confirmed on a cold start: no flash of unstyled content, correct rounded-corner geometry, pinned
+tabs restored, the title bar drags the window while tabs and header buttons do not, and editors, the
+menu and a sidebar panel all work.
+
+Rule 4 measurement: **PENDING**.
+
+**A sixth defect of the same family, reported by the user after the flip.** Clicking the language icon
+on an **inactive** pinned tab opened the language menu. The intended design is that a pinned tab is
+icon-width precisely because its buttons do **not** fire until the tab is active — the first click
+activates, a second click reveals. The original expressed this in the handler, not in CSS
+(pre-conversion `PageTab.tsx:549-558`): `pagesModel.showPage(page.id)` then
+`if (tabModel.isActive) setOpen(...)`, where `isActive` was a value captured in that render's closure.
+
+The converted handler kept the same shape but read `this.isActive` — a **mutable field** — after
+calling `showPage`, which notifies synchronously and runs the view's own active-state binding, flipping
+the field to `true` mid-handler. So the guard always passed. Fixed by capturing `wasActive` before the
+mutation.
+
+**That is the third instance in this epic of one hazard**, after `PinnedRailView`'s oscillating drag
+(US-1034 concern 4a) and `PageTabsView` resolving the active tab from a sibling's not-yet-written
+`data-active` (US-1035 concern 2a). The generalisation for Epic E: **a React handler closure captures
+per-render constants; a vanilla view's fields are mutable and shared with the synchronous notification
+path.** Any read of `this.*` after a store mutation in the same handler is suspect, and no build gate
+detects it. The rest of `PageTabView` was audited afterwards — `closeClick` and `handleClick` read
+before mutating, so this was the only remaining instance.
+
+### 2026-08-23 — US-1025 was already implemented; D3's bundle criterion is NOT met
+
+**No new work was done for US-1025 — its status was simply stale.** The task landed in `cf57125a`
+("Implement US-1025 icon DOM builders") and was never marked. Verified against the code:
+
+- `theme/language-icons.tsx` is now `theme/language-icons.ts` — 233 lines, **54** icons built through
+  `createIconWithViewBox`, and **zero** JSX (`grep -c "<svg" → 0`), so all 54 now carry a
+  `createElement` DOM builder. That was the whole of D2's measurement.
+- `components/icons/file-icon-markup.tsx` no longer exists.
+- `BoardGlyph` has its DOM arm as `editors/board/board-glyph-element.ts`
+  (`createBoardGlyphElement`), consumed by `components/icons/icon-elements.ts:3,44-46`.
+  `BoardGlyph.tsx` itself survives as a React component for its remaining React callers, which is
+  correct — D3 required the *DOM builder*, not the component's removal.
+- `grep -rn "react-dom/server" src` → **nothing**, and `renderToStaticMarkup` appears **0** times in
+  `src/`.
+
+**But D3's second check fails, and this matters for epic close.** D3 states the criterion as the grep
+"plus its absence from the built renderer chunk". `renderToStaticMarkup` still appears **4 times** in
+`dist/assets/index-*.js`, alongside `renderToString` and `renderToReadableStream` — the assembled
+exports of React's server-browser build.
+
+The cause is **not** Persephone's code. No file under `src/` imports it, and no dependency references
+`react-dom/server`, `react-dom-server` or `server.browser` by path anywhere in `node_modules`. It
+therefore enters through `react-dom`'s own packaging rather than through an import we control, which
+means **no amount of application-level work removes it** — and no icon task ever could have.
+
+Recorded as an open epic-close item rather than chased here, because it is a packaging/bundler
+question that belongs with Epic F (where React and Emotion are actually uninstalled), not with the
+icon work. Two consequences worth stating:
+
+1. **D3's acceptance criterion as written cannot be met by this epic.** It should be restated as the
+   source-level grep, which *is* met, with the bundle question handed to Epic F.
+2. **The bundle half of the check is exactly the kind that gets reported as passing by anyone who only
+   greps source.** The source grep and the bundle grep disagree, and the epic asserted them as one
+   criterion.
 
 ### 2026-08-23 — US-1035 implementation note
 

@@ -109,7 +109,7 @@ export const alertsBarModel = new AlertsBarModel(
 
 type AlertsBarViewProps = Record<string, never>;
 
-class AlertsBarView extends VanillaView<AlertsBarViewProps> {
+export class AlertsBarView extends VanillaView<AlertsBarViewProps> {
     private readonly itemViews = new Map<number, AlertItemView>();
     private readonly alertList: KeyedList<AlertData, number, HTMLDivElement>;
     private visibleAlerts: AlertData[] = [];

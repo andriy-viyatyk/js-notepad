@@ -1,0 +1,6 @@
+@layer app {
+    .editor-error-root { flex: 1 1 auto; display: flex; flex-direction: column; padding: 24px; overflow: auto; font-family: Consolas, "Courier New", monospace; }
+    .editor-error-root .error-title { font-size: 16px; font-weight: bold; color: var(--color-misc-red); margin-bottom: 12px; }
+    .editor-error-root .error-message { font-size: 14px; color: var(--color-misc-yellow); margin-bottom: 16px; white-space: pre-wrap; word-break: break-word; }
+    .editor-error-root .error-stack { font-size: 12px; color: var(--color-text-light); white-space: pre-wrap; word-break: break-word; line-height: 18px; }
+}

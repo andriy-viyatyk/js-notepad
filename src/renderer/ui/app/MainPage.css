@@ -1,0 +1,28 @@
+@layer app {
+    .app-root { background-color: var(--color-bg-default); flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; }
+    .app-root .app-header { display: flex; flex-direction: row; column-gap: 4px; color: var(--color-text-light); align-items: center; padding: 4px 0 0 8px; border-bottom: 1px solid var(--color-border-light); position: relative; background-color: var(--color-bg-dark); -webkit-app-region: drag; }
+    .app-root .app-header button { -webkit-app-region: no-drag; }
+    .app-root .app-header .app-button { flex-shrink: 0; align-self: flex-end; padding: 0; margin-bottom: 3px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .app-root .app-header .system-button { align-self: flex-start; padding: 0; padding-top: 0; margin-top: -4px; height: 28px; width: 40px; border: none; border-radius: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: default; background-color: var(--color-bg-dark); color: var(--color-text-light); }
+    .app-root .app-header .system-button.darkBackground:hover { background-color: var(--color-bg-light); }
+    .app-root .app-header .system-button.close-button:hover { background-color: var(--color-misc-red); }
+    .app-root .app-header .system-button.close-button:hover svg { color: var(--color-text-light); }
+    .app-root .app-content { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .app-root .app-content .pages-container { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .app-root .autoload-reload button { padding: 2px 4px; color: var(--color-warning-text); }
+    .app-root .autoload-reload button svg { width: 20px; height: 20px; color: var(--color-warning-text); }
+    .app-root .autoload-reload button:hover { color: var(--color-warning-text-hover); }
+    .app-root .autoload-reload button:hover svg { color: var(--color-warning-text-hover); }
+    .app-root button.zoom-indicator { font-size: 12px; padding: 2px 6px; border: none; border-radius: 4px; background-color: var(--color-bg-light); color: var(--color-text-default); cursor: pointer; display: none; }
+    .app-root button.zoom-indicator.visible { display: flex; }
+    .app-root .status-indicators { position: absolute; bottom: 1px; right: 4px; display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag; pointer-events: auto; }
+    .app-root .snip-indicator { color: var(--color-misc-green); opacity: 0.85; display: flex; align-items: center; justify-content: center; height: 14px; overflow: hidden; background: none; border: none; padding: 0; line-height: 0; cursor: pointer; }
+    .app-root .snip-indicator:hover { opacity: 1; }
+    .app-root .mcp-indicator, .app-root .mneme-indicator { font-size: 9px; line-height: 1; color: var(--color-text-light); opacity: 0.6; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+    .app-root .mcp-indicator:hover, .app-root .mneme-indicator:hover { opacity: 1; }
+    .app-root .mcp-dot, .app-root .mneme-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .app-root .mcp-dot, .app-root .mneme-dot.success { background-color: var(--color-misc-green); }
+    .app-root .mcp-count { margin-left: 1px; font-size: 11px; color: var(--color-misc-green); }
+    .app-root .mneme-dot.warning { background-color: var(--color-misc-yellow); }
+    .app-root .mneme-dot.neutral { background-color: var(--color-text-light); }
+}
