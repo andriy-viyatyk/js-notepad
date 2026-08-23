@@ -25,6 +25,9 @@ Overview of all active and planned epics and tasks.
   - [ ] US-1035: `ui/tabs/`
   - [ ] US-1036: `ui/app/` and the root flip
 
+- *(no epic)*
+  - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
+
 ## Planned
 
 - [De-React roadmap](de-react.md) — multi-epic programme to replace React with direct DOM

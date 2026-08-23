@@ -1,0 +1,80 @@
+@layer app {
+    .folder-item[data-type="list-item"] {
+        display: inline-flex;
+        align-items: center;
+        column-gap: 6px;
+        padding-left: 4px;
+        cursor: pointer;
+        color: var(--color-text-default);
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .folder-item[data-type="list-item"][data-active]:not([data-selected]),
+    .folder-item[data-type="list-item"]:hover:not([data-selected]) {
+        background: var(--color-bg-message);
+    }
+
+    .folder-item[data-type="list-item"][data-selected] {
+        background: var(--color-bg-light);
+    }
+
+    [data-focus-selection]:focus-within .folder-item[data-type="list-item"][data-selected] {
+        background: var(--color-bg-tree-selection);
+        color: var(--color-text-selection);
+        outline: 1px solid var(--color-border-active);
+        outline-offset: -1px;
+    }
+
+    [data-focus-selection]:focus-within .folder-item[data-type="list-item"][data-active] {
+        outline: 1px solid var(--color-border-active);
+        outline-offset: -1px;
+    }
+
+    .folder-item[data-type="list-item"][data-dragging] {
+        opacity: 0.5;
+    }
+
+    .folder-item[data-type="list-item"][data-drag-over] {
+        border-top: 2px solid var(--color-border-active);
+    }
+
+    .folder-item[data-type="list-item"] > [data-part="icon"] svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    .folder-item[data-type="list-item"] > .label {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .folder-item[data-type="list-item"] .selected-icon {
+        color: var(--color-text-light);
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+        flex-shrink: 0;
+    }
+
+    .folder-item[data-type="list-item"][data-selected] .selected-icon {
+        color: var(--color-icon-selection);
+    }
+
+    .folder-item[data-type="list-item"] .selected-icon-button {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .folder-item[data-type="list-item"] .selected-icon-button:hover {
+        background: var(--color-bg-light);
+    }
+}

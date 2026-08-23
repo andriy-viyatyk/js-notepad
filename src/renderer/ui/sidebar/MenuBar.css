@@ -1,0 +1,30 @@
+@layer app {
+    .menu-bar-backdrop {
+        position: absolute;
+        inset: 0;
+        z-index: 6;
+        display: none;
+    }
+
+    .menu-bar-backdrop.doDisplay {
+        display: block;
+    }
+
+    .menu-bar-backdrop .menu-bar-content {
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        max-width: 90%;
+        border-right: 1px solid var(--color-border-default);
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+        overflow: hidden;
+        background: var(--color-bg-dark);
+        transform: translateX(-100%);
+        transition: transform 50ms ease-in-out;
+    }
+
+    .menu-bar-backdrop.open .menu-bar-content {
+        transform: translateX(0);
+    }
+}

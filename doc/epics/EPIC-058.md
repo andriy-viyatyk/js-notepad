@@ -239,7 +239,7 @@ condition.
 | [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Implemented |
 | [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Implemented |
 | [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Implemented |
-| [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Planned |
+| [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Implemented |
 | US-1035 | `ui/tabs/` | Planned |
 | US-1036 | `ui/app/` and the root flip | Planned |
 
@@ -311,6 +311,84 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — US-1034 implementation note (both slices)
+
+`ui/sidebar/` is fully converted across two commits. **Emotion importers in `ui/sidebar/` went 4 → 0.**
+`ui/app/MainPage.tsx` and `editors/tools-hub/ToolsHubView.tsx` are untouched, so every external caller
+keeps its exact props. `MenuBar.tsx` went 586 → 8 lines.
+
+**The task was split** because 2,110 lines with two independent smoke surfaces could not be reviewed as
+one diff. Slice A is exactly the set with external `ToolsHubView` callers, so it is testable from the
+Tools Hub without the MenuBar existing; Slice B is the shell. One task document, two commits, each
+leaving the tree building and the app working.
+
+**A narrow UIKit exception was authorized**, against the epic's usual "no UIKit changes in a shell
+task" stance: three additive fields in `uikit/ListBox` (`rowClass`, `trailingElement`, `drag`),
++70/-1 across four files. The bar was **an immediate consumer in the same task**, and here there were
+two — `BuiltinEditorsList` and `MenuBar`'s folder list, both `renderItem` consumers. Contrast US-1033,
+where the proposed seam would have had zero. This continues the direction recorded at
+`uikit/MultiListBox/MultiListBoxView.ts:23-31`: US-1014's obligation is discharged by **eliminating**
+`renderItem` consumers (US-1016 added `checkbox: true` to `ListItem` rather than widening the hatch),
+not by teaching `renderItem` to return a `Node`. Both lists are now ordinary `ListItem`s.
+
+**Three findings worth carrying into the remaining shell tasks.**
+
+*Never override a row's `data-type`.* The first Slice A attempt did, and every rule in `ListItem.css`
+is keyed on `[data-type="list-item"]` — more than twenty of them. The override detaches a row from all
+of them; the compensating 46 lines added to `ListItem.css` re-implemented about seven, silently losing
+`[data-selection-style="focus"]` active/selected styling, `[data-drop-active]` styling (which the same
+slice's new row drag depends on), the `browse`-variant hover nuance and the check-slot rules. It also
+put two app-specific strings into a UIKit stylesheet, one with zero consumers. Replaced with an
+additive class; `ListItem.css` is untouched. Verified live afterwards: a selected MenuBar folder row
+computes `background-color: rgb(49,49,49)` from the focus-selection rule.
+
+*Mutable per-row records must not be read after a synchronous store write.* Recorded as task-document
+concern 4a. `PinnedRailView.onDragOver` read `record.rowData.index` **after** calling `movePin`, which
+persists synchronously and therefore re-runs `refresh()`/`updateRow` and replaces `record.rowData`
+mid-handler. The sentinel then held the hovered item's post-move index instead of the position the
+dragged item had moved to, so dragging the last pin over the first made the first two rows swap 3-4
+times per second indefinitely. The React original was immune only because `index` was a per-render
+closure constant. This is a conversion hazard with **no React analogue** and nothing in typecheck,
+lint or build-prod detects it. Found by the user dragging a row, not by any automated check.
+
+*The React-root population is one per row icon, not zero.* Measured, not assumed: removing the
+`renderItem` hatch eliminated the per-row **wrapper** root, but `tools-editors-registry.ts` supplies
+React-element icons, so each row keeps exactly one slot at its icon. Zero for wrapper, label and
+trailing button. Owner: **US-1025**, whose runtime-coloured browser/profile icons may need more than
+its 54 language-icon conversion.
+
+**D10 note.** `SideBarPanelHeader`'s two `<Panel>`s (US-1033) still stand, and `ScriptLibraryPanel`
+keeps its deliberate `data-type="script-library-panel"` override on its own outer `Panel` — that one is
+a `Panel` attribute, not a `ListItem` row, and `Panel.tsx` applies `{...rest}` after its generated
+attributes (`:126-145`), so the override is intentional and is reapplied explicitly in native code.
+Verified live retaining `panel-root` and `data-direction="column"`.
+
+**Verified live** (running app, after a full restart): Slice A — panel and all three tabs; 11
+`BuiltinEditorsList` rows at `data-type="list-item"` with `renderItem` gone; 9 draggable `PinnedRail`
+rows; both editor-owned React tree arms (`BoardsTree` 25 rows, `ToolsTree` 3) mount and re-mount; a
+Boards revisit identical at 25 rows / 82 slots, so the retained React root is reused not leaked;
+closing the menu drops doc-wide slots 155 → 57. Slice B — open/close classes; folder rows as
+`ListItem` + `rowClass`; the focus-selection background; 4 static folders non-draggable vs 14 dynamic
+draggable; all four content panes; the script-library `data-type` override; a dynamic folder tree at 15
+rows; Escape close; the folder context menu with its full item set including the dynamically imported
+"Open Terminal here". The user confirmed at the machine: pinned-row drag reorder (after the fix),
+folder drag reorder, Ctrl+F search routing, the open animation and first-open focus, and app-bar menu
+resizing via the splitter.
+
+Rule 4 measurement: **PENDING** for both slices.
+
+**HMR is unreliable for batches this size.** Slice A's changes left the renderer blank — window alive,
+main-process MCP responding, renderer MCP timing out — and a full `npm start` restart rendered
+correctly with no code change. Treat a wedged renderer after a large multi-file conversion as an HMR
+artifact until a fresh load reproduces it, and always reload before smoke-testing a batch.
+
+**One bug found during testing was traced out of scope:** clearing a tree search after a *zero-match*
+search does not restore expansion state. `computeDisplayTree` returns `tree` unchanged for empty search
+text and the raw tree is never mutated, so the display tree is restored by construction and the defect
+is in the expansion restore (`savedExpandMap`/`initialExpandMap`/`searchKey`). The block was last
+touched by `11795ce6` (US-971). Filed as **US-1039**, standalone, with the open question of whether
+US-1037's view conversion changed remount timing.
 
 ### 2026-08-23 — US-1033 implementation note
 
