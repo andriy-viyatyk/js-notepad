@@ -11,7 +11,8 @@ export {
     type GitRefNodeKind,
 } from "./git-refs-tree";
 export { GitStatusBadge } from "./GitStatusBadge";
-export { RefBadge, REF_COLOR } from "./RefBadge";
+export { RefBadge } from "./RefBadge";
+export { REF_COLOR } from "./git-ref-color";
 export { dateText } from "./git-date";
 export {
     GIT_TREE_ROW_HEIGHT,

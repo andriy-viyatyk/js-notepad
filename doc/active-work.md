@@ -17,7 +17,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1029: Tree primitive seams for tree-provider](tasks/US-1029-tree-provider/README.md)
   - [ ] [US-1037: `TreeProviderView`](tasks/US-1037-tree-provider-view/README.md)
   - [ ] [US-1038: `CategoryView`](tasks/US-1038-category-view/README.md)
-  - [ ] US-1030: `components/git-tree/` React remnants
+  - [ ] [US-1030: `components/git-tree/` vanilla GitTree view](tasks/US-1030-git-tree-vanilla/README.md)
   - [ ] US-1031: `components/page-manager/` (portal hosts → `appendChild`)
   - [ ] US-1032: `ui/dialogs/` host, 15 dialogs, and the popper path
   - [ ] US-1033: `ui/secondary-views/` host and the registry contract

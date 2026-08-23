@@ -227,6 +227,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git IPC types            | `/src/ipc/git-ipc.ts`                             |
 | Git renderer API         | `/src/renderer/api/git.ts`                        |
 | Git Tree component       | `/src/renderer/components/git-tree/GitTree.tsx`   |
+| Git Tree native view     | `/src/renderer/components/git-tree/GitTreeView.ts` |
+| Git ref palette bridge   | `/src/renderer/components/git-tree/git-ref-color.ts` |
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
 | Git changes (status) model + stage/unstage/reset/commit (+ branch, identity) | `/src/renderer/components/git-tree/GitChangesModel.ts` |
 | Git refs (branches/remotes/tags) model + fetch / push / pull / ahead-behind | `/src/renderer/components/git-tree/GitBranchesModel.ts` |

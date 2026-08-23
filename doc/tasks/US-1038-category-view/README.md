@@ -34,11 +34,11 @@ must be made explicit rather than accidentally lost in a stable vanilla root.
 
 ### 1. Measure and freeze the category boundary
 
-- Do not add a per-category Rule 4 baseline/after gate here. EPIC-058 C2-9 owns one measured
-  context-menu interaction for the whole epic; its React baseline belongs to US-1005 and its
-  after-number to US-1006. Before the epic closes, take the after-number on the current tree and
-  recover the pre-US-1005 baseline from commit `cdc12530` in a throwaway worktree if necessary.
-  This task must not substitute a category measurement for that epic prerequisite.
+- Take this category unit's own Rule 4 baseline before editing and its matching after-number after
+  conversion, using the same settled interaction, observer roots/options, and raw-record procedure.
+  Record both in `EPIC-058.md`; EPIC-058's verification section is per task. The C2-9 decision in
+  `EPIC-055.md` and the US-1005/US-1006 measurements do not satisfy this Epic D requirement, and
+  this task must not substitute their context-menu measurement for a category measurement.
 - Preserve `CategoryView` exports, `CategoryViewModel` callbacks, `CategoryEditor` props, and the
   editor-owned `renderItems` callback. Do not convert `LinksList`, `LinksTiles`, or their models.
 - Before writing CSS, grep the category and editor-owned styles for `>`, `:empty`, `:nth-child`,
@@ -187,6 +187,8 @@ the stable root's `tabIndex={-1}` preserves the bubbling path from the focused g
 - [x] View-mode menu icons use direct Nodes, not bare icon-name strings.
 - [x] The stable category root retains `tabIndex={-1}`; the tile focus scope retains `tabIndex=0`,
       and callback refs allow the clear button to blur the InputView field.
+- [ ] The category unit's Rule 4 before/after measurements are recorded in `EPIC-058.md` with
+      identical interaction and observer options; no cross-epic measurement is substituted.
 - [x] `npm run typecheck`, `npm run lint`, `npm run build-prod`, and `git diff --check` pass.
 
 ## Files expected to change
@@ -200,7 +202,7 @@ the stable root's `tabIndex={-1}` preserves the bubbling path from the focused g
 | `src/renderer/uikit/shared/fill-slot.ts` | Reuse existing bridge only if needed; do not add a second slot helper |
 | `doc/architecture/key-files.md` | Add the native category view owner if it becomes index-worthy |
 | `doc/active-work.md` | Task tracking |
-| `doc/epics/EPIC-058.md` | Task status; the epic-owned Rule 4 measurement remains outside this task |
+| `doc/epics/EPIC-058.md` | Task status and this unit's Rule 4 measurements |
 
 `CategoryEditor.tsx`, `LinksList`, `LinksTiles`, their models, and all editor callers remain outside
 this task. `CategoryViewModel.ts` remains a RenderGrid type importer by design.

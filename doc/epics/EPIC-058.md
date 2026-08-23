@@ -234,7 +234,7 @@ condition.
 | [US-1029](../tasks/US-1029-tree-provider/README.md) | Tree primitive seams for tree-provider | Planned |
 | [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Planned |
 | [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Planned |
-| US-1030 | `components/git-tree/` React remnants | Planned |
+| [US-1030](../tasks/US-1030-git-tree-vanilla/README.md) | `components/git-tree/` vanilla GitTree view | Implemented |
 | US-1031 | `components/page-manager/` (portal hosts → `appendChild`) | Planned |
 | US-1032 | `ui/dialogs/` host, 15 dialogs, and the popper path | Planned |
 | US-1033 | `ui/secondary-views/` host and the registry contract | Planned |
