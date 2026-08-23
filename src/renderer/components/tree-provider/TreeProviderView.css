@@ -1,0 +1,19 @@
+@layer app {
+    [data-type="tree-provider-view"] {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        outline: none;
+    }
+
+    [data-type="tree-provider-search"] {
+        padding: var(--space-xs, 2px);
+    }
+
+    [data-type="tree-provider-error"],
+    [data-type="tree-provider-empty"] {
+        padding: var(--space-md, 8px);
+    }
+}

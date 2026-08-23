@@ -2,7 +2,7 @@ import type React from "react";
 import { TComponentModel } from "../../core/state/model";
 import type { ITreeProvider, ITreeProviderItem, ILink } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu";
-import type { RowAlign } from "../../uikit/RenderGrid";
+import type { RowAlign } from "../../uikit/VirtualGrid";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import { ui } from "../../api/ui";

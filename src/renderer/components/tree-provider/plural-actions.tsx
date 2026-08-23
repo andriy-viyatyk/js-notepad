@@ -60,7 +60,7 @@ export function buildMultiItemMenuItems(
         label: items.every((x) => isUrlOrCurl(x.href))
             ? `Copy Hrefs (${n})`
             : `Copy Paths (${n})`,
-        icon: <CopyIcon />,
+        icon: CopyIcon.createElement!(),
         onClick: () => navigator.clipboard.writeText(hrefs.join("\n")),
     });
 
@@ -72,14 +72,14 @@ export function buildMultiItemMenuItems(
             menuItems.push({
                 startGroup: true,
                 label: `Cut (${n})`,
-                icon: <CutIcon />,
+                icon: CutIcon.createElement!(),
                 onClick: () => copyPathsToOsClipboard(hrefs, true),
             });
         }
         menuItems.push({
             startGroup: hasRoot,
             label: `Copy (${n})`,
-            icon: <CopyIcon />,
+            icon: CopyIcon.createElement!(),
             onClick: () => copyPathsToOsClipboard(hrefs, false),
         });
     }
@@ -88,7 +88,7 @@ export function buildMultiItemMenuItems(
         menuItems.push({
             startGroup: true,
             label: `Delete (${n})`,
-            icon: <DeleteIcon />,
+            icon: DeleteIcon.createElement!(),
             onClick: onDelete,
         });
     }

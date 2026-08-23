@@ -126,6 +126,12 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         return this.driver.model;
     }
 
+    /** Repaint pooled rows after an external DOM projection (for example a cached icon) changed. */
+    public refreshRows(): void {
+        if (this.inert || this.arm !== "real") return;
+        this.grid?.model.update({ all: true });
+    }
+
     protected onMount(): void {
         this.messageHost = document.createElement("div");
         this.messageHost.dataset.part = "message";

@@ -166,7 +166,7 @@ turn React content into `[object Object]` while trying to make the shell framewo
 | File | Change |
 |---|---|
 | `src/renderer/components/tree-provider/CategoryView.tsx` | Thin public mount face |
-| `src/renderer/components/tree-provider/CategoryView.ts` | New native category shell, portal, footer, and bridge |
+| `src/renderer/components/tree-provider/CategoryViewImpl.ts` | New native category shell, portal, footer, and bridge; distinct basename avoids the `.ts`/`.tsx` barrel collision |
 | `src/renderer/components/tree-provider/CategoryView.css` | App-layer category shell/content/footer styles |
 | `src/renderer/components/tree-provider/CategoryViewModel.ts` | No runtime conversion; retain the editor-owned `RenderGridModel` type callback |
 | `src/renderer/uikit/shared/fill-slot.ts` | Reuse existing bridge only if needed; do not add a second slot helper |

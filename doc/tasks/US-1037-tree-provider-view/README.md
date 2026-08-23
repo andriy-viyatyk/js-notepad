@@ -1,6 +1,6 @@
 # US-1037: `TreeProviderView` vanilla conversion
 
-**Status:** Planned
+**Status:** Implemented — typecheck, lint, and production build pass; live provider smoke and Rule 4 measurement remain for epic close.
 **Epic:** [EPIC-058 - De-React Epic D: Shell and shared components](../../epics/EPIC-058.md)
 **Depends on:** [US-1029 - Tree primitive seams](../US-1029-tree-provider/README.md), [US-1026 - components/icons vanilla DOM views](../US-1026-components-icons-vanilla-views/README.md), and [US-1028 - file-search and VirtualGrid collection](../US-1028-file-search/README.md)
 **Parallel with:** [US-1038 - `CategoryView`](../US-1038-category-view/README.md)
@@ -63,14 +63,20 @@ existing direct icon helper already has that channel.
 
 - Create and dispose one `TreeView` for the live real arm, passing the existing display tree,
   child/loading/selection/expansion, active index, lazy loading, drag/drop, and callbacks.
-- Use `createTreeProviderItemIconElement` through `iconElement`, not the React icon prop. Remove
-  `tpvNodeTraits.icon` so the old React resolver cannot remain live. Keep `TreeProviderItemIcon.tsx`
-  only if the full repository caller scan finds a non-provider consumer.
+- Use `createTreeProviderItemIconElement` through `iconElement`, not the React icon prop. Memoise
+  one element per visible-row identity (`data.href`) and keep that identity while the row remains
+  visible. Clear the cache and repaint the existing Tree when `subscribeFileIconElements` fires;
+  do not rebuild the model. Remove
+  `tpvNodeTraits.icon` so the old React resolver cannot remain live. `TreeProviderItemIcon.tsx`
+  remains unchanged for the two Link editor callers; it is no longer imported by the provider view.
 - Convert `item-menus.tsx` and `plural-actions.tsx` icon values from React nodes to actual DOM Nodes
-  from `createIconElement(...)`. Never pass bare icon-name strings: `fillSlot` treats a string as
+  from each imported icon component's checked `createElement!()` builder. Never pass bare icon-name
+  strings: `fillSlot` treats a string as
   text, and `MenuItem.icon` is typed too broadly to catch that mistake.
-- Pass `hideChevron={ctx.level === 0}`, `tooltip={node.data.href}`, the live `renderTrailing`
-  result, and the per-row provider context-menu callback. Preserve the row handler's ordering:
+- Pass the landed Tree projections `getIconElement(source, level)`, `getHideChevron(source, level)`,
+  `renderTrailing(source, level)`, `getTooltip(source, level)`, and
+  `onItemContextMenu(source, level, event)`. Keep `activeIndex` as view-local state and retain the
+  `tNodes` memo keyed by `state.displayTree` identity. Preserve the row handler's ordering:
   selection first, then `ContextMenuEvent.fromNativeEvent(e, "tree-provider-item")`, target
   stamping, and the asynchronous promise. The root background handler must continue to observe the
   stamped native event while bubbling.
@@ -150,36 +156,38 @@ ends at 12→10 RenderGrid app-layer importers, not 12→9.
 - [ ] The native provider tree retains the model driver, provider/watch lifecycle, lazy loading,
       search-key remounting, selection, keyboard actions, drag/drop, clipboard, and async context
       menu behavior.
-- [ ] Rows use direct DOM provider icons and the additive Tree seams; no React root is created per
+- [x] Rows use direct DOM provider icons and the additive Tree seams; no React root is created per
       icon or ordinary string row.
-- [ ] Level-zero chevrons, trailing actions, href tooltips, and per-row context-menu ordering are
+- [x] Level-zero chevrons, trailing actions, href tooltips, and per-row context-menu ordering are
       preserved.
-- [ ] Search controls use the existing native Input/IconButton contracts, stable end-slot identity,
+- [x] Search controls use the existing native Input/IconButton contracts, stable end-slot identity,
       exact focus timing, and current data attributes.
-- [ ] Error/empty arms, root selectors, disposal guards, and the documented favicon gap are
+- [x] Error/empty arms, root selectors, disposal guards, and the documented favicon gap are
       verified explicitly.
-- [ ] `TreeProviderItemIcon.tsx` is removed only if its full caller scan proves it is dead.
+- [x] `TreeProviderItemIcon.tsx` remains for its two Link editor callers and is not used by the
+      native provider view.
 - [ ] Rule 4's provider measurement is recorded in EPIC-058, or marked pending with the live-MCP
       reason; no fabricated baseline is accepted.
-- [ ] `npm run typecheck`, `npm run lint`, `npm run build-prod`, and `git diff --check` pass.
+- [x] `npm run typecheck`, `npm run lint`, `npm run build-prod`, and `git diff --check` pass.
 
 ## Files expected to change
 
 | File | Change |
 |---|---|
-| `src/renderer/components/tree-provider/TreeProviderView.tsx` | Thin public mount face; remove dead icon trait accessor when safe |
-| `src/renderer/components/tree-provider/TreeProviderView.ts` | New native provider view and lifecycle |
+| `src/renderer/components/tree-provider/TreeProviderView.tsx` | Thin public `mountVanilla` face |
+| `src/renderer/components/tree-provider/TreeProviderViewImpl.ts` | New native provider view and lifecycle; distinct basename avoids the `.ts`/`.tsx` barrel collision |
 | `src/renderer/components/tree-provider/TreeProviderView.css` | App-layer provider shell/search/arm styles |
 | `src/renderer/components/tree-provider/TreeProviderViewModel.ts` | Repoint `RowAlign` type import to `VirtualGrid` |
-| `src/renderer/components/icons/TreeProviderItemIcon.tsx` | Remove only after the repository-wide last-caller scan |
-| `src/renderer/components/tree-provider/item-menus.tsx` | Use direct icon Nodes in provider action menu items |
-| `src/renderer/components/tree-provider/plural-actions.tsx` | Use direct icon Nodes in provider action menu items |
+| `src/renderer/components/icons/TreeProviderItemIcon.tsx` | Unchanged; retained by two Link editor callers |
+| `src/renderer/components/tree-provider/item-menus.tsx` | Use direct icon Nodes in provider action menu items; shared with CategoryViewModel |
+| `src/renderer/components/tree-provider/plural-actions.tsx` | Use direct icon Nodes in provider action menu items; shared with CategoryViewModel |
 | `doc/architecture/key-files.md` | Add the native provider view owner if it becomes index-worthy |
 | `doc/active-work.md` | Task tracking |
 | `doc/epics/EPIC-058.md` | Rule 4 measurement and task status |
 
 `CategoryView*`, `CategoryViewModel`, `CategoryEditor`, all seven callers, favicon-cache files, and
-the editor-owned `RenderGridModel` bridge remain outside this task.
+the editor-owned `RenderGridModel` bridge remain outside this task. The two shared menu utilities
+are owned by US-1037; US-1038 consumes their already-converted DOM-node contract.
 
 ## Related work
 
