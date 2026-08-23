@@ -51,6 +51,8 @@ export class ListItemView extends VanillaView<ListItemProps> {
     private appliedIconElement: Node | undefined;
     private labelCleanup: (() => void) | undefined;
     private trailingCleanup: (() => void) | undefined;
+    private appliedTrailingElement: Node | undefined;
+    private appliedRowClass = "";
     /** Which mechanism currently owns the label host — they must never both write to it. */
     private labelOwner: "slot" | "text" = "text";
 
@@ -82,6 +84,13 @@ export class ListItemView extends VanillaView<ListItemProps> {
 
         this.root.append(this.iconHost, this.labelHost, this.trailingHost);
 
+        this.listen(this.root, "dragstart", (event) => this.props.drag?.onDragStart?.(event));
+        this.listen(this.root, "dragend", (event) => this.props.drag?.onDragEnd?.(event));
+        this.listen(this.root, "dragenter", (event) => this.props.drag?.onDragEnter?.(event));
+        this.listen(this.root, "dragover", (event) => this.props.drag?.onDragOver?.(event));
+        this.listen(this.root, "dragleave", (event) => this.props.drag?.onDragLeave?.(event));
+        this.listen(this.root, "drop", (event) => this.props.drag?.onDrop?.(event));
+
         // Attached unconditionally, even when there is no tooltip yet: `update` handles the
         // empty/disabled arms, so a row that gains a tooltip mid-life needs no attach/detach churn.
         this.tooltip = attachTooltip(this.root, this.tooltipOptions(this.props));
@@ -107,6 +116,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
             id,
             icon,
             iconElement,
+            rowClass,
             label,
             searchText,
             selected,
@@ -118,6 +128,8 @@ export class ListItemView extends VanillaView<ListItemProps> {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             tooltipDelayShow: _tooltipDelayShow,
             trailing,
+            trailingElement,
+            drag,
             variant = "select",
             selectionStyle = "check",
             showSelectionIcon = true,
@@ -136,6 +148,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
 
         const root = this.root;
         root.dataset.type = "list-item";
+        this.setRowClass(rowClass);
         setAttr(root, "data-name", name);
         setAttr(root, "id", id);
         root.dataset.variant = variant;
@@ -151,11 +164,20 @@ export class ListItemView extends VanillaView<ListItemProps> {
         root.setAttribute("role", "option");
         root.setAttribute("aria-selected", selected ? "true" : "false");
         setAttr(root, "aria-disabled", disabled ? "true" : undefined);
+        if (drag?.draggable) root.setAttribute("draggable", "true");
+        else root.removeAttribute("draggable");
 
         this.setCheck(!!checkbox, !!selected);
         this.setIcon(icon, iconElement);
         this.setLabel(label, searchText);
-        this.setTrailing(trailing, selected, showSelectionIcon, selectionStyle, !!checkbox);
+        this.setTrailing(
+            trailing,
+            trailingElement,
+            selected,
+            showSelectionIcon,
+            selectionStyle,
+            !!checkbox,
+        );
 
         // Residual props come last, matching the JSX order: a caller-supplied role or aria-* wins.
         applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
@@ -232,11 +254,19 @@ export class ListItemView extends VanillaView<ListItemProps> {
 
     private setTrailing(
         trailing: React.ReactNode,
+        trailingElement: Node | undefined,
         selected: boolean | undefined,
         showSelectionIcon: boolean,
         selectionStyle: "check" | "accent" | "focus",
         checkbox: boolean,
     ): void {
+        if (trailingElement !== undefined) {
+            if (this.appliedTrailingElement === trailingElement) return;
+            this.appliedTrailingElement = trailingElement;
+            this.trailingCleanup = fillSlot(this.trailingHost, trailingElement);
+            return;
+        }
+        this.appliedTrailingElement = undefined;
         if (trailing !== undefined && trailing !== null) {
             this.trailingCleanup = fillSlot(this.trailingHost, trailing);
             return;
@@ -249,6 +279,18 @@ export class ListItemView extends VanillaView<ListItemProps> {
             return;
         }
         this.trailingCleanup = fillSlot(this.trailingHost, null);
+    }
+
+    private setRowClass(rowClass: string | undefined): void {
+        if (this.appliedRowClass === (rowClass ?? "")) return;
+
+        if (this.appliedRowClass) {
+            this.root.classList.remove(...this.appliedRowClass.split(/\s+/).filter(Boolean));
+        }
+        if (rowClass) {
+            this.root.classList.add(...rowClass.split(/\s+/).filter(Boolean));
+        }
+        this.appliedRowClass = rowClass ?? "";
     }
 
     /**
@@ -291,6 +333,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
         this.appliedIconElement = undefined;
         this.labelCleanup = undefined;
         this.trailingCleanup = undefined;
+        this.appliedTrailingElement = undefined;
     }
 }
 

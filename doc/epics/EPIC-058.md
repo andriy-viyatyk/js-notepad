@@ -239,7 +239,7 @@ condition.
 | [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Implemented |
 | [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Implemented |
 | [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Implemented |
-| US-1034 | `ui/sidebar/` and `MenuBar` | Planned |
+| [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Planned |
 | US-1035 | `ui/tabs/` | Planned |
 | US-1036 | `ui/app/` and the root flip | Planned |
 

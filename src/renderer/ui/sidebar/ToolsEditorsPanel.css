@@ -1,0 +1,28 @@
+@layer app {
+    [data-type="tools-editors-panel"] {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+
+    [data-type="tools-editors-panel"] > [data-part="header"] {
+        display: flex;
+        justify-content: flex-end;
+        padding: 4px 8px 0;
+        flex-shrink: 0;
+    }
+
+    [data-type="tools-editors-panel"] > [data-part="tabs"] {
+        display: flex;
+        padding: 8px 12px;
+        flex-shrink: 0;
+    }
+
+    [data-type="tools-editors-panel"] > [data-part="body"] {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}

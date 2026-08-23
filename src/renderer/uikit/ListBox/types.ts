@@ -20,9 +20,15 @@ export interface IListBoxItem {
     icon?: IconRef;
     /** Direct DOM icon supplied by a vanilla parent; takes precedence over `icon`. */
     iconElement?: Node;
+    /** Application-owned class hook for an ordinary native row. */
+    rowClass?: string;
     /** Right-aligned trailing content (e.g. a status badge). Overrides the
      *  default selection check/chevron for this row when set. */
     trailing?: React.ReactNode;
+    /** Direct DOM trailing content supplied by a vanilla parent. */
+    trailingElement?: Node;
+    /** Native drag handlers for an ordinary row. */
+    drag?: ListItemDragProps;
     /** Disables this item without affecting siblings. */
     disabled?: boolean;
     /**
@@ -31,6 +37,16 @@ export interface IListBoxItem {
      * appears as a centered, dim label without an icon or selection check.
      */
     section?: boolean;
+}
+
+export interface ListItemDragProps {
+    draggable?: boolean;
+    onDragStart?: (event: DragEvent) => void;
+    onDragEnd?: (event: DragEvent) => void;
+    onDragEnter?: (event: DragEvent) => void;
+    onDragOver?: (event: DragEvent) => void;
+    onDragLeave?: (event: DragEvent) => void;
+    onDrop?: (event: DragEvent) => void;
 }
 
 export const LIST_ITEM_KEY = new TraitKey<TraitType<IListBoxItem>>("listbox-item");
