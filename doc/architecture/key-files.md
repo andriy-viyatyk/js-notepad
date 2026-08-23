@@ -117,6 +117,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Settings page composition and section models | `/src/renderer/editors/settings/` |
 | Browser editor coordinator (restore/persistence, navigation normalization, profile presentation, keyboard shortcuts, and composed browser sub-model lifecycle) | `/src/renderer/editors/browser/BrowserEditor.ts` |
 | Browser internal-tab and bookmark resource model (tab lifecycle, current URL/favicon caches, mute/panel operations, bookmark initialization) | `/src/renderer/editors/browser/BrowserTabsModel.ts` |
+| Browser internal-tab host face (unchanged React props; mounts the native stable-placeholder manager) | `/src/renderer/components/page-manager/PageManager.tsx` |
+| Browser internal-tab native host (append-only placeholders and retained per-tab React islands) | `/src/renderer/components/page-manager/PageManagerView.ts` |
+| Application page host face and native view (deferred page islands, grouping, compare mode, and splitter ownership) | `/src/renderer/components/page-manager/AppPageManager.tsx`, `/src/renderer/components/page-manager/AppPageManagerView.ts` |
+| Page-manager placeholder ownership bridge (one-shot placeholder detach and generation-guarded nested React disposal) | `/src/renderer/components/page-manager/PageSlot.ts` |
 | Browser Tor lifecycle model (per-page partition IDs, fail-closed proxy arming, listeners/reconnect, window-close cleanup) | `/src/renderer/editors/browser/BrowserTorModel.ts` |
 | Browser webview context-menu builder (bounded DOM/SVG/resource probes and menu actions) | `/src/renderer/editors/browser/webview-context-menu.ts` |
 | Graph editor host lifecycle, parsing, serialization and composed-model orchestration | `/src/renderer/editors/graph/GraphEditor.ts` |

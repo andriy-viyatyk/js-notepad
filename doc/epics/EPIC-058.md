@@ -235,7 +235,7 @@ condition.
 | [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Planned |
 | [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Planned |
 | [US-1030](../tasks/US-1030-git-tree-vanilla/README.md) | `components/git-tree/` vanilla GitTree view | Implemented |
-| US-1031 | `components/page-manager/` (portal hosts → `appendChild`) | Planned |
+| [US-1031](../tasks/US-1031-page-manager-append-child/README.md) | `components/page-manager/` portal hosts → `appendChild` | Planned |
 | US-1032 | `ui/dialogs/` host, 15 dialogs, and the popper path | Planned |
 | US-1033 | `ui/secondary-views/` host and the registry contract | Planned |
 | US-1034 | `ui/sidebar/` and `MenuBar` | Planned |
@@ -310,6 +310,13 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — US-1031 implementation note
+
+Rule 4 measurement: **PENDING**. The active app-page switch and browser-tab switch require the
+running application and live MCP observation roots; no baseline or post-conversion number is
+recorded without those live measurements. The corresponding live smoke checks are also pending for
+the same reason.
 
 ### 2026-08-23 — US-1028 implementation note
 
