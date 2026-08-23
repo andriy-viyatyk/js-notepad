@@ -6,6 +6,7 @@
 2. **For new features:** Read [/doc/architecture/overview.md](doc/architecture/overview.md)
 3. **Check active work:** Review [/doc/active-work.md](doc/active-work.md)
 4. **Follow standards:** Use [/doc/standards/coding-style.md](doc/standards/coding-style.md) when writing code
+5. **!IMPORTANT — Claude Code only (Codex: ignore this item):** Delegate by default. Use the [`codex-dev`](.claude/skills/codex-dev/SKILL.md) skill for task investigation, planning, implementation, and the completion skills; spend your own budget on epic-level docs, reviewing Codex's plans, and fixing bugs the user reports.
 
 ## Task Workflow (IMPORTANT)
 
