@@ -8,6 +8,8 @@ all coding agents working in this repository.
 
 - Treat references to "Claude" in `CLAUDE.md` as applying to Codex as well when
   they describe project knowledge, coding rules, documentation, or workflow.
+- Every commit created by Codex MUST include this exact GitHub co-author trailer:
+  `Co-authored-by: Codex <noreply@openai.com>`.
 - Files under `.claude/` and Claude slash commands are not automatically
   available to Codex. Follow the compatibility workflow below when completion
   requires `/review`, `/document`, or `/userdoc`.
