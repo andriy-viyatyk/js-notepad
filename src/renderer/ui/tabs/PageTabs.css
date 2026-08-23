@@ -1,0 +1,25 @@
+@layer app {
+    [data-type="page-tabs"] {
+        display: flex;
+        align-items: center;
+        align-self: flex-end;
+        column-gap: 2px;
+        padding-top: 6px;
+        overflow: hidden;
+        margin-left: 4px;
+    }
+
+    [data-type="page-tabs"] .tabs-wrapper {
+        display: flex;
+        align-items: center;
+        column-gap: 2px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+    }
+
+    [data-type="page-tabs"] .tabs-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+}

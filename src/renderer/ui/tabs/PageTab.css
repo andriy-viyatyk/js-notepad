@@ -1,0 +1,174 @@
+@layer app {
+    [data-type="page-tab"] {
+        display: flex;
+        align-items: center;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        border: 1px solid var(--color-bg-dark);
+        border-bottom: none;
+        padding: 4px 2px 3px 2px;
+        min-height: 22px;
+        /* Containing block for the absolutely positioned pinned tooltip trigger. A pinned tab
+         * gets one from `position: sticky` below; without this an unpinned tab's trigger would
+         * resolve against `.app-header` and cover the whole title bar. Visually inert. */
+        position: relative;
+        -webkit-app-region: no-drag;
+        user-select: none;
+        width: 200px;
+        min-width: 80px;
+        flex-shrink: 1;
+        overflow: hidden;
+    }
+
+    [data-type="page-tab"] [data-part="title-label"] {
+        flex: 1 1 auto;
+        font-size: 13px;
+        color: var(--color-text-light);
+        flex-shrink: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    [data-type="page-tab"][data-temp] [data-part="title-label"] {
+        font-style: italic;
+    }
+
+    [data-type="page-tab"][data-deleted] [data-part="title-label"],
+    [data-type="page-tab"][data-deleted] [data-part="modified-icon"] {
+        color: var(--color-misc-red);
+    }
+
+    [data-type="page-tab"] [data-part="close-button"],
+    [data-type="page-tab"] [data-part="sound-button"] {
+        flex-shrink: 0;
+        visibility: hidden;
+    }
+
+    [data-type="page-tab"] [data-part="sound-button"][data-active] {
+        visibility: visible;
+    }
+
+    [data-type="page-tab"][data-active] {
+        background-color: var(--color-bg-default);
+        border-color: var(--color-border-default);
+        color: var(--color-text-default);
+    }
+
+    [data-type="page-tab"][data-active]:not([data-deleted]) [data-part="title-label"] {
+        color: var(--color-text-default);
+    }
+
+    [data-type="page-tab"][data-active] [data-part="close-button"],
+    [data-type="page-tab"]:hover [data-part="close-button"] {
+        visibility: visible;
+    }
+
+    [data-type="page-tab"]:hover {
+        border-color: var(--color-border-default);
+    }
+
+    [data-type="page-tab"]:hover [data-part="sound-button"] {
+        visibility: visible;
+    }
+
+    [data-type="page-tab"][data-drag-over] {
+        background-color: var(--color-bg-default);
+    }
+
+    [data-type="page-tab"] [data-part="modified-icon"] {
+        display: none;
+    }
+
+    [data-type="page-tab"][data-modified] [data-part="close-button"] {
+        visibility: visible;
+    }
+
+    [data-type="page-tab"][data-modified]:not(:hover) [data-part="modified-icon"] {
+        display: inline-block;
+    }
+
+    [data-type="page-tab"][data-modified]:not(:hover) [data-part="close-icon"] {
+        display: none;
+    }
+
+    [data-type="page-tab"] [data-part="encryption-icon"] {
+        padding-bottom: 4px;
+        margin-right: 2px;
+    }
+
+    [data-type="page-tab"] [data-part="empty-language"] {
+        width: 6px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    [data-type="page-tab"] [data-part="empty-language"][data-with-icon] {
+        width: 15px;
+        margin: 0 4px 0 4px;
+    }
+
+    [data-type="page-tab"] [data-part="empty-language"][data-with-icon] svg,
+    [data-type="page-tab"] [data-part="empty-language"][data-with-icon] img {
+        width: 15px;
+        height: 15px;
+    }
+
+    [data-type="page-tab"]:not([data-active]) > button {
+        cursor: default;
+    }
+
+    [data-type="page-tab"][data-pinned] {
+        width: 44px;
+        min-width: 44px;
+        flex-shrink: 0;
+        position: sticky;
+        z-index: 1;
+        background-color: var(--color-bg-dark);
+    }
+
+    [data-type="page-tab"][data-pinned][data-active],
+    [data-type="page-tab"][data-pinned][data-drag-over] {
+        background-color: var(--color-bg-default);
+    }
+
+    [data-type="page-tab"][data-pinned] [data-part="title-label"] {
+        flex: 0 0 auto;
+    }
+
+    [data-type="page-tab"][data-pinned] [data-part="close-button"] {
+        visibility: visible;
+        pointer-events: none;
+    }
+
+    [data-type="page-tab"][data-pinned] [data-part="close-icon"] {
+        display: none;
+    }
+
+    [data-type="page-tab"][data-pinned][data-grouped] [data-part="close-button"] {
+        pointer-events: auto;
+    }
+
+    [data-type="page-tab"][data-pinned][data-grouped] [data-part="close-icon"] {
+        display: inline-block;
+    }
+
+    [data-type="page-tab"][data-pinned][data-modified] [data-part="modified-icon"] {
+        display: inline-block;
+    }
+
+    [data-type="page-tab"][data-pinned][data-has-encryption] {
+        width: 64px;
+        min-width: 64px;
+    }
+
+    [data-type="page-tab"] [data-part="pinned-tooltip-trigger"] {
+        position: absolute;
+        inset: 0;
+    }
+
+    [data-type="page-tab"][data-pinned] > *:not([data-part="pinned-tooltip-trigger"]) {
+        position: relative;
+        z-index: 1;
+    }
+}

@@ -240,7 +240,7 @@ condition.
 | [US-1032](../tasks/US-1032-dialogs-vanilla/README.md) | `ui/dialogs/` host, 13 dialogs, and the popper path | Implemented |
 | [US-1033](../tasks/US-1033-secondary-views-vanilla/README.md) | `ui/secondary-views/` host and the registry contract | Implemented |
 | [US-1034](../tasks/US-1034-sidebar-menubar/README.md) | `ui/sidebar/` and `MenuBar` (two slices: shared Tools & Editors, then the MenuBar shell) | Implemented |
-| US-1035 | `ui/tabs/` | Planned |
+| [US-1035](../tasks/US-1035-tabs-vanilla/README.md) | `ui/tabs/` | Implemented |
 | US-1036 | `ui/app/` and the root flip | Planned |
 
 ### Ordering
@@ -311,6 +311,77 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — US-1035 implementation note
+
+`ui/tabs/` is converted. `PageTab.tsx` goes 611 → a `mountVanilla` face; `PageTabs.tsx` likewise.
+**Emotion importers in `ui/tabs/` went 2 → 0.** No file under `src/renderer/uikit/` and no file in
+`ui/app/` was modified. Zero `<Panel>` sites existed here, so D10 is untouched by this task.
+
+**One property was worth a whole review finding on its own: `-webkit-app-region`.**
+`PageTab.tsx:46` carried `WebkitAppRegion: "no-drag"`, and `MainPage.tsx:43` makes the title bar a
+drag region that each tab carves itself out of. Emitted as camelCase-derived `webkit-app-region` it is
+silently ignored, and dragging a tab drags the **window**. It survived, but see below — the property
+being correct was not sufficient.
+
+**Five defects were found after the build gates were green.** All five are in this task's own new
+code, none is detectable by typecheck, lint or build-prod, and four of the five came from a single
+approved behaviour change.
+
+*The pinned tooltip trigger escaped its tab.* The conversion appended
+`[data-part="pinned-tooltip-trigger"]` unconditionally; the original rendered it only for
+`pinned && filePath`. It is `position: absolute; inset: 0`, and a pinned tab's root is
+`position: sticky` — which is what gave it a containing block. An **unpinned** tab's root was
+unpositioned, so the trigger resolved against `.app-header` (`position: relative`) and covered the
+entire 1548px title bar. Being `-webkit-app-region: none` and on top, it swallowed every tab grab and
+the header's `drag` region won: no tab could be reordered and the whole window dragged. Fixed by
+tracking the element's presence with the same condition as its tooltip, plus `position: relative` on
+the tab root so an absolute child can never escape again.
+
+**The methodological lesson is that one.** The computed `-webkit-app-region` on the tab root read
+`no-drag`, and that was taken as evidence the drag path was correct. It was not: the property was
+right and the *element the pointer actually hit* was wrong. A computed value on the element you
+expect to be hit is not evidence about hit-testing.
+
+*Four more from promoting one latent path to a hot path.* Concern 2 made active identity a
+scroll-into-view trigger, because the original effect re-ran on `pages.length` only and therefore
+silently skipped the scroll on a same-length activation. The change is right, but it moved a path that
+previously ran only on tab add/remove onto **every tab click**, and each of its untested assumptions
+failed in turn:
+
+1. `scrollToActive` resolved the target by querying `[data-active]`. Each `PageTabView` writes its own
+   `data-active` from its own binding, so the strip's sync still saw the **outgoing** tab — clicking a
+   far-right tab scrolled the bar left, and vice versa. Now resolved by page id through the strip's
+   `KeyedList`, which has no ordering dependency. Same family as US-1034's concern 4a: a read racing a
+   sibling's update.
+2. `inline: "center"` re-centred the strip on every activation, including already-visible tabs.
+3. `inline: "nearest"` parked the tab **behind** the sticky pinned block, because it aligns to the
+   scrollport's left edge. `"center"` had accidentally cleared the pinned tabs, which is why this was
+   latent. `scrollIntoView` cannot express "align to the left edge minus a sticky inset", so the
+   scroll is now computed directly.
+4. That computation used `offsetLeft` (whose `offsetParent` is `.app-header`, not the wrapper) and
+   summed `pinnedTabWidth + 2` for the inset (the layout `width`, excluding each tab's 1px borders and
+   2px padding — ~4px short per tab). Both fixed by measuring client rects against the wrapper's own
+   box and reading the **last pinned tab's right edge** for the inset.
+
+**Verified by measurement, not by asking.** With 19 pages created to force 23 tabs into a 1235px port:
+activating the last tab lands it flush at `1149→1235`; activating the first unpinned tab puts its left
+edge at `142`, exactly the measured pinned inset; activating an already-visible tab leaves `scrollLeft`
+unchanged. Test pages were then closed and the original tab set restored. Also verified live: the
+strip and tabs render, `-webkit-app-region` computes `no-drag`, pinned tabs keep inline
+`left: 0/46/92px`, embedded controls keep their own `data-type="icon-button"`, every `data-part` hook
+survives, icon and composite close icon route through `fillSlot`, tab activation moves `data-active`
+with the tab DOM nodes **reused**, and the tab context menu carries its full item set.
+
+The user confirmed at the machine: tab drag-reorder (after the trigger fix), drag-out to a new window,
+drag **between** two windows, tab scrolling including the close-the-last-tab case, and the pinned-tab
+tooltip.
+
+Rule 4 measurement: **PENDING**.
+
+**Deliberate behaviour changes**, recorded so a later report is attributable: activation now triggers
+scroll-into-view (previously only a tab count change did), and the scroll is minimal-and-only-if-needed
+rather than always-centre — including for the add/remove case.
 
 ### 2026-08-23 — US-1034 implementation note (both slices)
 

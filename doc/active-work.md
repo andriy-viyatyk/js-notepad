@@ -22,7 +22,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1032: `ui/dialogs/` host, 13 dialogs, and the popper path](tasks/US-1032-dialogs-vanilla/README.md)
   - [ ] [US-1033: `ui/secondary-views/` host and the registry contract](tasks/US-1033-secondary-views-vanilla/README.md)
   - [ ] [US-1034: `ui/sidebar/` and `MenuBar`](tasks/US-1034-sidebar-menubar/README.md)
-  - [ ] US-1035: `ui/tabs/`
+  - [ ] [US-1035: `ui/tabs/`](tasks/US-1035-tabs-vanilla/README.md)
   - [ ] US-1036: `ui/app/` and the root flip
 
 - *(no epic)*
