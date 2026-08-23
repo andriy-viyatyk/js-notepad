@@ -9,7 +9,12 @@ import type { MenuItem } from "./types";
 export const SEARCH_THRESHOLD = 20;
 export const ROW_HEIGHT = 26;
 export const SUB_MENU_DELAY_MS = 400;
-export const MAX_HEIGHT = 500;
+/**
+ * Height cap for a menu popover. Only long menus reach it — the language menu's 96 items would
+ * otherwise fill the whole window. This was inert until `PopoverModel`'s size middleware started
+ * taking the minimum of the available space and a requested `maxHeight`; short menus are unaffected.
+ */
+export const MAX_HEIGHT = 420;
 
 // =============================================================================
 // Props

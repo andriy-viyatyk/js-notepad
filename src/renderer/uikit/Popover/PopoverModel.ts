@@ -138,11 +138,25 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
                     availableWidth: number;
                 }) => {
                     if (!isCurrent()) return;
-                    // This intentionally overwrites a manual maxHeight prop,
-                    // matching the legacy size middleware's last-writer order.
-                    // Taking the minimum is a separate behavior decision.
+                    // The available-space cap and a caller-supplied `maxHeight` are now combined by
+                    // taking the MINIMUM — the behaviour decision the previous comment deferred.
+                    // Before this, the size middleware unconditionally overwrote the prop, which
+                    // made `maxHeight` dead for every caller: `Menu`'s own `MAX_HEIGHT` never
+                    // applied, so a 96-item language menu grew to the full window height.
+                    // A non-pixel string (e.g. "50vh") cannot be compared numerically, so it yields
+                    // to the available-space value rather than being guessed at.
+                    const available = Math.max(100, availableHeight - 20);
+                    const requested = this.props.maxHeight;
+                    const requestedPx = typeof requested === "number"
+                        ? requested
+                        : typeof requested === "string" && requested.endsWith("px")
+                            ? Number.parseFloat(requested)
+                            : undefined;
+                    const cap = requestedPx !== undefined && Number.isFinite(requestedPx)
+                        ? Math.min(available, requestedPx)
+                        : available;
                     const styles: Record<string, string> = {
-                        maxHeight: `${Math.max(100, availableHeight - 20)}px`,
+                        maxHeight: `${cap}px`,
                     };
                     if (this.props.matchAnchorWidth && !this.state.get().manualSize) {
                         styles.width = `${rects.reference.width}px`;
