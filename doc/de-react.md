@@ -728,7 +728,7 @@ independent of every conversion and lands in **C1**.
 
 ### Epic D — Shell and shared components
 
-**Scoped as [EPIC-058](epics/EPIC-058.md) on 2026-08-22.** The next free epic number is **EPIC-059**.
+**Complete as [EPIC-058](epics/EPIC-058.md) (scoped 2026-08-22, closed 2026-08-24).**
 
 `ui/` (tabs, sidebar, dialogs, MainPage) and `components/` are now native `VanillaView` shells and
 coupled views behind unchanged React-facing faces where compatibility requires them. The application
@@ -758,6 +758,9 @@ error boundary, the root flip) rather than stateful.
 
 ### Epic E — Editors
 
+**E1 is scoped as [EPIC-059](epics/EPIC-059.md) on 2026-08-24.** The next free epic number is
+**EPIC-060**.
+
 28,203 lines across 181 files, but already lazily imported and already model/view split — the
 ideal migration unit. One editor per task, in whatever order suits other work. Open-ended by
 design: this epic may stay active for a long time and that is acceptable.
@@ -770,6 +773,48 @@ Epic E item worth pulling early, since three editors block on it.
 
 Largest first: graph 3,001 · link-editor 2,860 · notebook 1,949 · rest-client 1,917 · browser
 1,700 · log-view 1,693 · mcp-inspector 1,637 · git-tree 1,425.
+
+#### Split, and what the E1 measurement changed *(EPIC-059, 2026-08-24)*
+
+Re-measured at epic open: **180 `.tsx` files, 28,640 lines** — +1.5% on the inherited figure, the
+fourth of this programme's inherited numbers to survive. Four things change the sketch above.
+
+**First, "open-ended by design" was wrong about the foundations, and Epic E is split.** The editors
+are independent of *each other* and jointly dependent on four shared seams, **none of which exists**:
+`EditorModule.Component`/`Body` and the secondary-view registry are typed `React.ComponentType`,
+`ui/app/AsyncEditorView.ts` creates a React root unconditionally, `<TextChrome>` wraps 25 editors as
+JSX, and 12 editors render Monaco through the React lifecycle wrapper. `editors/` holds **zero**
+`VanillaView` references and no `mountVanilla`/`mountReact` call — a vanilla editor written today
+could not be registered, and if registered could not be mounted. EPIC-059 is therefore **E1 —
+foundations**, and editor conversions land in later epics scoped when each opens (EPIC-059 E1-1). The
+suggested pilot order survives inside E1: `image`, `compare` and `mermaid` are converted there as the
+proving consumers of the seams they exercise (E1-2).
+
+**Second, `@monaco-editor/react`'s "trivial" is measurable and even smaller than stated**: 18
+importers, of which **12** use the `Editor`/`DiffEditor` component, 5 import the `Monaco` *type*, and
+1 calls `loader`. `configure-monaco.ts` already imports `monaco-editor` directly and computes
+`typeof monaco` locally, so its `loader.config({ monaco })` exists solely to hand the wrapper the
+instance it already has — it is deleted, not ported (E1-4). The replacement is a control inversion,
+not a swap, making it the programme's **third documented Rule 2 exception** after C3-1 and C4-2
+(E1-3).
+
+**Third, §3.6's "already in `node_modules`" is true but incomplete**: `unified`, `remark-parse`,
+`mdast-util-to-hast` and `hast-util-raw` are present only as **transitive** dependencies, so the
+markdown conversion promotes four packages to direct dependencies and adds `hast-util-to-dom`, which
+is absent. `react-markdown` has exactly one importer, `editors/markdown/MarkdownBlock.tsx`.
+
+**Fourth, Epic P's state lifting never reached the long tail — and does not need its own epic.**
+`editors/` holds **107 `useState`**, 153 `useEffect` and 148 `useRef` — against Epic D's 7 in a
+comparable folder. The three files Epic P named are done; nothing else was scheduled. That residue is
+absorbed by each editor's own conversion rather than deferred (EPIC-059 E1-7, user decision
+2026-08-24): a vanilla view has no render function for state to live in, so the lift and the
+translation are one edit, and Epic F is removal work that could not absorb view state anyway. Epic D
+is the precedent — it took the shell from 7 `useState` to 1, and that one is a surviving React face.
+The count is a *sizing* input for grouping editors into later epics, not a task generator. It is
+flat, too (worst file: 4), so it is a per-editor cost rather than an excavation. `forwardRef`,
+`useImperativeHandle` and React contexts are all at **0**, and Emotion never entered `editors/` at
+all — so Epic A is not a prerequisite for any editor and Epic F's Emotion uninstall does not wait on
+Epic E.
 
 ### Epic F — Removal
 
@@ -805,13 +850,14 @@ creates the duplicate, not in the epic that hopes to remove it.
 
 | Survivor | Kept because | Collectable once | Created by |
 |---|---|---|---|
-| `uikit/Panel/` | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`; a vanilla twin was deliberately not written (C1) | Epic E converts the remaining editor call sites; two shell header wrappers remain deliberately for pointer-event behavior | C1 / EPIC-054 |
-| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`; ten app-layer importer files remain after the shell and file-search conversions | Epic E converts the remaining editor-owned importers | C3 / EPIC-056 |
+| `uikit/Panel/` (the React `Panel.tsx` face) | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`. C1's "no vanilla twin" no longer holds: `Panel/panel-style.ts` exports `createPanelElement`, used at 84 sites after Epic D, so what survives is the React face, not the concept (EPIC-059 finding 6) | Epic E converts the remaining editor call sites; two shell header wrappers remain deliberately for pointer-event behavior | C1 / EPIC-054 |
+| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`. Re-measured at EPIC-059 open: **13** app-layer importer files, but only **four render the React component** (`LinksList`, `LinksTiles`, and `LogBody`/`NotebookBody` via `RenderFlexGrid`); the other nine import `RenderGridModel` or a type. `RenderGridModel` is itself React-coupled (`import React, { CSSProperties, HTMLAttributes }`), so those nine are model repointings rather than render conversions | Epic E converts the remaining editor-owned importers | C3 / EPIC-056 |
 | `uikit/RenderGrid/RenderFlexGrid.tsx` | Variable-height virtualization with no av-grid counterpart and two `editors/` consumers (EPIC-056 C3-3) | Epic E converts `LogBody.tsx` and `NotebookBody.tsx` — either onto a vanilla variant or off flex rows entirely | C3 / EPIC-056 |
 | React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
 | `uikit/shared/highlight.ts` React form | Five editor consumers still use it: GraphBody, LinksList, LinkCategoryPanel, ExpandedNoteView, and NoteItemView (EPIC-056 C3-7) | Epics D and E convert those editor consumers | C3 / EPIC-056 |
+| `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | The 14 `<TextChrome>` and 6 direct `<PageToolbar>` call sites are vanilla; the slots are then DOM nodes and `fill-slot`'s non-React arm handles them, so the conversion is free | E1 / EPIC-059 |
 | `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
 
 **One entry is already collectable at the point C4 closes** (RenderGrid's former AVGrid importers),
