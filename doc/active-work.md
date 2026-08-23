@@ -9,12 +9,13 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - **EPIC-059** — [De-React Epic E1 — Editor foundations](epics/EPIC-059.md)
-  - [ ] US-1042: Vanilla editor registration seam + convert the `image` editor body
+  - [ ] US-1042: Vanilla editor registration seam + convert the `toolset` editor
   - [ ] US-1043: Vanilla Monaco host + convert the `compare` editor
   - [ ] US-1044: `editors/shared` widgets to vanilla
-  - [ ] US-1045: Convert the `mermaid` editor body inside its React `TextChrome` shell
-  - [ ] US-1046: Secondary-view vanilla arm + convert one editor-owned panel
-  - [ ] US-1047: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla
+  - [ ] US-1045: Convert the `image` editor inside its React `<PageToolbar>` shell
+  - [ ] US-1046: Convert the `mermaid` editor body inside its React `TextChrome` shell
+  - [ ] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
+  - [ ] US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla
 - *(no epic)*
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
