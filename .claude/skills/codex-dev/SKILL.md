@@ -241,12 +241,42 @@ line by line unless they ask.
    converted code and confirm it is not empty. That is the whole check: *did we brick it?*
    Do not walk the UI, do not verify layout details, do not screenshot several states —
    snapshots are large and full UI verification is exactly the token sink this workflow
-   exists to avoid. If Persephone is not running, say so rather than starting it.
+   exists to avoid. If Persephone is not running, say so rather than starting it — but if it *is*
+   running and the renderer is wedged, that is step 5a's job, not a reason to stop.
 5. Report what you verified and what you did not. Never imply broader verification than
    you performed.
 
 A full implementation review is opt-in. Offer it if the diff is large or touched files the
 plan never mentioned; otherwise let the user decide.
+
+### 5a. Recovering a wedged Persephone — try this before asking the user
+
+*(User decision, 2026-08-24, after an agent stalled on a blank renderer instead of recovering it.)*
+
+**During autonomous work, Persephone is under your full control.** The user leaves nothing unsaved in
+it, and every page — pinned ones included — can be reopened. You cannot break anything they cannot
+restore. So a wedged app is **yours to fix**, not a reason to stop and wait.
+
+The symptom to recognise: the window is blank, or renderer-side MCP calls (`get_app_info`,
+`execute_script`) time out while main-process ones (`list_windows`) still answer. That is a dead
+renderer, and it is usually **HMR failing to hot-swap a large batch** — not a defect in the code. A
+conversion touching a dozen files, or any change to an entry module, routinely defeats it.
+
+Work through these in order, and stop as soon as MCP answers again:
+
+1. **Force a main-process rebuild.** Add a throwaway `console.log()` to a file under `src/main/`,
+   which makes Vite rebuild and restart the main process *and* the window. Remove the line once the
+   app is back. This is the cheapest option and it fixes the common case.
+2. **Restart the dev server.** Kill the Vite process and Persephone (`Get-Process` filtered on
+   `electron`, then stop them), and run `npm start` fresh. A cold start is also the honest test of
+   whether the code actually works, since it exercises the real bootstrap rather than a hot-swap.
+3. **Only then stop and ask.** If neither recovers it, the problem is probably real. Report the
+   symptom, what you tried, and the first console error if you have one — and do not keep looping.
+   Two attempts is the budget.
+
+**Do not report a wedged renderer as a defect until a cold start reproduces it.** HMR failure and a
+genuine mount failure look identical from outside, and only step 2 distinguishes them. Saying "the
+conversion broke the app" when a restart fixes it sends the user chasing nothing.
 
 ### 6. Delegate the completion skills
 
