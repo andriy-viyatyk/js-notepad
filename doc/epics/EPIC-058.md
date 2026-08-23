@@ -89,7 +89,7 @@ figure in this programme to survive a re-measure.
 | `react-dom/server` importers | 1 | **0** |
 | `@floating-ui/react` importers | 2 | 1 (`editors/browser/BrowserTabsPanel.tsx` — Epic E) |
 | React portal hosts | 4 | 1, and only as a compatibility arm (D4) |
-| `uikit/RenderGrid` app-layer importers | 12 | 9 (D8) |
+| `uikit/RenderGrid` app-layer importers | 12 | 10 (D8) |
 | `<Panel` tags outside `editors/` | 71 | 0 |
 | React roots created at startup | 1 | 0 (D9) |
 
@@ -99,7 +99,7 @@ figure in this programme to survive a re-measure.
 
 Epic C was split four ways because 14,671 lines of interdependent primitives could not be reviewed as
 one unit. Epic D is 9,192 `.tsx` lines with a **flat** dependency graph: `components/` are leaves the
-shell consumes, and the shell's own five folders barely reference each other. Twelve tasks in one epic
+shell consumes, and the shell's own five folders barely reference each other. Fourteen tasks in one epic
 is the same review granularity C3 and C4 ran at.
 
 The decisive argument against splitting is D9: the root flip is a single atomic event that must land
@@ -184,15 +184,16 @@ The dependency still cannot be uninstalled: `editors/browser/BrowserTabsPanel.ts
 for real. Recorded so the win is not claimed twice, and so Epic E inherits the uninstall as a one-file
 job.
 
-### D8 — Epic D collects 3 of `RenderGrid`'s 12 app-layer importers, not all 12
+### D8 — Epic D collects 2 of `RenderGrid`'s 12 app-layer importers, not all 12
 
-`components/file-search/FileSearch.tsx` uses `RenderGrid` and `RenderGridModel` as values;
-`tree-provider/CategoryView.tsx` uses `RenderGridModel`, and `CategoryViewModel.ts` /
-`TreeProviderViewModel.ts` import types only. The other nine are in `editors/`.
+`components/file-search/FileSearch.tsx` uses `RenderGrid` and `RenderGridModel` as values. The
+tree-provider split deliberately retains `CategoryViewModel`'s `RenderGridModel` type callback for
+the editor-owned `LinksList`/`LinksTiles` bridge, so `CategoryViewModel` remains an importer. The
+thin `CategoryView` face stops importing `RenderGrid` directly, and `TreeProviderViewModel`'s
+`RowAlign` type is repointed to `uikit/VirtualGrid`. The other nine importers are in `editors/`.
 
-The removal-ledger row for `uikit/RenderGrid/` therefore stays open into Epic E. Each task converts
-its own importers onto the vanilla virtualization engine C3 built; none of them is licensed to change
-`RenderGrid` itself.
+Therefore Epic D's count is 12 → 10. The removal-ledger row stays open into Epic E; none of the
+tree-provider tasks is licensed to convert the editor-owned `LinksList`/`LinksTiles` grid.
 
 ### D9 — the root flip is 41 lines, and it is the last task
 
@@ -230,7 +231,9 @@ condition.
 | [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
 | [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Implemented |
 | [US-1028](../tasks/US-1028-file-search/README.md) | `components/file-search/` (first `RenderGrid` collection) | Implemented |
-| US-1029 | `components/tree-provider/` | Planned |
+| [US-1029](../tasks/US-1029-tree-provider/README.md) | Tree primitive seams for tree-provider | Planned |
+| [US-1037](../tasks/US-1037-tree-provider-view/README.md) | `components/tree-provider/TreeProviderView` | Planned |
+| [US-1038](../tasks/US-1038-category-view/README.md) | `components/tree-provider/CategoryView` | Planned |
 | US-1030 | `components/git-tree/` React remnants | Planned |
 | US-1031 | `components/page-manager/` (portal hosts → `appendChild`) | Planned |
 | US-1032 | `ui/dialogs/` host, 15 dialogs, and the popper path | Planned |
@@ -247,7 +250,10 @@ US-1027's package prerequisite is **met**: `av-grid@2.2.4` widened `CellRenderer
 undefined`, was published on 2026-08-22 and is pinned exactly in `package.json`. US-1027 consumes
 that release rather than casting or wrapping SVG/IMG icon elements. With that done,
 the `components/` leaves can proceed in any order — they are independent, and US-1027 is the cheapest
-place to establish the epic's pattern. Then the shell, where `ui/dialogs/` and
+place to establish the epic's pattern. US-1029 is now the additive Tree seam and must land first;
+US-1037 and US-1038 then convert the two tree-provider surfaces independently. CategoryView
+intentionally keeps its editor-owned `RenderGridModel` bridge, so D8 counts ten remaining
+importers, not nine. Then the shell, where `ui/dialogs/` and
 `ui/secondary-views/` are the two with external contracts and should be done while attention is
 fresh. US-1036 is last by D9.
 
@@ -315,7 +321,7 @@ live on both sides.
 
 ### 2026-08-22 — epic drafted
 
-Scoped after [EPIC-057](EPIC-057.md) closed. Twelve tasks, ten decisions, and the surface measured at
+Scoped after [EPIC-057](EPIC-057.md) closed. Fourteen tasks, ten decisions, and the surface measured at
 `c9453d3a`. Three findings changed the shape of the epic relative to the roadmap's two-line sketch:
 
 **`theme/` had no owner.** The roadmap's §2 table lists `theme/` as 4 `.tsx` files / 2,441 lines

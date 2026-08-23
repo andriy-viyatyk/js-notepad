@@ -67,6 +67,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     private chevronSpinner: SpinnerView | undefined;
 
     private iconCleanup: (() => void) | undefined;
+    private directIconElement: Node | undefined;
     private labelCleanup: (() => void) | undefined;
     private trailingCleanup: (() => void) | undefined;
     /** Which mechanism currently owns the label host — they must never both write to it. */
@@ -129,6 +130,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
             expanded,
             hasChildren,
             icon,
+            iconElement,
             label,
             searchText,
             selected,
@@ -183,7 +185,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
 
         indents.sync(level, indentSize);
         this.setChevron(props);
-        this.setIcon(icon);
+        this.setIcon(icon, iconElement);
         this.setLabel(label, searchText);
         this.setTrailing(trailing);
 
@@ -281,8 +283,9 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
      * through `fillSlot`. React rendered the host only when `icon` was truthy, so an absent icon
      * detaches the host rather than leaving an empty flex item behind.
      */
-    private setIcon(icon: IconRef | undefined): void {
-        if (icon == null || icon === false || icon === "") {
+    private setIcon(icon: IconRef | undefined, iconElement: Node | undefined): void {
+        if (iconElement === undefined && (icon == null || icon === false || icon === "")) {
+            this.directIconElement = undefined;
             if (this.iconAttached) {
                 this.iconCleanup?.();
                 this.iconCleanup = undefined;
@@ -295,6 +298,15 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
             this.root.insertBefore(this.iconHost, this.labelHost);
             this.iconAttached = true;
         }
+        if (iconElement !== undefined) {
+            // A pooled row may receive the same direct node repeatedly. Do not move it again: a
+            // real DOM move can disturb focus or cancel an in-flight transition.
+            if (this.directIconElement === iconElement) return;
+            this.directIconElement = iconElement;
+            this.iconCleanup = fillSlot(this.iconHost, iconElement);
+            return;
+        }
+        this.directIconElement = undefined;
         // A string is always an icon-name attempt, never content: `renderIcon` returned `null` for
         // an unknown name, so an unknown name must render nothing here too. Falling through to
         // `fillSlot` would write the name into the row as literal text.
@@ -369,6 +381,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         this.iconCleanup = undefined;
         this.labelCleanup = undefined;
         this.trailingCleanup = undefined;
+        this.directIconElement = undefined;
     }
 }
 

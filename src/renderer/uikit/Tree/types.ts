@@ -162,6 +162,24 @@ export interface TreeProps<T = ITreeItem>
      */
     getTooltip?: (item: T, level: number) => SlotText;
     /**
+     * Optional direct DOM icon for the default row renderer. The returned node is attached as-is,
+     * without a React root. Keep its identity stable while the same row remains visible.
+     */
+    getIconElement?: (item: T, level: number) => Node | undefined;
+    /** Optional per-row chevron suppression. The default is the existing Tree behavior. */
+    getHideChevron?: (item: T, level: number) => boolean;
+    /** Optional right-side React compatibility slot for the default row renderer. */
+    renderTrailing?: (item: T, level: number) => React.ReactNode;
+    /**
+     * Per-row context-menu callback. It is bound on the row root, before the Tree's bubbling
+     * container handler, so callers can stamp the native event before background handling runs.
+     */
+    onItemContextMenu?: (
+        item: T,
+        level: number,
+        event: React.MouseEvent<HTMLDivElement>,
+    ) => void;
+    /**
      * Per-row context menu items. Returning `undefined` or an empty array suppresses the menu
      * on that row. Items dispatch via `ContextMenuEvent.fromNativeEvent(e, "generic")` — they
      * bubble to the global handler which renders the actual menu.

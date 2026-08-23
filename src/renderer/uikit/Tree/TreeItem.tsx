@@ -22,6 +22,8 @@ export interface TreeItemProps
     hasChildren: boolean;
     /** Leading icon (rendered after the chevron). */
     icon?: IconRef;
+    /** Direct DOM icon used by framework-free owners; takes precedence over `icon`. */
+    iconElement?: Node;
     /** Label content. Rich tree rows remain supported; string labels are highlighted. */
     label: React.ReactNode;
     /** Highlight matches in string labels. */

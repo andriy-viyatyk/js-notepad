@@ -14,7 +14,9 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1026: `components/icons/` vanilla DOM views](tasks/US-1026-components-icons-vanilla-views/README.md)
   - [ ] [US-1027: `components/file-list/` + `components/file-grid/`](tasks/US-1027-file-list-grid/README.md)
   - [ ] [US-1028: `components/file-search/` (first `RenderGrid` collection)](tasks/US-1028-file-search/README.md)
-  - [ ] US-1029: `components/tree-provider/`
+  - [ ] [US-1029: Tree primitive seams for tree-provider](tasks/US-1029-tree-provider/README.md)
+  - [ ] [US-1037: `TreeProviderView`](tasks/US-1037-tree-provider-view/README.md)
+  - [ ] [US-1038: `CategoryView`](tasks/US-1038-category-view/README.md)
   - [ ] US-1030: `components/git-tree/` React remnants
   - [ ] US-1031: `components/page-manager/` (portal hosts → `appendChild`)
   - [ ] US-1032: `ui/dialogs/` host, 15 dialogs, and the popper path

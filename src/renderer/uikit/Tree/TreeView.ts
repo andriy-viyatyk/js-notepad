@@ -436,6 +436,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             // render)". A lazy row whose children have not loaded yet still belongs in this set.
             hasChildren: row.hasChildren || row.lazyChildren,
             icon: row.item.icon,
+            iconElement: this.props.getIconElement?.(row.source, row.level),
             label: row.item.label,
             searchText: this.props.searchText,
             selected: this.model.isSelectedAt(index),
@@ -446,6 +447,13 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             disabled: row.item.disabled,
             tooltip: this.props.getTooltip?.(row.source, row.level),
             indentSize: this.props.indentSize ?? defaultIndentSize,
+            hideChevron: this.props.getHideChevron?.(row.source, row.level),
+            trailing: this.props.renderTrailing?.(row.source, row.level),
+            onContextMenu: this.props.onItemContextMenu
+                ? (event: React.MouseEvent<HTMLDivElement>) => {
+                    this.props.onItemContextMenu?.(row.source, row.level, event);
+                }
+                : undefined,
             // A fresh closure per render is fine here — it is a row *prop*, not the engine's
             // `renderCell`, and `update()` re-supplies it with the current index on every render, so
             // a recycled row never calls the previous row's handler.
@@ -585,6 +593,8 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             multiSelect: _multiSelect, rowHeight: _rowHeight, indentSize: _indentSize,
             growToHeight: _growToHeight, whiteSpaceY: _whiteSpaceY, activeIndex: _activeIndex,
             getTooltip: _getTooltip, loading: _loading, emptyMessage: _emptyMessage,
+            getIconElement: _getIconElement, getHideChevron: _getHideChevron,
+            renderTrailing: _renderTrailing, onItemContextMenu: _onItemContextMenu,
             items: _items, value: _value, onChange: _onChange,
             onItemDoubleClick: _onItemDoubleClick, isSelected: _isSelected,
             onSelectionChange: _onSelectionChange, onActiveChange: _onActiveChange,
