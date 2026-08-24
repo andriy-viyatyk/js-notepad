@@ -284,7 +284,7 @@ of the renderer.
 | US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | **Done** |
 | US-1052 | Convert the `markdown` body: `MarkdownBody` → `MarkdownBodyView` (`CodeBlock`/`MarkdownImage` landed with US-1048) | **Done** |
 | US-1053 | Convert the `grid` body: `GridBody` only — both popovers proved shell-owned | **Done** |
-| US-1054 | Delete the React `Body` arm: repoint `NoteItemActiveEditor` to `BodyView`, remove `Body` and the E1-9 normalization shim | Planned |
+| US-1054 | Delete the React `Body` arm: repoint `NoteItemActiveEditor` to `BodyView`, remove `Body` and the E1-9 normalization shim | **Done** |
 
 **Ordering constraints.** US-1048 precedes US-1052 (the renderer is what `MarkdownBody` renders
 through). US-1054 is last — it cannot land until all four providers are on `BodyView`. US-1051 and
@@ -338,6 +338,24 @@ converted host rather than only its presence, and open at least one editor the t
   comments or types — so E1's figure holds.
 - The `highlight` React-form ledger entry also holds unchanged: `GraphBody`, `LinksList`,
   `LinkCategoryPanel`, `ExpandedNoteView`, `NoteItemView` — none of them in this epic's scope.
+**US-1054 — the closing property is delivered.** `EditorModule.Body` no longer exists in
+`editorRegistry.ts`, its E1-9 normalization shim is deleted, and
+`notebook/note-editor/NoteItemActiveEditor.tsx` mounts `mountVanilla(module.BodyView, …)` directly. The
+sibling `Component`/`View` shim stays — most editors are still React `Component`s and depend on it. Both
+stale doc comments naming `module.Body` were rewritten rather than left to rot on a contract that had
+just changed.
+
+`NoteItemActiveEditor` stays a **React** component, which is the whole point of E1-8's asymmetry: a
+React parent hosting a vanilla child costs zero roots, so the contract could be deleted without
+converting notebook's 2,001 lines.
+
+**Verified on the embedded path, which is the only place this could break, using the notebook fixture at
+`C:\data\js-notepad-notes\temp\test.note.json`** (four of the five providers, read-only — nothing
+saved). Every embedded body mounted with real geometry, not just presence: the grid at 1192×284 with 60
+laid-out cells, markdown at 1166×4657, the HTML iframe at 1192×400, and mermaid's root and viewport both
+at 1192×400 — the 400 being `maxEditorHeight`, so the embedded branch is genuinely exercised.
+Confirmed by screenshot: the grid and a markdown table render chrome-free inside their notes.
+
 **US-1051 — the seam held, and the review round earned its keep.** Both bodies converted with no
 change to their `index.tsx` chrome shells (E2-2) and no registry change (E2-3): `editorRegistry`
 synthesizes `Body` from `BodyView` for both, verified live, so notebook's per-note dispatch keeps

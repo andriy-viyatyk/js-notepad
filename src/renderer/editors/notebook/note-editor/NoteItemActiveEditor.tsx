@@ -1,4 +1,4 @@
-import { ComponentType, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import { MiniTextEditor } from "./MiniTextEditor";
 import { editorRegistry } from "../../base/editorRegistry";
@@ -6,6 +6,7 @@ import { CONTENT_HOST_TRAIT } from "../../base/editor-traits";
 import type { EditorModel } from "../../base/EditorModel";
 import { EditorView } from "../../../../shared/types";
 import type { EditorConfig } from "../../base/EditorConfig";
+import { mountVanilla, type VanillaViewCtor } from "../../../uikit/shared/mount";
 
 
 interface NoteItemActiveEditorProps {
@@ -19,7 +20,7 @@ interface NoteItemActiveEditorProps {
  *  - any language-gated editor (grid-json / grid-csv / grid-jsonl / md-view /
  *    svg-view / html-view / mermaid-view) → an embedded `EditorModel`
  *    wrapping this `NoteItemEditModel` as its content host, rendered chrome-free
- *    via the module's `Body` slot.
+ *    via the module's `BodyView` slot.
  *
  * Extension-gated editors (Todo / Link / RestClient / Graph / Draw / Log /
  * Notebook) never reach here — the toolbar's `getSwitchOptions(language,
@@ -62,7 +63,7 @@ interface EmbeddedNoteEditorProps {
 function EmbeddedNoteEditor({ host, editorId, editorConfig }: EmbeddedNoteEditorProps) {
     const [entry, setEntry] = useState<{
         editor: EditorModel;
-        Body: ComponentType<{ model: EditorModel; editorConfig?: EditorConfig }>;
+        BodyView: VanillaViewCtor<{ model: EditorModel; editorConfig?: EditorConfig }>;
     } | null>(null);
 
     useEffect(() => {
@@ -70,8 +71,8 @@ function EmbeddedNoteEditor({ host, editorId, editorConfig }: EmbeddedNoteEditor
         let created: EditorModel | null = null;
         (async () => {
             const module = await editorRegistry.getModule(editorId);
-            if (!module.Body) {
-                throw new Error(`Editor "${editorId}" is not embeddable (no Body slot)`);
+            if (!module.BodyView) {
+                throw new Error(`Editor "${editorId}" is not embeddable (no BodyView slot)`);
             }
             const editor = module.createEditor();
             // Inject the note host, then realize. `restore()` skips host
@@ -82,7 +83,7 @@ function EmbeddedNoteEditor({ host, editorId, editorConfig }: EmbeddedNoteEditor
             await editor.restore();
             created = editor;
             if (alive) {
-                setEntry({ editor, Body: module.Body });
+                setEntry({ editor, BodyView: module.BodyView });
             } else {
                 detachAndDispose(editor);
             }
@@ -95,6 +96,6 @@ function EmbeddedNoteEditor({ host, editorId, editorConfig }: EmbeddedNoteEditor
     }, [editorId, host]);
 
     if (!entry) return null;
-    const { editor, Body } = entry;
-    return <Body model={editor} editorConfig={editorConfig} />;
+    const { editor, BodyView } = entry;
+    return mountVanilla(BodyView, { model: editor, editorConfig });
 }

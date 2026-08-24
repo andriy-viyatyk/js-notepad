@@ -26,10 +26,10 @@ type EditorModuleCommon = {
      *  default text-host flow. */
     newEditorModel?(filePath?: string): Promise<EditorModel>;
     /** Chrome-free body — the editor content WITHOUT `<TextChrome>`. Supplied
-     *  by editors that can be embedded inside another editor (*  — notebook per-note dispatch renders `module.Body` so each note's editor
-     *  has no page chrome). Only the language-gated embeddable editors (Grid,
-     *  Markdown, Svg, Html, Mermaid) provide it. */
-    Body?: React.ComponentType<{ model: EditorModel; editorConfig?: EditorConfig }>;
+     *  by editors that can be embedded inside another editor — notebook per-note
+     *  dispatch mounts `module.BodyView` so each note's editor has no page
+     *  chrome. Only the language-gated embeddable editors (Grid, Markdown, Svg,
+     *  Html, Mermaid) provide it. */
     BodyView?: VanillaViewCtor<{ model: EditorModel; editorConfig?: EditorConfig }>;
 };
 
@@ -292,9 +292,9 @@ class EditorRegistry {
     }
 
     /** Public module accessor — loads (and caches) the module for an id so
-     *  callers can read `module.Body` / `module.createEditor` directly. Used by
-     *  the notebook per-note dispatch to mount an embedded editor's
-     *  chrome-free Body. */
+     *  callers can read `module.BodyView` / `module.createEditor` directly. Used
+     *  by the notebook per-note dispatch to mount an embedded editor's
+     *  chrome-free body view. */
     getModule(id: string): Promise<EditorModule> {
         return this.loadModule(id);
     }
@@ -310,14 +310,6 @@ class EditorRegistry {
             module = {
                 ...module,
                 Component: (props: { model: EditorModel }): React.ReactElement =>
-                    mountVanilla(Ctor, props),
-            };
-        }
-        if (module.BodyView && !module.Body) {
-            const Ctor = module.BodyView;
-            module = {
-                ...module,
-                Body: (props: { model: EditorModel; editorConfig?: EditorConfig }): React.ReactElement =>
                     mountVanilla(Ctor, props),
             };
         }
