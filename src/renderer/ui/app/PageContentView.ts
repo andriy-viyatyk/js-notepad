@@ -1,11 +1,10 @@
-import React from "react";
 import type { EditorModel } from "../../editors/base/EditorModel";
-import { CompareEditor } from "../../editors/compare";
+import { CompareEditor } from "../../editors/compare/CompareEditor";
+import type { TextFileModel } from "../../editors/text/TextEditorModel";
 import { pagesModel } from "../../api/pages";
 import type { PageModel } from "../../api/pages/PageModel";
 import { SecondaryViewsView } from "../secondary-views/SecondaryViewsView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
 import { createOrnamentElement } from "../../theme/Ornament";
 import { RenderEditorView } from "./RenderEditorView";
 import "./Pages.css";
@@ -21,8 +20,7 @@ export class PageContentView extends VanillaView<PageContentProps> {
     private contentRoot: HTMLElement | undefined;
     private renderEditor: RenderEditorView | undefined;
     private contentIdentity: string | undefined;
-    private compareHost: HTMLDivElement | undefined;
-    private compareHandle: MountedReactRoot | undefined;
+    private compareView: CompareEditor | undefined;
     private generation = 0;
     private live = true;
 
@@ -166,27 +164,25 @@ export class PageContentView extends VanillaView<PageContentProps> {
         this.contentIdentity = undefined;
     }
 
-    private updateCompare(model: object, groupedModel: object, leftPageId: string): void {
-        if (!this.compareHost) {
-            this.compareHost = document.createElement("div");
-            this.compareHost.style.display = "contents";
-            this.root.append(this.compareHost);
-            this.compareHandle = mountReactHandle(this.compareHost, this.compareElement(model, groupedModel, leftPageId));
-        } else this.compareHandle?.render(this.compareElement(model, groupedModel, leftPageId));
-    }
-
-    private compareElement(model: object, groupedModel: object, leftPageId: string): React.ReactElement {
-        return React.createElement(CompareEditor, { model, groupedModel, leftPageId } as never);
+    private updateCompare(model: TextFileModel, groupedModel: TextFileModel, leftPageId: string): void {
+        if (!this.compareView) {
+            // clearCompare owns retired compare views; child() would retain every old view.
+            this.compareView = new CompareEditor({ model, groupedModel, leftPageId });
+            this.root.append(this.compareView.root);
+            this.compareView.mount();
+        } else {
+            this.compareView.update({ model, groupedModel, leftPageId });
+        }
     }
 
     private clearCompare(): void {
-        const handle = this.compareHandle;
-        const host = this.compareHost;
-        if (!handle || !host) return;
-        this.compareHandle = undefined;
-        this.compareHost = undefined;
+        const view = this.compareView;
+        if (!view) return;
+        this.compareView = undefined;
         const generation = ++this.generation;
-        host.remove();
-        queueMicrotask(() => { if (this.generation === generation) handle.dispose(); });
+        view.root.remove();
+        queueMicrotask(() => {
+            if (this.generation === generation) view.dispose();
+        });
     }
 }

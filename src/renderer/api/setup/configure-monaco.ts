@@ -1,5 +1,4 @@
 import * as monaco from "monaco-editor";
-import { loader } from "@monaco-editor/react";
 
 import { getThemeById } from "../../theme/themes";
 import { themeState } from "../../theme/theme-state";
@@ -10,8 +9,6 @@ import { defineMermaidLanguage } from "./monaco-languages/mermaid";
 import { defineJsonlLanguage } from "./monaco-languages/jsonl";
 import { defineLogLanguage } from "./monaco-languages/log";
 import { loadLibraryIntelliSense } from "./library-intellisense";
-
-loader.config({ monaco });
 
 type Monaco = typeof monaco;
 let monacoInstance: Monaco | null = null;
@@ -83,7 +80,7 @@ const customTokenRules: monaco.editor.ITokenThemeRule[] = [
     { token: "constant.url.log", foreground: "4fc1ff" },
 ];
 
-const MONACO_THEME_NAME = "custom-dark";
+export const MONACO_THEME_NAME = "custom-dark";
 
 function defineMonacoTheme(monaco: Monaco, theme: ThemeDefinition) {
     monaco.editor.defineTheme(MONACO_THEME_NAME, {

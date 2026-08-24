@@ -1,5 +1,6 @@
-import { Monaco } from "@monaco-editor/react";
 import * as monaco from 'monaco-editor'; // Make sure to import monaco if it's not already globally available
+
+type Monaco = typeof monaco;
 
 export function defineRegLanguage(monaco: Monaco) {
     const languageId = 'reg';

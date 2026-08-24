@@ -1,5 +1,6 @@
-import { Monaco } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
+
+type Monaco = typeof monaco;
 
 /**
  * Define Log language with syntax highlighting for .log files.

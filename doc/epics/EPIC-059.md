@@ -238,6 +238,7 @@ row the moment you defer something; do not batch them up at the end from memory.
 
 | Task | What to look at | How to reach it |
 |---|---|---|
+| US-1043 | The **compare editor**'s appearance: the two file-path labels ellipsizing on the *left* (`dir="rtl"`), the `→` separator between them, toolbar background/border, and the exit button. Structure was verified over MCP (both labels present with `dir="rtl"` and full-path `title`, `.toolbar-root` with `role="toolbar"`, `data-name="compare-exit"`, one `.monaco-diff-editor`, `→` present) — what is owed is only the visual judgement that it matches the React version. | Group two files and enter compare mode (or run `app._pages.openDiff({firstPath, secondPath})` from a script). |
 | US-1042 | The converted **toolset editor** rendered on screen: header row (icon · title · Registered/Not-registered badge · Refresh pushed to the far right by the spacer), the Open Folder / Open Log buttons, and either the manifest-error list or the `Tools (n)` cards. Compare against the React version in `git show 8ed0ee0b:src/renderer/editors/toolset/ToolsetEditorView.tsx`. | Sidebar → Agent Tools → click a registered toolset. **Could not be reached autonomously:** the editor is only routed to from the registered-toolset list, and `create_toolset` requires a human confirmation prompt to register, so no toolset could be created without you. Everything reachable without one was verified — see the Notes entry for US-1042. |
 
 ## Decisions
@@ -501,7 +502,7 @@ translation with the model largely intact — which is exactly the shape roadmap
 | Task | Title | Status |
 |------|-------|--------|
 | US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the **`toolset`** editor | **Done** |
-| US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | Planned |
+| US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | **Done** |
 | US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | Planned |
 | US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | Planned |
 | US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | Planned |
@@ -557,6 +558,18 @@ child and no root is created.
 | DOM mutations for a cold compare-editor mount | **2,001** |
 | Settle window | 2,525 ms |
 | Resulting `.monaco-diff-editor` nodes | 1 |
+
+**Result, measured after US-1043 at the same commit-adjacent state:**
+
+| Measurement | React (before) | Vanilla (after) | Change |
+|---|---:|---:|---:|
+| DOM mutations, cold compare-editor mount | 2,001 | **1,096** | **−45%** |
+| React roots created for compare mode | 1 | **0** | −1 |
+| `.monaco-diff-editor` nodes produced | 1 | 1 | — |
+
+The 45% is larger than expected — the working assumption was that Monaco's own rendering would swamp
+the difference. It did not: nearly half the DOM traffic of opening a diff was the React wrapper and its
+reconciliation, not the widget.
 
 Method — repeat exactly to get the "after" number: install a `MutationObserver` on
 `document.getElementById("root")` with `{childList, subtree, attributes, characterData}`, call
@@ -636,6 +649,35 @@ is accepted.
   spans works — `Text.css` sets `display` only under `[data-truncate]`/`[data-align]`, there is no bare
   `[data-type="text"]` display rule and no author `[hidden]` rule, so the UA `[hidden] { display: none }`
   applies.
+- **US-1043 done, and it produced the epic's Rule 4 number: DOM mutations for a cold compare-editor
+  mount 2,001 → 1,096, a 45% reduction, plus one React root deleted.** The vanilla
+  `MonacoDiffEditorHostView` owns `createDiffEditor` and the two text models;
+  `PageContentView.updateCompare` no longer calls `mountReactHandle`. `createToolbarElement` /
+  `applyToolbarAttributes` were added to `uikit/Toolbar/toolbar-style.ts` (mirroring `panel-style.ts`)
+  and `ToolbarView` now calls the factory, so the toolbar contract has one source of truth;
+  `data-roving-host` deliberately stays in `ToolbarView`, since it advertises a roving-tabindex manager
+  a static toolbar does not have. `MONACO_THEME_NAME` is exported and `loader.config` is gone.
+
+  **Codex overturned my own analysis on the disposal question, and was right.** I checked that
+  `DiffEditorWidget`'s `onWillDispose` guards are removed synchronously (`autorunImpl.js:40-51`) and
+  concluded the macrotask defer from `FileDiffBodyModel` was obsolete. Codex found the actual
+  mechanism: `setDiffModel` (`diffEditorWidget.js:318-325`) defers the *previous model-ref* disposal
+  with an explicit `setTimeout(…, 0)` and a TODO admitting it, live in 0.55.1. The defer stays. The
+  lesson is narrow and worth keeping: checking that the listeners are gone is not the same as checking
+  that nothing else deferred work touching the models.
+
+  Three defects found in review and fixed before commit: a **speculative `MonacoEditorHostView`** with
+  zero consumers (I let the two-host design through at plan review — my mistake, corrected here; the
+  plain host now waits for a real `Editor` call site); **`this.child(new CompareEditor(...))`**, which
+  leaked one dead view per compare exit because `VanillaView` has no child-release API and
+  `clearCompare` is called from five sites including ordinary page switches; and a missing comment on
+  the global `setTheme` call.
+
+  *Verified live over MCP:* compare mounts with both `dir="rtl"` labels carrying full-path titles, the
+  `.toolbar-root`/`role="toolbar"` from the new factory, the exit button, the `→` separator, and one
+  diff editor. Three page-switch cycles and two reopen cycles left the counts at exactly 1 — no
+  accumulation. Ungrouping dropped `compare-root`, `.monaco-diff-editor` and `.monaco-host-root` all to
+  **0**, confirming `clearCompare` detaches the root and the host tears the widget down.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale

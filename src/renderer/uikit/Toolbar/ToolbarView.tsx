@@ -9,6 +9,7 @@ import {
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import type { ToolbarProps } from "./Toolbar";
+import { applyToolbarAttributes } from "./toolbar-style";
 import "./Toolbar.css";
 
 function findFocusable(element: Element): HTMLElement | null {
@@ -36,7 +37,6 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
 
     public constructor(props: ToolbarProps) {
         super(props, document.createElement("div"));
-        this.root.classList.add("toolbar-root");
     }
 
     protected onMount(): void {
@@ -80,27 +80,12 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
             ...rest
         } = props;
 
-        this.root.setAttribute("role", "toolbar");
-        this.root.setAttribute("aria-orientation", orientation);
-        this.root.dataset.type = "toolbar";
+        applyToolbarAttributes(this.root, { orientation, background, borderTop, borderBottom, disabled });
         this.root.dataset.rovingHost = "";
-        this.root.dataset.orientation = orientation;
-        this.root.dataset.direction = orientation === "horizontal" ? "row" : "column";
-        this.setPresence(this.root.dataset, "bg", background);
-        this.setPresence(this.root.dataset, "borderTop", borderTop);
-        this.setPresence(this.root.dataset, "borderBottom", borderBottom);
-        this.setPresence(this.root.dataset, "disabled", disabled);
-        if (disabled) this.root.setAttribute("aria-disabled", "true");
-        else this.root.removeAttribute("aria-disabled");
 
         // Toolbar's two callbacks are intentionally not residual listeners:
         // roving logic runs first, then each caller callback runs once.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
-    }
-
-    private setPresence(dataset: DOMStringMap, key: string, value: unknown): void {
-        if (value === undefined || value === false) delete dataset[key];
-        else dataset[key] = String(value);
     }
 
     private collectStops(): HTMLElement[] {
