@@ -881,3 +881,13 @@ is accepted.
   rather than only fixing it: the editors split three ways by which chrome wraps them (14 `TextChrome`
   · 6 `PageToolbar` · the rest bare), and the three pilots are now one per shape instead of three of a
   kind.
+- **Defect found in visual testing (US-1043): deleting `loader.config({ monaco })` broke every
+  remaining `@monaco-editor/react` consumer.** Symptom: any Monaco-backed editor stuck at "Loading…"
+  with `ENOENT … https:\cdn.jsdelivr.net\npm\monaco-editor@0.55.1\…\editor.main.js` in the console —
+  without the config, the loader falls back to fetching Monaco from its CDN default, which Electron
+  resolves as a local file path. The US-1043 rationale ("it existed only to hand the React wrapper the
+  instance") named exactly the reason it had to stay: 11 React wrapper call sites remain. Restored in
+  `configure-monaco.ts` with a comment stating the ENOENT failure mode; the config can only be deleted
+  in the epic that removes the *last* `@monaco-editor/react` importer. Lesson: the compare editor's own
+  live verification passed because the vanilla host doesn't go through the loader — the breakage was in
+  the editors the task *didn't* touch, and none was opened during verification.

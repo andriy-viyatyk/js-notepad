@@ -1,4 +1,5 @@
 import * as monaco from "monaco-editor";
+import { loader } from "@monaco-editor/react";
 
 import { getThemeById } from "../../theme/themes";
 import { themeState } from "../../theme/theme-state";
@@ -9,6 +10,12 @@ import { defineMermaidLanguage } from "./monaco-languages/mermaid";
 import { defineJsonlLanguage } from "./monaco-languages/jsonl";
 import { defineLogLanguage } from "./monaco-languages/log";
 import { loadLibraryIntelliSense } from "./library-intellisense";
+
+// Point the React wrapper at the bundled Monaco instance. Without this the
+// loader falls back to fetching Monaco from its CDN default, which Electron
+// resolves as a local file path and fails with ENOENT. Required as long as
+// any @monaco-editor/react consumer remains (11 as of EPIC-059).
+loader.config({ monaco });
 
 type Monaco = typeof monaco;
 let monacoInstance: Monaco | null = null;
