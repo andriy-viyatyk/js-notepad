@@ -401,8 +401,34 @@ the pilot does not depend on the new primitive:
 
 ## Testing owed
 
-*(Empty at open. Every live verification, and every item deliberately **not** verified live, is
-recorded here as tasks close — per the discipline established in EPIC-060 and EPIC-061.)*
+*(Every live verification, and every item deliberately **not** verified live, is recorded here as
+tasks close — per the discipline established in EPIC-060 and EPIC-061.)*
+
+### Owed — US-1062, blocked on a restart
+
+**Nothing in US-1062 has been verified live.** `npm run typecheck`, `npm run lint` and
+`npm run build-prod` all pass, but the running Persephone instance is a production build without
+these changes, `main-setup.ts:151` enforces a single-instance lock so a dev instance cannot run
+beside it, and the live instance held a private browsing session in active use. Closing it was not
+authorized work, so the pass is deferred rather than skipped.
+
+The three items that must be checked, in this order — the first is the one that cannot be
+reasoned about:
+
+1. **Favicons appear without interaction** (Concern 1). Open a link file with web hostnames
+   (`C:\data\js-notepad-notes	emp	est.link.json` has 17 links, mostly `youtube.com`) on a
+   **cold** favicon cache and confirm icons resolve *without* touching the list. This is the
+   §6.1 masked-defect check and the whole reason the concern was raised: the React version rode on
+   an incidental re-render, and the vanilla path repaints per hostname. Verify the row-scoped path
+   specifically — that a resolving favicon repaints its own rows and not the whole list.
+2. **Scroll round trip preserves cell contents** (E4-7). Scroll past the render window and back,
+   and confirm no row shows a previous occupant's link — the coordinate-vs-identity trap.
+3. **Selection, context menu, drag and the pin icon** still behave, the pin icon in particular
+   since E4-10 changed its producer contract.
+
+Also unverified live, and named as such: the five remaining `LinksList` consumers
+(`CategoryViewImpl`, `CategoryEditor`, `LinkItemList`, and the two link-editor panels) compile
+against the new `GridModelCapability` boundary but none has been exercised.
 
 ---
 

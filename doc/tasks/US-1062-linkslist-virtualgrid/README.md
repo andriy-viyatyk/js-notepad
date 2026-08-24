@@ -1,6 +1,6 @@
 # US-1062 — Convert `LinksList` to `VirtualGridView`
 
-Epic: [EPIC-062 — De-React Epic E4](../../epics/EPIC-062.md)  
+Epic: [EPIC-062 — De-React Epic E4](../../epics/EPIC-062.md)
 Status: investigation and implementation plan only; no implementation is in scope.
 
 ## Goal

@@ -39,5 +39,6 @@ export type {
     RenderSize,
     RenderSizeOptional,
     RerenderInfo,
+    GridModelCapability,
     RowAlign,
 } from "./types";

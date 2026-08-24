@@ -1,7 +1,7 @@
 import React from "react";
 import { showAppPopupMenu } from "../../ui/dialogs";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
-import type { RenderGridModel } from "../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../uikit/VirtualGrid";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
@@ -87,7 +87,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private viewModeButton: IconButtonView | undefined;
     private spacerView: SpacerView | undefined;
     private bridge: MountedReactRoot | undefined;
-    private gridModel: RenderGridModel | null = null;
+    private gridModel: GridModelCapability | null = null;
     private pendingGridRepaint = false;
     private toolbarTarget: HTMLElement | null = null;
     private searchField: HTMLInputElement | undefined;
@@ -374,7 +374,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.lastProjection = undefined;
     }
 
-    private readonly onGridModel = (model: RenderGridModel | null): void => {
+    private readonly onGridModel = (model: GridModelCapability | null): void => {
         if (this.inert) return;
         this.gridModel = model;
         if (model) this.flushPendingGridRepaintSoon();

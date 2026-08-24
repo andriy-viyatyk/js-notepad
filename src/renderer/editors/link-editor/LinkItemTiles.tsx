@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { RenderGridModel } from "../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../uikit/VirtualGrid";
 import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, PinIcon, RenameIcon } from "../../theme/icons";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
@@ -23,7 +23,7 @@ interface LinkItemTilesProps {
 }
 
 export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLinkIds }: LinkItemTilesProps) {
-    const gridModelRef = useRef<RenderGridModel | null>(null);
+    const gridModelRef = useRef<GridModelCapability | null>(null);
 
     useEffect(() => {
         model.setGridModel(gridModelRef.current);
@@ -34,7 +34,7 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
         gridModelRef.current?.update({ all: true });
     }, [selectedLinkId]);
 
-    const handleGridModel = useCallback((gm: RenderGridModel | null) => {
+    const handleGridModel = useCallback((gm: GridModelCapability | null) => {
         gridModelRef.current = gm;
     }, []);
 

@@ -41,7 +41,7 @@ import {
 import { getTraitDropAction } from "./drop-dispatch";
 import { DragEnterCounter } from "../../uikit/shared/drag-enter-counter";
 import { sameHref, sameHrefs } from "./href-utils";
-import type { RenderGridModel } from "../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../uikit/VirtualGrid";
 
 // =============================================================================
 // Types
@@ -67,7 +67,7 @@ export interface CategoryItemsRendererProps {
     onEdit?: (item: ITreeProviderItem) => void;
     onDelete?: (item: ITreeProviderItem, skipConfirm: boolean) => void;
     onContextMenu: (e: React.MouseEvent, item: ITreeProviderItem) => void;
-    onGridModel: (model: RenderGridModel | null) => void;
+    onGridModel: (model: GridModelCapability | null) => void;
     onItemDragEnter?: (item: ITreeProviderItem, e: React.DragEvent) => void;
     onItemDragOver?: (item: ITreeProviderItem, e: React.DragEvent) => void;
     onItemDragLeave?: (item: ITreeProviderItem, e: React.DragEvent) => void;

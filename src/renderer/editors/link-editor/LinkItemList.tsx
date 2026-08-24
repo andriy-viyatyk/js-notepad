@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
-import { RenderGridModel } from "../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../uikit/VirtualGrid";
 import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, PinIcon, RenameIcon } from "../../theme/icons";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
@@ -23,7 +23,7 @@ interface LinkItemListProps {
 }
 
 export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds, searchText }: LinkItemListProps) {
-    const gridModelRef = useRef<RenderGridModel | null>(null);
+    const gridModelRef = useRef<GridModelCapability | null>(null);
 
     const allTags = useSyncExternalStore(
         (cb) => model.state.subscribe(cb),
@@ -48,7 +48,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds, sear
         gridModelRef.current?.update({ all: true });
     }, [links, selectedLinkId]);
 
-    const handleGridModel = useCallback((gm: RenderGridModel | null) => {
+    const handleGridModel = useCallback((gm: GridModelCapability | null) => {
         gridModelRef.current = gm;
     }, []);
 
@@ -139,7 +139,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds, sear
     }, [model]);
 
     const getAdditionalIcon = useCallback((link: ILink) => {
-        return pinnedLinkIds.has(link.id) ? <PinFilledIcon width={16} height={16} /> : null;
+        return pinnedLinkIds.has(link.id) ? "pin-filled" : undefined;
     }, [pinnedLinkIds]);
 
     return (

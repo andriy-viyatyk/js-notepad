@@ -4,7 +4,7 @@ import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHead
 import type { ILink } from "../../../api/types/io.tree";
 import { LinkTagsPanel } from "./LinkTagsPanel";
 import { LinksList } from "../LinksList";
-import { RenderGridModel } from "../../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../../uikit/VirtualGrid";
 import { Panel, Splitter } from "../../../uikit";
 import { LinkEditor } from "../LinkEditor";
 
@@ -18,7 +18,7 @@ interface LinkTagsNavigationPanelProps {
 
 function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
     const rootRef = useRef<HTMLDivElement>(null);
-    const gridRef = useRef<RenderGridModel>(null);
+    const gridRef = useRef<GridModelCapability>(null);
     const [bottomHeight, setBottomHeight] = useState<number | undefined>(undefined);
 
     const selectedTag = useSyncExternalStore(

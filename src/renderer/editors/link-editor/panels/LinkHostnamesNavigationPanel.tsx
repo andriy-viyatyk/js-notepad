@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { ILink } from "../../../api/types/io.tree";
 import { LinkHostnamesPanel } from "./LinkHostnamesPanel";
 import { LinksList } from "../LinksList";
-import { RenderGridModel } from "../../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../../uikit/VirtualGrid";
 import { Panel, Splitter } from "../../../uikit";
 import { LinkEditor } from "../LinkEditor";
 
@@ -18,7 +18,7 @@ interface LinkHostnamesNavigationPanelProps {
 
 export function LinkHostnamesNavigationPanel({ editor }: LinkHostnamesNavigationPanelProps) {
     const rootRef = useRef<HTMLDivElement>(null);
-    const gridRef = useRef<RenderGridModel>(null);
+    const gridRef = useRef<GridModelCapability>(null);
     const [bottomHeight, setBottomHeight] = useState<number | undefined>(undefined);
 
     const selectedHostname = useSyncExternalStore(

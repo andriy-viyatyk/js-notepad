@@ -231,8 +231,8 @@ Concern 5 defect recorded in EPIC-062 (`EPIC-062.md:300-305`).
 ### 4. Make measurement recycling-safe
 
 Create one shared `ResizeObserver` in `VirtualFlexGridView`. The observer callback iterates its
-entries, obtains `entry.target`, looks up the current row in a `WeakMap<HTMLElement, CellRecord>`
-(owned by the measurement layer), reads `target.clientHeight`, and calls
+entries, obtains `entry.target`, looks up the current row in the measurement layer's
+`WeakMap<HTMLElement, number>`, reads `target.clientHeight`, and calls
 `measurement.setRowHeight(currentRow, height)`. There is no observer closure containing a row index.
 
 On every renderer admission, including a dirty-coordinate update and a pooled-element admission,

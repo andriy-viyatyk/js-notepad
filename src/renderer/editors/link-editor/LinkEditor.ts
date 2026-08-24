@@ -8,7 +8,7 @@ import { ui } from "../../api/ui";
 import { debounce, errMessage } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { getHostname } from "../../components/icons/favicon-cache";
-import type { RenderGridModel } from "../../uikit/RenderGrid";
+import type { GridModelCapability } from "../../uikit/VirtualGrid";
 import type { ILink } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu/types";
 import type { ILinkData } from "../../../shared/link-data";
@@ -108,7 +108,7 @@ export class LinkEditor
     readonly selectionState = new TOneState<NavigationState>({ selectedHref: null });
 
     // View refs (set by view; not on state):
-    gridModel: RenderGridModel | null = null;
+    gridModel: GridModelCapability | null = null;
     containerElement: HTMLElement | null = null;
 
     // Optional callback fields (LK9 — duck-typed today, preserved on the class):
@@ -368,7 +368,7 @@ export class LinkEditor
 
     // ── Grid model ref ──────────────────────────────────────────────────
 
-    setGridModel = (model: RenderGridModel | null): void => {
+    setGridModel = (model: GridModelCapability | null): void => {
         this.gridModel = model;
     };
 

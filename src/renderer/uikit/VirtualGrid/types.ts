@@ -78,6 +78,12 @@ export interface RerenderInfo {
     force?: boolean;
 }
 
+/** The model surface shared by the React and vanilla grid engines. */
+export interface GridModelCapability {
+    update(rerender?: RerenderInfo): void;
+    scrollToRow(row: number, rowAlign?: RowAlign): Promise<void>;
+}
+
 export interface RenderedRange {
     visible: RenderRect;
     rendered: RenderRect;
