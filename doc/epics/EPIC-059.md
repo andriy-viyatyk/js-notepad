@@ -900,3 +900,16 @@ is accepted.
   Lesson: the earlier live structure check verified *presence* (one `.monaco-diff-editor`, labels,
   exit button) but never element *geometry* — a `offsetWidth > 0` assertion would have caught both
   the collapse and nothing else. Verified fixed live over MCP (screenshot: full side-by-side diff).
+- **Defect found in visual testing (US-1046, class-wide): the `hidden` attribute is inert on every
+  UIKit root.** Symptom: the mermaid overlay spinner stayed on screen after a successful render (and
+  a second spinner showed during it). Cause: every UIKit component CSS sets `display` on its root
+  (`.panel-root { display: flex }`, etc.), and any author display rule beats the UA's `[hidden]`
+  rule — so all ~20 `.hidden =` toggles in converted vanilla views were silently doing nothing:
+  mermaid's error/overlay panels, the image toolbar's Save button, the toolset editor's fields, the
+  Tor info dialog. `PinnedRailView` had already hit this and patched it locally
+  (`PinnedRail.css:8`). Fixed at the primitive: each of the six UIKit CSS files that sets a root
+  `display` (Panel, Toolbar, Text, IconButton, Button, Spinner) now ends with a
+  `<root>[hidden] { display: none; }` counter-rule. Verified live over MCP: both mermaid panels
+  compute `display: none` and the rendered diagram shows no spinner. Lesson for later conversion
+  epics: `.hidden =` is only safe on elements without an author display rule — and now on UIKit
+  roots, which carry the counter-rule.

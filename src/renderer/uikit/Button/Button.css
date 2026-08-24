@@ -74,3 +74,9 @@
     [data-type="button"][data-block] { display: flex; width: 100%; }
     [data-type="button"] svg { width: var(--size-icon-md, 16px); height: var(--size-icon-md, 16px); }
 }
+
+/* The HTML hidden attribute loses to the author display rule above (UA [hidden]
+   has lower precedence), so vanilla views toggling .hidden need this counter-rule. */
+@layer uikit {
+    [data-type="button"][hidden] { display: none; }
+}

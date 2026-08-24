@@ -67,3 +67,9 @@
         pointer-events: none;
     }
 }
+
+/* The HTML hidden attribute loses to the author display rule above (UA [hidden]
+   has lower precedence), so vanilla views toggling .hidden need this counter-rule. */
+@layer uikit {
+    [data-type="icon-button"][hidden] { display: none; }
+}

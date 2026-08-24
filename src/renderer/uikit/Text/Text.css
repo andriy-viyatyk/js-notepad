@@ -47,3 +47,9 @@
     [data-type="text"][data-align="center"] { text-align: center; display: block; }
     [data-type="text"][data-align="right"] { text-align: right; display: block; }
 }
+
+/* The HTML hidden attribute loses to the author display rule above (UA [hidden]
+   has lower precedence), so vanilla views toggling .hidden need this counter-rule. */
+@layer uikit {
+    [data-type="text"][hidden] { display: none; }
+}
