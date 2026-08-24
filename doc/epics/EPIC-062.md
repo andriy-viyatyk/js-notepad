@@ -181,6 +181,41 @@ evidence about a cause until the cause has been located in source. The cause is 
 **Secondary numbers, both structural:** `RenderGrid` importers 12 → 0; React roots inside
 `CategoryViewImpl.ts` 1 → 0.
 
+### The baseline, measured on the live React build
+
+*Taken 2026-08-24, before US-1064, on the dev build at commit `7d6787d6`, fixture
+`C:\data\js-notepad-notes\temp\test.note.json`.*
+
+Procedure — the one available given that MCP `execute_script` cannot reach imported modules and so
+cannot patch `monaco.editor.create` (see the verification notes): stamp every `.monaco-editor`
+element in the document with a `data-probe` attribute, then scroll the notebook's
+`.scroll-container` from 0 to 4800 in 400px steps and back to 0, re-stamping after each step with a
+300ms settle. **An unstamped editor is a construction**, because a recycled or preserved editor
+keeps the attribute it was stamped with.
+
+Geometry: scrollHeight 6089, viewport 962, three variable-height cells live at a time (147 / 486 /
+482 px — the flex case, not a fixed grid).
+
+| Result | Value |
+|---|---|
+| Constructions over one round trip | **8** |
+| Live editors at any moment | 1–3 |
+| Constructions attributable to the initial paint | 1 |
+| **Churn — constructions after the first** | **7** |
+
+Two passes are worth naming individually, because they are the defect rather than a proxy for it:
+
+- **`scrollTop 0 → 400` constructed a new editor** while the live count stayed at 1. A 400px scroll
+  — less than half a viewport, the same note still on screen — rebuilt it.
+- **The return to 0 constructed a new editor** (`back0:live1:new1`). The row-0 note was built at the
+  start of the sweep and built again on arriving back at the same coordinate. That is
+  `renderInfo.ts:314` keying by row index, caught in the act.
+
+So the target is now stated against a measured number rather than an inherited claim: **0 after the
+initial paint**, i.e. `8 → 1`. A post-conversion sweep that reports any `new` count on a pass other
+than the first fails Rule 4, and the return-to-0 pass is the sharpest single check — it is the one
+that cannot be explained by a note simply being reached for the first time.
+
 ---
 
 ## E4-7 — The cell-reuse contract for owned child views
@@ -407,7 +442,7 @@ tasks close — per the discipline established in EPIC-060 and EPIC-061.)*
 ### US-1062 — verified live, 2026-08-24
 
 Run under `npm start` after the user closed the production instance. Fixtures:
-`C:\data\js-notepad-notes	emp	est.link.json` (17 real links, `www.youtube.com`), plus two
+`C:\data\js-notepad-notes\temp\test.link.json` (17 real links, `www.youtube.com`), plus two
 generated ones — 300 rows for scrolling and 60 rows with two pinned ids.
 
 | Check | Result |
