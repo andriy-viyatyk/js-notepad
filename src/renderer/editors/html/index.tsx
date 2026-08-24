@@ -1,8 +1,9 @@
 import { TComponentState } from "../../core/state/state";
 import { HtmlEditor, defaultHtmlEditorState } from "./HtmlEditor";
-import { HtmlBody } from "./HtmlBody";
+import { HtmlBodyView } from "./HtmlBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton, WithMenu } from "../../uikit";
+import { mountVanilla } from "../../uikit/shared/mount";
 import type { MenuItem } from "../../uikit";
 import { CopyIcon, SaveIcon, MoreVertIcon, OpenFileIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
@@ -58,20 +59,16 @@ function HtmlEditorView({ model }: { model: EditorModel }) {
     const html = model as HtmlEditor;
     return (
         <TextChrome model={model} rightToolbarContributions={<HtmlToolbarBits model={html} />}>
-            <HtmlBody model={html} />
+            {mountVanilla(HtmlBodyView, { model: html })}
         </TextChrome>
     );
-}
-
-function HtmlEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
-    return <HtmlBody model={model as HtmlEditor} editorConfig={editorConfig} />;
 }
 
 export const htmlModule: EditorModule = {
     createEditor: () =>
         new HtmlEditor(new TComponentState({ ...defaultHtmlEditorState })),
     Component: HtmlEditorView,
-    Body: HtmlEmbeddedBody,
+    BodyView: HtmlBodyView,
 };
 
 export { HtmlEditor, defaultHtmlEditorState };

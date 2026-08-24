@@ -239,13 +239,16 @@ and reopened per sample — which did not hold across samples in practice.
 turned out to measure Monaco instead of us (EPIC-059, "Metric revised"). What US-1048 removes is
 countable exactly:
 
-**React elements created per render of the fixture: 508 → 0.**
+**React elements created per render of the fixture: 254 → 0.**
 
 `hast-util-to-jsx-runtime` creates one React element per HAST node, so the count is the rendered
-element count: **254 elements per `.markdown-block`**, and md-view renders the block **twice** (see
-below), for 508. After US-1048 the walker writes DOM nodes directly and creates none. The DOM output
-is unchanged by design — both implementations must build the same tree — so this is precisely the
-reconciliation layer, with no error bars.
+element count: **254 elements per `.markdown-block`**. After US-1048 the walker writes DOM nodes
+directly and creates none. The DOM output is unchanged by design — both implementations must build the
+same tree — so this is precisely the reconciliation layer, with no error bars.
+
+The count is *per live render*, and one open document can occupy more than one live render — see the
+slot note below. Multiply if you want a whole-app figure; the per-render number is the one that
+isolates the renderer.
 
 The secondary numbers are counts too: React roots per open `grid`/`markdown`/`svg`/`html` editor
 (1 → 1, unchanged by design per E2-2), and React contracts removed from `editorRegistry.ts`
@@ -256,24 +259,28 @@ The secondary numbers are counts too: React roots per open `grid`/`markdown`/`sv
 | Quantity | Value |
 |---|---:|
 | Elements in one rendered `.markdown-block` (fixture) | 254 |
-| `.markdown-block` renders per open markdown page | 2 |
-| React elements created per render | **508** |
+| React elements created per render | **254** |
 | `MutationObserver` mutations inside `.markdown-block` during mount | 0 *(instrument blind, see above)* |
 | DOM-API calls during the fixture's page open | 1,100 |
 
-**Incidental finding, for US-1052 to investigate — md-view renders the markdown block twice.** Every
-open markdown page has exactly two `.markdown-block` subtrees with identical element counts; for the
-active fixture both were laid out, at 1,362px and 799px. Verified across three documents
-(`EPIC-060.md`, the fixture, and a one-line control), so it is structural rather than a leaked node.
-If one of the two is redundant, that is a larger win than the renderer swap and it belongs in
-US-1052's investigation. **Do not assume it is a defect** — a second copy may be deliberate (a
-measurement pass, a print/export surface, or a grouped-page peer).
+**Corrected 2026-08-24 — the "renders twice" reading was wrong, and the correction is instructive.**
+The first pass observed two `.markdown-block` subtrees with identical element counts for one document
+and recorded a ×2 multiplier as a property of md-view. It is not: the duplication comes from
+**page-manager slots** — a document can be held by a retained slot and by a grouped-pane peer at the
+same time — so the pair was two slots showing one document, which is also why the two copies had
+different widths (1,362px and 799px: two panes of a grouped page). Re-checked afterwards with the
+group closed: still two subtrees, both the fixture, both hidden, both 254 elements.
+
+So the renderer renders once per slot, and the honest headline is the per-render count. The lesson is
+the same one the `MutationObserver` finding taught, one level up: **an observation about a shared host
+is not a finding about the component inside it.** Both mistakes came from measuring the page instead
+of the renderer.
 
 ## Linked Tasks
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-1051 | Convert the `svg` and `html` bodies to `BodyView` — the two trivial twins; `MermaidBodyView` is the template | Planned |
+| US-1051 | Convert the `svg` and `html` bodies to `BodyView` — the two trivial twins; `MermaidBodyView` is the template | **Done** |
 | US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned (plan written in E1, inherited) |
 | US-1052 | Convert the `markdown` body: `MarkdownBody`, `CodeBlock`, `MarkdownImage` | Planned |
 | US-1053 | Convert the `grid` body: `GridBody`, `ColumnsOptions`, `CsvOptions` | Planned |
@@ -328,6 +335,32 @@ converted host rather than only its presence, and open at least one editor the t
   comments or types — so E1's figure holds.
 - The `highlight` React-form ledger entry also holds unchanged: `GraphBody`, `LinksList`,
   `LinkCategoryPanel`, `ExpandedNoteView`, `NoteItemView` — none of them in this epic's scope.
+**US-1051 — the seam held, and the review round earned its keep.** Both bodies converted with no
+change to their `index.tsx` chrome shells (E2-2) and no registry change (E2-3): `editorRegistry`
+synthesizes `Body` from `BodyView` for both, verified live, so notebook's per-note dispatch keeps
+working untouched. Verified on a live page rather than structurally — `svg-root` 1530×962 with the
+image at its natural 240×140, the HTML iframe 1530×962 with `sandbox` exactly `allow-scripts`, and
+both confirmed by screenshot.
+
+Three things worth carrying into US-1052/1053:
+
+1. **`sandbox` must be set on the detached root, not in `onMount`.** `mount.tsx:34,37` appends the view
+   root to the live DOM *before* calling `mount()`, so an iframe that gets `srcdoc` before `sandbox`
+   inside `onMount` would navigate once unsandboxed. React never had this problem because it sets both
+   attributes on a detached element. Any converted view whose root has security- or
+   layout-critical attributes must set them in the constructor.
+2. **`ComponentQueue.subscribe` drains synchronously on subscribe** (`ComponentQueue.ts:33-35`) — it is
+   not change-only like a state subscription. So a queue subscription must come *after* the children
+   its handler touches are mounted. Ordering in `onMount` is: mount children → bind state → subscribe
+   queues.
+3. **A write that looks idempotent may not be.** The first implementation assigned `iframe.srcdoc` on
+   every `onUpdate`; assigning `srcdoc` *navigates*, and `onUpdate` fires on every shell re-render, so
+   the preview would have reloaded (losing scroll position, re-running scripts) on updates that never
+   touched the content. React only wrote the attribute when the value changed. `HtmlBodyView` now
+   guards on the last applied value. **When translating React to a vanilla view, every DOM write
+   inherits React's "only if changed" for free and loses it on conversion** — the ones that hurt are
+   those with side effects beyond their value.
+
 - `svg` and `html` are both thin bodies over a single host element with no React state: `SvgBody`
   renders the already-vanilla `ImageViewport` from a recomputed data URL and hands its model up via
   `imageModelSetter` — the exact shape `MermaidBodyView` converted in E1 — while `HtmlBody` is a

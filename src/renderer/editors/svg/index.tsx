@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { TComponentState } from "../../core/state/state";
 import { SvgEditor, defaultSvgEditorState } from "./SvgEditor";
-import { SvgBody } from "./SvgBody";
+import { SvgBodyView } from "./SvgBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
+import { mountVanilla } from "../../uikit/shared/mount";
 import { CopyIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
@@ -68,25 +69,21 @@ function SvgEditorView({ model }: { model: EditorModel }) {
             model={model}
             rightToolbarContributions={<SvgToolbarBits model={svg} imageModel={imageModel} />}
         >
-            <SvgBody
-                model={svg}
-                imageModelSetter={(r) => {
+            {mountVanilla(SvgBodyView, {
+                model: svg,
+                imageModelSetter: (r) => {
                     imageModel.current = r;
-                }}
-            />
+                },
+            })}
         </TextChrome>
     );
-}
-
-function SvgEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
-    return <SvgBody model={model as SvgEditor} editorConfig={editorConfig} imageModelSetter={() => {}} />;
 }
 
 export const svgModule: EditorModule = {
     createEditor: () =>
         new SvgEditor(new TComponentState({ ...defaultSvgEditorState })),
     Component: SvgEditorView,
-    Body: SvgEmbeddedBody,
+    BodyView: SvgBodyView,
 };
 
 export { SvgEditor, defaultSvgEditorState };
