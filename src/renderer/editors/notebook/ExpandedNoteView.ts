@@ -182,6 +182,11 @@ export class ExpandedNoteView extends VanillaView<ExpandedNoteViewProps> {
         this.sync();
     }
 
+    /** Save the note's Monaco view state before an owner disposes this overlay. */
+    public captureViewStateNow(): void {
+        this.activeEditor.captureViewStateNow();
+    }
+
     protected onDispose(): void {
         this.editModel.dispose();
     }

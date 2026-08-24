@@ -371,11 +371,26 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
     }
 
     private disposeExpandedView(): void {
-        this.expandedView?.dispose();
-        this.expandedView?.root.remove();
+        const view = this.expandedView;
+        // Clear the bookkeeping *before* tearing the view down, and contain anything the teardown
+        // throws. `VanillaView.dispose` rethrows the first cleanup error after finishing the rest,
+        // so a failure deep in a child used to skip `root.remove()` and these three assignments:
+        // the overlay stayed in the DOM with its editor already disposed, and `expandedNoteId` kept
+        // pointing at a note that could no longer be collapsed. A teardown must not be able to
+        // strand the state that says whether anything is torn down.
         this.expandedView = undefined;
         this.expandedTarget = null;
         this.expandedNoteId = undefined;
+        if (!view) return;
+
+        try {
+            view.captureViewStateNow();
+            view.dispose();
+        } catch (error) {
+            console.error("Notebook failed to dispose the expanded note cleanly", error);
+        } finally {
+            view.root.remove();
+        }
     }
 
     private errorPanel(message: string): HTMLDivElement {

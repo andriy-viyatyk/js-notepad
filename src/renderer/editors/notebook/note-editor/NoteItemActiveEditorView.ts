@@ -97,6 +97,21 @@ export class NoteItemActiveEditorView extends VanillaView<NoteItemActiveEditorVi
         });
     }
 
+    /**
+     * Save the Monaco view state while this view is still mounted.
+     *
+     * The capture inside `releaseActive` only works when the view is alive: on the disposal path
+     * `VanillaView.dispose` takes children first, so by `onDispose` the editor below is already
+     * gone and there is nothing to read. An owner that is about to tear this down — collapsing the
+     * expanded overlay — calls this first so the note keeps its cursor and scroll position.
+     */
+    public captureViewStateNow(): void {
+        const active = this.active;
+        if (active instanceof MiniTextEditorView) {
+            active.captureViewState(this.props.model.id);
+        }
+    }
+
     protected onDispose(): void {
         this.generation++;
         this.releaseActive();

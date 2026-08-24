@@ -78,6 +78,10 @@ export class MiniTextEditorView extends VanillaView<MiniTextEditorViewProps> {
     }
 
     public captureViewState(noteId: string): void {
+        // A capture can be reached on a teardown path, after the Monaco host below has already been
+        // disposed — `VanillaView.dispose` takes children before the owner's `onDispose`. There is
+        // nothing left to read then, and throwing would abort the rest of the caller's disposal.
+        if (!this.host.isReady) return;
         const state = this.host.getEditor().saveViewState();
         if (state) this.props.viewStates?.set(noteId, state);
     }

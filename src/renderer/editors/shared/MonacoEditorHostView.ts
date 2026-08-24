@@ -125,6 +125,14 @@ export class MonacoEditorHostView extends VanillaView<MonacoEditorHostProps> {
         return this.assertReady();
     }
 
+    /**
+     * Whether `getEditor()` would succeed. For callers on a teardown path, where the host may
+     * already be gone and a throw would abort the rest of someone's disposal.
+     */
+    public get isReady(): boolean {
+        return !this.hostDisposed && !!this.editor;
+    }
+
     protected onDispose(): void {
         if (this.hostDisposed) return;
         this.hostDisposed = true;
