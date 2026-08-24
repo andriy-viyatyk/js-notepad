@@ -404,31 +404,32 @@ the pilot does not depend on the new primitive:
 *(Every live verification, and every item deliberately **not** verified live, is recorded here as
 tasks close — per the discipline established in EPIC-060 and EPIC-061.)*
 
-### Owed — US-1062, blocked on a restart
+### US-1062 — verified live, 2026-08-24
 
-**Nothing in US-1062 has been verified live.** `npm run typecheck`, `npm run lint` and
-`npm run build-prod` all pass, but the running Persephone instance is a production build without
-these changes, `main-setup.ts:151` enforces a single-instance lock so a dev instance cannot run
-beside it, and the live instance held a private browsing session in active use. Closing it was not
-authorized work, so the pass is deferred rather than skipped.
+Run under `npm start` after the user closed the production instance. Fixtures:
+`C:\data\js-notepad-notes	emp	est.link.json` (17 real links, `www.youtube.com`), plus two
+generated ones — 300 rows for scrolling and 60 rows with two pinned ids.
 
-The three items that must be checked, in this order — the first is the one that cannot be
-reasoned about:
+| Check | Result |
+|---|---|
+| **Favicons appear untouched** (Concern 1) | **Pass.** Cold memory cache on a fresh start against a warm disk cache (`www.youtube.com.png`); 6 `<img>` resolved to `cache-miscavicons\www.youtube.com.png` with no interaction with the list. The masked defect does not occur. |
+| Geometry | Editor 1284×1024, links scope 1028×960, scroll content 7220px in a 960px viewport — virtualization live. |
+| **Cell identity through a scroll round trip** (E4-7) | **Pass.** Every rendered cell's inline `top` mapped to its own row: 41 ok / 0 mismatch at rest, 40/0 at the bottom, 41/0 on return. |
+| **Selection survives recycling** | **Pass**, and this is the strongest single result. Selecting row 5 gave exactly one `aria-selected="true"`; scrolled to the bottom **zero** rows claimed selection — no recycled cell inherited it — and on return exactly `ROW-0005` again. The re-point writes `aria-selected` back to `false`, which is the total-write policy behaving. |
+| Parent → child update path | **Pass.** Selection is owned by the React `LinkItemList` parent, so this also exercises React parent → `mountVanilla` face → `view.update` → row repaint. |
+| **Pin icon** (E4-10) | **Pass, and precisely.** With `pinnedLinks: ["id-0003","id-0009"]`, rows 0003 and 0009 rendered 4 SVGs and every other row exactly 3. Scrolled out: zero pins anywhere, zero leaks. Back at top: exactly those two again. The absence case matters as much as the presence one — it proves an absent icon is cleared on re-point. |
+| Context menu | **Partial.** The callback chain is verified: a synthetic `contextmenu` on `[data-name="link-row"]` reached `onContextMenu`, survived `ContextMenuEvent.fromNativeEvent`, and ran `model.selectLink` (selection moved to `ROW-0007`). The popup itself did **not** paint. Synthetic events are a known-unreliable driver here — the same reason synthetic `KeyboardEvent`s do not drive Monaco — and the `ContextMenuEvent` flow downstream of the callback is unchanged by this task. Not evidence of a defect; the popup remains unverified. |
 
-1. **Favicons appear without interaction** (Concern 1). Open a link file with web hostnames
-   (`C:\data\js-notepad-notes	emp	est.link.json` has 17 links, mostly `youtube.com`) on a
-   **cold** favicon cache and confirm icons resolve *without* touching the list. This is the
-   §6.1 masked-defect check and the whole reason the concern was raised: the React version rode on
-   an incidental re-render, and the vanilla path repaints per hostname. Verify the row-scoped path
-   specifically — that a resolving favicon repaints its own rows and not the whole list.
-2. **Scroll round trip preserves cell contents** (E4-7). Scroll past the render window and back,
-   and confirm no row shows a previous occupant's link — the coordinate-vs-identity trap.
-3. **Selection, context menu, drag and the pin icon** still behave, the pin icon in particular
-   since E4-10 changed its producer contract.
+**Not verified live, and named as such:** drag and drop (`onItemDragEnter/Over/Leave/Drop`) — the
+four remaining `LinksList` consumers other than `LinkItemList` (`CategoryViewImpl`,
+`CategoryEditor`, and the two link-editor panels) compile against the new `GridModelCapability`
+boundary but were not exercised; and the context-menu popup above.
 
-Also unverified live, and named as such: the five remaining `LinksList` consumers
-(`CategoryViewImpl`, `CategoryEditor`, `LinkItemList`, and the two link-editor panels) compile
-against the new `GridModelCapability` boundary but none has been exercised.
+### US-1063 — not verified live
+
+The story exists but was not opened. `VirtualFlexGridView` has no consumer until US-1064, so the
+height policy is unexercised. Its story cannot cover `preferMinHeightForNewRows` under a live log
+stream, nor Monaco-bearing notebook rows — both owed to US-1065 and US-1064 respectively.
 
 ---
 
