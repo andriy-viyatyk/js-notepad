@@ -568,6 +568,61 @@ Instrument the *mutation* next time, not only the property.
 
 ---
 
+## E4-15 — What React did implicitly has no compile-time equivalent, and `tsc` will not find it
+
+Six bugs in the notebook conversion survived a clean typecheck, a clean build, and a scroll and
+geometry battery that found nothing. Every one was live-only, and five share a single cause: React
+supplied a behaviour that direct DOM does not, and nothing in the type system marks its absence.
+They are recorded together because they are a **checklist for US-1065 and US-1066**, not a
+retrospective.
+
+| # | Lost behaviour | Symptom | Fix |
+|---|---|---|---|
+| 1 | An id owned by the component being deleted | `closest("#avg-container")` returned null, so the handler cancelled every wheel event and scrolled nothing — wheel dead except inside the iframe | Host supplies the scroller via `VirtualGridView.scrollElement`; a cell never names the scroller's markup |
+| 2 | `onFocus`/`onBlur` are delegated through the **bubbling** `focusin`/`focusout` | A note activated only by clicking the drag indicator (a plain child, so focus fell through to the root) and never by clicking its body, where focus lands on a descendant | Use the bubbling pair |
+| 3 | A focus transition the platform declines to announce | Clicking a sandboxed iframe makes it the host's `activeElement` but dispatches no focus event, so an HTML note never activated | Announce it from the existing `html:interact` message; `focus()` alone is a no-op when it is already the activeElement |
+| 4 | A React component contributing **no DOM** | A `VanillaView` must own a root, and the unstyled block wrapper broke the overlay's flex chain: Monaco and markdown at zero height, the grid at its 200px default, the iframe at its intrinsic 300x150 | `display: contents` on the wrapper |
+| 5 | Nothing — a disposal-order hazard direct DOM newly *creates* | `dispose` takes children before the owner's `onDispose`, so a state capture on the way out reached a disposed Monaco host and threw | Readiness probe, plus capture from the owner while still mounted |
+| 6 | Nothing — flex default | `min-height: auto` on the notebook panels overflowed the chrome by 7px | `minHeight: 0` |
+
+Four properties are worth carrying forward.
+
+**The type system cannot see any of this.** Items 1–4 are behaviour that existed in JSX and has no
+declaration site in a `VanillaView`. A green build says nothing about them. This is the concrete
+argument for exercising every interaction path per conversion, and it is why the structural
+acceptance criteria for US-1064 were all satisfied while the editor was substantially broken.
+
+**Item 5 generalises past this epic.** It is not a lost React behaviour but a new hazard: any
+converted view that captures state during teardown is reaching for a child that is already gone.
+Grep converted views for work inside `onDispose` that touches a child.
+
+**A teardown must not be able to strand the state that says whether anything is torn down.**
+`dispose` finishes its cleanups and *rethrows*, so one deep failure skipped the caller's
+`root.remove()` and its bookkeeping, leaving an overlay that could not be collapsed. Clear the
+bookkeeping first, then contain the teardown. This turned one throw into a wedged editor.
+
+**Before converting, read the React original for what it did without saying so** — `onFocus` /
+`onBlur`, components that render no DOM, and any wrapper sitting inside a flex chain. Checking
+after conversion costs a user bug report per instance; six of them, here.
+
+### Measurement traps met while verifying this
+
+Both cost a round and both produced a confident false negative:
+
+  * **A transitioned property read through `getComputedStyle` returns the interpolated value**, so
+    an inline change just made still reports the old one. The note indicator and dimmer are both
+    transitioned; read `element.style` for the authoritative value.
+  * **`focus()` behaves differently when the host window is unfocused**, which is the state during
+    an automated probe. A probe showed `focus()` emitting an event on an already-focused iframe;
+    under real use it is specified to emit nothing. The scenario that matters was never exercised.
+
+And one capability, contradicting what was recorded earlier in this epic: **synthetic mouse events
+do reach Monaco**, even though synthetic keystrokes do not. Clicking a `.view-line` moves the
+cursor, and `.cursors-layer .cursor`'s inline `top`/`left` is readable. That is enough to verify
+view-state save/restore, which was previously listed as unverifiable.
+
+---
+
 ## E4-8 — Task order
 
 Sequenced so the two risky conversions happen while the epic can still absorb a redesign, and so
@@ -743,6 +798,32 @@ overlay; kind switching through the toolbar; drag and drop. `ExpandedNoteView` a
 **Known unrelated:** the fixture's grid note raises `AVGridError: Unknown column "a"` from
 `av-grid.js` — its data columns are `gawe, aweg, er, agawe, drtj, o` and a persisted column `"a"`
 does not exist. Pre-existing fixture data, not touched by this task.
+
+### US-1064 — six user-reported interaction bugs, all fixed and verified, 2026-08-24
+
+The scroll and geometry work was finished and correct; the *interaction* surface was substantially
+broken and none of it showed up in a typecheck or a build. Causes and the general lesson are in
+E4-15. Verified live after each fix, on `C:\data\js-notepad-notes	emp	est.note.json`:
+
+| Fix | Evidence |
+|---|---|
+| Mouse wheel over a note | 35 wheel steps 0 → 5210 (full extent) and 28 back to 0, zero stalls, each event dispatched on the deepest embedded Monaco/grid of the edge cell; a focused note keeps its own wheel (not cancelled, scroller unmoved) |
+| Activation on focus | Four notes: focusing a descendant, including Monaco's textarea, turns the indicator blue and clears the dimmer 0.5 → 0; focus moving within a note stays active; focus leaving deactivates |
+| Activation from the HTML preview | User-confirmed. The iframe was already the host's `activeElement` while the note showed inactive — the platform had announced nothing |
+| Body sizing in the expanded overlay | All three broken kinds: iframe 815×932 (was 300×150), grids 815×932 / 815×925 (was 200px), Monaco bodies matching their panel exactly; the `display: contents` wrapper measures 0×0 |
+| Collapsing a Monaco note | Expand → collapse → re-expand repeats cleanly, overlay removed each time, no errors, body stays 789px |
+| Monaco view state across the round trip | Cursor placed at line 3 (42px/22px) returns at 42px/22px — the capture working, not merely not throwing |
+
+User confirmation after the last fix: "Now everything looks fine, no more issues."
+
+**Now covered that was previously listed as unverified:** the expanded overlay (`ExpandedNoteView`),
+Escape/button collapse, per-note Monaco view-state save and restore, and editing position surviving
+a teardown round trip.
+
+**Still not verified live:** category and tag autocomplete, title and comment editing, toolbar
+language and kind switching (`NoteItemToolbarView` still has no live coverage), search highlighting,
+script actions, and drag and drop. Typing into Monaco remains undrivable; synthetic *mouse* events
+do reach it (E4-15).
 
 ### US-1068 — build-verified only
 
