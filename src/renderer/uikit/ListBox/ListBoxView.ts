@@ -311,7 +311,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             record.view = undefined;
         }
         record.index = p.row;
-        applyCellStyle(wrapper, p.style);
+        applyCellStyle(wrapper, p.style, p.row, p.col, p.renderInfo.input.columnCount);
 
         const id = this.model.itemId(p.row);
         const kind: CellKind = item.section

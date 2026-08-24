@@ -53,9 +53,11 @@ export interface VirtualGridProps extends VirtualGridOptions {
      * `view.model` directly. Changes to this prop after mount are ignored.
      */
     onView?: (view: VirtualGridView | null) => void;
+    /** Called after a newly admitted cell is attached, when its content has a layout box. */
+    onCellAttached?: (element: HTMLElement) => void;
     /**
-     * Called after a rendered cell leaves the DOM and immediately before it enters the pool.
-     * This is a general pool-entry notification; consumers may use it for their own retained
+     * Called after a cell leaves the active render set and immediately before it enters the pool.
+     * The cell may remain attached to its region but hidden; consumers may use this for retained
      * element bookkeeping.
      */
     onCellReleased?: (element: HTMLElement) => void;
@@ -97,6 +99,17 @@ const INLINE_FLEX_REGIONS: ReadonlySet<RegionKey> = new Set<RegionKey>([
     "stickyBottomLeft",
     "stickyBottomRight",
 ]);
+const REGION_KEYS: readonly RegionKey[] = [
+    "cells",
+    "stickyTop",
+    "stickyBottom",
+    "stickyLeft",
+    "stickyRight",
+    "stickyTopLeft",
+    "stickyTopRight",
+    "stickyBottomLeft",
+    "stickyBottomRight",
+];
 
 export interface VirtualGridStats {
     paints: number;
@@ -123,9 +136,13 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
      * safe against the paint.
      */
     private attached: Record<RegionKey, Set<HTMLElement>> | undefined;
+    /** Every cell identity admitted by this view, including one stranded mid-frame. */
+    private cellElements = new Set<HTMLElement>();
+    /** Cells in the render info currently being painted. */
+    private desiredCells = new Set<HTMLElement>();
 
     private rafId?: number;
-    private paintScheduled = false;
+    private paintRequested = false;
     private inert = false;
 
     private lastInfo?: RenderInputPrepared;
@@ -171,6 +188,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
                 cancelAnimationFrame(this.rafId);
                 this.rafId = undefined;
             }
+            this.paintRequested = false;
         });
         this.own(() => this.model.dispose());
     }
@@ -254,6 +272,8 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         for (const key of Object.keys(this.attached) as RegionKey[]) {
             this.attached[key].clear();
         }
+        this.cellElements.clear();
+        this.desiredCells.clear();
         this.lastInfo = undefined;
 
         this.props.onView?.(null);
@@ -330,12 +350,17 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
      * calls it from a `ResizeObserver` callback.
      */
     private schedulePaint = (): void => {
-        if (this.inert || this.paintScheduled) return;
-        this.paintScheduled = true;
+        if (this.inert) return;
+        this.paintRequested = true;
+        if (this.rafId !== undefined) return;
         this.rafId = requestAnimationFrame(() => {
             this.rafId = undefined;
-            this.paintScheduled = false;
-            this.paint();
+            this.paintRequested = false;
+            try {
+                this.paint();
+            } finally {
+                if (this.paintRequested) this.schedulePaint();
+            }
         });
     };
 
@@ -351,12 +376,13 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         if (this.rafId !== undefined) {
             cancelAnimationFrame(this.rafId);
             this.rafId = undefined;
-            this.paintScheduled = false;
+            this.paintRequested = false;
         }
 
         const info = this.model.renderInfo.current;
         const scrollBarWidth = this.model.scrollBarWidth;
         const scrollBarHeight = this.model.scrollBarHeight;
+        this.desiredCells = this.collectCells(info);
 
         // The model hands back the identical object when nothing changed. Scrollbar thickness is
         // checked too, because it can appear after a paint without the geometry itself moving.
@@ -368,6 +394,8 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
             // Nothing to draw, but the container may have just become scrollable — and a queued
             // scroll must not wait for a geometry change that may never come.
             this.model.flushPendingScroll();
+            this.cleanupOrphans();
+            this.assertScrollPosition();
             return;
         }
 
@@ -389,24 +417,27 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         this.syncRegion("stickyTopRight", info.stickyTopRight);
         this.syncRegion("stickyBottomLeft", info.stickyBottomLeft);
         this.syncRegion("stickyBottomRight", info.stickyBottomRight);
-
-        // Hiding the container resets its scrollTop to 0 while the model keeps the real offset;
-        // put it back once the content is there to scroll. Only then — a container whose position
-        // merely differs from the model's is a container the user has just scrolled, whose event
-        // has not been delivered yet, and writing our offset back there undoes the scroll. See
-        // VirtualGridModel.restoreScroll.
-        if (this.model.scrollNeedsRestore) {
-            this.model.restoreScroll();
-        }
+        this.cleanupOrphans();
 
         // A `scrollToRow` issued before the grid could be measured runs here, where the container
         // is known to be live — see VirtualGridModel.flushPendingScroll.
         this.model.flushPendingScroll();
 
         this.settleScrollBar(info);
+        this.assertScrollPosition();
 
         this._stats.lastPaintMs = performance.now() - startedAt;
         this._stats.totalPaintMs += this._stats.lastPaintMs;
+    }
+
+    /** Keep the DOM position aligned with the offset used to compute this paint. */
+    private assertScrollPosition(): void {
+        const container = this.container;
+        if (!container) return;
+        const { x, y } = this.model.offset;
+        if (container.scrollLeft === x && container.scrollTop === y) return;
+        container.scrollLeft = x;
+        container.scrollTop = y;
     }
 
     /**
@@ -457,6 +488,36 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         this.pool.resetStats();
     }
 
+    private collectCells(info: RenderInputPrepared): Set<HTMLElement> {
+        const cells = new Set<HTMLElement>();
+        for (const key of REGION_KEYS) {
+            for (const cell of info[key]) {
+                if (cell) cells.add(cell);
+            }
+        }
+        return cells;
+    }
+
+    /** Hide any admitted cell that a discarded render calculation left in a region. */
+    private cleanupOrphans(): void {
+        const regions = this.regions;
+        if (!regions) return;
+        const regionParents = new Set<HTMLElement>(REGION_KEYS.map((key) => regions[key]));
+
+        for (const element of this.cellElements) {
+            const parent = element.parentElement;
+            if (
+                !parent ||
+                !regionParents.has(parent) ||
+                this.desiredCells.has(element) ||
+                this.pool.has(element)
+            ) {
+                continue;
+            }
+            this.releaseCell(parent, element);
+        }
+    }
+
     /**
      * Reconcile one region's children against the cells the geometry produced.
      *
@@ -469,26 +530,47 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
 
         const next = new Set<HTMLElement>();
         for (const cell of cells) {
-            if (cell) next.add(cell);
+            if (cell) {
+                next.add(cell);
+                this.cellElements.add(cell);
+            }
         }
 
         for (const el of prev) {
-            if (!next.has(el)) {
-                parent.removeChild(el);
-                this.props.onCellReleased?.(el);
-                this.pool.release(el);
-                this._stats.cellsRemoved++;
+            if (!next.has(el) && !this.desiredCells.has(el)) {
+                this.releaseCell(parent, el);
             }
         }
 
         for (const el of next) {
             if (!prev.has(el)) {
                 parent.append(el);
+                this.props.onCellAttached?.(el);
                 this._stats.cellsAppended++;
             }
         }
 
         this.attached[key] = next;
+    }
+
+    /** Retire a cell through the single hide, marker, observer, and pool path. */
+    private releaseCell(parent: HTMLElement, element: HTMLElement): void {
+        if (this.pool.has(element)) return;
+
+        // Keep frame-bearing cells in the document: detaching an iframe can reset the ancestor
+        // scroller and re-admission would reload the nested document. Hidden pooled cells
+        // contribute no layout, and applyCellStyle restores display on use.
+        setStyle(element, "display", "none");
+        element.removeAttribute("data-row");
+        element.removeAttribute("data-col");
+        this.props.onCellReleased?.(element);
+        if (!this.pool.release(element)) {
+            // The pool is bounded; do not let overflow become an unbounded hidden DOM
+            // collection. This is the only eviction path that detaches a cell.
+            if (element.parentElement === parent) parent.removeChild(element);
+            this.cellElements.delete(element);
+        }
+        this._stats.cellsRemoved++;
     }
 
     // -----------------------------------------------------------------------

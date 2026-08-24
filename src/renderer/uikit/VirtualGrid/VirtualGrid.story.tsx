@@ -13,8 +13,7 @@ import {
     type VirtualFlexGridProps,
     type VirtualFlexCellFunc,
 } from "./VirtualFlexGridView";
-import type { ElementLength, Percent, RenderCellFunc } from "./types";
-import type { VirtualGridModel } from "./VirtualGridModel";
+import type { ElementLength, GridModelCapability, Percent, RenderCellFunc } from "./types";
 
 /**
  * The engine's first story. It has to drive what a story otherwise hides — a row count large
@@ -198,7 +197,7 @@ function VirtualFlexGridDemo({
     rowCount = 180,
     growthDelay = 900,
 }: VirtualFlexGridDemoProps) {
-    const modelRef = useRef<VirtualGridModel | null>(null);
+    const modelRef = useRef<GridModelCapability | null>(null);
     const grownRows = useRef(new Set<number>());
     const [status, setStatus] = useState("mounting measured rows…");
     const [roundTripDone, setRoundTripDone] = useState(false);

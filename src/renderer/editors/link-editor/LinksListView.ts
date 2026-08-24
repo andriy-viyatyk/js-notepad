@@ -309,7 +309,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         record.onDragLeave = props.onItemDragLeave;
         record.onDrop = props.onItemDrop;
 
-        applyCellStyle(record.cell, p.style);
+        applyCellStyle(record.cell, p.style, p.row, p.col, p.renderInfo.input.columnCount);
         record.cell.style.boxSizing = "border-box";
         record.cell.style.padding = "0 4px";
         record.cell.style.display = "flex";

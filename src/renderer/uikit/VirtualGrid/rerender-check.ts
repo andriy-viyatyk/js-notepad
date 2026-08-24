@@ -271,6 +271,14 @@ export function prepareRerender(
             c >= old.input.columnCount - old.input.stickyRight;
 
         const rows = (rerender.rows || []).filter(rowInRange);
+        if (rerender.fromRow !== undefined) {
+            rows.push(
+                ...range(
+                    Math.max(rerender.fromRow, old.rendered.top),
+                    old.rendered.bottom,
+                ).filter(rowInRange),
+            );
+        }
         const columns = (rerender.columns || []).filter(colInRange);
         const cells = (rerender.cells || []).filter(
             ({ row, col }) => rowInRange(row) && colInRange(col),

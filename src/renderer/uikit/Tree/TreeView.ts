@@ -373,7 +373,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             record.view = undefined;
         }
         record.index = p.row;
-        applyCellStyle(wrapper, p.style);
+        applyCellStyle(wrapper, p.style, p.row, p.col, p.renderInfo.input.columnCount);
 
         const dndEnabled = this.model.isDndEnabled;
         const canDrag = dndEnabled && this.model.canDragRow(p.row);

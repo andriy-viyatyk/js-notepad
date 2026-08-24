@@ -72,13 +72,18 @@ export interface RerenderInfoPrepared {
 export interface RerenderInfo {
     all?: boolean;
     rows?: Array<number>;
+    /** Every row at or after this row moved because a row above it changed height. */
+    fromRow?: number;
     columns?: Array<number>;
     cells?: Array<RenderCell>;
     /** Repaint even where the engine believes nothing changed. Escape hatch; use sparingly. */
     force?: boolean;
 }
 
-/** The model surface shared by the React and vanilla grid engines. */
+/**
+ * The model surface shared by the React and vanilla grid engines. `fromRow` is a geometry
+ * invalidation, not a content invalidation.
+ */
 export interface GridModelCapability {
     update(rerender?: RerenderInfo): void;
     scrollToRow(row: number, rowAlign?: RowAlign): Promise<void>;

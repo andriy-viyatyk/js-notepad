@@ -131,8 +131,6 @@ export class VirtualGridModel {
     private updateScheduled = false;
     private resizeObserver?: ResizeObserver;
     private _disposed = false;
-    /** The container was hidden, so its scroll position is gone and ours is the real one. */
-    private scrollLost = false;
     /** A `scrollToRow` that arrived before the grid had a usable size. See `scrollToRow`. */
     private pendingScrollRow?: { row: number; align: RowAlign };
 
@@ -283,14 +281,6 @@ export class VirtualGridModel {
             height: grid != null ? grid.offsetHeight : undefined,
         };
 
-        // A grid measuring nothing has been hidden — `display: none` zeroes the container's
-        // scrollTop while the model keeps the real offset, so the position has to be put back
-        // when it reappears. This flag is the *only* thing that licenses that write: see
-        // `restoreScroll`.
-        if (!newSize.width && !newSize.height && (this.offset.x || this.offset.y)) {
-            this.scrollLost = true;
-        }
-
         if (
             this.size.width !== newSize.width ||
             this.size.height !== newSize.height ||
@@ -408,12 +398,19 @@ export class VirtualGridModel {
             return undefined;
         }
 
-        const { all = false, cells = [], rows = [], columns = [] } = one || {};
+        const {
+            all = false,
+            cells = [],
+            rows = [],
+            columns = [],
+            fromRow,
+        } = one || {};
         const {
             all: oldAll = false,
             cells: oldCells = [],
             rows: oldRows = [],
             columns: oldColumns = [],
+            fromRow: oldFromRow,
         } = two || {};
 
         return {
@@ -421,6 +418,12 @@ export class VirtualGridModel {
             cells: [...cells, ...oldCells],
             rows: [...rows, ...oldRows],
             columns: [...columns, ...oldColumns],
+            fromRow:
+                fromRow === undefined
+                    ? oldFromRow
+                    : oldFromRow === undefined
+                      ? fromRow
+                      : Math.min(fromRow, oldFromRow),
         };
     };
 
@@ -514,11 +517,18 @@ export class VirtualGridModel {
             this.options.whiteSpaceX,
         );
 
-        // The content shrank to less than a viewport while scrolled down — snap to the top
-        // and recompute, or the grid would show empty space below the last row.
-        if (newInfo.innerSize.height < (this.size.height ?? 0) && this.offset.y > 0) {
-            this.offset.y = 0;
+        // The content extent may have shrunk below the current offset. Keep the user at the
+        // nearest valid position instead of snapping to the top, then repaint that position.
+        const maxOffsetY = Math.max(
+            0,
+            newInfo.innerSize.height - (this.size.height ?? 0) + this.scrollBarHeight,
+        );
+        if (this.offset.y > maxOffsetY) {
+            this.offset.y = maxOffsetY;
             this.updateRenderInfo(rerender, direction, inRender);
+            // The recursive recompute can run from a ResizeObserver path. Use the one permitted
+            // scheduler so the DOM is painted from the clamped render info asynchronously.
+            this.requestRepaint();
             return;
         }
 
@@ -578,7 +588,7 @@ export class VirtualGridModel {
     onScroll = (e?: Event): void => {
         const container = this.containerRef.current;
         if (!container) return;
-        if (e && e.target !== container) return;
+        if (e && e.currentTarget !== container) return;
 
         // Ignore scroll events fired while hidden — `display: none` resets scrollTop to 0,
         // and acting on that would lose the user's position.
@@ -591,36 +601,6 @@ export class VirtualGridModel {
         };
         this.offset = { x, y };
         this.updateRenderInfo(undefined, direction);
-    };
-
-    /**
-     * Does the container need its scroll position put back?
-     *
-     * True only after the grid was hidden, which is the one case where the container's own
-     * scrollTop is *wrong* rather than merely newer than the model's.
-     */
-    get scrollNeedsRestore(): boolean {
-        return this.scrollLost;
-    }
-
-    /**
-     * Re-apply the model's offset to the container after it was hidden and reshown.
-     *
-     * **Never call this to reconcile a mismatch.** A scroll event is delivered a frame after
-     * the scroll it reports — a programmatic `scrollTop` write is reported at the next frame,
-     * sometimes after that frame's rAF callbacks — so a paint routinely runs while the
-     * container is ahead of the model. Writing the model's older offset back there does not
-     * "restore" anything: it undoes the user's scroll, and because the write fires a scroll
-     * event of its own the two take turns, which reads as a list that scrolls half the time and
-     * shows a blank band the rest of it. `scrollLost` exists so this can tell the two apart.
-     */
-    restoreScroll = (): void => {
-        this.scrollLost = false;
-        const container = this.containerRef.current;
-        if (container && (this.offset.x !== 0 || this.offset.y !== 0)) {
-            container.scrollLeft = this.offset.x;
-            container.scrollTop = this.offset.y;
-        }
     };
 
     async scrollTo(row: number, col: number): Promise<void> {

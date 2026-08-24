@@ -174,7 +174,6 @@ export interface NoteItemEditState {
 // =============================================================================
 
 export class NoteItemEditModel {
-    readonly id: string;
     readonly type = "textFile" as const;
 
     private notebookModel: NotebookSource;
@@ -197,7 +196,6 @@ export class NoteItemEditModel {
     constructor(notebookModel: NotebookSource, note: NoteItem) {
         this.notebookModel = notebookModel;
         this.noteId = note.id;
-        this.id = note.id;
 
         // Initialize state from note. `restored: true` makes the embedded
         // editor's `restore()` skip its `host.restore()` branch (NoteItemEditModel
@@ -232,6 +230,10 @@ export class NoteItemEditModel {
     // =========================================================================
     // Height persistence (prevents scroll jumping on virtualized remount)
     // =========================================================================
+
+    get id(): string {
+        return this.noteId;
+    }
 
     persistContentHeight = (height: number) => {
         this.notebookModel.setNoteHeight(this.noteId, height);
@@ -307,7 +309,37 @@ export class NoteItemEditModel {
     // Sync from notebook (when note data changes externally)
     // =========================================================================
 
+    /**
+     * Move this live content host to another note. The host is intentionally reusable: callers
+     * save/restore any Monaco view state around this total write, while all persisted writes
+     * below are redirected by the new note id immediately.
+     */
+    repoint = (note: NoteItem): void => {
+        this.noteId = note.id;
+        const editor = (note.content.editor as EditorView) || "monaco";
+        this.state.update((state) => {
+            state.id = note.id;
+            state.title = note.title || "Note";
+            state.content = note.content.content;
+            state.language = note.content.language;
+            state.editor = editor;
+            state.filePath = undefined;
+            state.encrypted = false;
+            state.restored = true;
+            state.temp = false;
+        });
+
+        const storedHeight = this.notebookModel.getNoteHeight(note.id);
+        this.editor.state.update((state) => {
+            state.contentHeight = storedHeight ?? DEFAULT_CONTENT_HEIGHT;
+        });
+    };
+
     syncFromNote = (note: NoteItem) => {
+        if (this.noteId !== note.id) {
+            this.repoint(note);
+            return;
+        }
         const currentState = this.state.get();
         const noteContent = note.content;
 

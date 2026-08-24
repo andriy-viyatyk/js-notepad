@@ -38,6 +38,7 @@ export interface CellPoolStats {
 
 export class CellPool {
     private elements: HTMLElement[] = [];
+    private retained = new Set<HTMLElement>();
     private _stats: CellPoolStats = { hits: 0, misses: 0, released: 0, discarded: 0 };
 
     /**
@@ -55,6 +56,7 @@ export class CellPool {
     acquire = (): HTMLElement | undefined => {
         const el = this.elements.pop();
         if (el) {
+            this.retained.delete(el);
             this._stats.hits++;
         } else {
             this._stats.misses++;
@@ -63,17 +65,23 @@ export class CellPool {
     };
 
     /**
-     * Return a detached element for reuse. The caller must have removed it from the DOM
-     * first — a pooled element that is still attached would be handed out while visible.
+     * Return an element for reuse. The caller may keep it attached but hidden; the return value
+     * tells the caller whether the bounded pool retained it or it should release its DOM node.
      */
-    release = (el: HTMLElement): void => {
+    release = (el: HTMLElement): boolean => {
         if (this.elements.length >= this.maxSize) {
             this._stats.discarded++;
-            return;
+            return false;
         }
         this._stats.released++;
         this.elements.push(el);
+        this.retained.add(el);
+        return true;
     };
+
+    has(el: HTMLElement): boolean {
+        return this.retained.has(el);
+    }
 
     get size(): number {
         return this.elements.length;
@@ -89,5 +97,6 @@ export class CellPool {
 
     clear(): void {
         this.elements = [];
+        this.retained.clear();
     }
 }

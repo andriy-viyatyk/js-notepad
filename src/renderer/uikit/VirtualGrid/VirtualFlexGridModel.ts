@@ -99,7 +99,7 @@ export class VirtualFlexGridModel {
 
         this.lastRowHeight = height;
         this.rowHeights[row] = height;
-        this.gridModel?.update({ rows: [row] });
+        this.gridModel?.update({ fromRow: row });
     }
 
     private clampHeight(height: number): number {

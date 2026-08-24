@@ -221,9 +221,16 @@ Two consequences:
 - **8 constructions against 7 text notes proves a rebuild arithmetically**, before any argument
   about which pass caused it. At least one note was constructed twice no matter how the sweep is
   attributed.
-- **A correct implementation constructs at most 3** — one host per simultaneously live cell, since
-  a cell re-points its host rather than rebuilding it. So the ceiling is **8 → ≤3**, and the
-  per-pass rule is zero on any pass that revisits an already-visited row.
+- **A correct implementation constructs at most one host per simultaneously live cell**, since a
+  cell re-points its host rather than rebuilding it, and the per-pass rule is zero on any pass that
+  revisits an already-visited row.
+
+  *Amended after US-1064 shipped:* an earlier version of this line put the ceiling at ≤3, derived
+  from the three cells live at once in the baseline. That number did not survive the epic. E4-13
+  retains evicted cells in the pool **attached but hidden**, so their editors stay connected and
+  "simultaneously live" no longer means "in the viewport" — it means "admitted at least once". The
+  honest ceiling is therefore the number of distinct `monaco` notes visited (7 here), and the
+  falsifiable half of the target was always the per-pass rule, not the total.
 
 So the target is now stated against a measured number rather than an inherited claim: **0 after the
 initial paint**, i.e. `8 → 1`. A post-conversion sweep that reports any `new` count on a pass other
@@ -415,6 +422,106 @@ than as a retro-fix to a task already called done.
 
 ---
 
+## E4-12 — A committed row height is a geometry invalidation, and the engine needed a word for it
+
+*Taken 2026-08-24, from live verification of US-1064 on the dev build.*
+
+The second defect in US-1063's primitive found by giving it a real consumer, and the same class as
+E4-11: faithful to the React original, wrong against the vanilla engine.
+
+`VirtualFlexGridModel.commitRowHeight()` reported a newly measured height as
+`gridModel.update({ rows: [row] })`, copied from `RenderFlexGrid.tsx`'s
+`update({ rows: [updatedRow] })`. Measured live on `test.note.json`, that produced a grid whose
+first three cells were consistent (`top 0/h 147`, `top 147/h 486`, `top 633/h 482`) and whose
+remaining four were stale — 733, 444, 593, 696 where the third cell's own height demands 1115 —
+so cells overlapped and two disagreed with their own content by hundreds of pixels. The measured
+heights were correct and matched the pre-conversion React baseline exactly; only the reflow was
+missing.
+
+**Why it worked in React and not here, which is the part worth keeping.** React re-rendered the
+whole grid component on any model update and recomputed every visible cell's position from
+`rowHeight` as a side effect, so a single-row dirty set still produced a full reflow — the dirty set
+was an optimisation hint layered over an unconditional recompute. The vanilla engine honours the
+dirty set literally: it restyles the rows named and leaves the rest untouched. **A port that
+preserves a call verbatim can still change its meaning, because the meaning lived in the framework
+rather than in the call.** That is the third time in this programme a defect took this shape
+(EPIC-061 recorded two), and it is the standing argument for verifying a converted view live rather
+than by diff.
+
+**The decision: `RerenderInfo` gains `fromRow?: number`**, meaning *every row at or after this one
+has moved, because a row above them changed height*, and `commitRowHeight` reports that instead.
+
+`update({ all: true })` was rejected. The dirty-set doctrine in `types.ts:64-71` is explicit that
+every performance claim in the library rests on reporting only what changed, and rows *above* the
+changed row genuinely did not move. This path also runs for every row measurement during first
+paint, making it a hot path rather than an escape-hatch one. `fromRow` costs O(visible) rather than
+O(rowCount) because `rerender-check.ts` already filters the expanded set through `rowInRange` — the
+filter exists so that a change 80,000 rows below the viewport costs nothing, and this is exactly
+the case it was built for.
+
+It also names the invalidation's real shape. A height change is not "this row's content changed";
+it is "the layout below this row moved", which the dirty set previously had no vocabulary for. That
+distinction is reusable: US-1065's flex consumer needs it too.
+
+---
+
+## E4-13 — A virtualized cell that can host a frame must not be detached, and the DOM's scroll position is not authoritative
+
+*Taken 2026-08-24, from live verification of US-1064 after a user bug report.*
+
+The user could drag the notebook's scrollbar only as far as the second note — an HTML preview — and
+"at the moment when it hides, the scroll indicator jumps to 0 and the first two items are not
+rendered." That report is what cracked a defect nine rounds of my own probing had failed to locate,
+because it named the *trigger* rather than the symptom.
+
+A `MutationObserver` on the cell container, stepping `scrollTop` in 100px increments:
+
+```
+REMOVE row=0 iframes=0 st=200    <- a plain cell: no effect
+REMOVE row=1 iframes=1 st=0      <- the jump, exactly here
+want700 -> got0
+```
+
+**Detaching a cell whose subtree contains an `<iframe>` resets the scroll container's `scrollTop` to
+zero.** `editors/html/HtmlBodyView.ts` adopts a sandboxed `srcdoc` iframe *as its root*, so evicting
+that cell detaches a subframe, and Blink resets the ancestor scroller synchronously.
+
+**Why this was so hard to find, which is the part worth keeping.** The reset is performed by the
+browser, not by us, so it goes through no JS setter: I shadowed `scrollTop` on the container with an
+accessor that recorded a stack trace on every write, and it caught six writes, *all of them mine*.
+That evidence read as "nothing in our code moves the scroll", which is true and was also useless —
+it ruled out every hypothesis I had while leaving the actual cause untouched. Three further probes
+(computed `overflow-anchor`, which was already `none`; `document.activeElement`, which never moved;
+per-frame sampling of `scrollHeight` and the area's inline height, all constant) each removed a
+candidate without finding the culprit. **A negative result on "who wrote this value" does not
+establish that the value was not written** — it establishes that it was not written *by script*.
+
+Two decisions follow.
+
+**Evicted cells are retained in the pool attached and hidden, not detached.** `CellPool.release()`
+now hides the element and clears its coordinate markers instead of removing it, and only pool
+overflow (the cap is 2000) detaches. This preserves the iframe's document across eviction, and it
+also fixes a quieter defect in the same place: re-inserting an iframe reloads it, so before this
+change the HTML note reloaded its `srcdoc` every time it scrolled back into view.
+
+**At the end of a paint, the container's scroll position must equal the model's offset; if it does
+not, the DOM was clobbered and the model wins.** Retention alone was not sufficient — a cell
+admitted for a note of a *different kind* still disposes the old arm, and `HtmlBodyView`'s root
+being the iframe means that path detaches a frame too. That destruction is legitimate (the note is
+gone), so the answer is to compensate deterministically rather than to prevent it. The invariant is
+sound in both directions, which is what distinguishes it from the ad-hoc restore it replaced: a
+genuine user scroll reaches `onScroll` first, so model and DOM already agree by paint time and
+nothing is written; a browser-internal reset changes the DOM without touching the model, so a
+mismatch at paint end is unambiguous evidence of a clobber; and the offset re-asserted is the one
+the paint just computed its window from, so the cells on screen already match it.
+
+**The generalisation for US-1065 and every later virtualized consumer:** a cell subtree is not
+inert DOM. Once cells can contain arbitrary editors, eviction can destroy an iframe, a webview, a
+media element or a Monaco instance, and the engine cannot assume that removing an element is free
+or side-effect-free. `RenderGrid` never had to care, because no consumer put a frame in a cell.
+
+---
+
 ## E4-8 — Task order
 
 Sequenced so the two risky conversions happen while the epic can still absorb a redesign, and so
@@ -516,6 +623,59 @@ the pilot does not depend on the new primitive:
 ---
 
 ## Testing owed
+
+### US-1064 — verified live, 2026-08-24
+
+Dev build, fixture `test.note.json`, every check from a **cold** page load (the convergence window
+is where this task's defects lived, so a warm run proves nothing).
+
+| Check | Result |
+|---|---|
+| `scrollTop` stepped 100px across the whole range (41 steps) | **Pass** — zero jumps, zero landings at 0 |
+| Crossing the HTML note at 700 (the user's reported failure) | **Pass** |
+| 13-stop sweep: geometry gaps between consecutive rows | **Pass** — 0 |
+| 13-stop sweep: viewport fully covered at every stop | **Pass** — 0 shortfalls |
+| 13-stop sweep: position honoured at every stop | **Pass** — 0 failures |
+| Duplicate `data-row` among admitted cells | **Pass** — 0 |
+| Cells visible without a `data-row` (stranded) | **Pass** — 0 |
+| All rows reachable | **Pass** — 13 of 13 |
+| `scrollTop = scrollHeight` in one step | **Pass** — lands 4122 of max 4122, 3 cells covering |
+| Three 1px scrolls 600ms apart | **Pass** — window updates on the **first** |
+| Return to 0 | **Pass** — exactly rows 0, 1, 2 |
+| Uncaught application errors | **Pass** — 0 |
+
+**Rule 4 (E4-6), measured by the banked procedure:**
+
+| | Baseline (React) | US-1064 |
+|---|---|---|
+| Total Monaco constructions over a sweep | 8 | **6** |
+| Constructions on the return-to-top pass | **1** | **0** |
+| Mid-sweep passes reporting new constructions | many | 3, all first visits |
+
+The return pass is the number that matters and it is now zero — the check E4-6 called "the sharpest
+single check, because it cannot be explained by a note being reached for the first time." Every
+construction in the run is a distinct `monaco` note being reached for the first time; six for seven
+such notes means at least one host was re-pointed rather than rebuilt, and the long runs of zero
+while scrolling rows 5-12 are the re-point contract working. See the amended ceiling note under
+E4-6: the ≤3 figure predicted before E4-13 no longer applies, because retained pooled cells keep
+their editors connected.
+
+**Not verified live:** editing a note while scrolling it out and back (the E4-7 total-write path is
+exercised structurally by the duplicate/stranded-cell checks, but not by a real edit); the expanded
+overlay; kind switching through the toolbar; drag and drop. `ExpandedNoteView` and
+`NoteItemToolbarView` have no live coverage at all.
+
+**Known unrelated:** the fixture's grid note raises `AVGridError: Unknown column "a"` from
+`av-grid.js` — its data columns are `gawe, aweg, er, agawe, drtj, o` and a persisted column `"a"`
+does not exist. Pre-existing fixture data, not touched by this task.
+
+### US-1068 — build-verified only
+
+Typecheck, lint and production build pass. Its live exercise is the notebook's category and tag
+editors, which US-1064's verification did not drive. Unverified live.
+
+### Earlier
+
 
 *(Every live verification, and every item deliberately **not** verified live, is recorded here as
 tasks close — per the discipline established in EPIC-060 and EPIC-061.)*

@@ -289,7 +289,13 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
             });
         }
         record.row = row;
-        applyCellStyle(cell, params.style);
+        applyCellStyle(
+            cell,
+            params.style,
+            params.row,
+            params.col,
+            params.renderInfo.input.columnCount,
+        );
 
         if (row.type === "file") this.renderFileCell(cell, record, row);
         else this.renderLineCell(cell, record, row);

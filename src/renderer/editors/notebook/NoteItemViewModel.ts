@@ -1,19 +1,12 @@
-import React from "react";
-import { TComponentModel } from "../../core/state/model";
+import { TComponentState } from "../../core/state/state";
 import { formatDate } from "../../core/utils/utils";
 import { NoteItem, NotebookSource } from "./notebookTypes";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
 
-// =============================================================================
-// Types
-// =============================================================================
-
 export interface NoteItemViewProps {
     note: NoteItem;
     notebookModel: NotebookSource;
-    /** Available categories for autocomplete */
     categories: string[];
-    /** Available tags for autocomplete */
     tags: string[];
     onDelete?: (id: string) => void;
     onExpand?: (id: string) => void;
@@ -25,13 +18,8 @@ export interface NoteItemViewProps {
     onTagAdd?: (id: string, tag: string) => void;
     onTagRemove?: (id: string, tagIndex: number) => void;
     onTagUpdate?: (id: string, tagIndex: number, newTag: string) => void;
-    /** Ref for RenderFlexGrid height detection */
-    cellRef?: React.RefObject<HTMLDivElement>;
+    viewStates?: Map<string, import("monaco-editor").editor.ICodeEditorViewState>;
 }
-
-// =============================================================================
-// State
-// =============================================================================
 
 export const defaultNoteItemViewState = {
     editingCategory: false,
@@ -44,256 +32,162 @@ export const defaultNoteItemViewState = {
 
 export type NoteItemViewState = typeof defaultNoteItemViewState;
 
-// =============================================================================
-// Model
-// =============================================================================
-
-export class NoteItemViewModel extends TComponentModel<NoteItemViewState, NoteItemViewProps> {
-    // Refs
+/** Owns the transient editing state for one retained note row. */
+export class NoteItemViewModel {
+    readonly state = new TComponentState<NoteItemViewState>({ ...defaultNoteItemViewState });
+    readonly editModel: NoteItemEditModel;
+    props: NoteItemViewProps;
     noteItemRef: HTMLDivElement | null = null;
+    searchText: string | undefined;
 
-    // Search text from React context (set by view before render)
-    searchText: string | undefined = undefined;
+    private wheelHandler: ((event: WheelEvent) => void) | null = null;
 
-    // Sub-model for embedded editor (lazy-created on first access)
-    private _editModel: NoteItemEditModel | null = null;
+    public constructor(props: NoteItemViewProps) {
+        this.props = props;
+        this.searchText = props.searchText;
+        this.editModel = new NoteItemEditModel(props.notebookModel, props.note);
+    }
 
-    get editModel(): NoteItemEditModel {
-        if (!this._editModel) {
-            this._editModel = new NoteItemEditModel(this.props.notebookModel, this.props.note);
+    setProps(props: NoteItemViewProps): void {
+        const noteChanged = this.props.note.id !== props.note.id;
+        this.props = props;
+        this.searchText = props.searchText;
+        if (noteChanged) {
+            this.state.update((state) => Object.assign(state, defaultNoteItemViewState));
+            this.editModel.repoint(props.note);
+        } else {
+            this.editModel.syncFromNote(props.note);
+            if (!this.state.get().editingCategory) {
+                this.state.update((state) => { state.categoryValue = props.note.category; });
+            }
         }
-        return this._editModel;
     }
 
-    // =========================================================================
-    // Lifecycle
-    // =========================================================================
-
-    init() {
-        this.setupWheelHandler();
-
-        this.effect(() => {
-            this.syncEditModel();
-        }, () => [this.props.note.content.content, this.props.note.content.language, this.props.note.content.editor]);
-
-        this.effect(() => {
-            this.syncCategoryValue();
-        }, () => [this.props.note.category, this.state.get().editingCategory]);
-    }
-
-    dispose() {
-        this._editModel?.dispose();
-        this.teardownWheelHandler();
-    }
-
-    // =========================================================================
-    // Refs
-    // =========================================================================
-
-    setRefs = (element: HTMLDivElement | null) => {
+    mount(element: HTMLDivElement): void {
         this.noteItemRef = element;
-        const { cellRef } = this.props;
-        if (cellRef) {
-            (cellRef as React.MutableRefObject<HTMLDivElement | null>).current = element;
-        }
-    };
-
-    // =========================================================================
-    // Sync methods (called from useEffect in view)
-    // =========================================================================
-
-    syncEditModel = () => {
-        this._editModel?.syncFromNote(this.props.note);
-    };
-
-    syncCategoryValue = () => {
+        this.setupWheelHandler();
         if (!this.state.get().editingCategory) {
-            this.state.update((s) => {
-                s.categoryValue = this.props.note.category;
-            });
+            this.state.update((state) => { state.categoryValue = this.props.note.category; });
         }
-    };
+    }
 
-    // =========================================================================
-    // Utility
-    // =========================================================================
+    dispose(): void {
+        this.teardownWheelHandler();
+        this.editModel.dispose();
+        this.noteItemRef = null;
+    }
 
     formatDate = formatDate;
 
-    hasSearchMatch = (text: string) => {
-        if (!this.searchText || !text) return false;
-        const textLower = text.toLowerCase();
-        return this.searchText.toLowerCase().split(" ").some(s => s && textLower.includes(s));
+    handleTitleChange = (value: string): void => {
+        this.props.onTitleChange?.(this.props.note.id, value);
     };
 
-    // =========================================================================
-    // Title & Comment handlers
-    // =========================================================================
-
-    handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.props.onTitleChange?.(this.props.note.id, e.target.value);
-    };
-
-    handleCommentChange = (value: string) => {
+    handleCommentChange = (value: string): void => {
         this.props.onCommentChange?.(this.props.note.id, value);
     };
 
-    handleCommentBlur = () => {
-        // If comment is empty, remove it so "+ Add comment" button reappears
+    handleCommentBlur = (): void => {
         if (this.props.note.comment !== undefined && this.props.note.comment.trim() === "") {
             this.props.notebookModel.removeComment(this.props.note.id);
         }
     };
 
-    // =========================================================================
-    // Category handlers
-    // =========================================================================
-
-    handleCategoryClick = () => {
-        this.state.update((s) => {
-            s.categoryValue = this.props.note.category;
-            s.editingCategory = true;
+    handleCategoryClick = (): void => {
+        this.state.update((state) => {
+            state.categoryValue = this.props.note.category;
+            state.editingCategory = true;
         });
     };
 
-    handleCategoryChange = (value: string) => {
-        this.state.update((s) => {
-            s.categoryValue = value;
-        });
+    handleCategoryChange = (value: string): void => {
+        this.state.update((state) => { state.categoryValue = value; });
     };
 
-    handleCategoryBlur = (finalValue?: string) => {
-        this.state.update((s) => {
-            s.editingCategory = false;
-        });
-        // undefined means cancelled (Escape) - don't save changes
+    handleCategoryBlur = (finalValue?: string): void => {
+        this.state.update((state) => { state.editingCategory = false; });
         if (finalValue !== undefined && finalValue !== this.props.note.category) {
             this.props.onCategoryChange?.(this.props.note.id, finalValue);
         }
         this.noteItemRef?.focus();
     };
 
-    // =========================================================================
-    // Tag handlers
-    // =========================================================================
-
-    handleTagClick = (index: number) => {
-        this.state.update((s) => {
-            s.editingTagValue = this.props.note.tags[index];
-            s.editingTagIndex = index;
+    handleTagClick = (index: number): void => {
+        this.state.update((state) => {
+            state.editingTagValue = this.props.note.tags[index];
+            state.editingTagIndex = index;
         });
     };
 
-    handleTagEditChange = (value: string) => {
-        this.state.update((s) => {
-            s.editingTagValue = value;
-        });
+    handleTagEditChange = (value: string): void => {
+        this.state.update((state) => { state.editingTagValue = value; });
     };
 
-    handleTagEditBlur = (finalValue?: string) => {
+    handleTagEditBlur = (finalValue?: string): void => {
         const { editingTagIndex } = this.state.get();
-        this.state.update((s) => {
-            s.editingTagIndex = null;
-        });
-        // undefined means cancelled (Escape) - don't save changes
-        if (finalValue !== undefined && editingTagIndex !== null && finalValue !== this.props.note.tags[editingTagIndex]) {
-            if (finalValue === "") {
-                this.props.onTagRemove?.(this.props.note.id, editingTagIndex);
-            } else {
-                this.props.onTagUpdate?.(this.props.note.id, editingTagIndex, finalValue);
+        this.state.update((state) => { state.editingTagIndex = null; });
+        if (finalValue !== undefined && editingTagIndex !== null) {
+            const oldValue = this.props.note.tags[editingTagIndex];
+            if (finalValue !== oldValue) {
+                if (finalValue === "") this.props.onTagRemove?.(this.props.note.id, editingTagIndex);
+                else this.props.onTagUpdate?.(this.props.note.id, editingTagIndex, finalValue);
             }
         }
         this.noteItemRef?.focus();
     };
 
-    handleTagDelete = (e: React.MouseEvent, index: number) => {
-        e.stopPropagation();
+    handleTagDelete = (event: MouseEvent, index: number): void => {
+        event.stopPropagation();
         this.props.onTagRemove?.(this.props.note.id, index);
     };
 
-    handleAddTagClick = () => {
-        this.state.update((s) => {
-            s.newTagValue = "";
-            s.addingTag = true;
+    handleAddTagClick = (): void => {
+        this.state.update((state) => {
+            state.newTagValue = "";
+            state.addingTag = true;
         });
     };
 
-    handleNewTagChange = (value: string) => {
-        this.state.update((s) => {
-            s.newTagValue = value;
-        });
+    handleNewTagChange = (value: string): void => {
+        this.state.update((state) => { state.newTagValue = value; });
     };
 
-    handleNewTagBlur = (finalValue?: string) => {
-        this.state.update((s) => {
-            s.addingTag = false;
-        });
-        // undefined means cancelled (Escape), only add when value is explicitly provided
+    handleNewTagBlur = (finalValue?: string): void => {
+        this.state.update((state) => { state.addingTag = false; });
         if (finalValue !== undefined && finalValue) {
             this.props.onTagAdd?.(this.props.note.id, finalValue);
         }
         this.noteItemRef?.focus();
     };
 
-    // =========================================================================
-    // Deactivation
-    // =========================================================================
-
-    handleDeactivate = () => {
-        // Focus the scroll container instead of just blurring
-        // This ensures keyboard shortcuts (like Ctrl+S) continue to work
-        const element = this.noteItemRef;
-        if (element) {
-            const scrollContainer = element.closest("#avg-container") as HTMLElement;
-            if (scrollContainer) {
-                scrollContainer.focus();
-                return;
-            }
+    handleDeactivate = (): void => {
+        const scrollContainer = this.noteItemRef?.closest("#avg-container") as HTMLElement | null;
+        if (scrollContainer) {
+            scrollContainer.focus();
+            return;
         }
-        // Fallback: blur active element
-        if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-        }
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     };
 
-    // =========================================================================
-    // Wheel event handling
-    // =========================================================================
-
-    private wheelHandler: ((e: WheelEvent) => void) | null = null;
-
-    private setupWheelHandler() {
+    private setupWheelHandler(): void {
         const element = this.noteItemRef;
         if (!element) return;
-
-        this.wheelHandler = (e: WheelEvent) => {
-            // Check if this note item or any child has focus
-            const hasFocus = element.contains(document.activeElement);
-
-            if (!hasFocus) {
-                // Prevent default scroll behavior on nested scrollable elements (e.g., Markdown view)
-                e.preventDefault();
-                // Stop the event from reaching nested editors (Monaco, Grid)
-                e.stopPropagation();
-
-                // Find the notebook's scroll container and scroll it
-                const scrollContainer = element.closest("#avg-container");
-                if (scrollContainer) {
-                    scrollContainer.scrollTop += e.deltaY;
-                    scrollContainer.scrollLeft += e.deltaX;
-                }
+        this.wheelHandler = (event) => {
+            if (element.contains(document.activeElement)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const scrollContainer = element.closest("#avg-container") as HTMLElement | null;
+            if (scrollContainer) {
+                scrollContainer.scrollTop += event.deltaY;
+                scrollContainer.scrollLeft += event.deltaX;
             }
         };
-
-        // Use capture phase to intercept BEFORE event reaches nested editors
-        // Note: passive: false is required to allow preventDefault()
         element.addEventListener("wheel", this.wheelHandler, { capture: true, passive: false });
     }
 
-    private teardownWheelHandler() {
-        if (this.wheelHandler && this.noteItemRef) {
-            this.noteItemRef.removeEventListener("wheel", this.wheelHandler, { capture: true });
-            this.wheelHandler = null;
-        }
+    private teardownWheelHandler(): void {
+        if (!this.wheelHandler || !this.noteItemRef) return;
+        this.noteItemRef.removeEventListener("wheel", this.wheelHandler, { capture: true });
+        this.wheelHandler = null;
     }
 }
