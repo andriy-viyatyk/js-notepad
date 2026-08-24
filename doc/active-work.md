@@ -11,7 +11,8 @@ Overview of all active and planned epics and tasks.
 - **EPIC-062** — [De-React Epic E4: delete the React `RenderGrid` contract](epics/EPIC-062.md)
   - [ ] [US-1062: LinksList to VirtualGridView (pilot)](tasks/US-1062-linkslist-virtualgrid/README.md)
   - [ ] US-1063: `VirtualFlexGridView` — measured-height wrapper over `VirtualGridView`
-  - [ ] US-1064: `NotebookBody` and its cell subtree to `VirtualFlexGrid` (carries Rule 4)
+  - [ ] [US-1068: remove the React roots from `PathInputView`](tasks/US-1068-pathinput-no-react-root/README.md)
+  - [ ] [US-1064: `NotebookBody` and its cell subtree to `VirtualFlexGrid` (carries Rule 4)](tasks/US-1064-notebook-virtual-flex-grid/README.md)
   - [ ] US-1065: `LogBody` and its cell subtree to `VirtualFlexGrid`
   - [ ] US-1066: `LinksTiles` plus the eight `RenderGridModel` repointings
   - [ ] US-1067: delete `uikit/RenderGrid/` — the closing property

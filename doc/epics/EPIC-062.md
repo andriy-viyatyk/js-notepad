@@ -345,6 +345,62 @@ converting a single call site.
 
 ---
 
+## E4-11 — A flex cell measures a nominated content element, not the positioned cell
+
+*Taken 2026-08-24, before the US-1064 plan review, by reading US-1063's shipped primitive against
+the React original.*
+
+`VirtualFlexGridView` as delivered in US-1063 measures the element `renderCell` returns:
+
+```ts
+applyCellStyle(cell, p.style);                                    // sets s.height = `${style.height}px`
+this.rowByElement.set(cell, p.row);
+this.observer?.observe(cell);
+this.measurement.setRowHeight(p.row, cell.clientHeight);          // reads back what was just written
+```
+
+**That measurement is a tautology.** `applyCellStyle` (`cell-style.ts:11`) writes an explicit
+`height` onto the positioned cell, and that height comes from `CellStyle`, which the engine computes
+from `rowHeight` — which `gridOptions()` wires to `measurement.rowHeight`. So the view reports the
+model's own guess back to the model. `setRowHeight` then returns early on `pendingHeights[row] ===
+applyHeight`, and the `ResizeObserver` is no better: the outer cell's size changes only when the
+engine changes it. Committed heights would never converge on content height — every row would keep
+whatever `getInitialRowHeight` / `lastRowHeight` / `minRowHeight` produced first.
+
+The React original does not have this bug, and the reason is visible in its API: `RenderFlexCellParams`
+carries a **`ref`** (`RenderFlexGrid.tsx:15`), the cell subtree attaches it to its own root, and the
+observer watches *that* element (`:45-47`), with a re-attach effect for when "React reuses component
+but renders different content" (`:59-68`). In the notebook that element is `NoteItemView.tsx:147-155`
+— a `div` with `height: "fit-content"`, i.e. content-driven by construction. The outer positioned
+cell was never the thing being measured.
+
+**The decision: `VirtualFlexCellParams` gains a `measure(element)` callback, and the flex view
+observes and reads the nominated element.** It is the direct vanilla translation of the React `ref`,
+and it is preferred over the two alternatives:
+
+- **Measuring `cell.firstElementChild`** — positional, silently wrong for any consumer that wraps
+  its content, and undiscoverable at the call site.
+- **Dropping the explicit height so the cell is content-sized** — this breaks `maxRowHeight`. The
+  notebook passes `maxRowHeight: 800` (`NotebookBody.tsx:164`) and relies on the styled cell to clip
+  an over-tall note; an auto-height cell would render its full height and overlap its neighbour,
+  since the engine still positions by committed geometry.
+
+Consequences the implementation must honour, all of them E4-7's total-write rule applied to
+measurement:
+
+- `measure()` is called on **every** admission, `previous` and pooled alike — the nominated element
+  changes when a recycled cell's subtree is rebuilt for a different note kind.
+- The view keys `rowByElement` on the **nominated** element, and needs cell → nominated so
+  `onCellReleased` unobserves the right node.
+- A consumer that never calls `measure()` falls back to the cell itself, which preserves US-1063's
+  current behaviour for a fixed-height consumer rather than breaking it.
+
+**This is why E4-8 put US-1063 and US-1064 adjacent.** The epic said the primitive "has never been
+exercised live"; its first consumer is where that had to surface, and the fix lands in US-1064 rather
+than as a retro-fix to a task already called done.
+
+---
+
 ## E4-8 — Task order
 
 Sequenced so the two risky conversions happen while the epic can still absorb a redesign, and so
@@ -355,15 +411,26 @@ the pilot does not depend on the new primitive:
    conversion pattern and the E4-7 cell-parts record on the simplest possible cell.
 2. **US-1063 — `VirtualFlexGridView`.** The measured-height wrapper (E4-2), with a story, written
    against the pilot's cell-parts pattern.
-3. **US-1064 — `NotebookBody` and its cell subtree.** The hardest consumer and the one carrying
+3. **US-1068 — Remove the React roots from `PathInputView`.** Added during the US-1064 plan review.
+   `PathInputView.tsx:222` still mounts a React bridge, and the notebook's category and tag editors
+   put it inside a virtualized cell, so E4-3 forbids using it as it stands. It is a separate task
+   because it fails the E4-4 test that governs the rest of this epic: unlike `NoteItemView`, which
+   is private to `NotebookBody`, `PathInput` has four independent consumers outside the notebook
+   (`EditLinkDialog.tsx`, `TagsInput.tsx`, `TagsInputView.ts`, `storyRegistry.ts`), so Rule 1
+   applies for real. Keeping it out of US-1064 also keeps the risks separable: if autocomplete
+   regresses, it must regress in a task whose only claim is "PathInput has no React root", not
+   entangled with the Monaco recycling proof. Small and mechanical — `AutocompleteView`,
+   `SelectView` and `MultiSelectView` already pass a native `contentView` to `PopoverView`.
+4. **US-1064 — `NotebookBody` and its cell subtree.** The hardest consumer and the one carrying
    Rule 4. Deliberately second-of-the-flex-pair, not last: if the E4-7 contract is wrong, this is
-   where it shows, and there must be epic left to fix it in.
-4. **US-1065 — `LogBody` and its cell subtree.** 1,661 lines but mechanical once US-1064 has
+   where it shows, and there must be epic left to fix it in. It also carries E4-11's correction to
+   US-1063's primitive, because it is that primitive's first consumer.
+5. **US-1065 — `LogBody` and its cell subtree.** 1,661 lines but mechanical once US-1064 has
    validated the primitive; 15 leaf item views that convert independently.
-5. **US-1066 — `LinksTiles` plus the eight `RenderGridModel` repointings.** The remaining
+6. **US-1066 — `LinksTiles` plus the eight `RenderGridModel` repointings.** The remaining
    link-editor consumers (`LinkItemList`, `LinkItemTiles`, the two panels) and the two
    `tree-provider` files.
-6. **US-1067 — Delete `uikit/RenderGrid/`.** The closing property, plus both ledger entries and
+7. **US-1067 — Delete `uikit/RenderGrid/`.** The closing property, plus both ledger entries and
    the `uikit/index.ts` exports. Its own task, per E3's precedent (US-1061) — a removal that lands
    with a conversion hides which of the two broke something.
 
