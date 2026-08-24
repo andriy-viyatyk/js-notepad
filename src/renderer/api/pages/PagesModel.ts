@@ -127,8 +127,18 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.state.update((s) => {
             s.pages = s.pages.filter((p) => p !== page);
             s.ordered = s.ordered.filter((p) => p !== page);
-            if (pairLeftId && s.compareGroups.has(pairLeftId)) {
-                const next = new Set(s.compareGroups);
+            // Read `compareGroups` off the pre-update snapshot, never off the draft.
+            // `TOneState.update` runs immer `produce` and this repository deliberately
+            // does not call `enableMapSet()` (US-970), so *reading* a Set/Map property
+            // on a draft makes immer try to proxy it and throw "The plugin for 'MapSet'
+            // has not been loaded". Assigning one is fine, which is why every other
+            // `compareGroups`/`leftRight`/`rightLeft` write in PagesLayoutModel is safe.
+            // This path only ran when closing a page that was half of a grouped pair,
+            // which is why it survived: `detachPage` had already cleared `page.onClose`,
+            // so the throw left the page detached but still in `pages[]` — orphaned and
+            // impossible to close again.
+            if (pairLeftId && state.compareGroups.has(pairLeftId)) {
+                const next = new Set(state.compareGroups);
                 next.delete(pairLeftId);
                 s.compareGroups = next;
             }

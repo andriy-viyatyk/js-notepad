@@ -17,6 +17,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
   - [ ] US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla
 - *(no epic)*
+  - [x] US-1049: Closing a grouped page threw an immer `MapSet` error and orphaned the page — `PagesModel.removePage` read the `compareGroups` Set off the immer draft, which this repo cannot do because it deliberately never calls `enableMapSet()` (US-970). Found while verifying US-1043; fixed by reading the pre-update snapshot.
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
 
