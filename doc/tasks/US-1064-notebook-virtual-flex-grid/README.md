@@ -636,9 +636,14 @@ an explicit manual procedure and acceptance result.
   search highlighting, toolbar language/editor switching, script actions, and Escape collapse
   remain functional through direct DOM views.
 - [ ] The manual Rule 4 procedure on
-  `C:\data\js-notepad-notes\temp\test.note.json` stays within the fixture's peak simultaneous
-  `monaco`-cell count (≤3), reports zero constructions on revisited rows, and reports zero on the
-  return-to-0 pass.
+  `C:\data\js-notepad-notes\temp\test.note.json` reports at most one construction per note on
+  first visit, zero on revisited rows, and zero on the return-to-0 pass.
+
+  **Amended.** This criterion originally required staying within the fixture's peak simultaneous
+  `monaco`-cell count (≤3). E4-6 and E4-13 superseded that: a pooled cell is deliberately
+  *retained* rather than detached, so its editor stays connected and "simultaneously live" no
+  longer means "in the viewport". The ceiling is now per-note first construction, which is what
+  the epic measures against the baseline of 1.
 - [ ] No unit tests or harnesses are added, and the task folder remains in the tree.
 
 ## Files Changed
