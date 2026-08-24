@@ -2,6 +2,7 @@ import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { openMenu, type MenuHandle, type MenuAttachOptions } from "../../uikit/Menu/attach-menu";
 import type { MenuItem } from "../../uikit/Menu/types";
+import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { DrawIcon } from "../../theme/language-icons";
 import type { ImageEditor } from "./ImageEditor";
@@ -101,7 +102,7 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
     private applyUrl(url: string | undefined): void {
         this.saveButton.root.hidden = !url;
         if (!url) {
-            this.menuHandle?.dispose();
+            void guard("Failed to close image save menu", () => this.menuHandle?.dispose());
             this.menuHandle = undefined;
             this.focusedBeforeMenu = null;
             return;

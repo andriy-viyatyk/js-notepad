@@ -130,10 +130,14 @@ export class FindBarView extends VanillaView<FindBarProps> {
             size: "sm",
             value: props.text,
             onChange: props.onTextChange,
-            onKeyDown: (event) => this.handleKeyDown(event.nativeEvent),
+            onKeyDown: this.handleInputKeyDown,
             placeholder: props.placeholder ?? "Find...",
         };
     }
+
+    private readonly handleInputKeyDown: NonNullable<InputProps["onKeyDown"]> = (event): void => {
+        this.handleKeyDown(event.nativeEvent);
+    };
 
     private readonly handleKeyDown = (event: KeyboardEvent): void => {
         if (event.key === "Escape") {

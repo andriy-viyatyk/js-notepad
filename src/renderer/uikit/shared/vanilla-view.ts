@@ -163,6 +163,29 @@ export abstract class VanillaView<P> implements IOwnedView {
     }
 
     /**
+     * Retire a registered child by disposing it, detaching its root, and
+     * unregistering it from this parent's ownership list. `dispose()`
+     * deliberately does not detach a root, so retirement is the parent's job;
+     * leaving a disposed child registered would retain it until the parent
+     * itself is disposed. The method is idempotent and ignores unregistered
+     * children. The root and ownership entry are released even when disposal
+     * throws.
+     */
+    protected releaseChild(child: IOwnedView): void {
+        if (this.children.indexOf(child) === -1) {
+            return;
+        }
+
+        try {
+            child.dispose();
+        } finally {
+            child.root.remove();
+            const index = this.children.indexOf(child);
+            if (index !== -1) this.children.splice(index, 1);
+        }
+    }
+
+    /**
      * Bind a selected state value to a DOM update.
      *
      * React view: state.use(s => ({ title: s.title }))

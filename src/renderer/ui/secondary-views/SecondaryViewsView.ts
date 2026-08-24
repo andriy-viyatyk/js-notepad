@@ -14,6 +14,7 @@ import {
     resolvePanelAttributes,
 } from "../../uikit/Panel/panel-style";
 import type { IconRef } from "../../uikit/shared/slots";
+import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { ISecondaryViewsState } from "./SecondaryViewsModel";
 import { LazySecondaryView } from "./LazySecondaryView";
@@ -296,11 +297,13 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
         const view = record.lazyView;
         record.lazyView = undefined;
         if (!view) return;
-        try {
-            view.dispose();
-        } finally {
-            view.root.remove();
-        }
+        void guard("Failed to dispose secondary view", () => {
+            try {
+                view.dispose();
+            } finally {
+                view.root.remove();
+            }
+        });
     }
 
     private requireStack(): CollapsiblePanelStackView {

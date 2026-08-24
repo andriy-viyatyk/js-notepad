@@ -5,6 +5,7 @@ import { SpinnerView } from "../../uikit/Spinner/SpinnerView";
 import { ImageViewportView } from "../../uikit/ImageViewport/ImageViewportView";
 import type { ImageViewportModel, ImageViewportProps } from "../../uikit/ImageViewport/ImageViewport";
 import type { EditorConfig } from "../base/EditorConfig";
+import { guard } from "../../core/utils/guard";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 
@@ -165,7 +166,11 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
             this.activeViewport.update(this.viewportProps(projection.svgUrl));
         } else {
             if (contentKey !== "viewport") this.activeViewport = undefined;
-            this.contentSwap.set(contentKey, (key) => this.createContentBranch(key, projection.svgUrl));
+            void guard("Failed to update Mermaid content", () => {
+                this.contentSwap.set(contentKey, (key) => this.createContentBranch(key, projection.svgUrl));
+                this.activeContentKey = contentKey;
+            });
+            return;
         }
         this.activeContentKey = contentKey;
     }

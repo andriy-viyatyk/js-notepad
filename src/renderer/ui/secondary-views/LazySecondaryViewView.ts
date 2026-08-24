@@ -113,11 +113,13 @@ export class LazySecondaryViewView extends VanillaView<SecondaryViewProps> {
         this.panelCtor = undefined;
         if (!view) return;
 
-        try {
-            view.dispose();
-        } finally {
-            view.root.remove();
-        }
+        void guard("Failed to dispose secondary view", () => {
+            try {
+                view.dispose();
+            } finally {
+                view.root.remove();
+            }
+        });
     }
 
     private showError(message: string): void {

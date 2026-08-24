@@ -2,6 +2,7 @@ import { PathInputView } from "../PathInput/PathInputView";
 import type { PathInputProps } from "../PathInput/PathInputModel";
 import { TagView } from "../Tag/TagView";
 import type { TagProps } from "../Tag/Tag";
+import { guard } from "../../core/utils/guard";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { claimViewOwnership, VanillaView } from "../shared/vanilla-view";
 import { KeyedList } from "../shared/keyed-list";
@@ -92,10 +93,10 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
 
     private syncInput(props: TagsInputProps): void {
         if (props.readOnly) {
-            if (this.inputView) {
-                this.inputView.dispose();
-                this.inputView.root.remove();
-                this.inputView = undefined;
+            const inputView = this.inputView;
+            this.inputView = undefined;
+            if (inputView) {
+                void guard("Failed to dispose path input", () => this.releaseChild(inputView));
             }
             this.inputSlot?.remove();
             return;

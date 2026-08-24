@@ -44,6 +44,13 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
         return model;
     }
 
+    /** Release models created by this host after the diff widget no longer references them. */
+    public releaseOwnedModels(models: readonly monaco.editor.ITextModel[]): void {
+        const released = models.filter((model) => this.ownedModels.delete(model));
+        if (released.length === 0) return;
+        this.scheduleModelDisposal(released);
+    }
+
     public setModel(
         models: monaco.editor.IDiffEditorModel | null,
         ownership: MonacoModelOwnership = "borrowed",
@@ -83,8 +90,12 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
             editor.dispose();
         }
         this.editor = undefined;
+        this.scheduleModelDisposal(ownedModels);
+    }
+
+    private scheduleModelDisposal(models: readonly monaco.editor.ITextModel[]): void {
         setTimeout(() => {
-            ownedModels.forEach((model) => model.dispose());
+            models.forEach((model) => model.dispose());
         }, 0);
     }
 

@@ -4,6 +4,7 @@ import type { TextFileModel } from "../../editors/text/TextEditorModel";
 import { pagesModel } from "../../api/pages";
 import type { PageModel } from "../../api/pages/PageModel";
 import { SecondaryViewsView } from "../secondary-views/SecondaryViewsView";
+import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createOrnamentElement } from "../../theme/Ornament";
 import { RenderEditorView } from "./RenderEditorView";
@@ -107,10 +108,10 @@ export class PageContentView extends VanillaView<PageContentProps> {
     }
 
     private clearSecondary(): void {
-        if (!this.secondaryView) return;
-        this.secondaryView.dispose();
-        this.secondaryView.root.remove();
+        const view = this.secondaryView;
+        if (!view) return;
         this.secondaryView = undefined;
+        void guard("Failed to dispose secondary views", () => this.releaseChild(view));
     }
 
     private syncContent(editor: EditorModel | null): void {
@@ -156,9 +157,17 @@ export class PageContentView extends VanillaView<PageContentProps> {
     }
 
     private clearContent(): void {
-        this.renderEditor?.dispose();
-        this.renderEditor?.root.remove();
+        const view = this.renderEditor;
         this.renderEditor = undefined;
+        if (view) {
+            void guard("Failed to dispose editor", () => {
+                try {
+                    view.dispose();
+                } finally {
+                    view.root.remove();
+                }
+            });
+        }
         this.contentRoot?.remove();
         this.contentRoot = undefined;
         this.contentIdentity = undefined;
@@ -182,7 +191,7 @@ export class PageContentView extends VanillaView<PageContentProps> {
         const generation = ++this.generation;
         view.root.remove();
         queueMicrotask(() => {
-            if (this.generation === generation) view.dispose();
+            if (this.generation === generation) void guard("Failed to dispose compare editor", () => view.dispose());
         });
     }
 }

@@ -2,6 +2,7 @@ import { editorRegistry, type EditorOrHost } from "../../editors/base";
 import type { EditorModel } from "../../editors/base/EditorModel";
 import type { EditorViewModule, FileEditorComponent, FileEditorView } from "../../editors/types";
 import { parseBoardEditorId } from "../../editors/board/custom-editor-registry";
+import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { AsyncEditorView } from "./AsyncEditorView";
 
@@ -25,8 +26,8 @@ export class RenderEditorView extends VanillaView<RenderEditorViewProps> {
 
     protected onUpdate(props: RenderEditorViewProps): void {
         if (props.model.id !== this.modelId) {
-            this.asyncEditor.dispose();
-            this.asyncEditor.root.remove();
+            const previous = this.asyncEditor;
+            void guard("Failed to dispose editor", () => this.releaseChild(previous));
             this.modelId = props.model.id;
             this.asyncEditor = this.child(new AsyncEditorView(this.asyncProps(props.model)));
             this.root.append(this.asyncEditor.root);

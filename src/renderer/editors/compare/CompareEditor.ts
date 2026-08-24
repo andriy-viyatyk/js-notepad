@@ -137,6 +137,17 @@ export class CompareEditor extends VanillaView<CompareEditorProps> {
         const leftProjection = selectCompareProjection(model.state.get());
         const rightProjection = selectCompareProjection(groupedModel.state.get());
         const language = leftProjection.language;
+
+        const previousModels = [this.originalModel, this.modifiedModel].filter(
+            (model): model is monaco.editor.ITextModel => model !== undefined,
+        );
+        if (previousModels.length > 0) {
+            // The widget defers disposal of its previous model references. Keep
+            // the host-owned models alive until that macrotask has run.
+            this.diffHost.setModel(null);
+            this.diffHost.releaseOwnedModels(previousModels);
+        }
+
         this.originalModel = this.diffHost.createModel(leftProjection.content, language);
         this.modifiedModel = this.diffHost.createModel(rightProjection.content, language);
         this.currentLanguage = undefined;

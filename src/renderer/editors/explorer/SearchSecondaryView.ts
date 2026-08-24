@@ -1,4 +1,5 @@
 import { app } from "../../api/app";
+import { guard } from "../../core/utils/guard";
 import { createLinkData } from "../../../shared/link-data";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
@@ -150,10 +151,12 @@ export default class SearchSecondaryView extends VanillaView<SecondaryViewProps>
 
         const previous = this.fileSearch;
         this.fileSearch = next;
-        try {
-            previous.dispose();
-        } finally {
-            previous.root.remove();
-        }
+        void guard("Failed to dispose file search", () => {
+            try {
+                previous.dispose();
+            } finally {
+                previous.root.remove();
+            }
+        });
     }
 }

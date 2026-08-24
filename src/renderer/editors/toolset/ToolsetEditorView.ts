@@ -1,6 +1,7 @@
 import { pagesModel } from "../../api/pages";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
+import { guard } from "../../core/utils/guard";
 import { toolsTrust } from "../../api/tools/tools-trust";
 import { registeredTools } from "../../api/tools/registered-tools";
 import { type ToolDef, type ToolsManifest } from "../../api/tools/tools-manifest";
@@ -199,13 +200,15 @@ export class ToolsetEditorView extends VanillaView<{ model: ToolsetEditorModel }
 
     private syncErrorBranch(errors: ErrorEntry[]): void {
         if (this.activeBranchKey !== "errors") {
-            this.branchSwap.set("errors", () => {
-                const branch = new ErrorBranchView({ errors });
-                branch.mount();
-                this.activeBranch = branch;
-                return branch;
+            void guard("Failed to update toolset errors", () => {
+                this.branchSwap.set("errors", () => {
+                    const branch = new ErrorBranchView({ errors });
+                    branch.mount();
+                    this.activeBranch = branch;
+                    return branch;
+                });
+                this.activeBranchKey = "errors";
             });
-            this.activeBranchKey = "errors";
             return;
         }
         if (this.activeBranch instanceof ErrorBranchView) this.activeBranch.update({ errors });
@@ -213,13 +216,15 @@ export class ToolsetEditorView extends VanillaView<{ model: ToolsetEditorModel }
 
     private syncToolBranch(tools: ToolDef[]): void {
         if (this.activeBranchKey !== "tools") {
-            this.branchSwap.set("tools", () => {
-                const branch = new ToolListBranchView({ tools });
-                branch.mount();
-                this.activeBranch = branch;
-                return branch;
+            void guard("Failed to update toolset tools", () => {
+                this.branchSwap.set("tools", () => {
+                    const branch = new ToolListBranchView({ tools });
+                    branch.mount();
+                    this.activeBranch = branch;
+                    return branch;
+                });
+                this.activeBranchKey = "tools";
             });
-            this.activeBranchKey = "tools";
             return;
         }
         if (this.activeBranch instanceof ToolListBranchView) this.activeBranch.update({ tools });
