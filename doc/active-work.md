@@ -8,16 +8,8 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-059** — [De-React Epic E1 — Editor foundations](epics/EPIC-059.md)
-  - [x] US-1042: Vanilla editor registration seam + convert the `toolset` editor
-  - [x] US-1043: Vanilla Monaco host + convert the `compare` editor
-  - [x] US-1044: `editors/shared` widgets to vanilla
-  - [x] US-1045: Convert the `image` editor inside its React `<PageToolbar>` shell
-  - [x] US-1046: Convert the `mermaid` editor body inside its React `TextChrome` shell
-  - [x] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
-  - [ ] US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla — **deferred to Epic E2** per EPIC-059 E1-12; [plan already written](tasks/US-1048-hast-dom-markdown/README.md) and inherited
 - *(no epic)*
-  - [x] US-1049: Closing a grouped page threw an immer `MapSet` error and orphaned the page — `PagesModel.removePage` read the `compareGroups` Set off the immer draft, which this repo cannot do because it deliberately never calls `enableMapSet()` (US-970). Found while verifying US-1043; fixed by reading the pre-update snapshot. Marked `[x]` as implemented, but its `/review` + docs pass rides along with EPIC-059's close rather than running the standalone flow for a one-line fix in the same code area.
+  - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
 
@@ -28,10 +20,12 @@ Overview of all active and planned epics and tasks.
   complete as EPIC-054**, **C2 is complete as [EPIC-055](epics/EPIC-055.md)**, **C3 is complete as
   [EPIC-056](epics/EPIC-056.md)**, and **C4 is complete as [EPIC-057](epics/EPIC-057.md)** — the last
   epic in Epic C. **Epic D is complete as [EPIC-058](epics/EPIC-058.md)** — the shell is vanilla and
-  the application root is flipped. **Epic E is split: E1 is active as
-  [EPIC-059](epics/EPIC-059.md)** (editor foundations — the seams every editor conversion needs);
-  the editor conversions themselves land in later epics, scoped when each opens. Next free epic
-  number: **EPIC-060**.
+  the application root is flipped. **Epic E is split: E1 is complete as
+  [EPIC-059](epics/EPIC-059.md)** — the four editor seams every conversion needs now exist, each with
+  a converted pilot. **Epic E2 is next**: the editor conversions themselves, scoped when it opens. It
+  inherits one ready-made task —
+  [US-1048: `hast → DOM` markdown renderer](tasks/US-1048-hast-dom-markdown/README.md), deferred from
+  E1 per EPIC-059 E1-12 with its plan already written. Next free epic number: **EPIC-060**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

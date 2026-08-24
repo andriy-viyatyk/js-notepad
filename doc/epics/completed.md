@@ -4,6 +4,73 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-059 — [De-React Epic E1 — Editor foundations](EPIC-059.md)
+
+Built the four seams every later editor conversion needs, each shipped with a consumer that uses it.
+The epic existed because **nothing in `editors/` could be converted**: both registries were typed
+`React.ComponentType`, `AsyncEditorView` created a React root unconditionally, and the folder held
+zero `VanillaView` references.
+
+`EditorModule` became a discriminated union with `View`/`BodyView` arms (31 `Component:` and 5
+`Body:` providers unchanged), normalized in `loadModule()` before the cache write so each editor id
+keeps one wrapper identity. `MonacoDiffEditorHostView` owns `createDiffEditor` and its models
+directly. `editors/shared` lost React in two files. The three chrome shapes are now documented with a
+pilot each — chrome-free (`toolset`), `<PageToolbar>` (`image`, 6 editors follow), `TextChrome`
+(`mermaid`, 14 follow) — and the secondary-view registry gained `arm: "vanilla"`.
+
+Rule 4: a cold compare-editor mount went **2,001 → 1,096 DOM mutations (−45%)**, plus one React root
+deleted. Larger than the working assumption that Monaco's own rendering would swamp the difference —
+nearly half the DOM traffic of opening a diff was the React wrapper and its reconciliation.
+
+US-1048 (`hast → DOM` markdown renderer) was **deferred to Epic E2** under E1-5's pre-authorisation,
+on evidence rather than caution: no E1 task depended on it, it cannot be split without either
+regressing Monaco/mermaid output or mounting a React root per code block, and E2 converts the
+markdown editor that owns it. Its plan was written first, so E2 inherits it intact.
+
+Also fixed **US-1049** (found while verifying US-1043): closing one half of a grouped pair threw an
+immer `MapSet` error and left the tab orphaned and unclosable.
+
+**Two review rounds, both of which earned their keep.** The epic-close review found two defects the
+per-task reviews had missed — `RenderEditorView` retaining a dead editor per editor change, and
+`CompareEditor` leaking two Monaco text models per rebind — and its dominant finding generalised a
+fix applied in only one place: `VanillaView` had no way to unregister a child, which had produced
+**four** leak sites, so the primitive gained `releaseChild()` rather than four hand-patches.
+
+Then the **visual-testing round found four more defects, three of them invisible to the structural
+MCP checks that had already passed** — the epic's most transferable lesson:
+
+1. **`loader.config({ monaco })` must stay.** US-1043 deleted it reasoning it "existed only to hand
+   the React wrapper the instance" — precisely why 11 remaining wrapper consumers need it. Without
+   it the loader falls back to its CDN URL, which Electron resolves as a local file path: every
+   Monaco-backed editor hung at "Loading…" with `ENOENT`. The breakage was in the editors US-1043
+   *didn't* touch, and none was opened during its verification.
+2. **The diff widget collapsed to width 0.** Monaco's `.monaco-diff-editor` sets only `height`
+   inline and relies on being a block child; inside the flex host it laid out at 38px/5px — line
+   numbers visible, content clipped. The structural check had verified *presence*, never *geometry*.
+3. **The `hidden` attribute was inert on every UIKit root** — a class bug, not a mermaid bug. Each
+   UIKit CSS sets `display` on its root, and an author `display` rule beats the UA `[hidden]` rule,
+   so all ~20 `.hidden =` toggles in converted views were silently doing nothing (the reported
+   symptom was a mermaid spinner that never left). Fixed at the primitive: six UIKit stylesheets
+   gained a `<root>[hidden] { display: none; }` counter-rule.
+4. **`TagsInputView` never mounted its `TagView`s** — latent since Epic C2, not an E1 regression.
+   Ownership was claimed and the root inserted, but `TagView` builds all its DOM in `onMount()`, so
+   every chip rendered as a bare zero-width span and selecting a tag looked like a no-op. Same class
+   as US-1042's `SpacerView` finding. All `claimViewOwnership` sites swept; this was the only miss.
+
+The follow-up Codex review of those four fixes found **0 must-fix and 3 advisory documentation gaps**,
+all closed: the `[hidden]` counter-rule and the "ownership does not mount" rule are now stated in
+`coding-style.md`, `component-guide.md`, `model-view-pattern.md` and `uikit/CLAUDE.md`, and the stale
+"`loader.config` is deleted" planning text in `de-react.md` and E1-4 was corrected. Full record:
+`doc/tasks/epic59-fixes-review.md`.
+
+- [x] US-1042: Vanilla editor registration seam + convert the `toolset` editor
+- [x] US-1043: Vanilla Monaco host + convert the `compare` editor
+- [x] US-1044: `editors/shared` widgets to vanilla
+- [x] US-1045: Convert the `image` editor inside its React `<PageToolbar>` shell
+- [x] US-1046: Convert the `mermaid` editor body inside its React `TextChrome` shell
+- [x] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
+- [ ] US-1048: `hast → DOM` markdown renderer — **deferred to Epic E2** (E1-12), plan written
+
 ## EPIC-058 — [De-React Epic D — Shell and shared components](EPIC-058.md)
 
 Converted `src/renderer/ui/` (dialogs, secondary views, sidebar, tabs, MainPage) and

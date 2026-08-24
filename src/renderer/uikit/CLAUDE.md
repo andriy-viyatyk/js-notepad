@@ -502,6 +502,11 @@ exports from `uikit/index.ts`.
 - `mount()` is where child DOM and bindings are built. The owner attaches `root` before calling
   `mount()` when the view may measure itself. `update(props)` always stores the latest props;
   before mount it does not call `onUpdate`, and `onMount()` renders from the stored props.
+- Ownership and mounting are separate operations. `claimViewOwnership(view)` and `this.child(view)`
+  only register lifetime ownership; they do not call `mount()`. Every claimed child must be mounted
+  exactly once before its root is handed to a structural inserter or expected to render. For a view
+  claimed directly rather than through `this.child()`, the usual order is create → claim → mount →
+  return or insert, and the owner must also dispose it explicitly.
 - `dispose()` is idempotent and disposes owned children first, then registered resources in FIFO
   order, then `onDispose()`. It attempts the complete cleanup snapshot and rethrows the first
   error afterward. Registration order is load-bearing. It makes the view inert but does not remove
@@ -912,6 +917,11 @@ converted component's DOM directly, or calls a shared attribute helper such as
 component import to load CSS. Import the borrowed component stylesheet alongside the view's own
 stylesheet. This keeps direct-view bundles correct when the React face is not present in the
 module graph.
+
+**The `[hidden]` counter-rule is required when a root sets `display`.** The browser's user-agent
+`[hidden]` rule can lose to an author `display` rule, so every converted root whose stylesheet sets
+`display` must also declare `<root-selector>[hidden] { display: none; }` in the same `@layer`.
+Keep the selector scoped to that component root; app-owned roots use their own local equivalent.
 
 ### Colors
 

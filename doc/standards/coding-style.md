@@ -143,6 +143,11 @@ That is an owner relationship, not a public styling escape hatch. Converted UIKi
 omit public `style` and `className` props, although their implementation may set a narrowly typed
 custom property on its own raw root element.
 
+When an author stylesheet sets `display` on a component root, add a same-layer counter-rule using
+that root selector: `<root-selector>[hidden] { display: none; }`. The user-agent `[hidden]` rule can
+lose to author CSS, so a vanilla view's `element.hidden = ...` toggle is not reliable without this
+explicit rule. Keep the selector scoped to the root it owns.
+
 ### Tokens, colors, and runtime values
 
 Static CSS consumes theme and design-token variables directly:

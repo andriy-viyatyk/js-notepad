@@ -228,6 +228,10 @@ bindings; the owner attaches the root before calling it when layout measurement 
 `update(props)` before mount stores props without calling `onUpdate`; `onMount()` renders from the
 stored props. Later updates modify existing DOM without replacing the root.
 
+`claimViewOwnership()` and `child()` only establish ownership; they do not mount the child. An owner
+that claims a view directly must mount it exactly once before handing its root to a keyed list, slot,
+or other structural inserter, and must arrange disposal itself when it is not using `child()`.
+
 Disposal is idempotent and depth-first: owned children are disposed first, then registered
 resources in FIFO registration order, then `onDispose()`. Every cleanup is attempted and the first
 error is rethrown after the full cleanup snapshot. The base makes the view inert but does not

@@ -31,6 +31,11 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Primitive attribute contract** — never override a UIKit primitive's generated `data-type`; its CSS is keyed by that value. Use an additive class or a separate data attribute for app-specific state.
 - **Icon slots** — use `IconRef` for icon-bearing props. React faces resolve registry names with `renderIcon`; vanilla views narrow string values with `isIconName` and build SVG with `createIconElement`. A string is always a registry name, never literal fallback text. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
 
+Two conversion footguns are part of the contract: claiming a vanilla child does not mount it, so
+call `mount()` exactly once before inserting or returning its root; and a converted root whose CSS
+sets `display` needs a same-layer `<root-selector>[hidden] { display: none; }` counter-rule so
+`.hidden = ...` remains effective. The full lifecycle and styling details live in `uikit/CLAUDE.md`.
+
 The icon registry is the neutral boundary for reusable components. `IconName` is derived from the
 single registry record in `src/renderer/theme/icon-registry.ts`; `renderIcon(name, props?)`
 resolves a name and preserves SVG props when a caller needs them. A missing name renders nothing

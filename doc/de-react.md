@@ -791,12 +791,13 @@ suggested pilot order survives inside E1: `image`, `compare` and `mermaid` are c
 proving consumers of the seams they exercise (E1-2).
 
 **Second, `@monaco-editor/react`'s "trivial" is measurable and even smaller than stated**: 18
-importers, of which **12** use the `Editor`/`DiffEditor` component, 5 import the `Monaco` *type*, and
-1 calls `loader`. `configure-monaco.ts` already imports `monaco-editor` directly and computes
-`typeof monaco` locally, so its `loader.config({ monaco })` exists solely to hand the wrapper the
-instance it already has — it is deleted, not ported (E1-4). The replacement is a control inversion,
-not a swap, making it the programme's **third documented Rule 2 exception** after C3-1 and C4-2
-(E1-3).
+importers at epic open, of which **12** used the `Editor`/`DiffEditor` component, 5 imported the
+`Monaco` *type*, and 1 called `loader`. After E1-3, 11 wrapper consumers remain. `configure-monaco.ts`
+still imports `monaco-editor` directly and must retain `loader.config({ monaco })` for those consumers:
+without it the wrapper falls back to its CDN URL, which Electron resolves as a local file path. The
+config can be deleted only when the last `@monaco-editor/react` importer is removed. The replacement
+is a control inversion, not a swap, making it the programme's **third documented Rule 2 exception**
+after C3-1 and C4-2 (E1-3).
 
 **Third, §3.6's "already in `node_modules`" is true but incomplete**: `unified`, `remark-parse`,
 `mdast-util-to-hast` and `hast-util-raw` are present only as **transitive** dependencies, so the

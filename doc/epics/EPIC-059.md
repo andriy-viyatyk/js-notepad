@@ -2,14 +2,16 @@
 
 ## Status
 
-**Status:** Active — implementation, review and docs complete; **blocked on the Testing owed table**
+**Status:** Complete
 **Created:** 2026-08-24
-**Completed:** —
+**Completed:** 2026-08-24
 
-> **Where this stands.** Six of seven tasks are implemented, reviewed (Codex `/review`), documented
-> (`/document` + `/userdoc`), and marked `[x]`. US-1048 is deferred to Epic E2 with its plan written
-> (E1-12). The epic does **not** close until every row in [Testing owed](#testing-owed) is cleared with
-> the user — that is this epic's own rule, and two rows are open.
+> **Where this landed.** Six of seven tasks implemented, reviewed (Codex `/review`), documented
+> (`/document` + `/userdoc`), and marked `[x]`; US-1048 deferred to Epic E2 with its plan written
+> (E1-12). Every row in [Testing owed](#testing-owed) was cleared with the user in a visual-testing
+> round that found **four defects** — three of them invisible to the structural MCP checks that had
+> passed. All four fixed, verified live, and covered by a follow-up Codex review + docs pass
+> (`doc/tasks/epic59-fixes-review.md`: 0 must-fix, 3 advisory documentation gaps, all closed).
 
 ## Overview
 
@@ -59,8 +61,9 @@ wrapper "trivial — lifecycle only". That is right, and the measurement makes i
 `monaco-editor` is already a direct dependency at 0.55.1, and `configure-monaco.ts` **already imports
 it directly** (`import * as monaco from "monaco-editor"`) and computes `type Monaco = typeof monaco`
 locally at line 16. Its one call, `loader.config({ monaco })`, exists solely to hand the React wrapper
-the monaco instance the file already has. So the six non-component importers are free: the type
-repoints to `monaco-editor`, and the `loader.config` line is *deleted*, not replaced.
+the monaco instance the file already has. The six non-component importers are free to repoint their
+types to `monaco-editor`, but the loader call remains for the 11 component consumers and is deleted
+only with the last `@monaco-editor/react` importer.
 
 **3. `react-markdown` has exactly one importer.** `editors/markdown/MarkdownBlock.tsx:1`. Roadmap
 §3.6's plan — keep `remark`/`rehype`, replace only the final `hast → JSX` step — is confirmed against
@@ -241,6 +244,10 @@ Checks that need human eyes, deferred by the rule above. Every one of them is cl
 **before this epic closes** — an unchecked row is a blocker for epic completion, not a footnote. Add a
 row the moment you defer something; do not batch them up at the end from memory.
 
+**All rows cleared 2026-08-24** in a visual-testing round with the user. Kept below as the record of
+what was checked and what it caught — the pass found four defects, three of which the structural MCP
+checks had passed clean (see Notes).
+
 | Task | What to look at | How to reach it |
 |---|---|---|
 | **close review** | **Re-verify the surfaces the close-review fix touched** — compare open/close, the sidebar secondary panel opening and closing repeatedly, the image toolbar's Save menu, the mermaid preview, the find bar, and a `TagsInput`. The fix changed 13 files including `VanillaView` itself (`releaseChild`), so this is the broadest single change in the epic and the only one with no live check. Gates pass and every hunk was reviewed; what is missing is that it *runs*. | Ordinary use of each surface. The Persephone MCP server disconnected mid-pass and did not return in-session, which is why this is owed rather than done. |
@@ -308,7 +315,7 @@ properly rather than rendering once.
 
 ### E1-3 — The Monaco host is a vanilla view, not a wrapper replacement
 
-`@monaco-editor/react`'s `Editor` is not swapped for an equivalent — the 12 call sites pass
+`@monaco-editor/react`'s `Editor` is not swapped for an equivalent — the 12 call sites at epic scope passed
 controlled props (`value`, `onChange`, `options`, `onMount`, `keepCurrentModel`) to a component that
 reconciles them into imperative Monaco calls. A vanilla `MonacoHostView` owns
 `monaco.editor.create(…)` and exposes the model directly, so the call sites stop describing state and
@@ -317,15 +324,17 @@ and it is a **Rule 2 exception** for the same reason: a controlled-prop shim wou
 layer built at the end of the programme in order to delete it.
 
 This makes it the programme's **third documented Rule 2 exception**, after C3-1 (`RenderGrid`'s cell
-contract) and C4-2 (av-grid). Unlike those, its blast radius is bounded and known: 12 files, listed
+contract) and C4-2 (av-grid). Unlike those, its blast radius is bounded and known: 11 remaining files, listed
 in finding 2.
 
-### E1-4 — `loader.config` is deleted, not ported
+### E1-4 — Keep `loader.config` until the last React Monaco consumer is gone
 
-`configure-monaco.ts` already holds the monaco instance it feeds the wrapper. With the wrapper gone
-there is nothing to configure, so the line and the import go. `vite-plugin-monaco-editor-esm` and
-`monaco-editor` are untouched, and no worker or language registration changes — the five
-`monaco-languages/*` files keep their `Monaco` type, repointed one import deeper.
+`configure-monaco.ts` still holds the bundled Monaco instance that the 11 remaining wrapper consumers
+need. Keep `loader.config({ monaco })` and its import until the last `@monaco-editor/react` importer
+is removed; otherwise the wrapper falls back to its CDN URL, which Electron resolves as a local file
+path and reports as `ENOENT`. `vite-plugin-monaco-editor-esm` and `monaco-editor` are untouched, and
+no worker or language registration changes — the five `monaco-languages/*` files keep their `Monaco`
+type, repointed one import deeper.
 
 ### E1-5 — The markdown renderer is this epic's designated slip item
 
@@ -692,7 +701,8 @@ is accepted.
   `applyToolbarAttributes` were added to `uikit/Toolbar/toolbar-style.ts` (mirroring `panel-style.ts`)
   and `ToolbarView` now calls the factory, so the toolbar contract has one source of truth;
   `data-roving-host` deliberately stays in `ToolbarView`, since it advertises a roving-tabindex manager
-  a static toolbar does not have. `MONACO_THEME_NAME` is exported and `loader.config` is gone.
+  a static toolbar does not have. `MONACO_THEME_NAME` is exported; `loader.config` remains because
+  11 other `@monaco-editor/react` consumers still use the wrapper.
 
   **Codex overturned my own analysis on the disposal question, and was right.** I checked that
   `DiffEditorWidget`'s `onWillDispose` guards are removed synchronously (`autorunImpl.js:40-51`) and
