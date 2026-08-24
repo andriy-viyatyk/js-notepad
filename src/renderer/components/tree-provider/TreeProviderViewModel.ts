@@ -348,9 +348,9 @@ export class TreeProviderViewModel extends TComponentModel<
             // Refresh children for every expanded directory INLINE, before publishing the
             // new tree. Doing this atomically avoids an intermediate render where the tree
             // is shrunk to root-only entries (all child folders' `items` momentarily
-            // undefined). That shrink causes RenderGridModel.updateRenderInfo to reset
-            // scrollOffset.y to 0 (innerSize < size branch in RenderGridModel.ts), wiping
-            // the user's scroll position on every FS watch tick — exactly what an AI agent
+            // undefined). That shrink would force the native virtual-grid model through its
+            // over-large-offset clamp (VirtualGridModel.ts:527-540), wiping the user's scroll
+            // position on every FS watch tick — exactly what an AI agent
             // editing files in the project folder triggers repeatedly.
             //
             // Sorted by length so parent paths are populated before child paths — needed

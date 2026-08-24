@@ -96,8 +96,8 @@ export function RevisionPicker({ side, picker, value, showStaged, onPick }: Revi
             >
                 <Panel direction="column" gap="xs" padding="xs" width={460}>
                     {/* Fixed-height column-flex ancestor + the `flex={1} height={0}`
-                        filler — the proven structure for RenderGrid (flex:1 1 auto
-                        with a 100px fallback) to fill instead of staying 100px. */}
+                        filler lets the VirtualGrid root (`flex: 1 1 auto`, with its 100px
+                        fallback; see VirtualGridView.ts:619-631) fill instead of staying 100px. */}
                     <Panel direction="column" height={280}>
                         <Panel direction="column" flex={1} height={0}>
                             <GitTree

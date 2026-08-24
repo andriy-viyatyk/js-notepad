@@ -172,8 +172,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     /**
      * Memoized flat list of visible rows. Each render-relevant input (items prop, expansion
-     * map, default-expand hints) appears in the deps factory. RenderGrid iterates over
-     * rows.length.
+     * map, default-expand hints) appears in the deps factory. The tree host passes this flat
+     * array to VirtualGrid, whose row count is rows.length.
      */
     rows = this.memo<TreeRow<T>[]>(
         () => {

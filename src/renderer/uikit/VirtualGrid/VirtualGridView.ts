@@ -1,8 +1,8 @@
 /**
- * The DOM shell — a rewrite of `uikit/RenderGrid/RenderGrid.tsx`, not a transliteration of it.
+ * The DOM shell for VirtualGrid.
  *
- * Builds the scroll container, the inner sizer, and the nine render regions, then keeps their
- * children in sync with whatever `VirtualGridModel` most recently computed.
+ * Builds the scroll container, the inner sizer, and nine render regions (cells, four sticky
+ * bands, and four sticky corners), then keeps their children in sync with VirtualGridModel.
  *
  * Three things make the paint cheap:
  *
@@ -215,7 +215,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
 
     /**
      * Attach an element that is not a cell — an add-row button, an empty-state message. Replaces
-     * the React engine's `extraElement` / `extraElementTop` props.
+     * the grid's content/header overlay surfaces.
      *
      * Safe against the paint because `syncRegion` only ever removes elements it appended itself:
      * `attached` holds exactly the pooled cells, so anything put here is invisible to the
@@ -336,7 +336,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
             stickyBottomRight: new Set(),
         };
 
-        // Corners nest inside their band, matching the React engine's stacking.
+        // Corners nest inside their band so the nine-region shell has stable stacking.
         this.regions.stickyTop.append(
             this.regions.stickyTopLeft,
             this.regions.stickyTopRight,
@@ -756,7 +756,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
             setStyle(el, "left", "0px");
             setStyle(el, "width", px(innerSize.stickyLeftWidth));
             // Falls back to the trailing whitespace when there is no bottom band. The right-hand
-            // band does not do this; the asymmetry is the React engine's.
+            // band does not do this; the asymmetry follows the current sticky-region layout.
             setStyle(
                 el,
                 "height",

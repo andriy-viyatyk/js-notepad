@@ -1,16 +1,14 @@
 /**
  * Scroll handling, sizing, and dirty-set merging — the stateful half of the engine.
  *
- * Absorbed from av-grid's `render/RenderGridModel.ts`, which was itself ported from
- * `uikit/RenderGrid/RenderGridModel.ts` with the React lifecycle removed. What changed on the
- * way in here is the notification mechanism:
+ * Owns plain-field options, a ResizeObserver-backed attachment, and dirty-set repaint scheduling.
+ * The view supplies the DOM shell and a repaint callback; the model stays independent of DOM
+ * creation and framework lifecycle:
  *
- * | React engine (`uikit/RenderGrid/`) | Here |
- * |---|---|
- * | `extends TComponentModel` | **no base class, no reactive store** |
- * | `mapProps` / `setProps` on every React render | `setOptions(partial)`, called explicitly |
- * | `isFirstUse` + `setTimeout(checkSize, 200)` | a `ResizeObserver` attached in `attach()` |
- * | `isLive` | `disposed` |
+ * | Model state | Plain fields, no reactive store |
+ * | Option changes | `setOptions(partial)`, called explicitly |
+ * | Size tracking | A `ResizeObserver` attached in `attach()` |
+ * | Lifecycle | `_disposed` guards and `dispose()` |
  * | `rerender()` bumps state so React repaints | `requestRepaint()` calls one `onRepaintNeeded` |
  * | `React.UIEvent` | `Event` |
  *

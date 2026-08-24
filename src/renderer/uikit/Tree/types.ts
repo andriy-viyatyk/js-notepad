@@ -53,7 +53,7 @@ export interface TreeItemRenderContext<T> {
     expanded: boolean;
     /** True when the row has children (chevron should render). */
     hasChildren: boolean;
-    /** Index inside the FLAT visible-rows array (what RenderGrid uses). */
+    /** Index inside the flat visible-row array consumed by VirtualGrid. */
     rowIndex: number;
     /** True when the row is the current selection (per `value` or `isSelected`). */
     selected: boolean;

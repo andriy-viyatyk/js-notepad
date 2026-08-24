@@ -55,19 +55,19 @@ const failed = new Set<string>();
  * renderer loads them natively with lazy loading, and routing them here would read every
  * visible image fully into memory for no gain.
  */
-function needsPipeImageSrc(src: string | null | undefined): boolean {
+export function isPipeImageSrc(src: string | null | undefined): boolean {
     return !!src && isArchivePath(src);
 }
 
 /** Memory-only lookup. Returns the blob URL, or null if not read yet / unreadable. */
-function getPipeImageSrcSync(src: string | null | undefined): string | null {
+export function getPipeImageSrcSync(src: string | null | undefined): string | null {
     if (!src) return null;
     return cache.get(src) ?? null;
 }
 
 /** Read `src` through a content pipe and cache the resulting blob URL. Concurrent callers
  *  for the same source share one read. Returns null when the source can't be read. */
-async function resolvePipeImageSrc(src: string): Promise<string | null> {
+export async function resolvePipeImageSrc(src: string): Promise<string | null> {
     const cached = cache.get(src);
     if (cached) return cached;
     if (failed.has(src)) return null;
@@ -114,7 +114,7 @@ function evictOverflow() {
  * and needs no loading state of its own.
  */
 export function usePipeImageSrc(src: string | null | undefined): string | null {
-    const needs = needsPipeImageSrc(src);
+    const needs = isPipeImageSrc(src);
     // Seeded from the cache so a tile scrolled back into view paints its image on the
     // first render rather than flashing the fallback glyph.
     const [resolved, setResolved] = useState<string | null>(

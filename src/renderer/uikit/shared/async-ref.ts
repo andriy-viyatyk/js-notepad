@@ -14,8 +14,8 @@
  * awaiting the original waited forever. Assigning inside the constructor, after the reset, is the
  * fix. Do not move `async` back to a field initializer.
  *
- * Shared by both virtualization engines: `uikit/VirtualGrid/VirtualGridModel.ts` (live) and
- * `uikit/RenderGrid/RenderGridModel.ts` (React-only, pending removal).
+ * Used by the live `uikit/VirtualGrid/VirtualGridModel.ts` for imperative calls that may arrive
+ * before its DOM container is mounted.
  */
 export class AsyncRef<T> {
     current: T;

@@ -1,14 +1,9 @@
 /**
- * Types for the virtualization engine.
+ * Types for the VirtualGrid DOM contract.
  *
- * Ported from `uikit/RenderGrid/types.ts` with three substitutions and nothing else:
- * - `ReactNode` → `RenderedCell` (an `HTMLElement`, or `undefined` when nothing was rendered)
- * - `CSSProperties` → `CellStyle`, which is the exact set of properties `renderInfo.ts`
- *   actually produces — six numeric/keyword fields, not the whole CSS surface
- * - `Ref<T>` / `RefType<T>` → dropped; the DOM shell holds real element references
- *
- * Everything else keeps the reference's names, because `renderInfo.ts` and
- * `rerender-check.ts` are ported nearly line-for-line against them.
+ * A cell renderer returns an HTMLElement and receives the exact positioned CellStyle produced by
+ * the geometry layer. The shell owns element references, while the model and render arithmetic
+ * communicate through these plain data structures.
  */
 
 /** What a cell renderer produces. `undefined` means "render nothing in this slot". */

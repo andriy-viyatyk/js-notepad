@@ -2,8 +2,17 @@
 
 Epic: [EPIC-062 — De-React Epic E4](../../epics/EPIC-062.md)
 
-Status: investigation and implementation plan only; implementation is not in scope for this
-documenting phase.
+Status: implementation in progress.
+
+## Implementation progress
+
+- [x] Read the canonical project instructions, this plan, EPIC-062 E4-3/E4-7/E4-10/E4-11/E4-13/E4-14/E4-15, and the LinksListView/LogBodyView references.
+- [x] Replace the React tile implementation with the thin `mountVanilla` adapter and native `LinksTilesView`.
+- [x] Convert pooled tile cells, action buttons, icons, native events, selection/drop state, and teardown ownership.
+- [x] Add generation-guarded archive-image and favicon repaint ownership.
+- [x] Adapt the pin-icon caller to the registry-name descriptor.
+- [x] Rewrite the bounded stale source prose inventory.
+- [x] Run typecheck, lint, and production build; inspect the acceptance-criteria greps and finalize this checklist.
 
 ## Goal
 

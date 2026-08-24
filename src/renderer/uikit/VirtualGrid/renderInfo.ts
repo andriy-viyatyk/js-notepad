@@ -1,11 +1,9 @@
 /**
  * Visible-window geometry — the virtualization engine's arithmetic.
  *
- * Ported from `uikit/RenderGrid/renderInfo.ts` nearly as-is. Pure computation: given a scroll
- * offset, a viewport size, and per-axis lengths, it works out which rows and columns are on
- * screen, where each cell sits, and which of them actually need re-rendering. There is no DOM
- * access anywhere in this file — cells are produced by the injected `renderCell` callback,
- * whose return type is the only thing that changed in the port (`ReactNode` → `HTMLElement`).
+ * Pure computation: given a scroll offset, a viewport size, and per-axis lengths, it works out
+ * which rows and columns are on screen, where each cell sits, and which of them need rendering.
+ * There is no DOM access here; cells are produced by the injected callback as HTMLElements.
  *
  * Two mechanisms here carry the performance story, and both are easy to break by accident:
  *

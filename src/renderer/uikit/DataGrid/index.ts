@@ -1,18 +1,18 @@
 /**
- * The only door to av-grid.
+ * The direct-import surface for av-grid-backed data-grid features.
  *
- * Deliberately **not** re-exported from `uikit/index.ts` (EPIC-057 / US-1019):
+ * Keep this surface separate from the general UIKit barrel:
  *
  *  • `AVGrid` is the library's own exported class, so a Persephone component of that name would be
  *    permanently ambiguous. `DataGrid` is the unambiguous replacement.
  *  • The type names collide where the barrel would put them. `uikit/index.ts` already re-exports
- *    `Column` and `CellFocus` from the former React grid, and av-grid exports both names too. The old
+ *    `Column` and `CellFocus` from another UIKit surface, and av-grid exports both names too. A shared
  *    general barrel put those names in the same namespace. The repo has
- *    run this experiment: forcing `VirtualGrid` into the barrel beside `RenderGrid` produced the
+ *    namespace that combines both libraries would produce the
  *    `VirtualCellFunc` / `VirtualCellParams` aliases, where the survivor got the worse name
  *    because the corpse held the good one.
- *  • Direct imports are the project standard anyway, and it is what every `RenderGrid` consumer
- *    already does.
+ *  • Direct imports are the project standard for this integration surface and keep each
+ *    dependency explicit at its call site.
  *
  * Import from `"../../uikit/DataGrid"`, not from `"../../uikit"`.
  */
@@ -64,8 +64,8 @@ export type {
  *
  * `highlightText` marks search hits the same way the grid's own cells do — `editors/grid` needs it
  * for its custom renderers. `detectColumnWidth` / `detectColumnWidths` replace
- * the former React grid's `column-width.ts`, and `defaultRowHeight` / `defaultColumnWidth` are the two
- * numbers a consumer computes layout against (both `24` and `100`, matching the React engine).
+ * shared width calculations, and `defaultRowHeight` / `defaultColumnWidth` are the layout defaults
+ * consumers compute against.
  */
 export {
     defaultColumnWidth,

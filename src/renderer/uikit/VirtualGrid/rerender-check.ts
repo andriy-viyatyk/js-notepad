@@ -1,9 +1,8 @@
 /**
  * Dirty-set computation — which rows, columns and cells must be repainted.
  *
- * Ported from `uikit/RenderGrid/rerender-check.ts` as-is. Pure computation over plain objects; no
- * DOM, no framework, nothing to substitute. The only changes are the type import path and
- * comments.
+ * Pure computation over plain objects; no DOM or framework state is involved. It filters and
+ * combines the caller's dirty rows, columns, and cells for the current visible window.
  *
  * The output feeds `renderInfo.ts`, which repaints exactly what is marked here and reuses
  * the previously-rendered element for everything else. Two properties of this file are load

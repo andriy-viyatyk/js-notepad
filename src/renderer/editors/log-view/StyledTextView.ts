@@ -5,7 +5,7 @@ export interface StyledTextViewProps {
     text: StyledText;
 }
 
-/** A display-contents view for the former React fragment-only helper. */
+/** A display-contents view for a fragment-only helper that contributes no layout box. */
 export class StyledTextView extends VanillaView<StyledTextViewProps> {
     public constructor(props: StyledTextViewProps) {
         super(props, document.createElement("span"));

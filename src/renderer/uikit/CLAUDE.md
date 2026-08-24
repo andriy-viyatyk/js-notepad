@@ -29,12 +29,11 @@ an explicit conversion task; do not mix Emotion and static CSS for the same conv
 
 ### Which virtualization engine to use
 
-Two exist while the migration runs. **New code uses `VirtualGrid`** (`uikit/VirtualGrid/`,
-`VirtualGridView` + `VirtualGridModel`) — the vanilla engine, cell renderers return an
-`HTMLElement`. `RenderGrid` and `RenderFlexGrid` (`uikit/RenderGrid/`) are React-only, kept alive
-only for the app-layer consumers that still pass `ReactNode` cell renderers; they are converted
-away in Epics D/E and C4 and then deleted (EPIC-056 C3-1, C3-4, and Epic F's removal ledger in
-[/doc/de-react.md](../../../doc/de-react.md)). Do not add a consumer to either of them.
+**New code uses `VirtualGrid`** (`uikit/VirtualGrid/`, `VirtualGridView` + `VirtualGridModel`).
+It is the vanilla engine: cell renderers return an `HTMLElement`, the view owns the scroll shell
+and its nine regions, and consumers own their cell subtrees directly. Use `VirtualFlexGridView`
+only when row height is measured from nominated content; fixed-height surfaces use
+`VirtualGridView`.
 
 ---
 
@@ -399,19 +398,13 @@ This exception does **not** apply to anything that could plausibly be reused (fo
 dialogs, settings panels, list rows). For those, the strict rule still holds — extend a
 UIKit primitive instead of styling around it.
 
-**Foundational compositional primitive exception (`RenderGrid` / `RenderFlexGrid`)**
+**Foundational compositional primitive guidance**
 
-`uikit/RenderGrid/` and `uikit/RenderFlexGrid` expose `className`, `contentProps`,
-`renderAreaProps`, and `blockStyles` as part of their public API. These are not
-violations of Rule 7 — they are the API. RenderGrid is a multi-region composition
-(sticky-top, sticky-bottom, sticky-left, sticky-right, sticky-corners, render area)
-whose entire purpose is to host caller-styled regions. DataGrid and editor lists rely
-on these slots to paint region backgrounds and wire region-level event handlers.
-
-The Omit-style enforcement (`extends Omit<HTMLAttributes<…>, "style" | "className">`)
-applies to primitives that wrap a single HTML element (Button → button, Input →
-input). RenderGrid does not extend `HTMLAttributes`, so the type-level guard is
-not applicable in the first place — its props are an explicit, hand-crafted surface.
+`VirtualGridView` is a multi-region composition: cells, sticky bands, and sticky corners are
+owned by the shell, while overlay hosts are added through its explicit surface. Styling belongs
+to the grid stylesheet or to the host's own scoped stylesheet; a cell renderer owns only its cell
+subtree. The Omit-style enforcement (`extends Omit<HTMLAttributes<…>, "style" | "className">`)
+still applies to primitives that wrap a single HTML element (Button → button, Input → input).
 
 When in doubt: this exemption is for **foundational compositional primitives with
 multiple styleable regions**, not a general escape hatch. New UIKit primitives that

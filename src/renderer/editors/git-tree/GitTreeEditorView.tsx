@@ -151,8 +151,8 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
         );
     } else {
         body = (
-            // direction="column" so the grid (RenderGrid root is flex:1 1 auto
-            // with a 100px height fallback) grows to fill instead of staying 100px.
+            // direction="column" so the VirtualGrid root (flex:1 1 auto with its 100px
+            // height fallback; see VirtualGridView.ts:619-631) grows to fill instead of staying 100px.
             <Panel direction="column" flex={1} height={0}>
                 <GitTree
                     model={model.gitTree}
