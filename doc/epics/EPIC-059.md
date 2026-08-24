@@ -505,7 +505,7 @@ translation with the model largely intact — which is exactly the shape roadmap
 | US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | **Done** |
 | US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | **Done** |
 | US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | **Done** |
-| US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | Planned |
+| US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | **Done** |
 | US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | Planned |
 | US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned |
 
@@ -748,6 +748,34 @@ is accepted.
   Escape closed it, so the `MenuHandle` disposal works. Closing the page left zero `image-toolbar` nodes.
   Note `title` legitimately does not appear as a DOM attribute — `IconButtonView` routes it through
   `attachTooltip` and destructures it out of the rest props.
+- **US-1046 done — the `TextChrome` shell shape is established (14 editors will copy it) and the
+  `BodyView` arm now has its consumer.** `mermaid/index.tsx` registers `BodyView: MermaidBodyView` and no
+  longer supplies a React `Body`, so the registry synthesizes one via `mountVanilla` — and **E1-9 held:
+  `NoteItemActiveEditor.tsx` needed no edit at all**, not a branch, not a widened type. `TextChrome.tsx`
+  untouched.
+
+  **The first task in this epic to pass plan review with zero corrections — and Codex corrected *me*.**
+  My brief described the error panel as one of the mutually-exclusive content arms. It is not: in the
+  React original `{error && …}` is a separate expression that can be visible *at the same time* as a
+  stale `svgUrl` from an earlier successful render. Codex caught this independently and kept the error
+  panel and the loading overlay as stable siblings toggled via `hidden`, with `SubtreeSwap` covering only
+  the genuinely exclusive arms (full-page spinner / viewport / empty). Folding error into the swap would
+  have hidden the last good diagram whenever a later edit failed to parse.
+
+  *Verified live over MCP, including that exact behaviour:* a valid diagram rendered with
+  `alt="Mermaid Diagram"`, a `data:image/svg+xml` source, and both the error panel and loading overlay
+  hidden. Replacing the content with a syntax error then showed the parse message **while the stale
+  diagram remained on screen** — the coexistence case — with only the overlay still hidden. Closing the
+  page left zero `mermaid-root` nodes.
+
+  Two notes for later tasks. The `svgUrl` is a **data** URL produced by the editor model, not an object
+  URL, so there is nothing for a view to revoke — the body correctly takes no ownership. And the React
+  shell passes `mountVanilla(MermaidBodyView, { … })` a fresh object with an inline
+  `imageModelSetter` arrow, so the vanilla child is `update()`d on every shell render; I checked and it is
+  **harmless here** because `ImageViewportView`'s `onModel` is invoked only at mount
+  (`ImageViewport.tsx:260`) and dispose (`:266`), never on identity change. It would be a real defect in a
+  component that reacted to that prop, so the memoization roadmap §6.1 prescribes is still the right
+  habit at these boundaries.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale

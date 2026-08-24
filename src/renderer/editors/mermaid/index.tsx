@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { TComponentState } from "../../core/state/state";
 import { MermaidEditor, defaultMermaidEditorState } from "./MermaidEditor";
-import { MermaidBody } from "./MermaidBody";
+import { MermaidBodyView } from "./MermaidBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
+import { mountVanilla } from "../../uikit/shared/mount";
 import { CopyIcon, SunIcon, MoonIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon, DrawOrangeIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
@@ -121,25 +122,21 @@ function MermaidEditorView({ model }: { model: EditorModel }) {
             model={model}
             rightToolbarContributions={<MermaidToolbarBits model={mermaid} imageModel={imageModel} />}
         >
-            <MermaidBody
-                model={mermaid}
-                imageModelSetter={(r) => {
+            {mountVanilla(MermaidBodyView, {
+                model: mermaid,
+                imageModelSetter: (r) => {
                     imageModel.current = r;
-                }}
-            />
+                }
+            })}
         </TextChrome>
     );
-}
-
-function MermaidEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
-    return <MermaidBody model={model as MermaidEditor} editorConfig={editorConfig} imageModelSetter={() => {}} />;
 }
 
 export const mermaidModule: EditorModule = {
     createEditor: () =>
         new MermaidEditor(new TComponentState({ ...defaultMermaidEditorState })),
     Component: MermaidEditorView,
-    Body: MermaidEmbeddedBody,
+    BodyView: MermaidBodyView,
 };
 
 export { MermaidEditor, defaultMermaidEditorState };
