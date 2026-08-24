@@ -1,10 +1,11 @@
-import { Editor } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
 
 import type { MonacoEditor, MonacoQueueRequest } from "./MonacoEditor";
 import type { TextFileModel } from "../text/TextEditorModel";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
+import { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
 import { api } from "../../../ipc/renderer/api";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { convertHtmlToMarkdown, readClipboardHtml } from "../text/paste-rich-text";
@@ -16,6 +17,7 @@ interface MonacoBodyProps {
 
 export function MonacoBody({ model }: MonacoBodyProps) {
     const monacoRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    const hostRef = useRef<MonacoEditorHostView | null>(null);
     const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
     const cleanupsRef = useRef<(() => void)[]>([]);
     const host = model.contentHost as TextFileModel | null;
@@ -96,7 +98,9 @@ export function MonacoBody({ model }: MonacoBodyProps) {
     });
 
     const handleMount = useCallback(
-        (ed: monaco.editor.IStandaloneCodeEditor) => {
+        (hostView: MonacoEditorHostView) => {
+            hostRef.current = hostView;
+            const ed = hostView.getEditor();
             monacoRef.current = ed;
             const cleanups: (() => void)[] = [];
             cleanups.push(setupWheelZoom(ed));
@@ -118,12 +122,17 @@ export function MonacoBody({ model }: MonacoBodyProps) {
             decorationsRef.current?.clear();
             decorationsRef.current = null;
             monacoRef.current = null;
+            hostRef.current = null;
         };
     }, []);
 
+    useEffect(() => {
+        hostRef.current?.setValue(sliced.content);
+    }, [sliced.content]);
+
     const handleChange = useCallback(
-        (value: string | undefined) => {
-            host?.changeContent(value ?? "", true);
+        (value: string) => {
+            host?.changeContent(value, true);
         },
         [host],
     );
@@ -132,12 +141,11 @@ export function MonacoBody({ model }: MonacoBodyProps) {
 
     return (
         <Panel name="monaco-body" direction="column" flex position="relative" overflow="hidden">
-            <Editor
-                value={sliced.content}
+            <MonacoEditorHost
+                initialValue={sliced.content}
                 language={sliced.language}
                 onMount={handleMount}
                 onChange={handleChange}
-                theme="custom-dark"
                 options={{
                     automaticLayout: true,
                     readOnly: !!sliced.encrypted,
