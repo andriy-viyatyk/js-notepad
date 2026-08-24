@@ -154,7 +154,7 @@ Persephone (formerly js-notepad) is a Windows Notepad replacement for developers
 - **Editor:** Monaco Editor
 - **State:** Custom reactive primitives (TOneState, TGlobalState, TComponentState, TModel)
 - **Build:** Vite 8 (rolldown) — `scripts/dev.mjs` (dev server + HMR), `scripts/build-prod.mjs` (production bundle), electron-builder (installer/packaging)
-- **Styling:** Static/co-located CSS for the native shell and converted components; four residual Emotion importers for named React boundaries; editor-local CSS for generated content and third-party/native hosts
+- **Styling:** Static/co-located CSS for the native shell and converted components; three residual Emotion importers for named React boundaries; editor-local CSS for generated content and third-party/native hosts
 
 ## Commands
 

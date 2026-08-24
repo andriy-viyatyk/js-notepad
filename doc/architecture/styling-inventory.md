@@ -1,6 +1,6 @@
 # Styling inventory
 
-> **Current snapshot — 2026-08-24.** Re-run the commands below after styling changes. This
+> **Current snapshot — 2026-08-25.** Re-run the commands below after styling changes. This
 > inventory records the source-tree baseline; it is not a conversion plan.
 
 This is the durable source for the renderer's Emotion and literal inline-style inventories. The
@@ -27,20 +27,19 @@ The Emotion command includes story files. The inline-style command excludes stor
 
 ## Emotion inventory
 
-The current renderer has **4 Emotion importers**:
+The current renderer has **3 Emotion importers**:
 
 | Area | Files | Owners |
 |---|---:|---|
 | `core/` | 1 | `core/state/view.tsx` React boundary helper |
 | `theme/` | 1 | `theme/GlobalStyles.tsx` global-style island |
-| `uikit/` | 2 | `RenderGrid/RenderGrid.tsx`; `Tree/Tree.story.tsx` story harness |
-| **Total** | **4** | No `ui/` or `components/` importers |
+| `uikit/` | 1 | `Tree/Tree.story.tsx` story harness |
+| **Total** | **3** | No `ui/` or `components/` importers |
 
 The four files are:
 
 - `src/renderer/core/state/view.tsx`
 - `src/renderer/theme/GlobalStyles.tsx`
-- `src/renderer/uikit/RenderGrid/RenderGrid.tsx`
 - `src/renderer/uikit/Tree/Tree.story.tsx`
 
 The shell and coupled components do not import Emotion. Their converted styles are co-located
@@ -49,21 +48,21 @@ layout does not depend on the asynchronous commit of the `GlobalStyles` React is
 Emotion importers are named migration/removal boundaries, not a general app-shell styling pattern.
 
 Runtime keyframes used by converted components now live in static CSS, including the dialog pulse,
-notification entry, spinner rotation, and progress-bar indeterminate animation. `RenderGrid`'s
-Emotion styling is still a React virtualization survivor; the Tree story is not production UI.
+notification entry, spinner rotation, and progress-bar indeterminate animation. The remaining UIKit
+Emotion importer is the Tree story harness, not production UI.
 
 ## Inline-style inventory
 
-The current literal baseline is **121 JSX `style={{...}}` sites across 43 non-story `.tsx` files**.
+The current literal baseline is **70 JSX `style={{...}}` sites across 34 non-story `.tsx` files**.
 
 | Area | Files | Sites | Scope note |
 |---|---:|---:|---|
-| `editors/` | 34 | 102 | Editor-owned runtime/layout styles; migrate with each editor |
-| `uikit/` | 2 | 12 | RenderGrid runtime placement and the React/vanilla mount host |
+| `editors/` | 26 | 62 | Editor-owned runtime/layout styles; migrate with each editor |
+| `uikit/` | 1 | 1 | React/vanilla mount host |
 | `ui/` | 1 | 1 | Lazy secondary-view error presentation |
 | `components/` | 5 | 5 | Coupled icon and Git badge presentation |
 | `theme/` | 1 | 1 | React icon sizing/color path |
-| **Total** | **43** | **121** | Non-story `.tsx` only |
+| **Total** | **34** | **70** | Non-story `.tsx` only |
 
 The exact current files are:
 
@@ -85,7 +84,6 @@ The exact current files are:
 
 **`uikit/`**
 
-- `src/renderer/uikit/RenderGrid/RenderGrid.tsx`
 - `src/renderer/uikit/shared/mount.tsx`
 
 **`editors/`**
@@ -101,7 +99,7 @@ React island. `src/renderer/uikit/shared/mount.tsx` is the sanctioned adapter bo
 `display: contents` host is included in the inline count because it is a React-facing compatibility
 host rather than app styling.
 
-Inline styles remain appropriate for measured layout, RenderGrid placement, image dimensions, and
-third-party/native hosts. Static component presentation belongs in a co-located stylesheet and
+Inline styles remain appropriate for measured layout, image dimensions, and third-party/native
+hosts. Static component presentation belongs in a co-located stylesheet and
 must preserve selector specificity, `data-*` state behavior, direct-child SVG sizing, keyframes,
 theme-token resolution, and computed-style precedence.

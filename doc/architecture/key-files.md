@@ -155,8 +155,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Draw editor              | `/src/renderer/editors/draw/DrawEditor.ts`        |
 | Rest Client editor       | `/src/renderer/editors/rest-client/RestClientEditor.ts` |
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
-| Framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualGridView.ts` |
-| React virtualization survivor (ReactNode cell contract; retained for app-layer consumers until its later migration) | `/src/renderer/uikit/RenderGrid/RenderGrid.tsx` |
+| Fixed-height framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualGridView.ts` |
+| Measured-height framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualFlexGridView.ts` |
 | Data grid mounting boundary | `/src/renderer/uikit/DataGrid/DataGridView.ts` |
 | Virtualized list view (DOM rows, keyed reconciliation, selection/scroll projection, and `VirtualGrid` integration) | `/src/renderer/uikit/ListBox/ListBoxView.ts` |
 | Virtualized tree view (DOM rows, keyed reconciliation, DnD/keyboard integration, and `VirtualGrid` integration) | `/src/renderer/uikit/Tree/TreeView.ts` |

@@ -235,14 +235,12 @@ existing av-grid. Nothing needs to be invented to get there.
 | `uikit/ListBox/ListBoxModel.ts` | `api/events/events` (`ContextMenuEvent`) | Real |
 | `uikit/Tree/TreeModel.ts` | `api/events/events` (`ContextMenuEvent`) | Real |
 | `uikit/Menu/types.ts` | `api/types/events` (`MenuItem`) | Real — a re-export of an app type |
-| `uikit/RenderGrid/RenderFlexGrid.tsx` | `shared/utils` | Real |
 
-Four files were closed during C1–C3; C4 closes the final AVGrid leak, so no `uikit/` → app-layer leak remains.
+The four former files were closed during C1–C4, so no `uikit/` → app-layer leak remains.
 
-**Status at C4 close (2026-08-22): closed.** `ListBoxModel` and `TreeModel` now read
-`core/events/context-menu`, `Menu/types` no longer re-exports an app type, and `RenderFlexGrid`
-imports `core/utils/*` rather than `shared/utils`. The former AVGrid context-menu model was deleted
-with C4, so the lint zone has no remaining
+**Status after E4 close (2026-08-25): closed.** `ListBoxModel` and `TreeModel` now read
+`core/events/context-menu`, `Menu/types` no longer re-exports an app type, and the former AVGrid
+context-menu model was deleted with C4. The lint zone has no remaining
 uikit-to-app exemption.
 
 **The standing rule that keeps it that way** is Rule 6 in §6.
@@ -389,9 +387,9 @@ work that nothing had *asked* it to do. Converted code does only what it declare
 was riding on the incidental re-render stops happening — and the interaction that "fixes" it is
 simply the first thing that triggers an explicit update.
 
-The concrete mechanism in `uikit/`: `RenderGrid`'s host built its `renderCell` closure fresh on every
-render, and the engine compares `renderCell` by identity, so **every parent re-render recomputed and
-repainted every visible cell.** Two latent defects hid behind that, both surfacing the week
+The former React grid host built its `renderCell` closure fresh on every render, and the engine
+compared `renderCell` by identity, so **every parent re-render recomputed and repainted every visible
+cell.** Two latent defects hid behind that, both surfacing the week
 `ListBox` stopped doing it (US-1014 made `renderCell` a stable field, which is required for its
 repaint gate to mean anything):
 
@@ -401,6 +399,9 @@ repaint gate to mean anything):
   to be computed *before* a paint, but the scrollbar only exists *after* it — and never recomputed.
   Cells were laid out at the container's full width, putting each row's trailing slot under the
   scrollbar. The blanket repaint had been re-settling it on the next render.
+
+The current mechanism is the framework-free `uikit/VirtualGrid/`: `VirtualGridView` owns the
+scroll element and DOM cell pool, while `VirtualFlexGridView` adds measured row heights.
 
 The third instance (US-1016) is the same class with a different mechanism, and the one most likely to
 recur: **the missing input was not a prop but a callback's identity.** `MultiListBox` owns its
@@ -472,7 +473,7 @@ later conversion into a pure rendering translation. Worst offenders first:
 then a long tail of 2–3 each.
 
 **3. Convert `useImperativeHandle` / `forwardRef` to model methods.** 9 files expose imperative
-handles (`AVGrid`, `Tree`, `ListBox`, `RenderGrid`, `Textarea`, `ImageViewport`, `FileList`,
+handles (`AVGrid`, `Tree`, `ListBox`, `VirtualGridView`, `Textarea`, `ImageViewport`, `FileList`,
 `LinksList`, `MarkdownBlock`); 33 use `forwardRef`. An imperative handle is already a model method
 written in the wrong place — the caller wants to command the view. Moved onto the model or onto
 `ComponentQueue`, it survives the migration untouched.
@@ -530,14 +531,10 @@ is what the drop-zustand task actually is. Two decisions taken at epic open chan
 list below: **update batching is not done** — av-grid's microtask coalescing is an optimization for
 a virtualized surface, and imposing it on 153 existing `subscribe()` sites buys nothing (EPIC-053
 B8) — and the components that genuinely need it (`LogView`, `Tree`, `ListBox`, and the rest of the
-`RenderGrid` consumers) **adopt av-grid's render engine** instead, which is itself a vanilla port of
-Persephone's own `uikit/RenderGrid/` (B9). av-grid's **source is copied into the tree rather than
-consumed as a dependency**, so Persephone controls it outright — while the av-grid repository
-continues separately as the deliberately light library boards vendor, since building it out of a
-growing UIKit would push weight into every board's bundle. Two copies of the same grid is the
-accepted outcome, and open decision #5 is unaffected: av-grid is explicitly not an instance of "one
-source tree, two products". The per-consumer conversion work lands in Epics C and E; Epic B's
-obligation is only to not build a competing virtualization primitive. A third decision reaches
+`VirtualGrid` consumers) **use the framework-free `uikit/VirtualGrid/` render engine** instead.
+The separate av-grid dependency remains the boards vendor and the `DataGrid` mounting boundary;
+the per-consumer conversion work lands in Epics C and E. Epic B's obligation was only to not build
+a competing virtualization primitive. A third decision reaches
 forward into every later epic: **`TComponentModel.effect()` does not survive React** (B13). Neither
 av-grid nor VSCode has a dependency-array concept, and all 65 call sites map onto `init()`,
 `setProps` + `oldProps`, or the method that makes the change — all of which already work under
@@ -651,33 +648,24 @@ Delivered in [EPIC-055](epics/EPIC-055.md).
 
 **`Select`, `MultiSelect` and `Autocomplete` are C3, not C2** *(user decision, 2026-08-20,
 EPIC-055 C2-1)*. All three render `<ListBox>` / `<MultiListBox>` in their dropdown, and `ListBox`
-needs a vanilla `RenderGrid`. The real chain is `Popover → Menu → ListBox → Select`, which crosses
+needs the framework-free `VirtualGrid`. The real chain is `Popover → Menu → ListBox → Select`, which crosses
 the C2/C3 line twice; putting the three above `ListBox` makes the order match the graph.
 
-**C3 — Virtualized data views and dropdowns.** `ListBox`, `MultiListBox`, `Tree`, the absorption of
-av-grid's `render/` folder as `uikit/RenderGrid/`, and — per C2-1 — `Select`, `MultiSelect` and
-`Autocomplete`. EPIC-053 B15 treats `RenderGrid` and `AVGrid` as one absorption; the import graph
-says otherwise. av-grid's `render/` is standalone — today's `uikit/RenderGrid/` imports nothing from
-`uikit/` — so the engine can land as soon as C1 is done, while `ListBox` and `Tree` on top of it
-cannot land until C2 has produced a vanilla `Popover` and `Menu`, and the three dropdown composites
-cannot land until `ListBox` has. This epic also resolves B15's one explicitly undecided item,
-`RenderFlexGrid.tsx`. **Its scope must be re-measured when it opens**, not inherited: it is now
-seven components, and whether the dropdown family deserves its own epic is a question for that
-point (EPIC-055 Concern 6). Implemented in [EPIC-056](epics/EPIC-056.md).
+**C3 — Virtualized data views and dropdowns.** `ListBox`, `MultiListBox`, `Tree`, the framework-free
+`uikit/VirtualGrid/` primitive, and — per C2-1 — `Select`, `MultiSelect` and `Autocomplete`.
+The engine can land as soon as C1 is done, while `ListBox` and `Tree` on top of it cannot land until
+C2 has produced a vanilla `Popover` and `Menu`, and the three dropdown composites cannot land until
+`ListBox` has. Implemented in [EPIC-056](epics/EPIC-056.md); the measured-height
+`VirtualFlexGridView` was completed in E4.
 
 **What the C3 measurement changed** *(EPIC-056, 2026-08-21)*. The scope re-measure held the line
-estimate (7,578) but overturned two assumptions in this section. First, the absorption is **not a
-swap**: `RenderCellFunc` returns a `ReactNode` and av-grid's returns an `HTMLElement`, and
-`RenderGrid`/`RenderGridModel` have **12 app-layer importer files**, so the React engine survives C3
-and drains through Epics D and E the way `Panel` does (EPIC-056 C3-1). Which means, second, that
-**C4 is no longer "the only part of Epic C that reaches outside `uikit/`"** — nothing in C3 reaches
-outside either, but only because those twelve call sites are deliberately left for D and E rather
-than converted here. B15's undecided `RenderFlexGrid` row is resolved the same way: it stays
-React-only for its two `editors/` consumers (C3-3). The dropdown family stays inside C3, with
-`MultiSelect` and `Autocomplete` as the designated slip items (C3-10).
+estimate (7,578) but identified the important contract boundary: the former React cell function
+returned a `ReactNode`, while the framework-free `VirtualGrid` contract returns an `HTMLElement`.
+The later editor conversions completed that boundary, and the dropdown family stayed inside C3,
+with `MultiSelect` and `Autocomplete` as the designated slip items (C3-10).
 
 **C4 — AVGrid → av-grid.** The grid itself, plus the consumer files in `editors/` and
-`components/` that need host-wiring changes because `RenderGridModel`'s public API differs from the
+`components/` that need host-wiring changes because the former React grid model's public API differs
 React version's (B15). The only part of Epic C that reaches outside `uikit/`, the only part that is
 an adoption rather than a conversion, and therefore the one that is cleanly abortable on its own.
 Scoped as [EPIC-057](epics/EPIC-057.md).
@@ -712,16 +700,16 @@ component's React face renders the vanilla view, so both panes would have shown 
 conversion, which is the one measurement that cannot be recovered afterwards** — not in two panes.
 
 Story coverage was 38 of the 44 components at the split. The six without a story were `AVGrid`
-(superseded by av-grid anyway), `RenderGrid`, `Minimap`, `ImageViewport`, `Progress` and
+(superseded by av-grid anyway), the former React virtualization component, `Minimap`, `ImageViewport`, `Progress` and
 `SelectableRow` — which, apart from AVGrid, are precisely the measurement-heavy components whose
 conversion is hardest. Writing those stories is cheap and belongs to whichever epic owns the
 component, before the component is converted rather than after. **C1 and C2 closed four of the six**
 (`SelectableRow`, then `Minimap`, `ImageViewport` and `Progress`), so coverage measured 42 of 44 when
-C3 opened: `RenderGrid` is C3's to write, `AVGrid` is C4's. Note two of C1's stories are vanilla-only
+C3 opened: the virtualization story was C3's to write, `AVGrid` was C4's. Note two of C1's stories are vanilla-only
 `.story.ts` files (`Checkbox`, `Label`) — a `.tsx` glob misses them.
 
 **One extra task, cheap and unrelated to rendering:** close the four remaining `uikit/` → app-layer
-imports listed in §3.5 (`ListBoxModel`, `TreeModel`, `Menu/types`, `RenderFlexGrid`; the fifth dies
+imports listed in §3.5 (`ListBoxModel`, `TreeModel`, `Menu/types`, and the former grid wrapper; the fifth dies
 with AVGrid), and adopt Rule 6. That is the entire cost of keeping open decision #5 open. It is
 independent of every conversion and lands in **C1**.
 
@@ -767,18 +755,19 @@ only shared contract left in `editors/` is the `editors/base` chrome, which E1-8
 convert **last** because doing it early costs React roots rather than saving them. E3 concluded from
 that that E4 onward would be scoped by line count.
 
-**EPIC-062 corrects it (E4-1): a shared contract does exist — it is owned by `uikit/`, not
-`editors/`.** `RenderGrid`'s cell contract returns a `ReactNode`, so every one of its 12 importers is
-pinned to React by the primitive it renders through, exactly as `EditorModule.Body` and the Monaco
-wrapper pinned theirs. E4 is therefore scoped as "delete `uikit/RenderGrid/`" and collects two
-removal-ledger entries on the way. Line count is the axis from **E5** onward. The generalisation:
+**EPIC-062 corrected it (E4-1) and is now closed:** the shared contract was owned by `uikit/`, not
+`editors/`. Its former cell contract returned a `ReactNode`, so its importers were pinned to React by
+the primitive they rendered through, exactly as `EditorModule.Body` and the Monaco wrapper pinned
+theirs. E4 deleted that contract and collected its two removal-ledger entries; current consumers use
+the framework-free `VirtualGrid` contract, with `VirtualGridView` for fixed-height rows and
+`VirtualFlexGridView` for measured rows. Line count is the axis from **E5** onward. The generalisation:
 "no contract left" is a claim about the whole import graph, not about one folder.
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
-`RenderFlexGrid` unmounting off-screen rows — `renderInfo.ts:314` keys virtualized cells by row
-index. The churn is real and its baseline is recorded, but it belongs to whichever epic takes this
-ledger's `RenderFlexGrid.tsx` entry, not to a wrapper conversion. That is the second time this
+the former measured React grid wrapper unmounting off-screen rows — `renderInfo.ts:314` keys
+virtualized cells by row index. The churn is real and its baseline is recorded; E4 replaced that
+wrapper with `VirtualFlexGridView`. That is the second time this
 programme mis-attributed a Rule 4 measurement to the component about to be changed (EPIC-060 read
 page-manager slot duplication as md-view rendering twice), so the lesson is recorded there as a
 standing check: **a before/after measurement is not evidence about a cause until the cause has been
@@ -891,12 +880,10 @@ creates the duplicate, not in the epic that hopes to remove it.
 | Survivor | Kept because | Collectable once | Created by |
 |---|---|---|---|
 | `uikit/Panel/` (the React `Panel.tsx` face) | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`. C1's "no vanilla twin" no longer holds: `Panel/panel-style.ts` exports `createPanelElement`, used at 84 sites after Epic D, so what survives is the React face, not the concept (EPIC-059 finding 6) | Epic E converts the remaining editor call sites; two shell header wrappers remain deliberately for pointer-event behavior | C1 / EPIC-054 |
-| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`. Re-measured at EPIC-059 open: **13** app-layer importer files, but only **four render the React component** (`LinksList`, `LinksTiles`, and `LogBody`/`NotebookBody` via `RenderFlexGrid`); the other nine import `RenderGridModel` or a type. `RenderGridModel` is itself React-coupled (`import React, { CSSProperties, HTMLAttributes }`), so those nine are model repointings rather than render conversions | **Owned by E4 / EPIC-062** — 4 render sites and 8 model repointings remain; deleted outright at its close | C3 / EPIC-056 |
-| `uikit/RenderGrid/RenderFlexGrid.tsx` | ~~Variable-height virtualization with no av-grid counterpart~~ and two `editors/` consumers (EPIC-056 C3-3). **The "no counterpart" half was overstated** (EPIC-062 E4-2): it implements no virtualization — it renders `<RenderGrid>` with `rowHeight` replaced by a debounced `ResizeObserver` measurement, and `VirtualGrid/types.ts:191` already accepts that `(row) => number` shape. What is missing is the measurement wrapper, ~250 lines | **Owned by E4 / EPIC-062** — `VirtualFlexGridView` plus `LogBody.tsx` and `NotebookBody.tsx` | C3 / EPIC-056 |
 | React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
-| `uikit/shared/highlight.ts` React form | Five editor consumers still use it: GraphBody, LinksList, LinkCategoryPanel, ExpandedNoteView, and NoteItemView (EPIC-056 C3-7) | Epics D and E convert those editor consumers | C3 / EPIC-056 |
+| `uikit/shared/highlight.ts` React form | Two editor consumers still use it: GraphBody and LinkCategoryPanel (EPIC-056 C3-7) | The remaining editor consumers use the DOM form; the React form can be removed when those two boundaries convert | C3 / EPIC-056 |
 | `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | The 14 `<TextChrome>` and 6 direct `<PageToolbar>` call sites are vanilla; the slots are then DOM nodes and `fill-slot`'s non-React arm handles them, so the conversion is free | E1 / EPIC-059 |
 | `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
 
@@ -908,10 +895,8 @@ creates the duplicate, not in the epic that hopes to remove it.
 | `@monaco-editor/react` | **Collected — uninstalled in [EPIC-061](epics/EPIC-061.md).** Zero importers in `src/`, `loader.config({ monaco })` deleted from `configure-monaco.ts`, package removed from `package.json`. Collected in the epic that freed it rather than deferred to Epic F, per this section's own note. | Done in E3 |
 | `react-markdown` and `hast-util-to-jsx-runtime` application importers | **Collectable in Epic F.** Neither has an application importer now; `hast-util-to-jsx-runtime` remains only in one explanatory source comment. The npm packages are still installed. | Epic F |
 
-**One entry is already collectable at the point C4 closes** (RenderGrid's former AVGrid importers),
-which is worth checking there rather than deferring to F on principle:
-collecting a duplicate in the epic that frees it is cheaper than collecting it in a cleanup epic that
-has to re-establish why it existed.
+**The former React grid entries were collected in E4**, the epic that freed them, rather than
+deferred to a cleanup epic that would have had to re-establish why they existed.
 
 **Not in this epic, but reachable from it:** with React gone and Rule 6 held, `uikit/` and `core/`
 are package-shaped, and the "one source tree, two products" idea behind open decision #5 becomes a

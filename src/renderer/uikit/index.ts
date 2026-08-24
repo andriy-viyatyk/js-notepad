@@ -112,7 +112,8 @@ export type {
 export { TreeItem, TreeSectionItem } from "./Tree";
 export type { TreeItemProps, TreeSectionItemProps } from "./Tree";
 
-// Virtualization, vanilla — what new code uses (EPIC-056 C3-1/C3-4).
+// VirtualGrid is the framework-free virtualization contract. VirtualGridView handles fixed-height
+// rows; VirtualFlexGridView adds measured row heights.
 export { VirtualGridView, VirtualFlexGridView, VirtualGridModel } from "./VirtualGrid";
 export type {
     VirtualGridProps,
@@ -122,26 +123,12 @@ export type {
     VirtualFlexCellParams,
     VirtualFlexGridProps,
 } from "./VirtualGrid";
-// Aliased on the way out: `./RenderGrid` already exports these names, and the geometry types are
-// structurally the same on both engines. Every existing consumer imports them from the folder.
+// Native aliases retained for existing barrel consumers. New code should import from `./VirtualGrid`.
 export type {
     RenderCellFunc as VirtualCellFunc,
     RenderCellParams as VirtualCellParams,
     RenderedCell,
 } from "./VirtualGrid";
-
-// Virtualization, React — legacy. Still consumed by app-layer files alongside `DataGrid`; converted
-// away in Epics D/E and C4, then deleted (Epic F removal ledger). Do not add a consumer.
-export { RenderGrid, RenderGridModel, RenderFlexGrid } from "./RenderGrid";
-export type {
-    RenderGridProps,
-    RenderFlexGridProps,
-    RenderFlexCellParams,
-    RenderCellParams,
-    RenderCellFunc,
-    Percent,
-    RowAlign,
-} from "./RenderGrid";
 
 // Truncated text (overflow-ellipsis with hover title)
 export { TruncatedText } from "./TruncatedText";

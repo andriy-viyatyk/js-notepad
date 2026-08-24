@@ -502,7 +502,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
-│   │   ├── LogBody.tsx               # Log viewer component (RenderFlexGrid + auto-scroll)
+│   │   ├── LogBodyView.ts             # Log viewer native view (VirtualFlexGridView + auto-scroll)
 │   │   ├── LogEntryWrapper.tsx       # Cell root — subscribes to entries[index]
 │   │   ├── LogEntryContent.tsx       # Type router — dispatches to entry renderers
 │   │   ├── LogMessageView.tsx        # Log message renderer
@@ -763,8 +763,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   ├── Dialog/             # Modal dialog
 │   ├── Notification/       # Alert / toast notification + AlertsBar
 │   ├── Progress/           # Progress overlay + screen lock
-│   ├── RenderGrid/         # React virtualization survivor (sticky regions, RenderFlexGrid)
-│   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool
+│   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool; VirtualGridView and VirtualFlexGridView
 │   ├── DataGrid/           # av-grid mounting boundary (filters, sorting, editing, selection)
 │   └── shared/             # Internal helpers (overlay layer, slots, and React/vanilla seams)
 │       ├── async-ref.ts    # Callback-backed asynchronous DOM reference
