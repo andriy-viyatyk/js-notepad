@@ -758,13 +758,21 @@ error boundary, the root flip) rather than stateful.
 ### Epic E — Editors
 
 **E1 is complete as [EPIC-059](epics/EPIC-059.md), E2 as [EPIC-060](epics/EPIC-060.md), and E3 as
-[EPIC-061](epics/EPIC-061.md), all 2026-08-24.** The next free epic number is **EPIC-062**.
+[EPIC-061](epics/EPIC-061.md), all 2026-08-24. E4 is scoped as [EPIC-062](epics/EPIC-062.md).** The
+next free epic number is **EPIC-063**.
 
 **E3 took the second shared contract, `@monaco-editor/react`, and closed by uninstalling it.** With
 both editor-wide contracts now gone — `EditorModule.Body` in E2 and the Monaco wrapper in E3 — the
 only shared contract left in `editors/` is the `editors/base` chrome, which E1-8 established must
-convert **last** because doing it early costs React roots rather than saving them. So E4 onward are
-scoped by line count, which is what E2-1 said to fall back to when no contract exists.
+convert **last** because doing it early costs React roots rather than saving them. E3 concluded from
+that that E4 onward would be scoped by line count.
+
+**EPIC-062 corrects it (E4-1): a shared contract does exist — it is owned by `uikit/`, not
+`editors/`.** `RenderGrid`'s cell contract returns a `ReactNode`, so every one of its 12 importers is
+pinned to React by the primitive it renders through, exactly as `EditorModule.Body` and the Monaco
+wrapper pinned theirs. E4 is therefore scoped as "delete `uikit/RenderGrid/`" and collects two
+removal-ledger entries on the way. Line count is the axis from **E5** onward. The generalisation:
+"no contract left" is a claim about the whole import graph, not about one folder.
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
@@ -883,8 +891,8 @@ creates the duplicate, not in the epic that hopes to remove it.
 | Survivor | Kept because | Collectable once | Created by |
 |---|---|---|---|
 | `uikit/Panel/` (the React `Panel.tsx` face) | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`. C1's "no vanilla twin" no longer holds: `Panel/panel-style.ts` exports `createPanelElement`, used at 84 sites after Epic D, so what survives is the React face, not the concept (EPIC-059 finding 6) | Epic E converts the remaining editor call sites; two shell header wrappers remain deliberately for pointer-event behavior | C1 / EPIC-054 |
-| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`. Re-measured at EPIC-059 open: **13** app-layer importer files, but only **four render the React component** (`LinksList`, `LinksTiles`, and `LogBody`/`NotebookBody` via `RenderFlexGrid`); the other nine import `RenderGridModel` or a type. `RenderGridModel` is itself React-coupled (`import React, { CSSProperties, HTMLAttributes }`), so those nine are model repointings rather than render conversions | Epic E converts the remaining editor-owned importers | C3 / EPIC-056 |
-| `uikit/RenderGrid/RenderFlexGrid.tsx` | Variable-height virtualization with no av-grid counterpart and two `editors/` consumers (EPIC-056 C3-3) | Epic E converts `LogBody.tsx` and `NotebookBody.tsx` — either onto a vanilla variant or off flex rows entirely | C3 / EPIC-056 |
+| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`. Re-measured at EPIC-059 open: **13** app-layer importer files, but only **four render the React component** (`LinksList`, `LinksTiles`, and `LogBody`/`NotebookBody` via `RenderFlexGrid`); the other nine import `RenderGridModel` or a type. `RenderGridModel` is itself React-coupled (`import React, { CSSProperties, HTMLAttributes }`), so those nine are model repointings rather than render conversions | **Owned by E4 / EPIC-062** — 4 render sites and 8 model repointings remain; deleted outright at its close | C3 / EPIC-056 |
+| `uikit/RenderGrid/RenderFlexGrid.tsx` | ~~Variable-height virtualization with no av-grid counterpart~~ and two `editors/` consumers (EPIC-056 C3-3). **The "no counterpart" half was overstated** (EPIC-062 E4-2): it implements no virtualization — it renders `<RenderGrid>` with `rowHeight` replaced by a debounced `ResizeObserver` measurement, and `VirtualGrid/types.ts:191` already accepts that `(row) => number` shape. What is missing is the measurement wrapper, ~250 lines | **Owned by E4 / EPIC-062** — `VirtualFlexGridView` plus `LogBody.tsx` and `NotebookBody.tsx` | C3 / EPIC-056 |
 | React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |

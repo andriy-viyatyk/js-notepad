@@ -8,6 +8,13 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+- **EPIC-062** — [De-React Epic E4: delete the React `RenderGrid` contract](epics/EPIC-062.md)
+  - [ ] [US-1062: LinksList to VirtualGridView (pilot)](tasks/US-1062-linkslist-virtualgrid/README.md)
+  - [ ] US-1063: `VirtualFlexGridView` — measured-height wrapper over `VirtualGridView`
+  - [ ] US-1064: `NotebookBody` and its cell subtree to `VirtualFlexGrid` (carries Rule 4)
+  - [ ] US-1065: `LogBody` and its cell subtree to `VirtualFlexGrid`
+  - [ ] US-1066: `LinksTiles` plus the eight `RenderGridModel` repointings
+  - [ ] US-1067: delete `uikit/RenderGrid/` — the closing property
 - *(no epic)*
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
@@ -33,10 +40,13 @@ Overview of all active and planned epics and tasks.
   and `notebook` (2,001) — two of them also carrying removal-ledger entries (`RenderGrid`,
   `RenderFlexGrid`, `highlight`'s React form), so they are conversion *plus* collection work — and the
   14 `<TextChrome>` call sites, which convert for free once the last shell is vanilla and are therefore
-  deliberately **last** in Epic E (EPIC-059 E1-8). One measurement is banked for E4+: the notebook
-  rebuilds a Monaco editor whenever a note row scrolls out of view, which EPIC-061 established is a
-  `RenderFlexGrid` cost rather than a wrapper one (E3-6, withdrawn) and belongs to whichever epic takes
-  that ledger entry. Next free epic number: **EPIC-062**.
+  deliberately **last** in Epic E (EPIC-059 E1-8). **E4 is scheduled as [EPIC-062](epics/EPIC-062.md)** and it
+  corrects the "line count from here on" note: a shared contract does exist, it is just owned by
+  `uikit/` rather than `editors/` — `RenderGrid`'s cell contract returns a `ReactNode`, pinning all
+  12 of its importers to React. E4 deletes `uikit/RenderGrid/` outright, collecting two removal-ledger
+  entries, and takes the notebook Monaco-churn measurement E3 withdrew and handed forward (E3-6), whose
+  cause is `renderInfo.ts:314` keying virtualized cells by row index. Line count becomes the axis from
+  **E5** onward. Next free epic number: **EPIC-063**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 
