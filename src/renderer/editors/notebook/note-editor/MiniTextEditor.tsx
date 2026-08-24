@@ -1,7 +1,8 @@
-import { Editor } from "@monaco-editor/react";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import type { EditorConfig } from "../../base/EditorConfig";
+import { MonacoEditorHost } from "../../shared/MonacoEditorHost";
+import type { MonacoEditorHostView } from "../../shared/MonacoEditorHostView";
 
 // =============================================================================
 // Component
@@ -21,6 +22,7 @@ interface MiniTextEditorProps {
  */
 export function MiniTextEditor({ model, editorConfig = {} }: MiniTextEditorProps) {
     const editorModel = model.editor;
+    const hostRef = useRef<MonacoEditorHostView | null>(null);
     const { content, language } = model.state.use((s) => ({
         content: s.content,
         language: s.language,
@@ -43,20 +45,24 @@ export function MiniTextEditor({ model, editorConfig = {} }: MiniTextEditorProps
         editorModel.setHighlightText(editorConfig.highlightText);
     }, [editorConfig.highlightText, editorModel]);
 
+    useEffect(() => {
+        hostRef.current?.setValue(content);
+    }, [content]);
+
     const rootStyle: React.CSSProperties = fillContainer
         ? { position: "relative", flex: "1 1 auto", overflow: "hidden" }
         : { position: "relative", height: contentHeight };
 
     return (
         <div style={rootStyle}>
-            <Editor
-                key={model.id}  // Force remount when note changes (ensures onMount is called)
-                height={fillContainer ? "100%" : contentHeight}
-                value={content}
+            <MonacoEditorHost
+                initialValue={content}
                 language={language}
-                onMount={editorModel.handleEditorDidMount}
+                onMount={(host) => {
+                    hostRef.current = host;
+                    editorModel.handleEditorDidMount(host.getEditor());
+                }}
                 onChange={editorModel.handleEditorChange}
-                theme="custom-dark"
                 options={{
                     // Disable line numbers
                     lineNumbers: "off",

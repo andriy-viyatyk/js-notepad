@@ -1,12 +1,11 @@
-import React from "react";
-import { Editor, type OnMount } from "@monaco-editor/react";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
 import type { DialogProps } from "../../uikit/Dialog/Dialog";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
-import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { MonacoEditorHostView } from "../../editors/shared/MonacoEditorHostView";
+import type { MonacoEditorHostProps } from "../../editors/shared/MonacoEditorHostView";
 import type { DialogViewProps } from "./dialog-view-registry";
 import type {
     TextDialogModel,
@@ -21,10 +20,9 @@ export class TextDialogView extends VanillaView<DialogViewProps> {
     private readonly dialogView: DialogView;
     private readonly contentView: DialogContentView;
     private readonly editorHost: HTMLDivElement;
-    private editorHandle: MountedReactRoot | undefined;
+    private editorView: MonacoEditorHostView | undefined;
     private readonly buttonsPanel: HTMLDivElement;
     private readonly buttonViews = new Map<number, ButtonView>();
-    private viewDisposed = false;
 
     public constructor(props: DialogViewProps) {
         const model = props.model as TextModel;
@@ -63,15 +61,14 @@ export class TextDialogView extends VanillaView<DialogViewProps> {
         this.buttonsPanel = buttonsPanel;
         this.editorHost = editorHost;
         this.own(() => this.disposeButtons());
-        this.own(() => {
-            this.viewDisposed = true;
-            this.releaseEditor();
-        });
     }
 
     protected onMount(): void {
         this.contentView.mount();
-        this.editorHandle = mountReactHandle(this.editorHost, this.editorElement());
+        const editorView = this.child(new MonacoEditorHostView(this.editorProps()));
+        this.editorView = editorView;
+        this.editorHost.append(editorView.root);
+        editorView.mount();
         this.syncButtons();
         this.dialogView.mount();
         this.bind(this.model.state, (state) => state.title ?? "", (title) => {
@@ -85,15 +82,13 @@ export class TextDialogView extends VanillaView<DialogViewProps> {
         this.bind(this.model.state, (state) => state.buttons ?? [], () => this.syncButtons());
     }
 
-    private editorElement(): React.ReactElement {
+    private editorProps(): MonacoEditorHostProps {
         const state = this.model.state.get();
         const options = state.options;
-        return React.createElement(Editor, {
-            value: state.text || "",
+        return {
+            initialValue: state.text || "",
             language: options?.language || "plaintext",
             onChange: state.readOnly ? undefined : this.model.handleEditorChange,
-            onMount: this.handleEditorDidMount,
-            theme: "custom-dark",
             options: {
                 automaticLayout: true,
                 readOnly: state.readOnly ?? true,
@@ -104,16 +99,13 @@ export class TextDialogView extends VanillaView<DialogViewProps> {
                 renderLineHighlight: state.readOnly ? "none" : "line",
                 domReadOnly: state.readOnly ?? true,
             },
-        });
+            onMount: (host) => host.getEditor().focus(),
+        };
     }
 
-    private readonly handleEditorDidMount: OnMount = (editor) => {
-        if (this.viewDisposed) return;
-        editor.focus();
-    };
-
     private syncEditor(): void {
-        this.editorHandle?.render(this.editorElement());
+        this.editorView?.update(this.editorProps());
+        this.editorView?.setValue(this.model.state.get().text || "");
     }
 
     private syncButtons(): void {
@@ -153,11 +145,4 @@ export class TextDialogView extends VanillaView<DialogViewProps> {
         this.buttonViews.clear();
     }
 
-    private releaseEditor(): void {
-        const handle = this.editorHandle;
-        if (!handle) return;
-        this.editorHandle = undefined;
-        this.editorHost.remove();
-        queueMicrotask(() => handle.dispose());
-    }
 }
