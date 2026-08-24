@@ -7,4 +7,11 @@
         min-width: 0;
         min-height: 0;
     }
+
+    /* Monaco's diff root sets only "height: 100%" inline; as a flex child it
+       shrinks to content width (0) and the panes collapse. Give it the full
+       width the React wrapper's block-level <section> used to provide. */
+    .monaco-host-root > .monaco-diff-editor {
+        width: 100%;
+    }
 }

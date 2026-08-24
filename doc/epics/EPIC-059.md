@@ -891,3 +891,12 @@ is accepted.
   in the epic that removes the *last* `@monaco-editor/react` importer. Lesson: the compare editor's own
   live verification passed because the vanilla host doesn't go through the loader — the breakage was in
   the editors the task *didn't* touch, and none was opened during verification.
+- **Defect found in visual testing (US-1043, second): the diff widget collapsed to width 0 inside the
+  vanilla host.** Monaco's `.monaco-diff-editor` root sets only `position: relative; height: 100%`
+  inline; as a child of the flex `.monaco-host-root` it shrank to content width, so the panes laid out
+  at 38px/5px — line numbers and gutter decorations visible, view lines rendered but clipped to
+  nothing. The React wrapper had provided a block-level `<section>` that gave it full width for free.
+  Fixed in `MonacoDiffEditorHostView.css` with `.monaco-host-root > .monaco-diff-editor { width: 100% }`.
+  Lesson: the earlier live structure check verified *presence* (one `.monaco-diff-editor`, labels,
+  exit button) but never element *geometry* — a `offsetWidth > 0` assertion would have caught both
+  the collapse and nothing else. Verified fixed live over MCP (screenshot: full side-by-side diff).
