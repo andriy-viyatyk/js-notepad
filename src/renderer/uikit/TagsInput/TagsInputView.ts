@@ -64,6 +64,7 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
     private createTag(record: TagRecord): HTMLSpanElement {
         const view = new TagView(this.tagProps(record.tag));
         claimViewOwnership(view);
+        view.mount();
         this.tagViews.set(view.root, view);
         return view.root;
     }

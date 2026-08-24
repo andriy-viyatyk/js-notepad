@@ -913,3 +913,16 @@ is accepted.
   compute `display: none` and the rendered diagram shows no spinner. Lesson for later conversion
   epics: `.hidden =` is only safe on elements without an author display rule — and now on UIKit
   roots, which carry the counter-rule.
+- **Defect found in visual testing (latent from Epic C2, not this epic): TagsInput chips never
+  rendered.** Selecting a suggestion in the edit-link dialog's Tags field appeared to do nothing.
+  The whole chain actually worked — suggestion click, `handleAddBlur`, the dialog's `setTags`, the
+  re-render — but `TagsInputView.createTag` claimed ownership of the new `TagView` **without calling
+  `view.mount()`**, and `TagView` builds its entire DOM (content, even its `data-type` attribute) in
+  `onMount()`. Each added tag inserted a bare zero-width `<span>` — the user's "input shifts 1px"
+  observation was the empty chip. Same class as US-1042's SpacerView finding: ownership without
+  mount. Swept all `claimViewOwnership` sites — FileSearchView and both SubtreeSwap consumers mount
+  correctly; TagsInput was the only miss. Verified fixed live by instantiating the served module and
+  checking rendered chip labels. Diagnostic lesson recorded: three probes measured the wrong layer
+  (fiber memoizedProps can be a stale alternate; `[data-type]` selectors are blind to unmounted
+  views whose attributes are set in onMount) — the user's 1px observation localized it faster than
+  any of them.
