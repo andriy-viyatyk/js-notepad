@@ -51,7 +51,7 @@ hiding in a render function that has to be excavated first.
 
 | Dependency | Replacement | Cost |
 |---|---|---|
-| `@monaco-editor/react` | `monaco.editor.create` directly | Trivial — the wrapper is lifecycle only |
+| `@monaco-editor/react` | `monaco.editor.create` directly | **Done — uninstalled in EPIC-061 (E3).** Not trivial and not a swap: the wrapper is controlled and `monaco.editor.create` is not, so it was a control inversion across 13 mount points behind two `VanillaView` hosts |
 | `@floating-ui/react` | `@floating-ui/dom` | Same library, vanilla core. **Not retired inside Epic C** — C1 moved `Tooltip`, C2 empties `uikit/`, and two app-layer importers (`editors/browser/BrowserTabsPanel.tsx`, `ui/dialogs/poppers/showPopupMenu.tsx`) survive into Epics E and D |
 | `react-tooltip` | our own `uikit/Tooltip` | **Done — uninstalled in C1.** It had zero importers; it was an uninstall, not a migration |
 | `zustand` (1 file) | A value plus the listener array `TOneState` already keeps | Small — the dependency is deleted, not replaced (§3.3) |
@@ -757,8 +757,24 @@ error boundary, the root flip) rather than stateful.
 
 ### Epic E — Editors
 
-**E1 is complete as [EPIC-059](epics/EPIC-059.md) and E2 is scoped as
-[EPIC-060](epics/EPIC-060.md), both 2026-08-24.** The next free epic number is **EPIC-061**.
+**E1 is complete as [EPIC-059](epics/EPIC-059.md), E2 as [EPIC-060](epics/EPIC-060.md), and E3 as
+[EPIC-061](epics/EPIC-061.md), all 2026-08-24.** The next free epic number is **EPIC-062**.
+
+**E3 took the second shared contract, `@monaco-editor/react`, and closed by uninstalling it.** With
+both editor-wide contracts now gone — `EditorModule.Body` in E2 and the Monaco wrapper in E3 — the
+only shared contract left in `editors/` is the `editors/base` chrome, which E1-8 established must
+convert **last** because doing it early costs React roots rather than saving them. So E4 onward are
+scoped by line count, which is what E2-1 said to fall back to when no contract exists.
+
+**E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
+Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
+`RenderFlexGrid` unmounting off-screen rows — `renderInfo.ts:314` keys virtualized cells by row
+index. The churn is real and its baseline is recorded, but it belongs to whichever epic takes this
+ledger's `RenderFlexGrid.tsx` entry, not to a wrapper conversion. That is the second time this
+programme mis-attributed a Rule 4 measurement to the component about to be changed (EPIC-060 read
+page-manager slot duplication as md-view rendering twice), so the lesson is recorded there as a
+standing check: **a before/after measurement is not evidence about a cause until the cause has been
+located in source.**
 
 **E2's scoping supersedes the "one editor per task, in any order" sketch below** — see
 [EPIC-060 E2-1](epics/EPIC-060.md#e2-1--the-epic-is-defined-by-the-contract-it-deletes-not-the-editors-it-converts).
@@ -801,12 +817,17 @@ proving consumers of the seams they exercise (E1-2).
 
 **Second, `@monaco-editor/react`'s "trivial" is measurable and even smaller than stated**: 18
 importers at epic open, of which **12** used the `Editor`/`DiffEditor` component, 5 imported the
-`Monaco` *type*, and 1 called `loader`. After E1-3, 11 wrapper consumers remain. `configure-monaco.ts`
-still imports `monaco-editor` directly and must retain `loader.config({ monaco })` for those consumers:
-without it the wrapper falls back to its CDN URL, which Electron resolves as a local file path. The
-config can be deleted only when the last `@monaco-editor/react` importer is removed. The replacement
+`Monaco` *type*, and 1 called `loader`. After E1-3, 11 wrapper consumers remained. The replacement
 is a control inversion, not a swap, making it the programme's **third documented Rule 2 exception**
 after C3-1 and C4-2 (E1-3).
+
+**Closed by E3 ([EPIC-061](epics/EPIC-061.md), 2026-08-24.)** The 13 remaining mount points were
+converted onto two hosts — `editors/shared/MonacoEditorHostView.ts` for `monaco.editor.create` and
+E1's `MonacoDiffEditorHostView.ts` for `createDiffEditor` — `loader.config({ monaco })` was deleted
+from `configure-monaco.ts`, and the package was **uninstalled**. `monaco-editor` and
+`vite-plugin-monaco-editor-esm` stay. The CDN-fallback hazard the `loader.config` guarded against was
+a property of the wrapper, not of Monaco: with no wrapper, nothing consults the loader, verified live
+after removal by TypeScript plus both custom languages (`mermaid`, `log`) still tokenizing.
 
 **Third, §3.6's "already in `node_modules`" is true but incomplete**: **EPIC-060 promotes**
 `unified`, `remark-parse`, `remark-rehype`, and `property-information` to direct dependencies for
@@ -876,6 +897,7 @@ creates the duplicate, not in the epic that hopes to remove it.
 | Item | State | Removal owner |
 |---|---|---|
 | `EditorModule.Body` React arm and its registry normalization shim | **Collected.** All five embeddable bodies expose `BodyView`; notebook dispatch mounts that view directly. | Done in the editor conversion epic |
+| `@monaco-editor/react` | **Collected — uninstalled in [EPIC-061](epics/EPIC-061.md).** Zero importers in `src/`, `loader.config({ monaco })` deleted from `configure-monaco.ts`, package removed from `package.json`. Collected in the epic that freed it rather than deferred to Epic F, per this section's own note. | Done in E3 |
 | `react-markdown` and `hast-util-to-jsx-runtime` application importers | **Collectable in Epic F.** Neither has an application importer now; `hast-util-to-jsx-runtime` remains only in one explanatory source comment. The npm packages are still installed. | Epic F |
 
 **One entry is already collectable at the point C4 closes** (RenderGrid's former AVGrid importers),
