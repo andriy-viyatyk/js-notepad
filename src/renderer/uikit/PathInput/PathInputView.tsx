@@ -1,10 +1,9 @@
 import React from "react";
-import { TComponentState } from "../../core/state/state";
 import { createComponentModelDriver } from "../../core/state/model";
-import { Input } from "../Input";
+import { InputView } from "../Input/InputView";
+import type { InputProps } from "../Input/Input";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import { KeyedList } from "../shared/keyed-list";
-import { mountReact } from "../shared/mount";
 import {
     applyRestProps,
     bindRef,
@@ -30,93 +29,146 @@ interface RowMeta {
     index: number;
 }
 
-interface PathInputBridgeProps {
-    view: PathInputView;
+interface PathSuggestionContentProps {
     model: PathInputModel;
-    propsState: TComponentState<PathInputViewProps>;
+    suggestions: PathSuggestion[];
+    separator?: string;
+    activeIndex: number | null;
 }
 
-function PathInputBridge({ view, model, propsState }: PathInputBridgeProps) {
-    const { open, activeIndex } = model.state.use((state) => ({
-        open: state.open,
-        activeIndex: state.activeIndex,
-    }));
-    const props = propsState.use((state) => state);
-    const {
-        value,
-        placeholder,
-        autoFocus,
-        disabled,
-        readOnly,
-        size = "md",
-        "aria-label": ariaLabel,
-        "aria-labelledby": ariaLabelledBy,
-    } = props;
-    const showSuggestions = open && model.suggestions.length > 0;
-
-    const setInputRef = React.useCallback(
-        (element: HTMLInputElement | null) => view.setInputRef(element, props.ref),
-        [props.ref, view],
-    );
-    // Read activeIndex so the bridge follows model state. The suggestion rows
-    // themselves remain owned by the vanilla KeyedList.
-    void activeIndex;
-
-    return (
-        <>
-            <Input
-                ref={setInputRef}
-                size={size}
-                value={value}
-                onChange={model.onInputChange}
-                placeholder={placeholder}
-                disabled={disabled}
-                readOnly={readOnly}
-                autoFocus={autoFocus}
-                onFocus={model.onInputFocus}
-                onBlur={model.onInputBlur}
-                onKeyDown={(event) => model.onInputKeyDown(event.nativeEvent)}
-                autoComplete="off"
-                aria-label={ariaLabel}
-                aria-labelledby={ariaLabelledBy}
-                aria-haspopup="listbox"
-                aria-expanded={showSuggestions}
-            />
-        </>
-    );
-}
-
-export class PathInputView extends VanillaView<PathInputViewProps> {
-    private readonly propsState: TComponentState<PathInputViewProps>;
-    private readonly driver;
-    private readonly popoverView: PopoverView;
-    private readonly suggestionContent: React.ReactElement;
+class PathSuggestionContentView extends VanillaView<PathSuggestionContentProps> {
     private suggestionHost: HTMLDivElement | null = null;
     private suggestionList: KeyedList<PathSuggestion, string, HTMLDivElement> | null = null;
     private readonly rowMeta = new WeakMap<HTMLDivElement, RowMeta>();
     private readonly rowElements = new Set<HTMLDivElement>();
+
+    public constructor(props: PathSuggestionContentProps) {
+        super(props, document.createElement("div"));
+    }
+
+    protected onMount(): void {
+        this.root.dataset.type = "path-input";
+        this.root.dataset.part = "suggestion-host";
+        this.suggestionHost = this.root as HTMLDivElement;
+        this.suggestionList = new KeyedList(this.suggestionHost, {
+            keyOf: (item) => item.path,
+            create: (item, index) => this.createRow(item, index),
+            update: (element, item, index) => this.updateRow(element, item, index),
+            remove: (element) => this.removeRow(element),
+        });
+        this.suggestionList.update(this.props.suggestions);
+        this.updateActiveRows(this.props.activeIndex);
+        this.own(() => this.disposeSuggestionList());
+    }
+
+    protected onUpdate(props: PathSuggestionContentProps): void {
+        this.suggestionList?.update(props.suggestions);
+        this.updateActiveRows(props.activeIndex);
+    }
+
+    private createRow(item: PathSuggestion, index: number): HTMLDivElement {
+        const row = document.createElement("div");
+        const prefix = document.createElement("span");
+        const segment = document.createElement("span");
+        const separator = document.createElement("span");
+        prefix.dataset.part = "prefix";
+        segment.dataset.part = "segment";
+        separator.dataset.part = "separator";
+        row.append(prefix, segment, separator);
+        row.setAttribute("role", "option");
+        row.dataset.part = "suggestion-row";
+        this.rowElements.add(row);
+        this.rowMeta.set(row, { item, index });
+        row.addEventListener("mousedown", this.onRowMouseDown);
+        row.addEventListener("click", this.onRowClick);
+        row.addEventListener("mouseenter", this.onRowMouseEnter);
+        return row;
+    }
+
+    private updateRow(row: HTMLDivElement, item: PathSuggestion, index: number): void {
+        this.rowMeta.set(row, { item, index });
+        const [prefix, segment, separator] = Array.from(row.children) as HTMLSpanElement[];
+        prefix.textContent = item.matchPrefix;
+        segment.textContent = item.label;
+        separator.textContent = item.isFolder ? (this.props.separator ?? "/") : "";
+        if (this.props.activeIndex === index) row.dataset.active = "";
+        else delete row.dataset.active;
+    }
+
+    private removeRow(row: HTMLDivElement): void {
+        row.removeEventListener("mousedown", this.onRowMouseDown);
+        row.removeEventListener("click", this.onRowClick);
+        row.removeEventListener("mouseenter", this.onRowMouseEnter);
+        this.rowMeta.delete(row);
+        this.rowElements.delete(row);
+        this.props.model.setRowRef(this.rowPath(row), null);
+    }
+
+    private readonly onRowMouseDown = (event: MouseEvent): void => {
+        this.props.model.onRowMouseDown(event);
+    };
+
+    private readonly onRowClick = (event: MouseEvent): void => {
+        const row = event.currentTarget as HTMLDivElement;
+        const meta = this.rowMeta.get(row);
+        if (meta) this.props.model.onRowClick(meta.item);
+    };
+
+    private readonly onRowMouseEnter = (event: MouseEvent): void => {
+        const row = event.currentTarget as HTMLDivElement;
+        const meta = this.rowMeta.get(row);
+        if (meta) this.props.model.onRowMouseEnter(meta.index);
+    };
+
+    private updateActiveRows(activeIndex: number | null): void {
+        for (const row of this.rowElements) {
+            const meta = this.rowMeta.get(row);
+            if (!meta) continue;
+            if (activeIndex === meta.index) row.dataset.active = "";
+            else delete row.dataset.active;
+        }
+
+        if (activeIndex == null) return;
+        const suggestion = this.props.suggestions[activeIndex];
+        const row = suggestion && this.props.model.getRowRef(suggestion.path);
+        row?.scrollIntoView({ block: "nearest" });
+    }
+
+    private rowPath(row: HTMLDivElement): string {
+        return this.rowMeta.get(row)?.item.path ?? "";
+    }
+
+    private disposeSuggestionList(): void {
+        this.suggestionList?.dispose();
+        this.suggestionList = null;
+        this.suggestionHost = null;
+        for (const row of this.rowElements) {
+            this.props.model.setRowRef(this.rowPath(row), null);
+        }
+        this.rowElements.clear();
+    }
+}
+
+export class PathInputView extends VanillaView<PathInputViewProps> {
+    private readonly driver;
+    private readonly popoverView: PopoverView;
+    private readonly inputView: InputView;
+    private suggestionContentView: PathSuggestionContentView | undefined;
     private inputElement: HTMLInputElement | null = null;
-    private externalRef: React.Ref<HTMLInputElement> | undefined;
-    private externalRefCleanup: (() => void) | undefined;
+    private appliedCallerRef: React.Ref<HTMLInputElement> | undefined;
+    private callerRefCleanup: (() => void) | undefined;
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
     public constructor(props: PathInputViewProps) {
         super(props);
-        this.propsState = new TComponentState(props);
         this.driver = createComponentModelDriver(
             this.modelProps(props),
             PathInputModel,
             defaultPathInputState,
         );
         this.own(() => this.driver.dispose());
-
-        this.suggestionContent = (
-            <div
-                ref={(element: HTMLDivElement | null) => this.setSuggestionHost(element)}
-                data-type="path-input"
-                data-part="suggestion-host"
-            />
-        );
+        this.own(() => this.callerRefCleanup?.());
+        this.inputView = this.child(new InputView(this.inputProps(props)));
         this.popoverView = this.child(new PopoverView(this.popoverProps(props)));
     }
 
@@ -124,75 +176,96 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         this.applyRootProps(this.props);
         this.driver.mount();
 
-        // The parent bridge owns the input. The PopoverView owns its own
-        // floating React content bridge and keeps this logical root visible in
-        // the PathInput ownership tree.
-        this.mountBridge();
+        this.root.append(this.inputView.root);
+        this.inputView.mount();
         this.root.append(this.popoverView.root);
         this.popoverView.mount();
 
         this.bind(
             this.driver.model.state,
             (state) => ({ open: state.open, activeIndex: state.activeIndex }),
-            ({ open, activeIndex }) => {
-                this.root.dataset.state = open ? "open" : "closed";
-                this.updateActiveRows(activeIndex);
-                this.popoverView.update(this.popoverProps(this.props));
-            },
+            () => this.syncChildren(),
         );
-        this.own(() => this.disposeSuggestionList());
     }
 
     protected onUpdate(props: PathInputViewProps): void {
         this.driver.update(this.modelProps(props));
-        this.propsState.set(props);
         this.applyRootProps(props);
-        this.popoverView.update(this.popoverProps(props));
-        this.suggestionList?.update(this.driver.model.suggestions);
+        this.syncCallerRef(false);
+        this.syncChildren();
     }
 
     protected onDispose(): void {
         clearRestListeners(this.root, this.restPropsState);
-        this.clearInputRef();
-        this.disposeSuggestionList();
     }
 
-    setInputRef(element: HTMLInputElement | null, ref: React.Ref<HTMLInputElement> | undefined): void {
-        if (element === this.inputElement && ref === this.externalRef) return;
-
-        this.clearInputRef();
+    private readonly setInputRef = (element: HTMLInputElement | null): void => {
         this.inputElement = element;
-        this.externalRef = ref;
         this.driver.model.setInputRef(element);
-        this.popoverView.update(this.popoverProps(this.props));
+        this.syncCallerRef(true);
 
         if (element && this.props.autoFocus) {
             const length = element.value.length;
             element.setSelectionRange(length, length);
         }
+        if (element) this.popoverView.update(this.popoverProps(this.props));
+    };
 
-        this.externalRefCleanup = bindRef(element, ref);
-    }
-
-    setSuggestionHost(host: HTMLDivElement | null): void {
-        if (host === this.suggestionHost) return;
-
-        this.disposeSuggestionList();
-        this.suggestionHost = host;
-        if (!host) return;
-
-        this.suggestionList = new KeyedList<PathSuggestion, string, HTMLDivElement>(host, {
-            keyOf: (item) => item.path,
-            create: (item, index) => this.createRow(item, index),
-            update: (element, item, index) => this.updateRow(element, item, index),
-            remove: (element) => this.removeRow(element),
-        });
-        this.suggestionList.update(this.driver.model.suggestions);
+    private syncCallerRef(force: boolean): void {
+        const ref = this.props.ref;
+        if (!force && ref === this.appliedCallerRef) return;
+        this.callerRefCleanup?.();
+        this.appliedCallerRef = ref;
+        this.callerRefCleanup = bindRef(this.inputElement, ref);
     }
 
     private modelProps(props: PathInputViewProps): PathInputProps {
         const { ref: _ref, ...modelProps } = props;
         return modelProps;
+    }
+
+    private inputProps(props: PathInputViewProps): InputProps {
+        const { value, placeholder, autoFocus, disabled, readOnly, size = "md" } = props;
+        const showSuggestions = this.driver.model.state.get().open
+            && this.driver.model.suggestions.length > 0;
+        return {
+            ref: this.setInputRef,
+            size,
+            value,
+            onChange: this.driver.model.onInputChange,
+            placeholder,
+            disabled,
+            readOnly,
+            autoFocus,
+            onFocus: this.driver.model.onInputFocus,
+            onBlur: this.driver.model.onInputBlur,
+            onKeyDown: (event) => this.driver.model.onInputKeyDown(event.nativeEvent),
+            autoComplete: "off",
+            "aria-label": props["aria-label"],
+            "aria-labelledby": props["aria-labelledby"],
+            "aria-haspopup": "listbox",
+            "aria-expanded": showSuggestions,
+        };
+    }
+
+    private syncChildren(): void {
+        const open = this.driver.model.state.get().open;
+        const shouldOpen = open && this.driver.model.suggestions.length > 0;
+        this.root.dataset.state = open ? "open" : "closed";
+        this.inputView.update(this.inputProps(this.props));
+        this.popoverView.update(this.popoverProps(this.props));
+
+        if (shouldOpen) this.suggestionContentView?.update(this.suggestionProps(this.props));
+        else this.suggestionContentView = undefined;
+    }
+
+    private suggestionProps(props: PathInputViewProps): PathSuggestionContentProps {
+        return {
+            model: this.driver.model,
+            suggestions: this.driver.model.suggestions,
+            separator: props.separator,
+            activeIndex: this.driver.model.state.get().activeIndex,
+        };
     }
 
     private popoverProps(props: PathInputViewProps): PopoverViewProps {
@@ -209,25 +282,13 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             maxHeight: 240,
             outsideClickIgnoreSelector: '[data-type="path-input"]',
             role: "listbox",
-            children: this.suggestionContent,
+            contentView: (host) => {
+                const content = new PathSuggestionContentView(this.suggestionProps(props));
+                host.append(content.root);
+                this.suggestionContentView = content;
+                return content;
+            },
         };
-    }
-
-    private mountBridge(): void {
-        // Register the parent bridge after the Popover child. VanillaView
-        // disposes children in registration order, so the Popover branch is
-        // detached before this parent-owned React root is unmounted.
-        this.child({
-            root: this.root,
-            dispose: mountReact(
-                this.root,
-                <PathInputBridge
-                    view={this}
-                    model={this.driver.model}
-                    propsState={this.propsState}
-                />,
-            ),
-        });
     }
 
     private applyRootProps(props: PathInputViewProps): void {
@@ -262,101 +323,6 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         else delete this.root.dataset.disabled;
         if (readOnly) this.root.dataset.readonly = "";
         else delete this.root.dataset.readonly;
-    }
-
-    private createRow(item: PathSuggestion, index: number): HTMLDivElement {
-        const row = document.createElement("div");
-        const prefix = document.createElement("span");
-        const segment = document.createElement("span");
-        const separator = document.createElement("span");
-        prefix.dataset.part = "prefix";
-        segment.dataset.part = "segment";
-        separator.dataset.part = "separator";
-        row.append(prefix, segment, separator);
-        row.setAttribute("role", "option");
-        row.dataset.part = "suggestion-row";
-        this.rowElements.add(row);
-        this.rowMeta.set(row, { item, index });
-        row.addEventListener("mousedown", this.onRowMouseDown);
-        row.addEventListener("click", this.onRowClick);
-        row.addEventListener("mouseenter", this.onRowMouseEnter);
-        return row;
-    }
-
-    private updateRow(row: HTMLDivElement, item: PathSuggestion, index: number): void {
-        this.rowMeta.set(row, { item, index });
-        const [prefix, segment, separator] = Array.from(row.children) as HTMLSpanElement[];
-        prefix.textContent = item.matchPrefix;
-        segment.textContent = item.label;
-        separator.textContent = item.isFolder ? (this.props.separator ?? "/") : "";
-        if (this.driver.model.state.get().activeIndex === index) row.dataset.active = "";
-        else delete row.dataset.active;
-    }
-
-    private removeRow(row: HTMLDivElement): void {
-        row.removeEventListener("mousedown", this.onRowMouseDown);
-        row.removeEventListener("click", this.onRowClick);
-        row.removeEventListener("mouseenter", this.onRowMouseEnter);
-        this.rowMeta.delete(row);
-        this.rowElements.delete(row);
-        this.driver.model.setRowRef(this.rowPath(row), null);
-    }
-
-    private readonly onRowMouseDown = (event: MouseEvent): void => {
-        this.driver.model.onRowMouseDown(event);
-    };
-
-    private readonly onRowClick = (event: MouseEvent): void => {
-        const row = event.currentTarget as HTMLDivElement;
-        const meta = this.rowMeta.get(row);
-        if (meta) this.driver.model.onRowClick(meta.item);
-    };
-
-    private readonly onRowMouseEnter = (event: MouseEvent): void => {
-        const row = event.currentTarget as HTMLDivElement;
-        const meta = this.rowMeta.get(row);
-        if (meta) this.driver.model.onRowMouseEnter(meta.index);
-    };
-
-    private updateActiveRows(activeIndex: number | null): void {
-        for (const row of this.rowElements) {
-            const meta = this.rowMeta.get(row);
-            if (!meta) continue;
-            if (activeIndex === meta.index) row.dataset.active = "";
-            else delete row.dataset.active;
-        }
-
-        if (activeIndex == null) return;
-        const suggestion = this.driver.model.suggestions[activeIndex];
-        const row = suggestion && this.driver.model.getRowRef(suggestion.path);
-        row?.scrollIntoView({ block: "nearest" });
-    }
-
-    private rowPath(row: HTMLDivElement): string {
-        return this.rowMeta.get(row)?.item.path ?? "";
-    }
-
-    private disposeSuggestionList(): void {
-        this.suggestionList?.dispose();
-        this.suggestionList = null;
-        this.suggestionHost = null;
-        for (const row of this.rowElements) {
-            this.driver.model.setRowRef(this.rowPath(row), null);
-        }
-        this.rowElements.clear();
-    }
-
-    private clearInputRef(): void {
-        const ref = this.externalRef;
-        if (ref) {
-            if (this.externalRefCleanup) this.externalRefCleanup();
-            else if (typeof ref === "function") ref(null);
-            else ref.current = null;
-        }
-        this.externalRefCleanup = undefined;
-        this.externalRef = undefined;
-        this.inputElement = null;
-        this.driver.model.setInputRef(null);
     }
 
 }
