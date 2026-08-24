@@ -15,7 +15,7 @@ implementation, tests, dashboard edits, epic edits, or a commit.
 
 ### Current pipeline and measured surface
 
-src/renderer/editors/markdown/MarkdownBlock.tsx:1-310 delegates to ReactMarkdown
+src/renderer/editors/markdown/MarkdownBlock.tsx:1-323 delegates to ReactMarkdown
 10.1.0. The installed react-markdown source at node_modules/react-markdown/lib/index.js
 verifies this order:
 
@@ -37,12 +37,16 @@ Measured files:
 | src/renderer/editors/markdown/rehypeHeadingIds.ts | 77 | Framework-free heading-id plugin |
 | src/renderer/editors/markdown/rehypeHighlight.ts | 86 | Framework-free search-highlight plugin |
 
-The current five override entries are at MarkdownBlock.tsx:127-156:
+The current five override entries are at MarkdownBlock.tsx:127-155:
 
 - code selects CodeBlock, which uses ColorizedCode for recognized Monaco languages and
   otherwise emits a normal code element.
 - pre selects createPreBlock, which replaces Mermaid fences with the inline Mermaid
   surface and wraps other fenced code in div.code-block-wrapper, pre, and a copy button.
+  The current fence path is still React. EPIC-059 now provides MermaidBodyView.ts as a
+  vanilla standalone body, but its panel/viewport model and layout are not a drop-in for
+  the inline mermaid-diagram toolbar; the inline path still needs its own MermaidBlockView
+  using the shared render-mermaid.ts functions.
 - input replaces task-list checkboxes with CheckedIcon or UncheckedIcon.
 - a decodes through react-markdown's urlTransform, resolves through resolveRelatedLink,
   and emits an anchor.
@@ -56,6 +60,10 @@ react-markdown and hast-util-to-jsx-runtime remain until Epic F removes them.
 
 The installed versions checked were unified 11.0.5, remark-parse 11.0.0,
 remark-rehype 11.1.2, rehype-raw 7.0.0, and property-information 7.1.0.
+package.json currently declares react-markdown ^10.1.0, rehype-raw ^7.0.0, and
+remark-gfm ^4.0.1 directly; unified, remark-parse, remark-rehype, and
+property-information are installed transitively at those versions and are not yet root
+dependencies. hast-util-to-dom is not installed and remains deliberately unadopted.
 property-information/index.js exports html and svg schemas and find(schema, name).
 Its Info records canonical DOM property, serialized attribute, namespace,
 boolean/number/list behavior, and whether a value must be assigned as a DOM property.
@@ -93,6 +101,12 @@ by roadmap section 3.4. That exception is justified because Monaco escapes sourc
 brackets and emits only code-owned span.mtk-* markup. The comment and
 if (this.root.innerHTML !== html) guard must remain there. The markdown walker adds no
 comparable exception.
+
+EPIC-059 split the shared colorized-code surface into a React adapter and a vanilla view:
+CodeBlock.tsx currently imports ColorizedCode.tsx, while the MarkdownBlock path reaches
+that adapter through CodeBlock. ColorizedCode.tsx now only calls mountVanilla; the new
+markdown code substitution must import and instantiate ColorizedCodeView.ts directly,
+not mount the React adapter or create another Monaco host.
 
 src/renderer/editors/mermaid/MermaidBodyView.ts proves the vanilla lifecycle and
 SubtreeSwap pattern, but its model and panel/viewport layout are for the standalone
@@ -245,6 +259,14 @@ attached, and dispose/remove the complete old list before installing the next tr
 Dispose nested/transient views before host roots and make root removal explicit:
 VanillaView.dispose() deliberately does not detach root. Mount failure cleanup must
 preserve the original unknown error and use errMessage/guard for reporting catches.
+
+Honor the converted-view CSS convention: MarkdownBlock.css sets author `display` on
+the ColorizedCodeView `code` root and the MarkdownImageView `.md-image` root, so keep
+scoped same-layer counter-rules (`.markdown-block code[hidden]` and
+`.markdown-block .md-image[hidden]`, or the exact final root selectors) wherever those
+roots can receive `hidden`; apply the same rule to any new root whose CSS sets display.
+Claiming ownership with `claimViewOwnership` or `child()` never mounts a view. The owner
+must attach the root and call `mount()` exactly once, then dispose and detach it explicitly.
 
 ### 3. Add the HAST rewrite plugins
 
@@ -412,7 +434,7 @@ The vanilla host must preserve these behaviors:
 | onMatchCountChange | After each walk, count .highlighted-text; reset to zero without highlighting; notify only on a changed count using the latest callback. |
 | commandQueue scrollToMatch and fragment navigation | commandQueue.register(handler) in onMount; unregister/re-register if the optional queue changes. Remove active class, add requested class, and schedule smooth scroll; anchor requests use findAnchorTarget. Absent queue is a no-op. |
 | Link context menu | One native contextmenu listener. Find closest anchor, reuse ContextMenuEvent.fromNativeEvent, preserve Open in New Tab, Copy Link, external browser items, lazy imports, and href rules. |
-| Root class/style and CSS import | Keep MarkdownBlock.css unchanged; preserve markdown-block/compact class calculation and explicitly remove stale style keys. |
+| Root class/style and CSS import | Preserve MarkdownBlock.css selectors and markdown-block/compact class calculation, add only the required same-layer `[hidden]` counter-rules, and explicitly remove stale style keys. |
 
 Use incoming props directly in onUpdate. VanillaView.update assigns this.props before
 onUpdate, so this.props cannot be treated as the old props. VanillaView.dispose does
@@ -437,9 +459,39 @@ pass regresses the image toolbar. The three substitutions, transient ownership, 
 pipeline must land together; the clean split is between the unchanged upstream pipeline
 and this complete final renderer.
 
+### 8. Verification corpus and executable procedure
+
+Use these inputs, without editing them: `doc/tasks/US-1048-hast-dom-markdown/rule4-fixture.md`
+(the fixed Rule 4 input), `doc/architecture/overview.md`,
+`doc/standards/coding-style.md`, `docs/index.md`, and `docs/editors.md` (the latter covers
+larger tables, raw HTML, images/relative links, and Mermaid fences). Run `npm start` and
+use a temporary, uncommitted dev-only harness that loads each file with its real
+`filePath`, then renders the same props into a ReactMarkdown baseline and the candidate
+MarkdownBlockView sibling. Capture the baseline before the conversion; after conversion,
+keep the baseline harness importing react-markdown directly with the same remark/rehype
+plugins and current override behavior.
+
+After Monaco colorization settles (and, for `docs/editors.md`, Mermaid reaches its
+diagram/error state), compare the `.markdown-block` children with this browser-console
+canonicalizer, excluding only the outer host and explicitly recorded generated Mermaid
+IDs/data URLs:
+
+~~~js
+const canon = (n) => n.nodeType === 3 ? ["#", n.nodeValue] : n.nodeType === 1
+  ? [n.tagName.toLowerCase(), [...n.attributes].sort((a, b) => a.name.localeCompare(b.name))
+      .map((a) => [a.name, a.value]), [...n.childNodes].map(canon)] : null;
+JSON.stringify([...root.children].map(canon));
+~~~
+
+Require byte-equal canonical JSON for the fixture and the non-Mermaid corpus; print the
+first differing node path and explain every exception. Take side-by-side screenshots of
+the fixture and the Mermaid/image cases, exercise task checkboxes, relative links,
+headings/anchors, copy buttons, and search highlighting, and repeat the fixed fixture
+with the existing MutationObserver Rule 4 measurement. This is a live-page procedure,
+not a unit-test suite.
+
 ### Files that need NO changes
 
-- src/renderer/editors/markdown/MarkdownBlock.css and its .markdown-block scoping.
 - src/renderer/editors/markdown/rehypeHeadingIds.ts and rehypeHighlight.ts.
 - src/renderer/editors/shared/ColorizedCode.tsx and ColorizedCodeView.ts.
 - src/renderer/editors/mermaid/MermaidBodyView.ts, render-mermaid.ts, and index.tsx.
@@ -447,6 +499,9 @@ and this complete final renderer.
 - src/renderer/editors/markdown/MarkdownBody.tsx and MarkdownEditor.ts.
 - All five runtime consumer files listed in the consumer table.
 - src/renderer/editors/markdown/index.tsx.
+- src/renderer/ui/app/PagesView.ts, PageContentView.ts, and
+  src/renderer/components/page-manager/AppPageManagerView.ts; their retained/grouped
+  page rendering is deliberate and outside this task.
 - doc/active-work.md and doc/epics/EPIC-059.md.
 
 ## Concerns
@@ -480,6 +535,23 @@ MermaidBodyView cannot absorb the inline Mermaid implementation without changing
 output tree, model contract, or toolbar behavior. Honest reuse is the shared
 renderMermaidSvg/svgToDataUrl path. The remaining inline/standalone duplication belongs
 in the removal ledger for a later consolidation decision.
+
+### Duplicate markdown-block render (resolved)
+
+The source does not mount MarkdownBlock twice inside MarkdownBody: its only call is
+MarkdownBody.tsx:238-245. The markdown module's full-page `Component` and chrome-free
+`Body` are alternate entry points, not two mounts in one page, and there is no print,
+export, outline, or measurement MarkdownBlock consumer. The actual structural source of
+two live subtrees is the page manager: AppPageManagerView.ts:153-158 renders every page
+slot that has been active and retains inactive slots, while AppPageManagerView.ts:160-181
+and GroupContainer.ts:42-45 keep grouped peers visible. Thus the observed pair is two
+page instances (a retained page or grouped peer), not a leaked node or a MarkdownBody
+double mount; equal counts reflect two page instances whose rendered structures happen
+to match, often because they contain the same/current content. This checkout cannot
+identify which specific page ID produced the observation without the live DOM/state;
+confirm it by matching each subtree to its page ID and `pagesModel` grouping state. If a particular
+pair is proven redundant, removing it would change page-slot retention or grouped-page
+layout and belongs in a separate page-manager task; US-1048 must not change it.
 
 ### Size and now-or-defer verdict
 
@@ -518,7 +590,8 @@ E2 inherits this exact walker, plugin, lifecycle, security, and consumer-contrac
   per-node vanilla views. Link/image URLs retain decodeURIComponent, malformed-escape
   fallback, resolveRelatedLink, and async wikiRoot behavior.
 - code, pre, and img substitutions mount vanilla roots with no React root per node.
-  ColorizedCodeView is used for language code; fenced-code wrapper/pre/copy, Mermaid
+  ColorizedCodeView is imported directly for language code (ColorizedCode.tsx is not used
+  as a nested React adapter); fenced-code wrapper/pre/copy, Mermaid
   loading/error/diagram/copy/open, image copy/open, and all CSS hooks remain intact.
 - MermaidModel and CodePreModel remain model-owned rendered state and are compatible
   with the explicit vanilla model driver. Async and timer resources are disposed.
@@ -526,8 +599,14 @@ E2 inherits this exact walker, plugin, lifecycle, security, and consumer-contrac
   props, and owner code handles the fact that VanillaView.dispose does not detach root.
 - content, highlightText, filePath, wikiRoot, and Mermaid light-mode changes re-walk
   the full tree where applicable; root listeners/queue plumbing/root element are reused.
-- MarkdownBlock.css is unchanged, .markdown-block remains the scope, and visible output
-  matches React apart from the established adapter host.
+- Any author `display` rule on a converted root has a same-layer scoped `[hidden]`
+  counter-rule, and every owned transient view is attached before its one `mount()` call;
+  claiming ownership alone never mounts it.
+- MarkdownBlock.css keeps the existing `.markdown-block` scope and selectors, adds only
+  the required same-layer `[hidden]` counter-rules, and visible output matches React
+  apart from the established adapter host.
+- The live-page corpus and canonical DOM/screenshot/Rule 4 procedure in section 8 passes;
+  the fixed `rule4-fixture.md` remains unedited.
 - package.json/package-lock.json directly declare only the four settled pipeline packages;
   hast-util-to-dom is absent and no new dependency is introduced.
 - No hardcoded colors, Emotion, inline layout styling, require("path"), require("fs"),
@@ -540,6 +619,7 @@ E2 inherits this exact walker, plugin, lifecycle, security, and consumer-contrac
 |---|---|
 | package.json | Add direct declarations for unified, remark-parse, remark-rehype, and property-information; retain existing markdown packages. |
 | package-lock.json | Refresh direct dependency metadata without adding hast-util-to-dom. |
+| src/renderer/editors/markdown/MarkdownBlock.css | Add scoped same-layer `[hidden]` counter-rules for converted roots whose author CSS sets `display`; preserve all existing selectors. |
 | src/renderer/editors/markdown/MarkdownBlock.tsx | Preserve React-facing exports and reduce implementation to the mountVanilla adapter. |
 | src/renderer/editors/markdown/MarkdownBlockView.ts | New vanilla host: preprocessing, unified pipeline, safe HAST walker, substitutions, wiki-root, context menu, match count, queue, anchors, and root updates. |
 | src/renderer/editors/markdown/rehypeMarkdownOverrides.ts | New checkbox-icon and URL HAST rewrite plugins. |

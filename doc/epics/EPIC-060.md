@@ -281,7 +281,7 @@ of the renderer.
 | Task | Title | Status |
 |------|-------|--------|
 | US-1051 | Convert the `svg` and `html` bodies to `BodyView` — the two trivial twins; `MermaidBodyView` is the template | **Done** |
-| US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned (plan written in E1, inherited) |
+| US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | **Done** |
 | US-1052 | Convert the `markdown` body: `MarkdownBody`, `CodeBlock`, `MarkdownImage` | Planned |
 | US-1053 | Convert the `grid` body: `GridBody`, `ColumnsOptions`, `CsvOptions` | Planned |
 | US-1054 | Delete the React `Body` arm: repoint `NoteItemActiveEditor` to `BodyView`, remove `Body` and the E1-9 normalization shim | Planned |
@@ -296,10 +296,13 @@ largest task in the epic.
 
 ## Concerns
 
-1. **`ColumnsOptions.tsx` is the largest single file in the epic (394 lines) and is a popover, not a
-   body.** It may belong to the `grid` *shell* rather than the body, in which case US-1053 shrinks to
-   ~236 lines and the popover stays React until the chrome epic. Resolve during US-1053's
-   investigation — do not assume either way here.
+1. ~~**`ColumnsOptions.tsx` is the largest single file in the epic (394 lines) and is a popover, not a
+   body.**~~ **Resolved 2026-08-24, and it shrinks the epic.** Both popovers are shell-owned:
+   `grid/index.tsx:59` calls `showColumnsOptions` and `grid/index.tsx:74` calls `showCsvOptions`, both
+   from the toolbar. So `ColumnsOptions.tsx` (394) and `CsvOptions.tsx` (107) stay React until the
+   chrome epic, and **US-1053 converts only `GridBody.tsx` (129 lines)** — not 630. `uikit/DataGrid/`
+   already has a `DataGridView.ts` beside its React face, so the body mounts the vanilla grid directly
+   rather than a React adapter. The epic's converted surface drops from 1,627 lines to **1,126**.
 2. **The markdown walker has no test net and this project has no unit tests.** Its correctness surface
    is every markdown document a user opens. Verification is by rendering a corpus and comparing DOM
    shape against the react-markdown output; US-1048's plan must name which documents, and this is a
@@ -360,6 +363,26 @@ Three things worth carrying into US-1052/1053:
    guards on the last applied value. **When translating React to a vanilla view, every DOM write
    inherits React's "only if changed" for free and loses it on conversion** — the ones that hurt are
    those with side effects beyond their value.
+
+**US-1048 — the renderer landed, and `react-markdown` now has zero runtime importers.** The walker is
+`markdown/hast-dom.ts` (161 lines, hand-written, `hast-util-to-dom` not adopted per E1-10);
+`MarkdownBlockView.ts` replaces the react-markdown host, `CodeBlock` and `MarkdownImage` became vanilla
+`.ts` views, and `input`/`a` became `rehypeMarkdownOverrides.ts` HAST rewrites. `MarkdownBlock.tsx` is
+now a nine-line `mountVanilla` face, so its four React call sites in `log-view` and `mcp-inspector` did
+not change. Four transitive packages were promoted to direct (`unified`, `remark-parse`,
+`remark-rehype`, `property-information`).
+
+**Verified against the recorded baseline, which is what made this checkable.** The fixture rendered
+**253** elements against the pre-conversion **254**, and every structural count matched exactly —
+1 `h1`, 8 `h2`, 5 table rows, 3 `pre`, 3 `code-block-wrapper`s, 3 copy buttons, 14 `li`, 4 `ul`,
+2 `ol`, the raw-HTML `div[align=center]`, 3 task-list SVG icons, and **0 leftover `input` elements**
+(the `input` override really did become a rehype rewrite). The single-element delta is inside the 99
+Monaco colorization `span`s in the first fence — tokenizer output, not document structure. Both paths
+were then confirmed on screen: the full-page editor, and the `compact` React-adapter path via a
+`ui_push` markdown entry in Log View.
+
+`react-markdown` and `hast-util-to-jsx-runtime` are now **collectable** — no importer remains outside
+one explanatory comment in the walker. Removing the packages is Epic F's, not this epic's.
 
 - `svg` and `html` are both thin bodies over a single host element with no React state: `SvgBody`
   renders the already-vanilla `ImageViewport` from a recomputed data URL and hands its model up via
