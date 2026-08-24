@@ -155,8 +155,8 @@ export function CommitDiffPanel(props: CommitDiffPanelProps) {
     // Reset the diff scroll to the top whenever a new file's diff loads. Monaco
     // reuses the editor instance across files, which preserves the previous
     // scroll position — so a file scrolled to the bottom would leave the next
-    // file scrolled down too. The preceding passive effect synchronizes content before
-    // this parent passive effect resets the scroll. Keyed on `diff` (a fresh
+    // file scrolled down. The preceding effect synchronizes content through the
+    // diff host before this effect resets the scroll. Keyed on `diff` (a fresh
     // object per load).
     useEffect(() => {
         const ed = diffHostRef.current?.getEditor();

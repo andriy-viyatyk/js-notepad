@@ -35,12 +35,13 @@ export class MonacoEditorHostView extends VanillaView<MonacoEditorHostProps> {
     }
 
     protected onMount(): void {
+        const language = this.props.language ?? "plaintext";
         const model = monaco.editor.createModel(
             this.props.initialValue ?? "",
-            this.props.language,
+            language,
         );
         this.ownedModels.add(model);
-        this.currentLanguage = this.props.language;
+        this.currentLanguage = language;
         this.editor = monaco.editor.create(this.root, {
             model,
             automaticLayout: true,
@@ -55,11 +56,12 @@ export class MonacoEditorHostView extends VanillaView<MonacoEditorHostProps> {
         const editor = this.assertReady();
         editor.updateOptions(props.options ?? {});
 
-        if (props.language !== this.currentLanguage) {
-            this.currentLanguage = props.language;
+        const language = props.language ?? "plaintext";
+        if (language !== this.currentLanguage) {
+            this.currentLanguage = language;
             const model = editor.getModel();
-            if (model && props.language) {
-                monaco.editor.setModelLanguage(model, props.language);
+            if (model) {
+                monaco.editor.setModelLanguage(model, language);
             }
         }
     }

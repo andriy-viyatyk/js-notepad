@@ -29,6 +29,7 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
     private ownedOriginal: monaco.editor.ITextModel | undefined;
     private ownedModified: monaco.editor.ITextModel | undefined;
     private currentLanguage: string | undefined;
+    private suppressOnChange = false;
     private hostDisposed = false;
 
     public constructor(props: MonacoDiffEditorHostProps = {}) {
@@ -66,18 +67,24 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
         if (!originalModel || !modifiedModel) return;
 
         if (originalModel.getValue() === original && modifiedModel.getValue() === modified) return;
-        if (originalModel.getValue() !== original) originalModel.setValue(original);
-        if (modifiedModel.getValue() === modified) return;
-        const modifiedEditor = editor.getModifiedEditor();
-        if (modifiedEditor.getOption(monaco.editor.EditorOption.readOnly)) {
-            modifiedEditor.setValue(modified);
-        } else {
-            modifiedEditor.executeEdits("external-sync", [{
-                range: modifiedModel.getFullModelRange(),
-                text: modified,
-                forceMoveMarkers: true,
-            }]);
-            modifiedEditor.pushUndoStop();
+        const previousSuppression = this.suppressOnChange;
+        this.suppressOnChange = true;
+        try {
+            if (originalModel.getValue() !== original) originalModel.setValue(original);
+            if (modifiedModel.getValue() === modified) return;
+            const modifiedEditor = editor.getModifiedEditor();
+            if (modifiedEditor.getOption(monaco.editor.EditorOption.readOnly)) {
+                modifiedEditor.setValue(modified);
+            } else {
+                modifiedEditor.executeEdits("external-sync", [{
+                    range: modifiedModel.getFullModelRange(),
+                    text: modified,
+                    forceMoveMarkers: true,
+                }]);
+                modifiedEditor.pushUndoStop();
+            }
+        } finally {
+            this.suppressOnChange = previousSuppression;
         }
     }
 
@@ -137,7 +144,10 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
         if (this.modifiedContentSubscription) {
             this.ownedSubscriptions.delete(this.modifiedContentSubscription);
         }
-        const subscription = editor.getModifiedEditor().onDidChangeModelContent(listener);
+        const subscription = editor.getModifiedEditor().onDidChangeModelContent(() => {
+            if (this.suppressOnChange) return;
+            listener();
+        });
         this.modifiedContentSubscription = subscription;
         this.ownedSubscriptions.add(subscription);
     }
