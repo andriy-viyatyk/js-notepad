@@ -95,11 +95,13 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Native dialog and popper hosts (view registry, slot ownership, and overlay composition) | `/src/renderer/ui/dialogs/DialogsView.ts`, `/src/renderer/ui/dialogs/poppers/PoppersView.ts` |
 | Editor error boundary (deliberate React class island around React editor content) | `/src/renderer/ui/app/EditorErrorBoundary.tsx` |
 | UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
-| Secondary view registry| `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
+| Secondary view registry (discriminated React/vanilla panel loaders; exact and prefix resolution) | `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
 | Composite panel keys (sidebar) | `/src/renderer/ui/secondary-views/panel-key.ts` |
-| Shared sidebar panel header face and native view (icon + badge + truncating title + pinned actions; native host preserves the `headerRef` portal compatibility contract) | `/src/renderer/ui/secondary-views/SideBarPanelHeader.tsx`, `/src/renderer/ui/secondary-views/SecondaryViewsView.ts` |
+| Shared sidebar panel header faces and DOM factory (React compatibility header plus stable icon/title/actions nodes for vanilla panels; native host preserves the `headerRef` contract) | `/src/renderer/ui/secondary-views/SideBarPanelHeader.tsx`, `/src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts`, `/src/renderer/ui/secondary-views/SecondaryViewsView.ts` |
+| Native secondary-panel loader (cancellable dynamic import, vanilla panel mount, semantic error host, and explicit retirement cleanup) | `/src/renderer/ui/secondary-views/LazySecondaryViewView.ts` |
 | Native sidebar/menu views (Menu Bar, panels, lists, pinned rail, and folder rows) | `/src/renderer/ui/sidebar/*View.ts`, `/src/renderer/ui/sidebar/*View.tsx` |
 | Shared global overlay host | `/src/renderer/uikit/shared/overlayLayer.ts` |
+| Native toolbar styling and DOM helpers (toolbar layout, separators, and static toolbar CSS contract) | `/src/renderer/uikit/Toolbar/toolbar-style.ts`, `/src/renderer/uikit/Toolbar/ToolbarView.tsx` |
 | Editor registration (table-driven: one `EDITORS` row per editor with a literal `import()` per row for code splitting; `match` derives from `EDITOR_MATCHERS[id]`, `accepts` defaults from the matcher or `-1`; monaco/file-diff override `accepts`; row order breaks `resolveForFile` ties; ends with the `preloadContentHostModules()` warm-up) | `/src/renderer/editors/register-editors.ts`       |
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
 | Text-host editor base (the layer between `EditorModel` and every editor wrapping a `TextFileModel` — 14 editors extend it. Owns the host-adoption lifecycle: `CONTENT_HOST_TRAIT` registration, `switchFrom`/`restore`/`adoptHost`, identity persistence, release/save/dispose, plus the parts that are easy to get subtly wrong — the single host-subscription registry torn down on re-adopt/extract/dispose, the `writeToHost`/`subscribeHostContent` content echo guard, and the `mirrorHostSettings` seed+mirror for per-editor view settings riding `host.editorSettings`. Subclass hooks: `displayName`, `adoptHost` override, `onHostAttached` (initial load on the switch/restore/open paths — the open path reaches it via the public `bootstrapFromHost()` bridge), `onHostExtracted`, `untitledName`. Board editors deliberately excluded) | `/src/renderer/editors/base/TextHostEditorModel.ts` |
@@ -110,12 +112,19 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
 | Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
 | Reusable minimap (scroll mirroring, drag navigation, and viewport indicator) | `/src/renderer/uikit/Minimap/` |
-| Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.tsx` |
+| Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.ts` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
 | Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
-| Syntax-highlighted code  | `/src/renderer/editors/shared/ColorizedCode.tsx`  |
+| Syntax-highlighted code (Monaco colorize with React residual-props shim) | `/src/renderer/editors/shared/ColorizedCodeView.ts`, `/src/renderer/editors/shared/ColorizedCode.tsx` |
+| Find bar (native input/buttons with React compatibility face) | `/src/renderer/editors/shared/FindBarView.ts`, `/src/renderer/editors/shared/FindBar.tsx` |
+| Monaco diff host (native Monaco diff widget/model lifecycle and host CSS) | `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.css` |
+| Converted compare editor (native diff host and compare model orchestration) | `/src/renderer/editors/compare/CompareEditor.ts` |
+| Converted image toolbar (native toolbar actions inside `PageToolbar`) | `/src/renderer/editors/image/ImageToolbarView.ts` |
+| Converted Mermaid body (native preview body inside `TextChrome`) | `/src/renderer/editors/mermaid/MermaidBodyView.ts` |
+| Converted Toolset editor view (native standalone editor view) | `/src/renderer/editors/toolset/ToolsetEditorView.ts` |
+| Native Explorer Search panel (vanilla secondary view over `FileSearchView`) | `/src/renderer/editors/explorer/SearchSecondaryView.ts` |
 | Editor icon resolver (tab + sidebar panel headers; `noLanguage`/`getIcon` vs `LanguageIcon`) | `/src/renderer/components/icons/EditorIcon.tsx` |
 | DOM icon resolvers (file/language/board icon elements; no renderer `react-dom/server` dependency) | `/src/renderer/components/icons/icon-elements.ts`, `/src/renderer/theme/language-icons.ts`, `/src/renderer/editors/board/board-glyph-element.ts` |
 | Tree-provider item icon and HTTP favicon cache (directory/provider icons plus shared favicon lookup for link and browser surfaces) | `/src/renderer/components/icons/TreeProviderItemIcon.tsx`, `/src/renderer/components/icons/favicon-cache.ts` |

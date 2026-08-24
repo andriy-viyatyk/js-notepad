@@ -295,7 +295,7 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 | `src/ipc/browser-ipc.ts` | Shared | IPC channel names and type definitions |
 | `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels + `TorStatus`/`TorIpInfo` types: arm, start, stop, log, check-ip, restart, status |
 | `src/ipc/popup-rate-limiter.ts` | Shared | Time-window rate limiter for popup/tab spam blocking |
-| `src/renderer/editors/shared/link-open-menu.tsx` | Renderer | Shared helper for "Open in..." browser menu items |
+| `src/renderer/editors/shared/link-open-menu.ts` | Renderer | Shared helper for "Open in..." browser menu items |
 | `src/renderer/core/state/events.ts` | Renderer | `globalKeyDown` Subscription for keyboard event broadcasting, `browserUrlChanged` for cross-editor URL event broadcasting, `windowClosing` for resource cleanup on window close, `secondaryViewsToggled` for sidebar open/close, `panelExpanded` for secondary panel expansion |
 
 ## Why the Main Process Bridge?
@@ -842,7 +842,7 @@ This pattern is **required** for all commands that trigger a full page navigatio
 
 ## Link Open Menu Helper
 
-`appendLinkOpenMenuItems()` in `src/renderer/editors/shared/link-open-menu.tsx` is a reusable function that appends "Open in..." browser menu items to a `MenuItem[]` array. It generates items for: OS default browser, internal browser, all configured user profiles, and incognito. Used by Link Editor (list, tiles, pinned links) and Markdown Preview link context menus.
+`appendLinkOpenMenuItems()` in `src/renderer/editors/shared/link-open-menu.ts` is a reusable function that appends "Open in..." browser menu items to a `MenuItem[]` array. It generates items for: OS default browser, internal browser, all configured user profiles, and incognito. Used by Link Editor (list, tiles, pinned links) and Markdown Preview link context menus.
 
 Additionally, `LinkViewModel.onGetLinkMenuItems` is an optional callback that allows the host (e.g., browser editor) to inject custom menu items at the top of the link context menu. Items returned by this callback are prepended before the "Edit" item with a separator.
 

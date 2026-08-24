@@ -18,6 +18,21 @@ This separation provides:
 - Possibility for alternative views (desktop/mobile) reusing the same model
 - Better code organization for complex components
 
+## Editor chrome shapes
+
+Editor views have three intentional shapes:
+
+- **Chrome-free**: a standalone root with no shared shell, or a `Body`/`BodyView` intended for
+  embedding. This is the only shape suitable for notebook note dispatch.
+- **`PageToolbar`**: a non-text editor's page root plus the standard toolbar. Use it when the
+  editor needs toolbar actions but not text-host controls, script panel, footer, or overlay.
+- **`TextChrome`**: the host-aware shell for text editors. It owns the toolbar, focus/key handling,
+  script panel, content-host footer, and editor overlay; the editor-specific body sits inside it.
+
+The shell may remain React while its body or toolbar is a `VanillaView`. Export a native main view
+as `EditorModule.View`, or an embeddable native body as `BodyView`; the editor registry normalizes
+those arms for React consumers, while `AsyncEditorView` mounts a main `View` directly.
+
 ## When to Use
 
 ### Use Model-View Pattern When:

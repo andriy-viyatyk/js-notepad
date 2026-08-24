@@ -34,7 +34,7 @@ Three questions decide the shape of your editor:
 
 ```
 /src/renderer/editors/myeditor/
-├── index.tsx                # EditorModule registration
+├── index.ts / index.tsx     # EditorModule registration
 ├── MyEditor.ts              # EditorModel subclass
 ├── MyEditorBody.tsx         # React component for text-bearing editors
 │                            # (or MyEditorView.tsx for non-text editors)
@@ -147,7 +147,25 @@ The lifecycle hook order during a switch is:
    `onHostAttached(host)`
 3. Owner installs newEditor (e.g., `page.setMainEditor(newEditor)`)
 
-## Step 3: Implement the React Component
+## Step 3: Choose and implement the view shape
+
+Choose the page chrome before writing the view:
+
+- **Chrome-free** — use a plain root for standalone content that needs no shared toolbar, or
+  expose `Body`/`BodyView` for an editor embedded inside another editor (for example notebook
+  notes). An embedded body must not add `PageToolbar` or `TextChrome`.
+- **`PageToolbar`** — use for a non-text editor that needs the standard page toolbar but does not
+  need text-host actions, script panel, footer, or editor overlay. The Image editor is the native
+  toolbar example.
+- **`TextChrome`** — use for a text-host editor. It supplies the host-aware toolbar, script panel,
+  content-host footer, focus/key handling, and overlay slot. The Mermaid editor keeps its native
+  body inside this React shell.
+
+React remains valid for a view, but a converted or new DOM-heavy view may use `VanillaView` and
+export it as `View` (or `BodyView`) instead. Keep the root stable and let the registry provide the
+React compatibility adapter.
+
+### React view example
 
 ```typescript
 // MyEditorBody.tsx (or MyEditorView.tsx for non-text editors)
@@ -198,7 +216,7 @@ export function MyEditorBody({ model }: Props) {
 ## Step 4: Export the EditorModule
 
 ```typescript
-// index.tsx
+// index.ts (or index.tsx when the module has a React face)
 import { TComponentState } from "../../core/state/state";
 import { MyEditor, defaultMyEditorState } from "./MyEditor";
 import { MyEditorView } from "./MyEditorView";
@@ -212,12 +230,12 @@ function MyEditorComponent({ model }: { model: EditorModel }) {
 export const myEditorModule: EditorModule = {
     createEditor: () =>
         new MyEditor(new TComponentState({ ...defaultMyEditorState })),
-    Component: MyEditorComponent,
+    Component: MyEditorComponent,       // or View: MyEditorView for a vanilla main view
     // Only for standalone (no-host) editors that open FROM a file path
     // (link decode / path-derived state) — text-bearing editors never need it:
     // newEditorModel: async (filePath?: string) => { ... },
     // Only for embeddable editors (rendered inside Notebook notes):
-    // Body: MyEditorEmbeddedBody,
+    // Body: MyEditorEmbeddedBody,       // or BodyView: MyEditorEmbeddedView
 };
 ```
 
@@ -306,7 +324,12 @@ class MyEditor extends EditorModel<MyEditorState> {
 }
 ```
 
-Register the panel React component in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`.
+Register the panel in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`. React panels
+use the default arm and return `React.ComponentType<SecondaryViewProps>`; a framework-free panel
+sets `arm: "vanilla"` and returns `VanillaViewCtor<SecondaryViewProps>`. The discriminator is
+required because the host selects the DOM slot before the dynamic import resolves. A vanilla
+panel owns a stable root and is retired explicitly by the secondary-view host; do not register a
+replaced record view with `this.child()`.
 
 ## Testing Your Editor
 

@@ -330,11 +330,13 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │       ├── SecondaryViews.tsx       # React-facing panel-host face
 │       ├── SecondaryViewsView.ts    # Native panel host; retains headerRef portal compatibility
 │       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
-│       ├── LazySecondaryView.tsx    # Dynamic panel component loader (dynamic import per panel ID)
+│       ├── LazySecondaryView.tsx    # React dynamic panel loader (compatibility arm)
+│       ├── LazySecondaryViewView.ts  # Native dynamic panel loader (vanilla arm)
 │       ├── SideBarPanelHeader.tsx   # React-facing shared panel-header face
+│       ├── SideBarPanelHeaderView.ts # React-free DOM header factory
 │       ├── SideBarPanelHeader.css   # Static panel-header styles
 │       ├── panel-key.ts             # Composite panel keys (`${editorId}::${panelId}`)
-│       └── secondary-view-registry.ts # Registry: panel ID → dynamic component factory
+│       └── secondary-view-registry.ts # Registry: panel ID → discriminated React/vanilla loader
 │
 ├── editors/                # Editor Implementations — each editor is an EditorModel subclass
 │   ├── base/               # Shared editor infrastructure
@@ -462,7 +464,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── mermaid/            # Mermaid diagram preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MermaidEditor.ts          # EditorModel — SVG URL, loading, error, light mode
-│   │   ├── MermaidBody.tsx           # React component
+│   │   ├── MermaidBodyView.ts         # Native preview body
 │   │   ├── render-mermaid.ts         # Rendering utilities (shared with Markdown)
 │   │   └── index.tsx
 │   ├── graph/              # Force graph viewer (text-bearing, IContentHost + TRAIT)
@@ -542,7 +544,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── PromptsPanel.tsx
 │   │   └── index.tsx
 │   ├── compare/            # Diff editor (non-text, no trait)
-│   │   ├── CompareEditor.tsx
+│   │   ├── CompareEditor.ts
 │   │   └── index.ts
 │   ├── about/              # About page (non-text, no trait)
 │   │   ├── AboutEditor.ts            # EditorModel
@@ -600,7 +602,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── page-explorer.ts          # Explorer provisioning for a page — toggleNavigator, auto-init
 │   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
-│   │   ├── SearchSecondaryView.tsx # "search" panel — file search with portaled header
+│   │   ├── SearchSecondaryView.ts  # "search" panel — file search with native header
 │   │   ├── BoardsSecondaryView.tsx # "boards" panel — Boards/Tools body switch: trusted boards (BoardsTree) or registered toolsets (ToolsTree) under the Explorer root; "+ New board" in the switch row
 │   │   └── index.ts
 │   ├── mneme-config/       # Mneme config & monitoring editor (non-text, no trait)
@@ -650,14 +652,15 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── toolset/            # Per-toolset viewer (non-text, no trait) — opened via persephone-toolset://
 │   │   ├── ToolsetEditorModel.ts     # EditorModel ("toolset-view") — reads manifest, exposes tool list + log path; restore from toolsetRoot
-│   │   ├── ToolsetEditorView.tsx     # Read-only view — manifest info + registered chip + Open-Folder / Open-Log + tool cards (UIKit only)
-│   │   └── index.tsx                 # toolsetModule + legacy EditorModule factory (decodes the link)
+│   │   ├── ToolsetEditorView.ts       # Native read-only view — manifest info + tool cards
+│   │   └── index.ts                   # toolsetModule + EditorModule factory (decodes the link)
 │   ├── tools/              # Shared registered-toolsets tree (used by the sidebar Tools panels)
 │   │   ├── ToolsTree.tsx             # Presentational Tree of toolsets (folder-compacted; open / trailing / context-menu slots)
 │   │   └── tools-tree-build.ts       # Pure builder: toolset path list → compacted folder/toolset node tree (leaf label = manifest name)
 │   ├── shared/             # Shared editor utilities
-│   │   ├── link-open-menu.tsx
-│   │   └── ColorizedCode.tsx         # Syntax-highlighted code via Monaco colorize()
+│   │   ├── link-open-menu.ts
+│   │   ├── ColorizedCodeView.ts      # Native syntax-highlighted code via Monaco colorize()
+│   │   └── ColorizedCode.tsx         # React residual-props face
 │   │
 │   ├── register-editors.ts # Editor registration — table-driven (EDITORS rows + loop) + content-host module preload
 │   ├── types.ts            # View-module prop types (FileEditorComponent, EditorViewModule)

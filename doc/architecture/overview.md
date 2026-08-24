@@ -295,7 +295,7 @@ persephone provides UI building blocks (toolbar, editors, grouped pages). Users 
 Every editor follows the same pattern:
 ```
 /editors/[name]/
-├── index.tsx             # EditorModule registration (factory + matchers)
+├── index.ts / index.tsx  # EditorModule registration (factory + matchers; View/BodyView may be vanilla)
 ├── [Name]Editor.ts       # EditorModel subclass — state, lifecycle, business logic
 ├── [Name]Body.tsx        # React component (or [Name]View.tsx for older naming)
 └── components/           # Editor-specific (optional)

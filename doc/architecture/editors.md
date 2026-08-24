@@ -76,7 +76,7 @@ RenderEditor
         └── <EditorComponent model={page.mainEditor} />
 ```
 
-All editors flow through the same path — there is no longer a content-view branching point that wraps text-bearing editors inside `TextEditorView`. Shared chrome (`PageToolbar`, `TextChrome`) is composed by each editor's view component as needed.
+All editors flow through the same path — there is no longer a content-view branching point that wraps text-bearing editors inside `TextEditorView`. An editor may expose a React `Component` or a framework-free `View`; `AsyncEditorView` mounts the vanilla arm directly when present. Shared chrome (`PageToolbar`, `TextChrome`) is composed by each editor's view component as needed.
 
 **Error protection:** `EditorErrorBoundary` (`/src/renderer/ui/app/EditorErrorBoundary.tsx`) wraps every editor inside `AsyncEditor`. If the editor component throws during render, the boundary catches the error and displays the error message + stack trace in the tab instead of crashing the application. This is a React class component (required for `getDerivedStateFromError`).
 
@@ -204,7 +204,7 @@ The default routes to the content host, which is the extensibility seam:
 - **Non-text editors** override `onGetMenuItems()` to contribute their own items (Git Tree → "Open Git Root Folder" / "Copy Remote URL"; Image/Archive → the file-path items).
 - An editor with nothing to add inherits the base default and a null content host, returning `[]` — so no disabled/irrelevant items appear.
 
-The menu items themselves live in [`editors/shared/editor-menu-items.tsx`](../../src/renderer/editors/shared/editor-menu-items.tsx):
+The menu items themselves live in [`editors/shared/editor-menu-items.ts`](../../src/renderer/editors/shared/editor-menu-items.ts):
 
 - `textFileMenuItems(host)` — Save / Save As / Rename / file-path items / encryption group. The single home of the text-file menu; `TextFileModel.onGetMenuItems()` returns it, and `TextFileModel` owns `promptRename()` (the rename dialog).
 - `filePathMenuItems(filePath)` — Show in File Explorer + Copy File Path. Reusable by any editor with an on-disk path (the text host, plus standalone Image / Archive editors). Disabled (not hidden) when the path is absent.
@@ -299,10 +299,21 @@ interface EditorModule {
         // file-open factory for standalone (no-host) editors whose construction depends on
         // the opened path — decoding a link (git-tree, mneme-root, board, toolset, category),
         // seeding path-derived state (image, video), or reading the target (archive)
-    Component: React.ComponentType<{ model: EditorModel }>;  // editor WITH chrome
-    Body?: React.ComponentType<{ model: EditorModel }>;      // chrome-free (embeddable editors)
+    // Main editor arm: either React or vanilla. The registry adapts View to
+    // Component for legacy callers after loading, before caching the module.
+    Component?: React.ComponentType<{ model: EditorModel }>;
+    View?: VanillaViewCtor<{ model: EditorModel }>;
+    // Chrome-free embedded arm: React Body or vanilla BodyView.
+    Body?: React.ComponentType<{ model: EditorModel }>;
+    BodyView?: VanillaViewCtor<{ model: EditorModel }>;
 }
 ```
+
+`Component`/`View` is a discriminated union in the TypeScript definition: a module must provide
+one main arm, while `Body` and `BodyView` are optional alternatives. The registry normalizes a
+vanilla `View` into a React adapter for callers that still consume `module.Component`, and does
+the same for `BodyView`/`Body`; this happens before the module enters the cache. `AsyncEditorView`
+uses `View` directly when available, avoiding a React root for the converted main view.
 
 The eagerly-registered half is the `EditorDefinition` (`id`, `name`, `accepts`,
 `hasContentHost`, `match?`, `loadModule`). Registration lives in

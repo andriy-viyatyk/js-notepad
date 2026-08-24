@@ -20,6 +20,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Session restore no longer risks losing open tabs if interrupted** — If Persephone was closed, crashed, or lost power while it was still restoring your previous session (for example, right after opening a large number of tabs), a save triggered during that window could overwrite the saved session with an empty or partial tab list. Restore now finishes before any save is allowed to run, so an interrupted restore can no longer erase your tabs for next time.
 
+- **Closing a grouped or compared tab no longer leaves it stuck** — Closing one half of a side-by-side tab pair could fail and leave that tab orphaned, so it could not be closed again. The tab now closes normally, and the remaining tab stays usable.
+
 ---
 
 ## Version 4.0.22
