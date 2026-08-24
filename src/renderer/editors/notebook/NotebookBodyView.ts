@@ -1,3 +1,4 @@
+import { errMessage } from "../../../shared/utils";
 import { panelExpanded } from "../../core/state/events";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
@@ -32,6 +33,31 @@ interface CellRecord {
     index: number;
     note: NoteItem;
     view: NoteItemView;
+    /** Set when this cell's own subtree threw; see `renderCell`'s per-cell boundary. */
+    failed?: boolean;
+}
+
+/**
+ * Per-cell error boundary.
+ *
+ * `renderCell` runs *inside* the virtual grid's paint, so an exception raised anywhere in a note's
+ * subtree — an embedded editor, a third-party grid rejecting its columns — propagates out through
+ * `calcRenderInfo` and aborts the paint for **every** cell. The observed result is a blank notebook
+ * with the scroll position reset, which reads as an engine failure rather than as one bad note.
+ *
+ * So a throw is contained to the cell that raised it: the cell is emptied, an inline message
+ * replaces the note, and the surrounding rows paint normally. A failed cell's view is discarded
+ * rather than reused, because a subtree that threw mid-update is in an unknown state, and reusing it
+ * would carry that state into whichever note the cell is admitted for next.
+ */
+function renderCellFailure(cell: HTMLElement, error: unknown): void {
+    cell.replaceChildren();
+    const message = createTextElement(
+        `This note failed to render: ${errMessage(error)}`,
+        { color: "error", preWrap: true },
+    );
+    message.dataset.type = "note-cell-error";
+    cell.append(message);
 }
 
 const columnWidth = (() => "100%" as Percent) as (value: number) => Percent;
@@ -78,25 +104,64 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         const note = this.projection.filteredNotes[params.row];
         if (!note) return undefined;
 
-        const cell = params.previous ?? params.recycle?.() ?? document.createElement("div");
+        const kind = noteKind(note);
+        const previousRecord = params.previous ? this.cells.get(params.previous) : undefined;
+        const previous =
+            params.previous && (!previousRecord || previousRecord.kind === kind)
+                ? params.previous
+                : undefined;
+        const cell = previous ?? params.recycle?.(kind) ?? document.createElement("div");
+        params.setReuseKey?.(cell, kind);
         let record = this.cells.get(cell);
-        if (!record) {
-            const view = new NoteItemView(this.noteProps(note));
-            record = { cell, kind: noteKind(note), index: params.row, note, view };
-            this.cells.set(cell, record);
-            this.cellRecords.add(record);
-            this.ownedNoteViews.add(view);
-            view.mount();
-            cell.append(view.root);
+
+        // A cell whose subtree threw is not reused: its views are disposed and rebuilt.
+        if (record?.failed) {
+            this.discardRecord(record);
+            record = undefined;
         }
 
-        record.index = params.row;
-        record.note = note;
-        record.kind = noteKind(note);
-        record.view.update(this.noteProps(note));
-        params.measure(record.view.root);
+        try {
+            if (!record) {
+                cell.replaceChildren();
+                const view = new NoteItemView(this.noteProps(note));
+                record = { cell, kind, index: params.row, note, view };
+                this.cells.set(cell, record);
+                this.cellRecords.add(record);
+                this.ownedNoteViews.add(view);
+                view.mount();
+                cell.append(view.root);
+            }
+
+            record.index = params.row;
+            record.note = note;
+            record.kind = kind;
+            record.view.update(this.noteProps(note));
+            params.measure(record.view.root);
+        } catch (error) {
+            // Contained deliberately: see `renderCellFailure`. Reported, never silently swallowed.
+            console.error(`Note "${note.id}" failed to render`, error);
+            if (record) {
+                record.failed = true;
+                record.note = note;
+                record.index = params.row;
+            }
+            renderCellFailure(cell, error);
+            params.measure(cell);
+        }
         return cell;
     };
+
+    /** Drop a record's owned views so a poisoned subtree is never handed to another note. */
+    private discardRecord(record: CellRecord): void {
+        this.cells.delete(record.cell);
+        this.cellRecords.delete(record);
+        this.ownedNoteViews.delete(record.view);
+        try {
+            record.view.dispose();
+        } catch (error) {
+            console.error("Disposing a failed note cell threw", error);
+        }
+    }
     private projection: NotebookProjection;
     private previousProjection: NotebookProjection | undefined;
     private grid: VirtualFlexGridView | undefined;
@@ -187,13 +252,29 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
 
     private enterGrid(): void {
         if (this.grid) {
-            this.notesList.replaceChildren(this.grid.root);
+            // Do NOT re-run `replaceChildren` for a root that is already the only child. Passing the
+            // same node still detaches and re-inserts it, which re-parents an ancestor of the
+            // grid's scroll container — and Blink rebuilds a re-parented scroller's layout object,
+            // resetting `scrollTop` to 0. Every note-state update reaches here, so the visible
+            // effect was the list jumping to the top mid-scroll with no scroll write anywhere in
+            // our code and no change to the scroll geometry.
+            this.attachGridRoot();
             this.grid.update(this.gridProps());
             return;
         }
         this.grid = this.child(new VirtualFlexGridView(this.gridProps()));
-        this.notesList.replaceChildren(this.grid.root);
+        this.attachGridRoot();
         this.grid.mount();
+    }
+
+    /** Idempotent: never re-inserts a root that is already the notes list's only child. */
+    private attachGridRoot(): void {
+        const root = this.grid?.root;
+        if (!root) return;
+        if (this.notesList.childElementCount === 1 && this.notesList.firstElementChild === root) {
+            return;
+        }
+        this.notesList.replaceChildren(root);
     }
 
     private leaveGrid(): void {

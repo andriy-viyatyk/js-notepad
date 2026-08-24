@@ -1,3 +1,4 @@
+import { errMessage } from "../../../shared/utils";
 import {
     DataGridView,
     type DataGridInstance,
@@ -29,6 +30,11 @@ interface GridProjection {
     error: GridEditorState["error"];
 }
 
+interface GridSnapshot {
+    state: GridEditorState;
+    rows: readonly any[];
+}
+
 function rootPanelProps(editorConfig?: EditorConfig): PanelStyleProps {
     return {
         name: "grid-editor-root",
@@ -47,22 +53,23 @@ function selectGridProjection(state: GridEditorState): GridProjection {
     };
 }
 
-function gridProps(
-    props: GridBodyViewProps,
-    onGrid: DataGridProps["onGrid"],
-    projection?: GridProjection,
-): DataGridProps<any> {
-    const { model, editorConfig } = props;
+function readGridSnapshot(model: GridEditor): GridSnapshot {
     const state = model.state.get();
+    return { state, rows: model.rowsForGrid() };
+}
+
+function gridProps(props: GridBodyViewProps, onGrid: DataGridProps["onGrid"]): DataGridProps<any> {
+    const { model, editorConfig } = props;
+    const { state, rows } = readGridSnapshot(model);
     const maxEditorHeight = editorConfig?.maxEditorHeight;
 
     return {
         name: `grid-editor-${model.editorId}`,
-        columns: projection?.columns ?? state.columns,
-        rows: model.rowsForGrid(),
+        columns: state.columns,
+        rows,
         getRowKey,
         rowNoun: "row",
-        searchString: (projection?.search ?? state.search) || undefined,
+        searchString: state.search || undefined,
         highlightString: editorConfig?.highlightText,
         filters: state.filters,
         filterBar: true,
@@ -186,7 +193,7 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> {
             this.model = props.model;
         }
 
-        this.dataGridView.update(gridProps(props, this.onGrid));
+        this.updateDataGrid(props);
 
         if (!hasHost) {
             if (previousHasHost || modelChanged || this.modelSubscription || this.queueSubscription) {
@@ -238,7 +245,21 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> {
     }
 
     private applyProjection(projection: GridProjection): void {
-        this.dataGridView.update(gridProps(this.props, this.onGrid, projection));
+        // `TOneState.update` dispatches synchronously, so a throw here would abort the dispatch for
+        // every later subscriber, and inside a virtualized cell it would abort the whole grid paint.
+        // The third-party grid throws on a columns/rows mismatch, so contain it and show the message
+        // where the editor already shows its errors.
+        try {
+            this.updateDataGrid(this.props);
+        } catch (error) {
+            const message = errMessage(error, "The grid failed to render");
+            this.errorText.textContent = message;
+            this.setHidden(this.root, false);
+            this.setHidden(this.contentPanel, true);
+            this.setHidden(this.errorPanel, false);
+            console.error("Grid body failed to apply its projection", error);
+            return;
+        }
 
         if (!this.model.contentHost) {
             this.setHostVisibility(false);
@@ -253,6 +274,12 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> {
         this.setHidden(this.contentPanel, hasError);
         this.setHidden(this.errorPanel, !hasError);
         this.refreshOnModel();
+    }
+
+    /** The embedded body may be re-pointed without changing its GridEditor identity. */
+    private updateDataGrid(props: GridBodyViewProps): void {
+        this.dataGridView.invalidatePushed();
+        this.dataGridView.update(gridProps(props, this.onGrid));
     }
 
     private publishExistingGrid(): void {

@@ -369,6 +369,7 @@ const _renderCell = (
     const {
         renderCell,
         recycle,
+        setReuseKey,
         old,
         newInfo,
         rerender,
@@ -409,6 +410,7 @@ const _renderCell = (
             key,
             renderInfo: newInfo,
             recycle,
+            setReuseKey,
             // Only meaningful on the dirty path — when there was no previous cell this is
             // undefined and the renderer falls through to recycle()/createElement.
             previous,
@@ -606,6 +608,7 @@ export function calcRenderInfo(
     const rd: RenderData = {
         renderCell,
         recycle: input.recycle,
+        setReuseKey: input.setReuseKey,
         old,
         newInfo,
         rerender: rerenderPrepared,

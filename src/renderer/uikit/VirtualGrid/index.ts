@@ -26,6 +26,7 @@ export {
 export type {
     AdjustRenderRangeFunc,
     CalcRenderInfoInput,
+    CellReuseKey,
     CellStyle,
     ElementLength,
     Percent,
@@ -47,4 +48,5 @@ export type {
     RerenderInfo,
     GridModelCapability,
     RowAlign,
+    SetReuseKeyFunc,
 } from "./types";

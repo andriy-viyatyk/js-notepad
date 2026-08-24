@@ -159,8 +159,48 @@ export class DataGridView<R = any> extends VanillaView<DataGridProps<R>> {
 
         this.pushed = next;
         if (changed) {
-            grid.setOptions(delta as Partial<DataGridProps<R>>);
+            this.pushDelta(grid, delta);
         }
+    }
+
+    /**
+     * Apply a delta, splitting a simultaneous columns+rows change into a safe order.
+     *
+     * `setOptions` applies columns **before** rows internally, and `setColumns` validates every
+     * column against the data the grid is holding *at that moment* — so a schema change pushed as
+     * one delta validates the new columns against the **old** rows and throws
+     * `AVGridError: Unknown column "…"`. That is not hypothetical: it is what a recycled grid cell
+     * re-pointed from one dataset to another does every time, and no amount of total-writing the
+     * delta avoids it, because the fault is in the order the library applies a single call.
+     *
+     * Clearing columns first makes the intermediate state trivially valid — validating an empty
+     * column set against any rows cannot fail — so rows land unguarded and the real columns are
+     * then checked against the data they belong to. All three calls happen in one task, so no
+     * frame is painted with the empty column set.
+     */
+    private pushDelta(grid: DataGridInstance<R>, delta: Record<string, unknown>): void {
+        const hasColumns = Object.prototype.hasOwnProperty.call(delta, "columns");
+        const hasRows = Object.prototype.hasOwnProperty.call(delta, "rows");
+        if (!hasColumns || !hasRows) {
+            grid.setOptions(delta as Partial<DataGridProps<R>>);
+            return;
+        }
+
+        // Rows first, then columns. Never push an empty column set to reach the same ordering: an
+        // observable intermediate state can be reported back through the grid's own callbacks and
+        // re-enter this update through the owning model, which loops.
+        const { columns, ...withoutColumns } = delta;
+        grid.setOptions(withoutColumns as Partial<DataGridProps<R>>);
+        grid.setOptions({ columns } as Partial<DataGridProps<R>>);
+    }
+
+    /**
+     * Forget the previous occupant's value baseline before a recycled host is re-pointed.
+     * Equality against that invisible occupant is not meaningful: the next update must push
+     * every value the new owner supplies, including equal-looking rows or columns.
+     */
+    invalidatePushed(): void {
+        this.pushed = {};
     }
 
     protected onDispose(): void {

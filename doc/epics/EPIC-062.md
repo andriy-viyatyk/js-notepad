@@ -522,6 +522,52 @@ or side-effect-free. `RenderGrid` never had to care, because no consumer put a f
 
 ---
 
+## E4-14 — Re-parenting a scroller, or any ancestor of one, resets its scroll position
+
+*Taken 2026-08-24, from live investigation of two user bug reports against US-1064.*
+
+The notebook's scroll position jumped to the top mid-drag, showing an empty viewport. It took a long
+sequence of eliminations to find, and the eliminations are the valuable part, because every one of
+them is a technique that will be reached for again:
+
+| Ruled out | How |
+|---|---|
+| Application `scrollTop` writes | Shadowed `scrollTop` on the container with an accessor recording a stack per write. Six writes, all from the probe |
+| `scrollIntoView` / `scrollTo` / `scrollBy` / `focus` | Trapped all four on the prototypes. **Zero** calls at the failing step |
+| Scroll anchoring | `getComputedStyle` on container and area: `overflow-anchor: none` on both |
+| A shrinking extent, or a clamp | `scrollHeight`, `clientHeight` and `offsetHeight` sampled per frame: constant at 5399 / 969 / 969 while `scrollTop` went 3323 → 0 |
+| Focus moving | `document.activeElement` was `BODY` before and after |
+| The `AVGridError` exception | Fixing it changed nothing; the failures stayed bit-identical |
+| The HTML note's iframe | Provably the same element, still connected, never reloaded |
+| The grid arm | A control fixture with both grid notes converted to text failed **more** (8 resets vs 2) |
+
+What found it was a `MutationObserver` on the scroll container's **ancestors**, watching `childList`:
+at the failing step an ancestor of the scroller was removed and re-added, three times.
+
+**The cause: `NotebookBodyView.enterGrid()` called `notesList.replaceChildren(this.grid.root)` on
+every projection apply.** `replaceChildren` with the node that is already there still detaches and
+re-inserts it, which re-parents an ancestor of the grid's scroll container — and Blink rebuilds a
+re-parented scroller's layout object, discarding its scroll offset. Every note-state update reached
+that line, so any update landing mid-scroll threw the list back to the top.
+
+**Two generalisations for the rest of the programme.**
+
+**Idempotent attach is not an optimisation, it is a correctness requirement.** `append`,
+`replaceChildren` and `insertBefore` with a node already in the right place are *not* no-ops — they
+are a detach plus an insert, and that is observable as lost scroll position, a reloaded iframe, and
+a rebuilt layout object. This epic hit the same shape twice in different files: here, and in
+`VirtualGridView.syncRegion`, where `parent.append(el)` moved every re-admitted pooled cell once
+E4-13 started keeping released cells in the document. Both now check before writing. Any converted
+view that attaches a child on an update path needs the same check — React's reconciler made this
+class of mistake impossible to express, and direct DOM makes it the default.
+
+**A negative result about *who wrote a value* does not establish that the value was not written.**
+The `scrollTop` accessor trap reporting "six writes, all mine" was true, and it sent me chasing
+browser quirks for several rounds. The write was real; it simply was not a write to that property.
+Instrument the *mutation* next time, not only the property.
+
+---
+
 ## E4-8 — Task order
 
 Sequenced so the two risky conversions happen while the epic can still absorb a redesign, and so
@@ -659,6 +705,35 @@ such notes means at least one host was re-pointed rather than rebuilt, and the l
 while scrolling rows 5-12 are the re-point contract working. See the amended ceiling note under
 E4-6: the ≤3 figure predicted before E4-13 no longer applies, because retained pooled cells keep
 their editors connected.
+
+### US-1064 — re-verified after the two user bug reports, 2026-08-24
+
+Both reports were real defects and both are fixed; a third defect (the `AVGridError`) was found
+while investigating them, and one more was introduced and removed during the work.
+
+| Fix | Cause |
+|---|---|
+| Embedded bodies threw four different missing-method errors | `NoteItemActiveEditorView` pushed `NoteItemEditModel` to arms constructed with the `EditorModel` from `createEditor()` |
+| The HTML note "blinked" and its iframe was destroyed | A pooled cell was admitted for a different note kind, disposing `HtmlBodyView` whose root *is* the iframe. Cells are now reused only within a kind (E4-13) |
+| `AVGridError: Unknown column …` on both grid notes | `setOptions` applies columns before rows and validates the new columns against the rows still loaded. Rows are now pushed first (plus a baseline invalidation and an atomic snapshot) |
+| The scroll jumped to the top mid-drag | E4-14: `replaceChildren` re-parenting the grid root on every projection apply |
+| *Introduced and removed:* the scrollbar drag stalled | An end-of-paint "assert the model's offset" invariant wrote `scrollTop` during a drag, which cancels a native thumb drag. Replaced by fixing the actual clobber |
+
+Final sweep, cold load, 82 steps in both directions on `test.note.json`: **zero position failures,
+zero geometry gaps, zero duplicate `data-row`, zero stranded cells, zero viewport shortfalls, all 13
+rows, zero uncaught errors.** The control fixture that previously failed worst (both grid notes
+converted to text, 8 resets) is also clean. The HTML note's iframe survives a full sweep as the same
+connected element.
+
+Rule 4 re-measured on the same build: 7 of the 8 constructions are the seven distinct `monaco` notes
+built once each, **zero on the return-to-top pass**, and one residual extra construction mid-sweep.
+The falsifiable half of E4-6 therefore holds; the residual 1 is recorded rather than claimed as 0.
+
+A per-cell error boundary was added at the user's request: a throw inside a note's subtree now
+renders an inline message in that cell instead of aborting the paint for every cell, and
+`GridBodyView` contains throws from its own state subscription (a synchronous `TOneState` dispatch
+would otherwise skip every later subscriber). It is insurance, not a fix — verified not to fire on a
+clean sweep.
 
 **Not verified live:** editing a note while scrolling it out and back (the E4-7 total-write path is
 exercised structurally by the duplicate/stranded-cell checks, but not by a real edit); the expanded

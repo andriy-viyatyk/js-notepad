@@ -25,6 +25,13 @@
  * set of elements that just scrolled out. The pool never needs to be large.
  */
 
+import type { CellReuseKey } from "./types";
+
+interface CellPoolEntry {
+    element: HTMLElement;
+    reuseKey?: CellReuseKey;
+}
+
 export interface CellPoolStats {
     /** Acquisitions served from the pool. */
     hits: number;
@@ -37,8 +44,9 @@ export interface CellPoolStats {
 }
 
 export class CellPool {
-    private elements: HTMLElement[] = [];
+    private elements: CellPoolEntry[] = [];
     private retained = new Set<HTMLElement>();
+    private reuseKeys = new WeakMap<HTMLElement, CellReuseKey | undefined>();
     private _stats: CellPoolStats = { hits: 0, misses: 0, released: 0, discarded: 0 };
 
     /**
@@ -53,15 +61,26 @@ export class CellPool {
      *
      * Bound as a field so it can be handed to the geometry as a bare function.
      */
-    acquire = (): HTMLElement | undefined => {
-        const el = this.elements.pop();
-        if (el) {
-            this.retained.delete(el);
-            this._stats.hits++;
-        } else {
-            this._stats.misses++;
+    acquire = (reuseKey?: CellReuseKey): HTMLElement | undefined => {
+        let index = this.elements.length - 1;
+        if (reuseKey !== undefined) {
+            while (index >= 0 && !Object.is(this.elements[index].reuseKey, reuseKey)) index--;
         }
-        return el;
+        if (index < 0) {
+            this._stats.misses++;
+            return undefined;
+        }
+
+        const [{ element }] = this.elements.splice(index, 1);
+        this.retained.delete(element);
+        if (reuseKey !== undefined) this.reuseKeys.set(element, reuseKey);
+        this._stats.hits++;
+        return element;
+    };
+
+    /** Associate a consumer-owned compatibility key with an admitted cell. */
+    setReuseKey = (element: HTMLElement, reuseKey?: CellReuseKey): void => {
+        this.reuseKeys.set(element, reuseKey);
     };
 
     /**
@@ -74,7 +93,7 @@ export class CellPool {
             return false;
         }
         this._stats.released++;
-        this.elements.push(el);
+        this.elements.push({ element: el, reuseKey: this.reuseKeys.get(el) });
         this.retained.add(el);
         return true;
     };

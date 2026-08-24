@@ -56,6 +56,7 @@ import type {
     RecycleFunc,
     RerenderInfo,
     RowAlign,
+    SetReuseKeyFunc,
 } from "./types";
 
 export const defaultRowHeight = 24;
@@ -69,6 +70,7 @@ export interface VirtualGridModelInput {
     rowHeight: ElementLength;
     columnWidth: ElementLength;
     renderCell: RenderCellFunc;
+    setReuseKey?: SetReuseKeyFunc;
     stickyTop: number;
     stickyLeft: number;
     stickyRight: number;
@@ -93,6 +95,8 @@ export interface VirtualGridOptions {
     renderCell: RenderCellFunc;
     /** Supplied by the DOM shell so `renderCell` can reuse a scrolled-out element. */
     recycle?: RecycleFunc;
+    /** Records the consumer's compatibility key for cells admitted to the pool. */
+    setReuseKey?: SetReuseKeyFunc;
     stickyTop?: number;
     stickyLeft?: number;
     stickyRight?: number;
@@ -333,6 +337,7 @@ export class VirtualGridModel {
             rowHeight: this.options.rowHeight ?? defaultRowHeight,
             columnWidth: this.options.columnWidth,
             renderCell: this.options.renderCell,
+            setReuseKey: this.options.setReuseKey,
             stickyTop: this.options.stickyTop ?? 0,
             stickyLeft: this.options.stickyLeft ?? 0,
             stickyRight: this.options.stickyRight ?? 0,
@@ -363,6 +368,7 @@ export class VirtualGridModel {
             newInput.rowHeight !== oldInput.rowHeight ||
             newInput.columnWidth !== oldInput.columnWidth ||
             newInput.renderCell !== oldInput.renderCell ||
+            newInput.setReuseKey !== oldInput.setReuseKey ||
             newInput.stickyTop !== oldInput.stickyTop ||
             newInput.stickyLeft !== oldInput.stickyLeft ||
             newInput.stickyRight !== oldInput.stickyRight ||
@@ -495,6 +501,7 @@ export class VirtualGridModel {
                 columnWidth,
                 renderCell,
                 recycle: this.options.recycle,
+                setReuseKey: this.options.setReuseKey,
                 stickyTop: stickyTop ?? 0,
                 stickyLeft: stickyLeft ?? 0,
                 stickyRight: stickyRight ?? 0,

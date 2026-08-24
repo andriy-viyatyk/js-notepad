@@ -148,14 +148,19 @@ export interface RenderInputPrepared {
 }
 
 /**
- * Hands back a detached element that scrolled out of the window on an earlier frame, or
- * `undefined` when the pool is empty.
+ * Hands back an element that scrolled out of the window on an earlier frame, or `undefined`
+ * when no compatible element is available. The element may remain attached to the grid while
+ * hidden, so consumers must not infer admission from DOM membership.
  *
  * The element arrives in **whatever state its previous occupant left it** — same children,
  * classes, attributes and listeners. That is deliberate: reusing the inner structure is most
  * of the saving. A cell renderer that recycles must therefore overwrite everything it sets.
  */
-export type RecycleFunc = () => HTMLElement | undefined;
+/** Opaque consumer-owned identity used to keep incompatible cell contents apart. */
+export type CellReuseKey = unknown;
+
+export type RecycleFunc = (reuseKey?: CellReuseKey) => HTMLElement | undefined;
+export type SetReuseKeyFunc = (element: HTMLElement, reuseKey?: CellReuseKey) => void;
 
 export interface RenderCellParams {
     col: number;
@@ -165,6 +170,8 @@ export interface RenderCellParams {
     renderInfo: RenderInputPrepared;
     /** Present when a cell pool is attached. See `RecycleFunc`. */
     recycle?: RecycleFunc;
+    /** Records the consumer's compatibility key for a newly admitted or created cell. */
+    setReuseKey?: SetReuseKeyFunc;
     /**
      * The element already rendered at this coordinate, when there is one — i.e. the cell is
      * being re-rendered because it went dirty, not because it just scrolled into view.
@@ -185,6 +192,7 @@ export type RenderCellFunc = (p: RenderCellParams) => RenderedCell;
 export interface RenderData {
     renderCell: RenderCellFunc;
     recycle?: RecycleFunc;
+    setReuseKey?: SetReuseKeyFunc;
     old: RenderInputPrepared;
     newInfo: RenderInputPrepared;
     rerender: RerenderInfoPrepared | null;
@@ -204,6 +212,8 @@ export interface CalcRenderInfoInput {
     renderCell: RenderCellFunc;
     /** Forwarded verbatim to every `renderCell` call. The geometry never calls it itself. */
     recycle?: RecycleFunc;
+    /** Forwarded verbatim to every `renderCell` call. The geometry never calls it itself. */
+    setReuseKey?: SetReuseKeyFunc;
     stickyTop: number;
     stickyLeft: number;
     stickyRight: number;

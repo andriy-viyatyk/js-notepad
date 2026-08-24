@@ -175,7 +175,11 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         // `createElement` — the pool fills from the paint and is never drawn from. `pool.acquire`
         // is a bound field, so its identity is stable across updates.
         this.model = new VirtualGridModel(
-            { ...props, recycle: this.pool.acquire },
+            {
+                ...props,
+                recycle: this.pool.acquire,
+                setReuseKey: this.pool.setReuseKey,
+            },
             this.schedulePaint,
         );
 
@@ -231,7 +235,11 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         // update() before mount stores props without calling onUpdate, so the model can be holding
         // the options it was constructed with while the view is about to render newer ones.
         if (this.props !== this.modelProps) {
-            this.model.setOptions({ ...this.props, recycle: this.pool.acquire });
+            this.model.setOptions({
+                ...this.props,
+                recycle: this.pool.acquire,
+                setReuseKey: this.pool.setReuseKey,
+            });
         }
 
         this.listen(this.container, "scroll", this.model.onScroll, { passive: true });
@@ -262,7 +270,11 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         // that recreates it on every update rebuilds every visible cell — keep it stable and
         // signal data changes with model.update() instead.
         this.modelProps = props;
-        this.model.setOptions({ ...props, recycle: this.pool.acquire });
+        this.model.setOptions({
+            ...props,
+            recycle: this.pool.acquire,
+            setReuseKey: this.pool.setReuseKey,
+        });
     }
 
     protected onDispose(): void {
@@ -395,7 +407,6 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
             // scroll must not wait for a geometry change that may never come.
             this.model.flushPendingScroll();
             this.cleanupOrphans();
-            this.assertScrollPosition();
             return;
         }
 
@@ -424,20 +435,27 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         this.model.flushPendingScroll();
 
         this.settleScrollBar(info);
-        this.assertScrollPosition();
-
         this._stats.lastPaintMs = performance.now() - startedAt;
         this._stats.totalPaintMs += this._stats.lastPaintMs;
     }
 
-    /** Keep the DOM position aligned with the offset used to compute this paint. */
-    private assertScrollPosition(): void {
+    /**
+     * Run a synchronous layout mutation without losing the user's live scroll position.
+     * Chromium can reset an ancestor scroller while a content extent is rewritten; the value
+     * captured here is the DOM's current position, not a possibly stale model offset.
+     */
+    private preserveScrollPosition<T>(mutation: () => T): T {
         const container = this.container;
-        if (!container) return;
-        const { x, y } = this.model.offset;
-        if (container.scrollLeft === x && container.scrollTop === y) return;
-        container.scrollLeft = x;
-        container.scrollTop = y;
+        if (!container) return mutation();
+
+        const scrollLeft = container.scrollLeft;
+        const scrollTop = container.scrollTop;
+        try {
+            return mutation();
+        } finally {
+            if (container.scrollLeft !== scrollLeft) container.scrollLeft = scrollLeft;
+            if (container.scrollTop !== scrollTop) container.scrollTop = scrollTop;
+        }
     }
 
     /**
@@ -544,9 +562,18 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
 
         for (const el of next) {
             if (!prev.has(el)) {
-                parent.append(el);
+                // `append` on a node that is already a child is a *move* — remove plus re-insert —
+                // and since released cells now stay in the document (see `releaseCell`), every
+                // re-admission would move one. That is both gratuitous, because cells are
+                // absolutely positioned and DOM order does not affect what is painted, and harmful:
+                // moving a subtree that hosts a complex embedded widget resets the scroll container
+                // to the top. Attach only what is not attached; still report the admission, because
+                // a re-admitted cell measured zero while it was hidden.
+                if (el.parentElement !== parent) {
+                    parent.append(el);
+                    this._stats.cellsAppended++;
+                }
                 this.props.onCellAttached?.(el);
-                this._stats.cellsAppended++;
             }
         }
 
@@ -646,7 +673,9 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         setStyle(this.container, "height", growToHeight ? "unset" : px(height));
 
         setStyle(this.area, "width", px(innerSize.width));
-        setStyle(this.area, "height", px(innerSize.height));
+        this.preserveScrollPosition(() => {
+            setStyle(this.area, "height", px(innerSize.height));
+        });
 
         // The right-hand bands sit at the viewport's right edge, inside the scrollbar.
         const rightLeft = px(width - innerSize.stickyRightWidth - scrollBarWidth);
