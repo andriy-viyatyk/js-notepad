@@ -229,8 +229,27 @@ consumer's model must. And the moment a consumer subscribes to its own content s
 
 The wrapper avoids this by comparing the incoming value against `editor.getValue()` before writing.
 That guard is not optional and it is not a consumer concern: eleven call sites must not each
-rediscover it. **`MonacoEditorHostView.setValue(next)` compares against the current model value and
-returns without writing when they are equal.** Consumers subscribe and call `setValue` freely.
+rediscover it. **`MonacoEditorHostView.setValue(next)` is the single external-write entry point for
+every consumer in this epic**, and it owns the whole policy — compare, write, suppress. Consumers
+subscribe to their own content state and call `setValue` freely.
+
+**Refined during US-1056's plan review**, in two ways that matter to every later task:
+
+- The comparison alone is not the whole guard. The wrapper writes through `setValue` only when the
+  editor is **read-only**; when it is editable it uses a full-range `executeEdits` followed by
+  `pushUndoStop`, because `setValue` discards the undo stack. Both paths live in the host's
+  `setValue`. As first written this decision said only "compare before writing", which would have
+  silently downgraded undo behaviour on every editable consumer.
+- **The mount callback hands back the host view, not the raw editor.** Under `mountVanilla` a React
+  consumer has no reference to the view it mounted (`mount.tsx` keeps it in a ref and exposes
+  nothing), so a callback giving out only `IStandaloneCodeEditor` would leave every consumer unable
+  to call `setValue` — and therefore reimplementing the policy against the raw editor, which is
+  exactly what this decision forbids. `onMount?: (host: MonacoEditorHostView) => void`, with
+  `host.getEditor()` for the consumer-specific setups that genuinely need the widget. This does not
+  weaken Concern 5: that concern was about not perpetuating the wrapper's `(editor, monaco)` pair,
+  and a Persephone object carrying the policy is the better of the two.
+- Suppression is save-and-restore, not `finally { flag = false }`. A re-entrant write would otherwise
+  clear a guard it did not set.
 
 Two smaller members of the same family, both currently handled by the wrapper's prop diffing and both
 therefore now the host's job:
