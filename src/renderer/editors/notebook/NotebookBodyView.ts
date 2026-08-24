@@ -86,6 +86,12 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         flex: 1,
         overflow: "hidden",
         position: "relative",
+        // A flex item defaults to `min-height: auto`, which forbids shrinking below the content's
+        // min-content height. On the first navigation into the notebook that measured 969px while
+        // the chrome left only 962px, so the body overflowed its parent by 7px: the footer sat too
+        // low and the whole editor area — toolbar and footer included — gained a stray scrollbar.
+        // Re-activating the page re-laid it out and hid the bug, which is why it looked transient.
+        minHeight: 0,
     });
     private readonly messageHost = document.createElement("div");
     private readonly cells = new WeakMap<HTMLElement, CellRecord>();
@@ -177,6 +183,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         const editor = props.model;
         super(props, createPanelElement({
             name: "notebook-body", direction: "column", flex: 1, overflow: "hidden",
+            minHeight: 0,
         }));
         this.editor = editor;
         this.projection = selectProjection(editor.state.get());
