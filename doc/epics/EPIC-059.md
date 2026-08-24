@@ -503,7 +503,7 @@ translation with the model largely intact — which is exactly the shape roadmap
 |------|-------|--------|
 | US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the **`toolset`** editor | **Done** |
 | US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | **Done** |
-| US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | Planned |
+| US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | **Done** |
 | US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | Planned |
 | US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | Planned |
 | US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | Planned |
@@ -678,6 +678,38 @@ is accepted.
   diff editor. Three page-switch cycles and two reopen cycles left the counts at exactly 1 — no
   accumulation. Ungrouping dropped `compare-root`, `.monaco-diff-editor` and `.monaco-host-root` all to
   **0**, confirming `clearCompare` detaches the root and the host tears the widget down.
+- **US-1044 done.** `editor-menu-items` and `link-open-menu` lose React entirely and become `.ts` —
+  which also removes React from the import graph of three `.ts` model files (`ImageEditor`,
+  `TextEditorModel`, `ArchiveEditor`). `FindBar` and `ColorizedCode` become vanilla views behind thin
+  `mountVanilla` shims, since all seven of their consumers are still React editors (Rule 2).
+
+  **The trap in this task was menu icons, and it is worth remembering because the rule is inverted from
+  the buttons.** `MenuView` fills `item.icon` through `fillSlot` (`MenuView.ts:191-193`), and
+  `fillSlot`'s string branch does `host.textContent = slot`. So an icon **name** in a `MenuItem` renders
+  as the literal word — "folder-open" as text where the glyph should be. Menu icons must be DOM nodes
+  from `createIconElement(name)`; `ButtonView`/`IconButtonView`, by contrast, *do* accept a name. Both
+  builders export functions rather than module-level arrays, so each menu open gets fresh nodes — which
+  matters, because appending a node moves it and two simultaneously-open menus cannot share one.
+
+  **`ColorizedCode` needed no Monaco host at all** — `monaco.editor.colorize()` is a static
+  string→HTML call (`standaloneEditor.js:286-291`), not a widget. US-1043's decision to withhold a plain
+  `MonacoEditorHostView` therefore still stands, and this task did not add one. Its `innerHTML` write is
+  the documented roadmap §3.4 exception: Monaco escapes `<`/`>` into entities
+  (`viewLineRenderer.js:856-860`) and emits only code-owned `<span class="mtk…">` runs, putting it in the
+  same category §3.4 already permits for av-grid's `DataCell`. The write is guarded
+  (`if (innerHTML !== html)`) so the parser does not re-run on an unchanged string, and the reasoning is
+  a comment at the call site. Its module-level `setMonarchTokensProvider("json", …)` stays module-level —
+  moving it into the view would re-register per instance, and `McpRequestView` creates two per log entry.
+
+  *Verified live over MCP:* a markdown page with two fenced code blocks produced **114 `mtk*` spans**,
+  so the guarded `innerHTML` path is live; both menu builders were called directly and **every** returned
+  `icon` was an `svg` **node**, never a string; Ctrl+F opened the vanilla find bar with one input and the
+  three icon buttons (`find-prev`, `find-next`, `find-close`), and its own close button dismissed it.
+
+  *Recovery note:* HMR wedged the renderer during this task — Electron alive, MCP not answering. A
+  main-process touch did not clear it; killing Vite + Electron and running `npm start` did, and the code
+  was fine on a cold start. Recorded because it is the second time HMR has failed on a multi-file rename
+  in this epic, and it is not a defect.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale
