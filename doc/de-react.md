@@ -758,8 +758,18 @@ error boundary, the root flip) rather than stateful.
 
 ### Epic E — Editors
 
-**E1 is scoped as [EPIC-059](epics/EPIC-059.md) on 2026-08-24.** The next free epic number is
-**EPIC-060**.
+**E1 is complete as [EPIC-059](epics/EPIC-059.md) and E2 is scoped as
+[EPIC-060](epics/EPIC-060.md), both 2026-08-24.** The next free epic number is **EPIC-061**.
+
+**E2's scoping supersedes the "one editor per task, in any order" sketch below** — see
+[EPIC-060 E2-1](epics/EPIC-060.md#e2-1--the-epic-is-defined-by-the-contract-it-deletes-not-the-editors-it-converts).
+Line count is the wrong axis for the first conversion epic. Grouping the editors by the *shared
+contract* they provide lets an epic close by deleting a registry type rather than by shrinking a
+number, and a contract that survives is one every later epic must keep satisfying. E2 therefore takes
+the five `EditorModule.Body` providers (`grid`, `html`, `markdown`, `svg`, and E1's already-converted
+`mermaid`), which also front-loads the `hast → DOM` renderer that three editors block on. Later
+conversion epics should be scoped the same way where a shared contract exists, and by line count only
+where none does.
 
 28,203 lines across 181 files, but already lazily imported and already model/view split — the
 ideal migration unit. One editor per task, in whatever order suits other work. Open-ended by
