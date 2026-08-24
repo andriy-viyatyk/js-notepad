@@ -17,6 +17,7 @@ import type { IconRef } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { ISecondaryViewsState } from "./SecondaryViewsModel";
 import { LazySecondaryView } from "./LazySecondaryView";
+import { LazySecondaryViewView } from "./LazySecondaryViewView";
 import { isCompositePanelKey, panelKey } from "./panel-key";
 import { secondaryViewRegistry } from "./secondary-view-registry";
 
@@ -41,6 +42,7 @@ interface PanelRecord {
     panelId: string;
     icon?: IconRef;
     headerElement: HTMLDivElement | null;
+    lazyView?: LazySecondaryViewView;
     headerDirty: boolean;
     alive: boolean;
     readonly headerRef: (element: HTMLDivElement | null) => void;
@@ -103,6 +105,7 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             record.alive = false;
             record.headerElement = null;
             record.headerDirty = false;
+            this.disposeLazyView(record);
             this.records.delete(key);
         }
 
@@ -184,11 +187,22 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
         const record = this.records.get(panel.key);
         if (!record) throw new Error(`SecondaryViews lost panel record: ${panel.key}`);
 
-        return {
+        const descriptor: CollapsiblePanelProps = {
             id: panel.key,
             name: panel.panelId,
             headerRef: record.headerRef,
             alwaysRenderContent: true,
+            children: null,
+        };
+        const definition = secondaryViewRegistry.get(record.panelId);
+        if (definition?.arm === "vanilla") {
+            const lazyView = record.lazyView ?? this.createLazyView(record, panel.key === activeKey);
+            lazyView.update(this.lazyViewProps(record, panel.key === activeKey));
+            return { ...descriptor, children: lazyView.root };
+        }
+
+        return {
+            ...descriptor,
             children: React.createElement(LazySecondaryView, {
                 model: record.model as never,
                 panelId: record.panelId,
@@ -196,6 +210,23 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
                 icon: record.icon,
                 expanded: panel.key === activeKey,
             }),
+        };
+    }
+
+    private createLazyView(record: PanelRecord, expanded: boolean): LazySecondaryViewView {
+        const view = new LazySecondaryViewView(this.lazyViewProps(record, expanded));
+        record.lazyView = view;
+        view.mount();
+        return view;
+    }
+
+    private lazyViewProps(record: PanelRecord, expanded: boolean) {
+        return {
+            model: record.model,
+            panelId: record.panelId,
+            headerRef: record.headerElement,
+            icon: record.icon,
+            expanded,
         };
     }
 
@@ -256,8 +287,20 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             record.alive = false;
             record.headerElement = null;
             record.headerDirty = false;
+            this.disposeLazyView(record);
         }
         this.records.clear();
+    }
+
+    private disposeLazyView(record: PanelRecord): void {
+        const view = record.lazyView;
+        record.lazyView = undefined;
+        if (!view) return;
+        try {
+            view.dispose();
+        } finally {
+            view.root.remove();
+        }
     }
 
     private requireStack(): CollapsiblePanelStackView {

@@ -40,6 +40,14 @@ class LazySecondaryViewModel extends TComponentModel<LazySecondaryViewState, Laz
                 });
                 return;
             }
+            if (def.arm === "vanilla") {
+                queueMicrotask(() => {
+                    if (this.isLive) {
+                        this.setError(`Vanilla secondary view used by React host: "${this.props.panelId}"`);
+                    }
+                });
+                return;
+            }
             let cancelled = false;
             void def.loadComponent().then((mod) => {
                 if (!cancelled) this.setComponent(mod.default);

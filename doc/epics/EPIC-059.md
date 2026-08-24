@@ -506,7 +506,7 @@ translation with the model largely intact — which is exactly the shape roadmap
 | US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | **Done** |
 | US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | **Done** |
 | US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | **Done** |
-| US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | Planned |
+| US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | **Done** |
 | US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned |
 
 Seven tasks. Two changes from the first draft, both from reading the code rather than re-planning:
@@ -776,6 +776,41 @@ is accepted.
   (`ImageViewport.tsx:260`) and dispose (`:266`), never on identity change. It would be a real defect in a
   component that reacted to that prop, so the memoization roadmap §6.1 prescribes is still the right
   habit at these boundaries.
+- **US-1047 done — the second React-typed registry now has a vanilla arm.** `SecondaryViewDefinition`
+  gains `arm: "vanilla"`, `SecondaryViewsView.toPanelDescriptor` branches, and a vanilla panel's
+  `children` is a DOM **`Node`** that `CollapsiblePanelStackView.tsx:207` appends through `fillSlot` —
+  so a vanilla panel costs **zero React roots** where each React panel costs one.
+  `CollapsiblePanelProps.children` widened to `ReactNode | Node`, the same narrow precedent as
+  `IconRef | Node`. The pilot is Explorer's **Search** panel (its `FileSearchView` was already vanilla);
+  the other 13 panels are untouched and still on the React arm. `SideBarPanelHeaderView.ts` is the new
+  DOM header factory beside the React `SideBarPanelHeader`.
+
+  **The load-bearing detail was the header's `data-type` values**, not the markup.
+  `CollapsiblePanelStack.css:52-62` gives `[data-part="header"]` descendants with
+  `data-type="panel"`/`"text"`/`"tag"` `pointer-events: none` and restores `auto` for buttons — that is
+  what makes a header click toggle the panel while its buttons still work. Verified computationally on the
+  live app: the title panel computes `pointer-events: none` and the close button `auto`.
+
+  Two gaps found in review and made explicit rather than left to be discovered:
+
+  1. **`asDomIcon` silently dropped any icon that was not a registry name**, returning `undefined`. It
+     worked only because `register-editors.ts:29` happens to give this panel `icon: "search"`;
+     `SecondaryViewsView.resolveIcon` still falls back to a React `EditorIcon` element, so the *other*
+     panels would each have silently lost their header glyph as they converted — roadmap §6.1's
+     masked-defect shape exactly. The helper moved out of the panel file into the header factory (left in
+     place, every future panel would have copied it) and now emits a development-time error naming the
+     panel and the cause. The three ways to close it properly are recorded for whoever hits it.
+  2. **`onShowMain` is unimplemented in the factory** — correct for now, no consumer — but
+     `GitPanelSecondaryView`, `MnemeTreeSecondaryView` and `LinkCategorySecondaryView` all pass it, so
+     three later conversions need it. The omission is now a comment naming those three and what the port
+     must preserve: the exact `data-type="sidebar-show-main"` (it is in the CSS `pointer-events: auto`
+     allowlist, so a wrong value makes the button dead), `data-active`, `stopPropagation`, and
+     `<Tooltip>` → `attachTooltip`.
+
+  *Recovery note:* the first live check showed an empty panel and "Failed to fetch dynamically imported
+  module" — a **stale Vite module graph** after the `.tsx` → `.ts` rename, not a defect. A main-process
+  touch cannot clear Vite's graph; killing the dev server and running `npm start` did, and it worked on
+  the cold start. Third HMR failure in this epic, all on multi-file renames.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale

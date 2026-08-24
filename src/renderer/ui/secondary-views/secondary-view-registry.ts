@@ -1,6 +1,7 @@
 import type React from "react";
 import type { EditorOrHost } from "../../editors/base";
 import type { IconRef } from "../../uikit";
+import type { VanillaViewCtor } from "../../uikit/shared/mount";
 
 /** Props passed to secondary view sidebar components. */
 export interface SecondaryViewProps {
@@ -21,8 +22,7 @@ export interface SecondaryViewProps {
     expanded?: boolean;
 }
 
-/** Registration for a secondary view type. */
-interface SecondaryViewDefinition {
+type ReactSecondaryViewDefinition = {
     /** Unique ID matching IEditorState.secondaryView values. */
     id: string;
     /** Display label for the panel header. */
@@ -34,7 +34,18 @@ interface SecondaryViewDefinition {
     icon?: IconRef;
     /** Dynamic import of the sidebar component. */
     loadComponent: () => Promise<{ default: React.ComponentType<SecondaryViewProps> }>;
-}
+    arm?: "react";
+};
+
+type VanillaSecondaryViewDefinition = {
+    id: string;
+    label: string;
+    icon?: IconRef;
+    arm: "vanilla";
+    loadComponent: () => Promise<{ default: VanillaViewCtor<SecondaryViewProps> }>;
+};
+
+export type SecondaryViewDefinition = ReactSecondaryViewDefinition | VanillaSecondaryViewDefinition;
 
 class SecondaryViewRegistry {
     private editors = new Map<string, SecondaryViewDefinition>();

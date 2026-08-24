@@ -27,6 +27,7 @@ secondaryViewRegistry.register({
     // Sidebar-only sub-panel of Explorer — give it the search glyph (the one on
     // the Explorer header's "open search" button) instead of Explorer's folder icon.
     icon: "search",
+    arm: "vanilla",
     loadComponent: () => import("./explorer/SearchSecondaryView"),
 });
 

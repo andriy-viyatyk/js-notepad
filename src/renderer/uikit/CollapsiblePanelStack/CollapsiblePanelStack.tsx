@@ -4,11 +4,11 @@ import { CollapsiblePanelStackView } from "./CollapsiblePanelStackView";
 import type { IconName } from "../../theme/icon-registry";
 
 export interface CollapsiblePanelProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "title"> {
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
     name?: string;
     id: string;
     title?: string;
-    children: ReactNode;
+    children: ReactNode | Node;
     icon?: IconName;
     buttons?: ReactNode;
     headerRef?: (el: HTMLDivElement | null) => void;
