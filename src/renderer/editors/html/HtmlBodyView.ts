@@ -116,6 +116,20 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
             const data = event.data as { __persephone?: string } | undefined;
             if (data?.__persephone === "html:interact") {
                 document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+                // Clicking inside a sandboxed iframe makes it the host document's `activeElement`
+                // but dispatches no focus event here, so nothing bubbles to an ancestor that tracks
+                // focus — a notebook note holding an HTML preview stayed inactive however much the
+                // user clicked in it.
+                //
+                // `focus()` alone is not enough: by then the iframe usually *is* the activeElement,
+                // and focusing an already-focused element is specified as a no-op that emits
+                // nothing. So announce the transition ourselves in exactly that case. Listeners are
+                // expected to be idempotent about focus they already believe they have.
+                const alreadyFocused = document.activeElement === this.iframe;
+                this.iframe.focus();
+                if (alreadyFocused) {
+                    this.iframe.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+                }
             }
         };
 
