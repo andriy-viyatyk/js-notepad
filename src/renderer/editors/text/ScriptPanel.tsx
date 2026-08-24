@@ -1,5 +1,5 @@
-import { Editor } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
+import { useEffect, useRef } from "react";
 
 import { TModel } from "../../core/state/model";
 import { TextFileModel } from "./TextEditorModel";
@@ -18,6 +18,8 @@ import { debounce } from "../../../shared/utils";
 import { libraryService, ScriptPanelEntry } from "../../api/library-service";
 import { settings } from "../../api/settings";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
+import type { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
 
 const nodefs = require("fs") as typeof import("fs");
 import { fpJoin } from "../../core/utils/file-path";
@@ -123,8 +125,8 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         });
     }
 
-    handleEditorChange = (value: string | undefined) => {
-        this.changeContent(value || "");
+    handleEditorChange = (value: string) => {
+        this.changeContent(value);
     };
 
     handleKeyDown = (e: React.KeyboardEvent) => {
@@ -345,6 +347,16 @@ const UNSAVED_ENTRY: ScriptDropdownEntry = {
 export function ScriptPanel({ model }: ScriptPanelProps) {
     const scriptModel = model.script;
     const state = model.script.state.use();
+    const scriptHostRef = useRef<MonacoEditorHostView | null>(null);
+
+    useEffect(() => {
+        if (!state.open) {
+            scriptHostRef.current = null;
+            return;
+        }
+
+        scriptHostRef.current?.setValue(state.content);
+    }, [state.content, state.open]);
 
     // Subscribe to library changes for dropdown refresh
     libraryService.state.use();
@@ -426,12 +438,14 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                 />
             </EditorToolbar>
             <Panel name="script-monaco-host" flex={1} minHeight={0}>
-                <Editor
-                    value={state.content}
+                <MonacoEditorHost
+                    initialValue={state.content}
                     language="typescript"
-                    onMount={scriptModel.handleEditorDidMount}
+                    onMount={(hostView) => {
+                        scriptHostRef.current = hostView;
+                        scriptModel.handleEditorDidMount(hostView.getEditor());
+                    }}
                     onChange={scriptModel.handleEditorChange}
-                    theme="custom-dark"
                     options={{
                         automaticLayout: true,
                     }}

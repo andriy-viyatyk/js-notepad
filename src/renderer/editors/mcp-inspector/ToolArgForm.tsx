@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from "react";
-import { Editor } from "@monaco-editor/react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Tag } from "../../uikit/Tag";
@@ -9,6 +8,8 @@ import { Checkbox } from "../../uikit/Checkbox";
 import { Select } from "../../uikit/Select";
 import { IListBoxItem } from "../../uikit/ListBox";
 import { McpToolInfo } from "./McpInspectorEditorModel";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
+import type { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
 
 const CODE_FIELD_PATTERNS = /^(script|code|content|body|query|json|yaml|xml|source|template|expression|command)$/i;
 
@@ -82,6 +83,8 @@ function ArgField({ name, propSchema, required, value, onChange, disabled }: Arg
     const type = getSchemaType(propSchema);
     const description = propSchema?.description;
     const isBoolean = type === "boolean";
+    const isCodeEditor = type === "object" || type === "array" || isCodeLikeField(name);
+    const hostRef = useRef<MonacoEditorHostView | null>(null);
 
     const handleChange = useCallback(
         (v: string) => onChange(name, v),
@@ -89,9 +92,21 @@ function ArgField({ name, propSchema, required, value, onChange, disabled }: Arg
     );
 
     const handleEditorChange = useCallback(
-        (v: string | undefined) => onChange(name, v || ""),
+        (v: string) => onChange(name, v),
         [name, onChange],
     );
+
+    const handleEditorMount = useCallback((hostView: MonacoEditorHostView) => {
+        hostRef.current = hostView;
+    }, []);
+
+    useEffect(() => {
+        if (!isCodeEditor) {
+            hostRef.current = null;
+            return;
+        }
+        hostRef.current?.setValue(value);
+    }, [value, isCodeEditor]);
 
     const handleCheckboxChange = useCallback(
         (c: boolean) => onChange(name, String(c)),
@@ -143,15 +158,15 @@ function ArgField({ name, propSchema, required, value, onChange, disabled }: Arg
                 size="sm"
             />
         );
-    } else if (type === "object" || type === "array" || isCodeLikeField(name)) {
+    } else if (isCodeEditor) {
         const lang = (type === "object" || type === "array") ? "json" : "plaintext";
         const height = (type === "object" || type === "array") ? 120 : 80;
         input = (
             <Panel border rounded="md" overflow="hidden" height={height}>
-                <Editor
-                    value={value}
+                <MonacoEditorHost
+                    initialValue={value}
                     language={lang}
-                    theme="custom-dark"
+                    onMount={handleEditorMount}
                     onChange={handleEditorChange}
                     options={{
                         automaticLayout: true,

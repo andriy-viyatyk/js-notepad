@@ -1,5 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
-import { Editor } from "@monaco-editor/react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
     Button,
     IconButton,
@@ -21,6 +20,8 @@ import type { RestClientSource, RestClientViewState } from "./restClientTypes";
 import { HTTP_METHODS, COMMON_HEADERS, METHOD_COLORS } from "./httpConstants";
 import { KeyValueEditor } from "./KeyValueEditor";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
+import type { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
 
 const BODY_TYPES: { type: BodyType; label: string }[] = [
     { type: "none", label: "none" },
@@ -116,8 +117,8 @@ export function RequestBuilder(props: RequestBuilderProps) {
         }
     }, [headersJson, vm, request.id, model]);
 
-    const handleHeadersJsonChange = useCallback((value: string | undefined) => {
-        const json = value ?? "";
+    const handleHeadersJsonChange = useCallback((value: string) => {
+        const json = value;
         model.setHeadersJson(json);
         try {
             const obj = JSON.parse(json);
@@ -221,8 +222,8 @@ export function RequestBuilder(props: RequestBuilderProps) {
     );
 
     const handleMonacoBodyChange = useCallback(
-        (value: string | undefined) => {
-            vm.updateRequest(request.id, { body: value ?? "" });
+        (value: string) => {
+            vm.updateRequest(request.id, { body: value });
         },
         [vm, request.id],
     );
@@ -380,10 +381,9 @@ export function RequestBuilder(props: RequestBuilderProps) {
                             overflow="hidden"
                             minHeight={0}
                         >
-                            <Editor
-                                value={headersJson}
+                            <MonacoEditorHost
+                                initialValue={headersJson}
                                 language="json"
-                                theme="custom-dark"
                                 options={BODY_EDITOR_OPTIONS}
                                 onChange={handleHeadersJsonChange}
                             />
@@ -460,8 +460,19 @@ export function RequestBuilder(props: RequestBuilderProps) {
 function BodyContent({ vm, request, onMonacoChange }: {
     vm: RestClientSource;
     request: RestRequest;
-    onMonacoChange: (value: string | undefined) => void;
+    onMonacoChange: (value: string) => void;
 }) {
+    const bodyHostRef = useRef<MonacoEditorHostView | null>(null);
+
+    useEffect(() => {
+        if (request.bodyType !== "raw") {
+            bodyHostRef.current = null;
+            return;
+        }
+
+        bodyHostRef.current?.setValue(request.body);
+    }, [request.body, request.bodyType]);
+
     const handleSelectFile = useCallback(async () => {
         const result = await app.fs.showOpenDialog();
         if (result?.[0]) {
@@ -555,11 +566,11 @@ function BodyContent({ vm, request, onMonacoChange }: {
     // raw
     return (
         <Panel name="body-content" direction="column" flex={1} overflow="hidden" minHeight={0}>
-            <Editor
-                value={request.body}
+            <MonacoEditorHost
+                initialValue={request.body}
                 language={request.bodyLanguage}
-                theme="custom-dark"
                 options={BODY_EDITOR_OPTIONS}
+                onMount={(host) => { bodyHostRef.current = host; }}
                 onChange={onMonacoChange}
             />
         </Panel>

@@ -1,11 +1,11 @@
 import { MouseEvent as ReactMouseEvent } from "react";
-import { Editor } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { MarkdownBlock } from "../markdown/MarkdownBlock";
 import { ui } from "../../api/ui";
 import { McpResourceContent } from "./McpInspectorEditorModel";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
 
 const EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
     automaticLayout: true,
@@ -98,10 +98,9 @@ export function ResourceContentView({ content }: ResourceContentViewProps) {
                 rounded="md"
                 height={0}
             >
-                <Editor
-                    value={content.text}
+                <MonacoEditorHost
+                    initialValue={content.text}
                     language={language}
-                    theme="custom-dark"
                     options={EDITOR_OPTIONS}
                 />
             </Panel>

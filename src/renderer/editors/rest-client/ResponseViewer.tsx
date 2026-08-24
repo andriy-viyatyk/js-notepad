@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from "react";
-import { Editor } from "@monaco-editor/react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { LanguageIcon } from "../../components/icons/LanguageIcon";
 import {
     Button,
@@ -16,6 +15,8 @@ import { app } from "../../api/app";
 import { pagesModel } from "../../api/pages";
 import { RestResponse } from "./restClientTypes";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
+import type { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
 
 const RESPONSE_LANGUAGES = [
     "json",
@@ -149,6 +150,27 @@ export function ResponseViewer(props: ResponseViewerProps) {
         () => response ? formatBody(response.body, language) : "",
         [response, language],
     );
+
+    const formattedBodyHostRef = useRef<MonacoEditorHostView | null>(null);
+    const headersJsonHostRef = useRef<MonacoEditorHostView | null>(null);
+
+    useEffect(() => {
+        if (executing || !response || activeTab !== "body" || response.isBinary) {
+            formattedBodyHostRef.current = null;
+            return;
+        }
+
+        formattedBodyHostRef.current?.setValue(formattedBody);
+    }, [activeTab, executing, formattedBody, response]);
+
+    useEffect(() => {
+        if (executing || !response || activeTab !== "headers" || headersView !== "json") {
+            headersJsonHostRef.current = null;
+            return;
+        }
+
+        headersJsonHostRef.current?.setValue(headersAsJson);
+    }, [activeTab, executing, headersAsJson, headersView, response]);
 
     const bodySize = useMemo(() => {
         if (!response) return "";
@@ -346,11 +368,11 @@ export function ResponseViewer(props: ResponseViewerProps) {
                             </Panel>
                         </Panel>
                     ) : (
-                        <Editor
-                            value={formattedBody}
+                        <MonacoEditorHost
+                            initialValue={formattedBody}
                             language={language}
-                            theme="custom-dark"
                             options={EDITOR_OPTIONS}
+                            onMount={(host) => { formattedBodyHostRef.current = host; }}
                         />
                     )
                 ) : headersView === "table" ? (
@@ -371,11 +393,11 @@ export function ResponseViewer(props: ResponseViewerProps) {
                         ))}
                     </Panel>
                 ) : (
-                    <Editor
-                        value={headersAsJson}
+                    <MonacoEditorHost
+                        initialValue={headersAsJson}
                         language="json"
-                        theme="custom-dark"
                         options={{ ...EDITOR_OPTIONS, readOnly: true }}
+                        onMount={(host) => { headersJsonHostRef.current = host; }}
                     />
                 )}
             </Panel>

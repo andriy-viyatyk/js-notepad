@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { Editor } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { McpToolResult } from "./McpInspectorEditorModel";
+import { MonacoEditorHost } from "../shared/MonacoEditorHost";
 
 const EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
     automaticLayout: true,
@@ -90,10 +90,9 @@ function TextResult({ text, isError }: { text: string; isError?: boolean }) {
             flex={1}
             minHeight={40}
         >
-            <Editor
-                value={text}
+            <MonacoEditorHost
+                initialValue={text}
                 language={language}
-                theme="custom-dark"
                 options={EDITOR_OPTIONS}
             />
         </Panel>
