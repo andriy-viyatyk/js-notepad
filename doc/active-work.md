@@ -8,13 +8,6 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-061** — [Epic E3: Delete `@monaco-editor/react`](epics/EPIC-061.md)
-  - [ ] US-1056: `MonacoEditorHostView` + React face; `monaco/MonacoBody.tsx` as the pilot consumer
-  - [ ] US-1057: `rest-client` (`RequestBuilder`, `ResponseViewer`) and `text/ScriptPanel` — 5 mount points
-  - [ ] US-1058: `mcp-inspector` (`ToolArgForm`, `ResourceContentView`, `ToolResultView`) — 3 mount points
-  - [ ] US-1059: `notebook/MiniTextEditor` (the Rule 4 number) and `ui/dialogs/TextDialogView`
-  - [ ] US-1060: the two `DiffEditor` sites onto E1's existing diff host
-  - [ ] US-1061: delete `loader.config`, uninstall the package, update docs and the removal ledger
 - *(no epic)*
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
@@ -32,16 +25,18 @@ Overview of all active and planned epics and tasks.
   [EPIC-059](epics/EPIC-059.md)** — the four editor seams every conversion needs now exist, each with
   a converted pilot — and **E2 is complete as [EPIC-060](epics/EPIC-060.md)**: the five
   `EditorModule.Body` providers are vanilla and that React contract is deleted from the registry.
-  `react-markdown` now has no importer. **E3 is active as [EPIC-061](epics/EPIC-061.md)** — it takes the
-  other shared contract, `@monaco-editor/react`, across 13 mount points, and closes by uninstalling the
-  package. **E4 and later inherit** the remaining editors, of which the large ones are `graph` (3,259),
-  `link-editor` (2,847) and `notebook` (2,001) — two of them also carrying removal-ledger entries
-  (`RenderGrid`, `RenderFlexGrid`, `highlight`'s React form), so they are conversion *plus* collection
-  work — and the 14 `<TextChrome>` call sites, which convert for free once the last shell is vanilla
-  and are therefore deliberately **last** in Epic E (EPIC-059 E1-8, restated as EPIC-061's scoping
-  rationale). Scoping an epic by the **shared contract** it can delete rather than by line count is the
-  pattern EPIC-060 established and EPIC-061 repeats; after E3 no shared editor contract remains except
-  the chrome, so later epics fall back to line count. Next free epic number: **EPIC-062**.
+  `react-markdown` now has no importer. **E3 is complete as [EPIC-061](epics/EPIC-061.md)** — it took
+  the other shared contract, `@monaco-editor/react`, across 13 mount points behind two `VanillaView`
+  hosts, and closed by uninstalling the package. **Both editor-wide contracts are now gone**, so E4
+  onward are scoped by line count, which is what EPIC-060's E2-1 said to fall back to when no contract
+  exists. What remains: the editors, of which the large ones are `graph` (3,259), `link-editor` (2,847)
+  and `notebook` (2,001) — two of them also carrying removal-ledger entries (`RenderGrid`,
+  `RenderFlexGrid`, `highlight`'s React form), so they are conversion *plus* collection work — and the
+  14 `<TextChrome>` call sites, which convert for free once the last shell is vanilla and are therefore
+  deliberately **last** in Epic E (EPIC-059 E1-8). One measurement is banked for E4+: the notebook
+  rebuilds a Monaco editor whenever a note row scrolls out of view, which EPIC-061 established is a
+  `RenderFlexGrid` cost rather than a wrapper one (E3-6, withdrawn) and belongs to whichever epic takes
+  that ledger entry. Next free epic number: **EPIC-062**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

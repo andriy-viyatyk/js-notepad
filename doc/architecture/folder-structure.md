@@ -659,8 +659,14 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   ├── tools/              # Shared registered-toolsets tree (used by the sidebar Tools panels)
 │   │   ├── ToolsTree.tsx             # Presentational Tree of toolsets (folder-compacted; open / trailing / context-menu slots)
 │   │   └── tools-tree-build.ts       # Pure builder: toolset path list → compacted folder/toolset node tree (leaf label = manifest name)
-│   ├── shared/             # Shared editor utilities
+│   ├── shared/             # Shared editor utilities and Monaco widget hosts
 │   │   ├── link-open-menu.ts
+│   │   ├── MonacoEditorHostView.ts   # VanillaView host for monaco.editor.create
+│   │   ├── MonacoEditorHost.tsx      # React mountVanilla face for the single-editor host
+│   │   ├── MonacoEditorHostView.css  # Single-editor host flex geometry
+│   │   ├── MonacoDiffEditorHostView.ts # VanillaView host for createDiffEditor
+│   │   ├── MonacoDiffEditorHost.tsx  # React mountVanilla face for the diff host
+│   │   ├── MonacoDiffEditorHostView.css # Diff-host flex geometry
 │   │   ├── ColorizedCodeView.ts      # Native syntax-highlighted code via Monaco colorize()
 │   │   └── ColorizedCode.tsx         # React residual-props face
 │   │

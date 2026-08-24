@@ -4,6 +4,59 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-061 — [De-React Epic E3 — Delete `@monaco-editor/react`](EPIC-061.md)
+
+The second editor epic scoped by the **contract it deletes**, and the first in the programme whose
+close is a dependency uninstall. It took every Monaco mount point in the renderer — 13 across 11
+files — and put them behind two `VanillaView` hosts the project owns.
+
+**Closing property, delivered:** `@monaco-editor/react` has zero importers in `src/`,
+`loader.config({ monaco })` is gone from `api/setup/configure-monaco.ts`, and the package is removed
+from `package.json`. `npm ls @monaco-editor/react` returns empty. `monaco-editor` and
+`vite-plugin-monaco-editor-esm` stay, and every language, theme, keybinding and IntelliSense concern
+`configure-monaco.ts` owns is untouched.
+
+The wrapper was taken **before** the `editors/base` chrome deliberately: each `<Editor>` is a leaf, so
+a host plus a thin React face converts it under Rule 1 without touching a parent, and seven of the
+eight largest remaining editors mount Monaco. The chrome is the opposite shape and stays last
+(EPIC-059 E1-8). With both editor-wide contracts now gone, E4 onward fall back to line count.
+
+**`editors/shared/MonacoEditorHostView.ts`** is new (`monaco.editor.create`); E1's
+`MonacoDiffEditorHostView.ts` gained a React face and replace-and-release `setModel`. Kept separate on
+purpose (E3-2) — the two editor types and model contracts differ, and a `mode` union would push a
+narrowing cast into every call site.
+
+The design work was one decision, **E3-8**: the hosts are *uncontrolled*, so `initialValue` is read
+once and external writes go through `setValue` / `setDiffValues`, which own the whole policy —
+compare, choose `editor.setValue` when read-only versus `executeEdits` + `pushUndoStop` when not so
+the undo stack survives, and suppress the host's own `onChange` with save-and-restore. Eleven
+consumers must not each rediscover that; the failure mode is the cursor jumping to the end of the
+document while the user types. The mount callback therefore hands back the **host view**, not the raw
+editor, since `mountVanilla` gives a React consumer no other way to reach it.
+
+**Rule 4:** wrapper importers **13 → 0** with the package uninstalled, plus `ui/dialogs/TextDialogView.ts`'s
+React root **1 → 0** — an already-vanilla view that had been calling `mountReactHandle` purely to render
+the wrapper. Structural rather than performance, deliberately: **E3-6 is marked WITHDRAWN** in the epic
+doc and kept in full. It had claimed 2 → 0 Monaco constructions per notebook scroll, attributing
+measured churn to `MiniTextEditor`'s `key={model.id}`. `renderInfo.ts:314` keys virtualized cells by
+row index, so scrolling destroys off-screen rows outright and a vanilla host dies with them — the
+target was unreachable. The churn is real, its baseline is recorded, and it belongs to whichever epic
+takes the removal ledger's `RenderFlexGrid` entry.
+
+**Twelve `theme="custom-dark"` literals** were deleted rather than ported (E3-4): Monaco themes are
+global, so all twelve were the same no-op repeated.
+
+The recurring lesson across three review rounds was one shape — **the two sibling hosts meaning
+different things by the same method name**: `setModel` releasing displaced models on one and leaking on
+the other, controlled props on one and not the other, echo suppression on one and not the other. Each
+was caught by comparing the hosts rather than by reading either alone. The close review's two false
+positives had a shape too: both reasoned forward from "`onUpdate` does not reconcile content" without
+checking whether the component survives the content change.
+
+Testing owed: **empty**.
+
+---
+
 ## EPIC-060 — [De-React Epic E2 — The embeddable bodies](EPIC-060.md)
 
 The first editor-conversion epic, and the first scoped by the **contract it deletes** rather than by

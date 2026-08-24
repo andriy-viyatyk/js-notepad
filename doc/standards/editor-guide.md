@@ -165,6 +165,34 @@ React remains valid for a view, but a converted or new DOM-heavy view may use `V
 export it as `View` (or `BodyView`) instead. Keep the root stable. A React chrome shell can host a
 vanilla body with `mountVanilla`; the body itself does not create a React root.
 
+### Using the shared Monaco hosts
+
+Use the shared hosts in `/src/renderer/editors/shared/` for Monaco widgets. The single-editor host
+(`MonacoEditorHostView` / `MonacoEditorHost`) creates `monaco.editor.create`; the diff host
+(`MonacoDiffEditorHostView` / `MonacoDiffEditorHost`) creates `createDiffEditor`. The React faces are
+only `mountVanilla` adapters. A native consumer may instantiate the view directly; a React consumer
+should keep the host view from `onMount` in a ref.
+
+These widgets are intentionally uncontrolled. `initialValue` or `initialOriginal` /
+`initialModified` is consumed once at mount; later prop changes do not reconcile content. When model
+state changes outside Monaco, call `host.setValue(next)` or `host.setDiffValues(original, modified)`.
+Do not compare or write through `host.getEditor()` yourself: the host compares with the current
+model, returns when the value is already equal, suppresses its own change callback during the write,
+uses Monaco `setValue` for read-only editors, and uses `executeEdits` plus `pushUndoStop` for editable
+editors so external updates preserve the undo stack and cursor behavior.
+
+`onMount` returns the host view, not the raw editor. Use `host.getEditor()` only for widget-specific
+operations that the host does not expose. There is no `theme` prop because Monaco themes are global;
+`api/setup/configure-monaco.ts` owns the application theme. There is no `height` prop either: the
+host root is sized by CSS, and the single and diff hosts deliberately use separate root classes
+with their own flex-child width rules.
+
+Model ownership is explicit. `createModel` creates a model owned by the host. `setModel(model,
+"owned" | "borrowed")` releases an owned model it displaces; borrowed models remain the caller's
+responsibility and are never disposed by the host. The host detaches the widget before disposing
+owned models and defers disposal to a macrotask. For a diff editor, apply the same rule to the
+original and modified model pair.
+
 ### React view example
 
 ```typescript

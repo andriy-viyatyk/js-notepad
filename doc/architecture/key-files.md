@@ -84,7 +84,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Async worker (main)      | `/src/main/worker-host.ts`                        |
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
 | Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
-| Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
+| Monaco setup (languages, theme, keybindings, compiler and IntelliSense configuration; construction is delegated to the shared hosts) | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors; embeddable editors expose `BodyView`) | `/src/renderer/editors/base/editorRegistry.ts`    |
 | File→editor matchers (the per-editor `acceptFile`/`switchOption`/`validForLanguage`/`detectsContent` rules + the numeric priority ladder that decides which editor OPENS a file — monaco 0, markdown 10, compound names 20, draw 50, viewers 100, category 200; `acceptFile` is name-only while `switchOption` is language-based, which is why language-only editors like `html-view` never claim a file on open) | `/src/renderer/editors/base/editor-matchers.ts` |
 | Renderer entry and application composition root (`bootstrap()` initializes services/pages/events, then returns the native `mount(container)` callback) | `/src/renderer.tsx`, `/src/renderer/index.tsx` |
@@ -113,6 +113,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
 | Reusable minimap (scroll mirroring, drag navigation, and viewport indicator) | `/src/renderer/uikit/Minimap/` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.ts` |
+| Monaco widget hosts (VanillaView owners for single and diff Monaco widgets; imperative content writes, model ownership and deferred disposal) | `/src/renderer/editors/shared/MonacoEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts` |
+| Monaco widget React faces (thin `mountVanilla` adapters for the shared hosts) | `/src/renderer/editors/shared/MonacoEditorHost.tsx`, `/src/renderer/editors/shared/MonacoDiffEditorHost.tsx` |
+| Monaco host geometry (separate root classes and flex-child width rules for single and diff widgets) | `/src/renderer/editors/shared/MonacoEditorHostView.css`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.css` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
@@ -125,7 +128,6 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code (Monaco colorize with React residual-props shim) | `/src/renderer/editors/shared/ColorizedCodeView.ts`, `/src/renderer/editors/shared/ColorizedCode.tsx` |
 | Find bar (native input/buttons with React compatibility face) | `/src/renderer/editors/shared/FindBarView.ts`, `/src/renderer/editors/shared/FindBar.tsx` |
-| Monaco diff host (native Monaco diff widget/model lifecycle and host CSS) | `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.css` |
 | Converted compare editor (native diff host and compare model orchestration) | `/src/renderer/editors/compare/CompareEditor.ts` |
 | Converted image toolbar (native toolbar actions inside `PageToolbar`) | `/src/renderer/editors/image/ImageToolbarView.ts` |
 | Converted Mermaid body (native preview body inside `TextChrome`) | `/src/renderer/editors/mermaid/MermaidBodyView.ts` |

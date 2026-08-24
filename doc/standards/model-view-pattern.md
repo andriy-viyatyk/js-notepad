@@ -343,6 +343,24 @@ The concrete end-to-end reference is
 driver, `bind`, `KeyedList`, native events, static CSS, and a deliberately local `mountReact`
 bridge.
 
+### Hosting an imperative widget
+
+An imperative third-party widget belongs in a `VanillaView`, with a thin React face only when a
+React tree still needs to host it. The view owns widget creation, subscriptions, model ownership,
+and disposal; the face calls `mountVanilla` and must not recreate that lifecycle in hooks. A mount
+callback should return the view instance when consumers need imperative operations, because
+`mountVanilla` otherwise exposes only the mounted DOM root. The view can expose the raw widget
+through a deliberately named escape hatch such as `getEditor()` without making consumers depend on
+the widget for lifecycle or synchronization policy.
+
+For uncontrolled widgets, distinguish mount-only initial props from later commands. A prop named
+`initialValue` is not a controlled value: subsequent external writes go through a view method, which
+owns equality checks, callback suppression, and any undo-preserving write sequence. Ownership-aware
+views must distinguish owned and borrowed models, release displaced owned models only after the
+widget no longer references them, never dispose borrowed models, and defer disposal when the widget
+releases references asynchronously. Widget geometry belongs to scoped static CSS on the view root,
+not to a generic adapter prop.
+
 For a React-valued slot inside a vanilla view, use `fillSlot` from
 [`uikit/shared/fill-slot.ts`](../../src/renderer/uikit/shared/fill-slot.ts). It owns the supplied
 host, reuses the nested React root when the slot remains React-backed, and defers disposal when a

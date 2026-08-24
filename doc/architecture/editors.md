@@ -80,6 +80,30 @@ All editors flow through the same path — there is no longer a content-view bra
 
 **Error protection:** `EditorErrorBoundary` (`/src/renderer/ui/app/EditorErrorBoundary.tsx`) wraps every editor inside `AsyncEditor`. If the editor component throws during render, the boundary catches the error and displays the error message + stack trace in the tab instead of crashing the application. This is a React class component (required for `getDerivedStateFromError`).
 
+### Monaco widget hosting
+
+Monaco widgets are owned by two framework-free hosts in `editors/shared/`: `MonacoEditorHostView`
+wraps `monaco.editor.create`, and `MonacoDiffEditorHostView` wraps
+`monaco.editor.createDiffEditor`. Their `.tsx` files are thin React faces that call `mountVanilla`;
+they preserve React call sites without making React the owner of the Monaco lifecycle.
+
+The hosts are uncontrolled. `initialValue`, or `initialOriginal` and `initialModified`, is read only
+when the widget mounts. Later content changes go through `setValue(next)` or
+`setDiffValues(original, modified)`. Those methods compare against the current model, no-op when
+equal, suppress the host's own change callback while writing, use `setValue` for read-only widgets,
+and otherwise use `executeEdits` followed by `pushUndoStop` so external updates preserve undo
+history. Consumers must not duplicate that policy against the raw Monaco editor.
+
+`onMount` receives the host view, not the Monaco widget. Consumers needing widget-specific APIs use
+`host.getEditor()`. The hosts have no `theme` or `height` prop: Monaco's theme is global and is
+defined/applied by `api/setup/configure-monaco.ts`, while sizing belongs to CSS. Each host has its
+own root class and child-width rule because Monaco can collapse to zero width as a flex child.
+
+Models created through a host are owned by it. `setModel(model, "owned" | "borrowed")` releases an
+owned model it displaces; borrowed models are never disposed. The host detaches the widget before
+disposing owned models, and defers that disposal to a macrotask so Monaco has finished releasing its
+model references. This applies to single-editor models and diff original / modified pairs.
+
 ## EditorModel Base Class
 
 ```typescript
