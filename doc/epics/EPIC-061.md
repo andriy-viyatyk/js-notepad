@@ -212,6 +212,46 @@ says collecting a duplicate in the epic that frees it is cheaper than collecting
 that has to re-establish why it existed. `@monaco-editor/react` is uninstalled here, in the epic that
 frees it.
 
+### E3-8 — The echo guard belongs to the host, once
+
+Added after reading `MonacoBody.tsx` while US-1056's plan was being written, because it is the one
+design point in this epic where a wrong choice is repeated eleven times.
+
+The wrapper is doing more content work than `value=` suggests. `MonacoBody` subscribes to
+`host.state` (`:25-33`) and passes `sliced.content` down, so **the wrapper is the thing that writes
+externally-changed content into the editor** — after a script edits the page, a file reloads, or a
+slice changes. Under E3-3 the host is uncontrolled and will not do that reconciliation, so the
+consumer's model must. And the moment a consumer subscribes to its own content state and calls
+`setValue`, it has built a loop:
+
+> user types → `onChange` → `host.changeContent` → state update → content subscription →
+> `setValue` → **cursor jumps to the end of the document and the undo stack is destroyed**
+
+The wrapper avoids this by comparing the incoming value against `editor.getValue()` before writing.
+That guard is not optional and it is not a consumer concern: eleven call sites must not each
+rediscover it. **`MonacoEditorHostView.setValue(next)` compares against the current model value and
+returns without writing when they are equal.** Consumers subscribe and call `setValue` freely.
+
+Two smaller members of the same family, both currently handled by the wrapper's prop diffing and both
+therefore now the host's job:
+
+- **`language` changes at runtime** (`MonacoBody` reads it from state), so the host needs
+  `setLanguage` over `monaco.editor.setModelLanguage` — not language-at-construction only.
+- **`options` change at runtime**: `readOnly: !!sliced.encrypted` flips when a file is
+  encrypted/decrypted. The host needs an `updateOptions` path, not just constructor options.
+
+### E3-9 — Monaco collapses inside a flex parent, and the host CSS is what prevents it
+
+`MonacoDiffEditorHostView.css` already carries the fix and the reason: *"Monaco's diff root sets only
+`height: 100%` inline; as a flex child it shrinks to content width (0) and the panes collapse."* The
+single-editor case has the same shape and needs the equivalent `> .monaco-editor { width: 100% }`
+rule.
+
+This is why the epic's verification rule is geometry rather than presence: a collapsed Monaco is
+present, mounted, has a model, and is zero pixels wide. **The new host gets its own root class rather
+than reusing `.monaco-host-root`** — two hosts sharing one class across two stylesheets, where each
+adds a different child rule, is a defect waiting for whichever one is loaded second.
+
 ## Linked tasks
 
 | Task | Scope | Mount points |
