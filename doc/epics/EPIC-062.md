@@ -656,6 +656,40 @@ the pilot does not depend on the new primitive:
    the `uikit/index.ts` exports. Its own task, per E3's precedent (US-1061) — a removal that lands
    with a conversion hides which of the two broke something.
 
+### Amendment — US-1066 is smaller than this list claims, measured 2026-08-24
+
+Audited before delegating US-1065, because US-1067's deletion depends on the count being right.
+**Only two import-level consumers of `uikit/RenderGrid/` remain in the tree:**
+
+| File | Task |
+|---|---|
+| `src/renderer/editors/log-view/LogBody.tsx` | US-1065 |
+| `src/renderer/editors/link-editor/LinksTiles.tsx` | US-1066 |
+
+Plus `uikit/index.ts:135,144` (the barrel re-exports) and the `RenderGrid/` folder's own files, which
+are US-1067's business.
+
+The "eight `RenderGridModel` repointings" this item attributes to US-1066 **have already happened**:
+
+  * `LinkItemList.tsx` dropped its `uikit/RenderGrid` import in `fb1fb64d` (US-1062).
+  * The two `tree-provider` files dropped theirs in US-1037, in an earlier epic entirely.
+  * `LinkItemTiles` is `LinksTiles.tsx`, already counted above.
+
+Every other file matching `RenderGrid` now matches only in **prose** — a comment or a doc note:
+`file-diff/RevisionPicker.tsx:99`, `git-tree/GitTreeEditorView.tsx:154`,
+`tree-provider/TreeProviderViewModel.ts:351`, `uikit/Tree/TreeModel.ts:175`,
+`uikit/Tree/types.ts:56`, `uikit/shared/async-ref.ts:18`, `uikit/DataGrid/index.ts:11,14`.
+None of them compile against it.
+
+So **US-1066 reduces to `LinksTiles.tsx` plus that comment sweep**, and the epic is one real
+conversion shorter than E4-8 states. Recorded rather than silently rescoped, because the original
+count is what justified US-1066 being its own task; it still is one, but a much smaller one.
+
+**Also settled by the same audit:** `#avg-container` — the id that produced the dead wheel handler
+in US-1064 (E4-15, item 1) — has exactly **one** remaining occurrence in the tree, inside
+`RenderGrid.tsx:102` itself. No other consumer performs that lookup, so US-1067's deletion cannot
+strand another one. This closes the concern raised when the notebook bug was found.
+
 ---
 
 ## Concerns
