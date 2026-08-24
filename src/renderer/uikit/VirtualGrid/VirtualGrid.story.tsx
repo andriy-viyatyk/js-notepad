@@ -3,8 +3,18 @@ import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
 import { mountVanilla } from "../shared/mount";
 import { Story } from "../../editors/storybook/storyTypes";
-import { VirtualGridView, type VirtualGridProps, type VirtualGridStats } from "./VirtualGridView";
+import {
+    VirtualGridView,
+    type VirtualGridProps,
+    type VirtualGridStats,
+} from "./VirtualGridView";
+import {
+    VirtualFlexGridView,
+    type VirtualFlexGridProps,
+    type VirtualFlexCellFunc,
+} from "./VirtualFlexGridView";
 import type { ElementLength, Percent, RenderCellFunc } from "./types";
+import type { VirtualGridModel } from "./VirtualGridModel";
 
 /**
  * The engine's first story. It has to drive what a story otherwise hides — a row count large
@@ -176,5 +186,114 @@ export const virtualGridStory: Story = {
         { name: "stickyRight", type: "number", default: 0, min: 0, max: 3 },
         { name: "overscanRow", type: "number", default: 2, min: 0, max: 20 },
         { name: "showStats", type: "boolean", default: true },
+    ],
+};
+
+interface VirtualFlexGridDemoProps {
+    rowCount?: number;
+    growthDelay?: number;
+}
+
+function VirtualFlexGridDemo({
+    rowCount = 180,
+    growthDelay = 900,
+}: VirtualFlexGridDemoProps) {
+    const modelRef = useRef<VirtualGridModel | null>(null);
+    const grownRows = useRef(new Set<number>());
+    const [status, setStatus] = useState("mounting measured rows…");
+    const [roundTripDone, setRoundTripDone] = useState(false);
+
+    // This closure is stable for the lifetime of the view. The mutable set is the story's data
+    // signal; the model.update call below is the explicit repaint/measurement trigger.
+    const renderFlexCell = useMemo<VirtualFlexCellFunc>(() => (p) => {
+        const element = p.previous ?? p.recycle?.() ?? document.createElement("div");
+        const grown = grownRows.current.has(p.row);
+        const lineCount = grown ? 7 : 1 + (p.row % 5);
+        const line = `row ${p.row} · recycled content remains correctly addressed`;
+
+        element.dataset.part = "flex-story-cell";
+        element.dataset.row = String(p.row);
+        element.textContent = Array.from({ length: lineCount }, () => line).join("\n");
+        element.style.minHeight = `${lineCount * 18 + 8}px`;
+        element.style.padding = "4px 8px";
+        element.style.boxSizing = "border-box";
+        element.style.alignItems = "flex-start";
+        element.style.whiteSpace = "pre-wrap";
+        element.style.overflow = "hidden";
+        element.style.borderBottom = "1px solid var(--color-border-light)";
+        return element;
+    }, []);
+
+    const gridProps = useMemo<VirtualFlexGridProps>(() => ({
+        name: "virtual-flex-grid-story",
+        rowCount,
+        columnCount: 1,
+        rowHeight: 24,
+        columnWidth: (() => "100%" as Percent) as ElementLength,
+        renderCell: renderFlexCell,
+        minRowHeight: 24,
+        maxRowHeight: 180,
+        getInitialRowHeight: () => 24,
+        preferMinHeightForNewRows: true,
+        overscanRow: 1,
+        fitToWidth: true,
+        height: "100%",
+        onModel: (model) => {
+            modelRef.current = model;
+        },
+    }), [renderFlexCell, rowCount]);
+
+    useEffect(() => {
+        const growthTimer = window.setTimeout(() => {
+            grownRows.current.add(2);
+            modelRef.current?.update({ rows: [2] });
+        }, growthDelay);
+        const scrollDownTimer = window.setTimeout(() => {
+            void modelRef.current?.scrollToRow(Math.max(0, rowCount - 1), "bottom");
+        }, growthDelay + 450);
+        const scrollTopTimer = window.setTimeout(() => {
+            void modelRef.current?.scrollToRow(0, "top");
+            setRoundTripDone(true);
+        }, growthDelay + 1050);
+        const statusTimer = window.setInterval(() => {
+            const cell = document.querySelector<HTMLElement>(
+                '[data-type="virtual-flex-grid"] [data-row="2"]',
+            );
+            const height = cell?.style.height;
+            const top = cell?.style.top;
+            setStatus(
+                cell
+                    ? `row 2 geometry: ${height} tall at ${top}; DOM height ${cell.clientHeight}px`
+                    : "row 2 is outside the recycled render window",
+            );
+        }, 250);
+        return () => {
+            window.clearTimeout(growthTimer);
+            window.clearTimeout(scrollDownTimer);
+            window.clearTimeout(scrollTopTimer);
+            window.clearInterval(statusTimer);
+        };
+    }, [growthDelay, rowCount]);
+
+    return (
+        <Panel direction="column" width={660} height={360} gap="sm">
+            <Text size="sm" color="light">
+                {status} · {roundTripDone ? "scroll round trip complete" : "pooling and growth pending"}
+            </Text>
+            <Panel direction="column" flex>
+                {mountVanilla(VirtualFlexGridView, gridProps)}
+            </Panel>
+        </Panel>
+    );
+}
+
+export const virtualFlexGridStory: Story = {
+    id: "virtual-flex-grid",
+    name: "VirtualFlexGrid",
+    section: "Lists",
+    component: VirtualFlexGridDemo as React.ComponentType<Record<string, unknown>>,
+    props: [
+        { name: "rowCount", type: "number", default: 180, min: 40, step: 20 },
+        { name: "growthDelay", type: "number", default: 900, min: 250, step: 250 },
     ],
 };

@@ -53,6 +53,12 @@ export interface VirtualGridProps extends VirtualGridOptions {
      * `view.model` directly. Changes to this prop after mount are ignored.
      */
     onView?: (view: VirtualGridView | null) => void;
+    /**
+     * Called after a rendered cell leaves the DOM and immediately before it enters the pool.
+     * This is a general pool-entry notification; consumers may use it for their own retained
+     * element bookkeeping.
+     */
+    onCellReleased?: (element: HTMLElement) => void;
 }
 
 const px = (n: number) => `${n}px`;
@@ -469,6 +475,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         for (const el of prev) {
             if (!next.has(el)) {
                 parent.removeChild(el);
+                this.props.onCellReleased?.(el);
                 this.pool.release(el);
                 this._stats.cellsRemoved++;
             }

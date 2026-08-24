@@ -1,5 +1,11 @@
 export { VirtualGridView } from "./VirtualGridView";
 export type { VirtualGridProps, VirtualGridStats } from "./VirtualGridView";
+export { VirtualFlexGridView } from "./VirtualFlexGridView";
+export type {
+    VirtualFlexCellFunc,
+    VirtualFlexCellParams,
+    VirtualFlexGridProps,
+} from "./VirtualFlexGridView";
 export {
     VirtualGridModel,
     defaultRowHeight,

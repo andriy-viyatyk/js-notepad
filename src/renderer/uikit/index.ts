@@ -113,8 +113,15 @@ export { TreeItem, TreeSectionItem } from "./Tree";
 export type { TreeItemProps, TreeSectionItemProps } from "./Tree";
 
 // Virtualization, vanilla — what new code uses (EPIC-056 C3-1/C3-4).
-export { VirtualGridView, VirtualGridModel } from "./VirtualGrid";
-export type { VirtualGridProps, VirtualGridOptions, VirtualGridStats } from "./VirtualGrid";
+export { VirtualGridView, VirtualFlexGridView, VirtualGridModel } from "./VirtualGrid";
+export type {
+    VirtualGridProps,
+    VirtualGridOptions,
+    VirtualGridStats,
+    VirtualFlexCellFunc,
+    VirtualFlexCellParams,
+    VirtualFlexGridProps,
+} from "./VirtualGrid";
 // Aliased on the way out: `./RenderGrid` already exports these names, and the geometry types are
 // structurally the same on both engines. Every existing consumer imports them from the folder.
 export type {
