@@ -19,6 +19,11 @@ export interface NoteItemViewProps {
     onTagRemove?: (id: string, tagIndex: number) => void;
     onTagUpdate?: (id: string, tagIndex: number, newTag: string) => void;
     viewStates?: Map<string, import("monaco-editor").editor.ICodeEditorViewState>;
+    /**
+     * The scroller this note is virtualized inside, supplied by the host rather than found by
+     * selector. See `VirtualGridView.scrollElement`.
+     */
+    getScrollContainer?: () => HTMLElement | undefined;
 }
 
 export const defaultNoteItemViewState = {
@@ -161,7 +166,7 @@ export class NoteItemViewModel {
     };
 
     handleDeactivate = (): void => {
-        const scrollContainer = this.noteItemRef?.closest("#avg-container") as HTMLElement | null;
+        const scrollContainer = this.props.getScrollContainer?.();
         if (scrollContainer) {
             scrollContainer.focus();
             return;
@@ -173,14 +178,17 @@ export class NoteItemViewModel {
         const element = this.noteItemRef;
         if (!element) return;
         this.wheelHandler = (event) => {
+            // An unfocused note must not swallow the wheel: Monaco and av-grid both consume it by
+            // default, so the gesture is forwarded to the notebook's own scroller instead. Only
+            // cancel the event once there is somewhere to send it — cancelling first and then
+            // finding no scroller is how the wheel died entirely.
             if (element.contains(document.activeElement)) return;
+            const scrollContainer = this.props.getScrollContainer?.();
+            if (!scrollContainer) return;
             event.preventDefault();
             event.stopPropagation();
-            const scrollContainer = element.closest("#avg-container") as HTMLElement | null;
-            if (scrollContainer) {
-                scrollContainer.scrollTop += event.deltaY;
-                scrollContainer.scrollLeft += event.deltaX;
-            }
+            scrollContainer.scrollTop += event.deltaY;
+            scrollContainer.scrollLeft += event.deltaX;
         };
         element.addEventListener("wheel", this.wheelHandler, { capture: true, passive: false });
     }

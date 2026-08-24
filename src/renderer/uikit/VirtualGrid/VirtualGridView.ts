@@ -202,6 +202,18 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
     }
 
     /**
+     * The element that actually scrolls, for a cell that needs to reach its own viewport.
+     *
+     * Exposed because the alternative is a `closest()` on an internal marker, and a cell that
+     * hardcodes one silently stops working the day the marker changes — the notebook shipped a
+     * dead `#avg-container` lookup that way, and a wheel handler that cancelled every event and
+     * then scrolled nothing. `undefined` before mount and after dispose.
+     */
+    get scrollElement(): HTMLElement | undefined {
+        return this.container;
+    }
+
+    /**
      * Attach an element that is not a cell — an add-row button, an empty-state message. Replaces
      * the React engine's `extraElement` / `extraElementTop` props.
      *

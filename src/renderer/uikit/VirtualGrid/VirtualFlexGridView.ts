@@ -92,6 +92,11 @@ export class VirtualFlexGridView extends VanillaView<VirtualFlexGridProps> {
         });
     };
 
+    /** The scrolling element of the grid this flex host owns — see `VirtualGridView`. */
+    get scrollElement(): HTMLElement | undefined {
+        return this.grid?.scrollElement;
+    }
+
     private readonly onGridView = (view: VirtualGridView | null): void => {
         this.measurement.setGridModel(view?.model ?? null);
         this.props.onModel?.(view?.model ?? null);

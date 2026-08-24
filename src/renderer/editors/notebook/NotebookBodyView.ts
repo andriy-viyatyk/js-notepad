@@ -311,6 +311,13 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         };
     }
 
+    /**
+     * Bound field, not a closure: `noteProps` runs on every projection apply, and an inline arrow
+     * would hand each retained note a fresh identity every time.
+     */
+    private readonly getScrollContainer = (): HTMLElement | undefined =>
+        this.grid?.scrollElement;
+
     private noteProps(note: NoteItem) {
         return {
             note,
@@ -319,6 +326,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
             tags: this.projection.tags,
             searchText: this.projection.searchText,
             viewStates: this.viewStates,
+            getScrollContainer: this.getScrollContainer,
             onDelete: this.editor.deleteNote,
             onExpand: this.editor.expandNote,
             onAddComment: this.editor.addComment,
