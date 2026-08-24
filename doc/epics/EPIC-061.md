@@ -72,14 +72,17 @@ Line counts are the *files*, not the work: only the mount seam changes in most o
 `DiffEditor` sites convert onto the host E1 already shipped.
 
 "Mount points" counts **JSX sites, not live editors**. `MiniTextEditor` is one site that instantiates
-one Monaco editor *per rendered note row* (E3-6), so the notebook is the only consumer where the host
-must be safe to instantiate many times over concurrently and be recycled. Everywhere else a site is
-one editor.
+one Monaco editor *per rendered note row*, so the notebook is the only consumer where the host must be
+safe to instantiate several times over concurrently, and where it is mounted and disposed constantly
+as rows scroll in and out of the virtualized list. Everywhere else a site is one editor. See the
+withdrawn E3-6 for what that churn is and is not.
 
 **The prop surface is small and near-uniform**, which is what makes this mechanical. Across all 13
 sites the wrapper is given only: `value`, `language`, `options`, `theme`, `onChange`, `onMount`,
 `height`, `original` / `modified`, `keepCurrentOriginalModel` / `keepCurrentModifiedModel`, and one
-`key`. Three of those do not survive the conversion at all — see E3-4, E3-5 and E3-6.
+`key`. Three of those do not survive the conversion at all: `theme` (E3-4), `height` (E3-5), and the
+`key`, which is a React concept with no vanilla equivalent — though **not** for the reason the
+withdrawn E3-6 gave.
 
 ## Operating procedure — ORCHESTRATOR ONLY
 
@@ -156,47 +159,83 @@ never load-bearing.
 `<div>`'s inline style. The host root is a plain element with a class; its size comes from the
 stylesheet and from the one content-height case the notebook genuinely needs. No `height` prop.
 
-### E3-6 — `key={model.id}` becomes `setModel`, and that is this epic's Rule 4 number
+### E3-6 — WITHDRAWN: the notebook's Monaco churn is virtualization, not the `key`
 
-`MiniTextEditor.tsx:53` carries the comment *"Force remount when note changes (ensures onMount is
-called)"*. That is a React workaround with a real cost, and the cost is larger than the comment
-suggests.
+**This decision was wrong. It is kept in full rather than deleted, because the mistake is the useful
+part.**
 
-**The trigger is not switching notes — it is scrolling.** `NoteItemView.tsx:344` renders
-`NoteItemActiveEditor` for **every** note row unconditionally, so each note whose view is `monaco`
-owns its own Monaco editor. The notes list is virtualized by `RenderFlexGrid`, so scrolling
-**recycles** a row onto a different note; `model.id` changes, the `key` changes, and React tears the
-Monaco editor down and builds a new one.
+#### What it claimed
 
-**Baseline, measured live on the React implementation before any conversion** (2026-08-24,
-`C:\data\js-notepad-notes\temp\test.note.json`, 13 notes, 3 rows rendered at a time, notes list
-`scrollHeight` 5,039 / `clientHeight` 962). The row-12 Monaco node was tagged with a marker
-attribute, then the list was scrolled to the top and back:
+`MiniTextEditor.tsx:53` carries `key={model.id}` with the comment *"Force remount when note changes
+(ensures onMount is called)"*. `NoteItemView.tsx:344` renders `NoteItemActiveEditor` for **every**
+note row, so each note whose view is `monaco` owns an editor. I measured the notes list live before
+any conversion and found real churn:
 
 | Step | Marked node | `.monaco-editor` count | Rows (`:M` = has Monaco) |
 |---|---|---:|---|
 | Start (scrollTop 4077) | present, connected | 1 | `r10:-` `r11:-` `r12:M` |
 | Scrolled to top | **gone from the DOM** | 1 | `r0:M` `r1:-` `r2:-` |
-| Scrolled back to 4077 | still gone — **rebuilt, not restored** | 1 | `r10:-` `r11:-` `r12:M` |
+| Scrolled back to 4077 | still gone — rebuilt, not restored | 1 | `r10:-` `r11:-` `r12:M` |
 
-So one top↔bottom round trip destroys and constructs **2** Monaco editors, and the editor that
-returns to row 12 is a different instance from the one that left it. In a notebook where more notes
-use the `monaco` view, every recycled row pays.
+From that I set Rule 4's number at **Monaco constructions per notes-list scroll round trip: 2 → 0**,
+on the theory that the `key` was forcing the remount and a vanilla host would rebind with `setModel`
+instead.
 
-A vanilla host does not need any of it. A recycled row becomes `editor.setModel(nextModel)` against
-a host that stays mounted — precisely the "stable control identity" §3.1 of the roadmap says a
-vanilla view restores and JSX cannot express.
+#### Why it is wrong
 
-**Rule 4's measured number for this epic is therefore Monaco editor constructions per notes-list
-scroll round trip: 2 → 0.** Taken on the React implementation first, since EPIC-057 established that
-is the measurement which cannot be recovered afterwards. Wall-clock scroll smoothness is the
-user-visible consequence, but the construction count is what closes the epic, because it is not
-sensitive to machine load.
+The measurement is real; the attribution was not. `RenderFlexGrid` renders each row through
+`FlexCell`, keyed by `p.key`, and `renderInfo.ts:314` builds that key as ``​`${row}_${col}`​`` — the
+**row index**, not the note identity. So scrolling does not rebind a surviving row to a different
+note. It unmounts the rows that left the viewport (keys `10_0`…`12_0` disappear) and mounts the rows
+that entered it (`0_0`…`2_0`). The Monaco editor is destroyed because **its row left the screen**,
+which is what virtualization is.
 
-*Correction to this decision as first written:* it said "per note switch", inferred from the `key`
-and its comment. The live measurement above shows the mechanism is the same but the trigger is row
-recycling during ordinary scrolling — a much more frequent event than switching notes, which makes
-this the strongest number in the epic rather than an incidental one.
+A vanilla host does not change that by even a little. `mountVanilla` disposes the view when React
+unmounts the subtree, so the host dies with the row exactly as the wrapper did. **The target of 0 was
+unreachable, and no amount of `setModel` reaches it.** Codex established this at US-1059's
+investigation, in answer to the question I told it to lead with; I then confirmed it against
+`renderInfo.ts:314` rather than taking it on trust.
+
+Two further live measurements, for the record:
+
+- Typing **one character** into the notebook search box destroyed the marked editor and left 2
+  constructed, with visible rows moving `r10,r11,r12` → `r8,r9,r10`. Real churn, and frequent — but
+  the row indices moved too, so this is the same confounded measurement as the scroll one.
+- Filtering while parked at the very top, where rows `r0..r2` stay rendered under unchanged keys and
+  the first note still matched, left the marked editor **alive**. So React is not remounting
+  gratuitously: when the row index and the note are both unchanged, the editor survives.
+
+What `key={model.id}` actually costs is therefore the narrow residue: the same row index binding a
+*different* note while staying on screen. It is real, it cannot be isolated from virtualization churn
+by DOM observation alone, and it is much smaller than this decision claimed.
+
+#### What replaces it
+
+Two things, and they belong to different owners.
+
+**Rule 4's number for EPIC-061 is structural, not performance.** This epic buys a deleted dependency,
+so the number is the one the closing property already names, plus the one React root it removes:
+`@monaco-editor/react` importers **13 → 0** with the package uninstalled, and `TextDialogView`'s React
+root **1 → 0** (Concern 1 — the only site in the epic where converting removes a root outright, since
+the other twelve sit in React trees that already exist). E1's number was structural in the same way;
+an epic whose deliverable is a deletion should not be made to report a speed figure it does not buy.
+
+**The notebook's scroll churn is a `RenderFlexGrid` problem and it already has an owner.** The removal
+ledger's `RenderFlexGrid.tsx` entry is collectable once *"Epic E converts `LogBody.tsx` and
+`NotebookBody.tsx` — either onto a vanilla variant or off flex rows entirely."* Rebuilding a Monaco
+editor whenever a note row scrolls out of view is a cost of rebuilding the row from scratch, and it is
+fixable only by a row host that pools or retains its cells the way av-grid does. Whichever epic takes
+that entry should take this measurement with it: the baseline above is the before-figure, and it is
+still valid there, because nothing in EPIC-061 changes it.
+
+#### The generalisation worth carrying
+
+Both times I have measured this programme's Rule 4 number wrong, the error was the same one: I
+measured a real effect and attributed it to the component I was about to change. EPIC-060 read
+page-manager slot duplication as md-view rendering twice; this read virtualization row churn as a
+React `key`. **The check that catches it is asking what else could produce the number, and then
+finding the line that decides** — `renderInfo.ts:314` here, the retained-slot code there. A
+before/after measurement is not evidence about a cause until the cause has been located in source.
 
 ### E3-7 — `loader.config` and the uninstall land last, in their own task
 
@@ -317,11 +356,14 @@ independent of each other and can run in parallel. US-1061 requires all of them.
    a wrapper concept.
 
 6. **`MiniTextEditor` is the one many-instance consumer, and the only one where disposal is
-   load-bearing.** Every rendered note row with the `monaco` view owns an editor, and the row is
-   recycled by `RenderFlexGrid` on scroll. Under React the `key` remount guaranteed teardown; a
-   vanilla host that reuses the instance must be certain the *old* note's model is released when a row
-   is rebound, or scrolling a large notebook leaks a Monaco model per recycle — which is strictly
-   worse than the churn E3-6 removes. This is the task to review hardest.
+   load-bearing.** Every rendered note row with the `monaco` view owns an editor, and rows are
+   unmounted and remounted continuously as the virtualized list scrolls (see the withdrawn E3-6 —
+   `renderInfo.ts:314` keys cells by row index, so an off-screen row is destroyed, not rebound).
+   That makes the notebook the consumer that exercises the host's **disposal** path hardest, by a
+   wide margin: every scroll disposes hosts and creates new ones. A host that leaks its model on
+   dispose leaks once per row that ever left the screen, which in a long notebook is unbounded and
+   completely invisible. This is the task to review hardest, and disposal — not rebinding — is where
+   to look.
 
 7. **Not in scope: the residual `useState`/`useEffect` in these files.** E1-7 absorbs view state into
    each editor's own conversion, and these editors are not being converted here — only their Monaco

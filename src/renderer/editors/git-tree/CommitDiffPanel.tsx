@@ -1,5 +1,3 @@
-import { DiffEditor } from "@monaco-editor/react";
-import type * as monaco from "monaco-editor";
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 import { Panel } from "../../uikit/Panel";
@@ -17,6 +15,8 @@ import { CompareIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
+import { MonacoDiffEditorHost } from "../shared/MonacoDiffEditorHost";
+import type { MonacoDiffEditorHostView } from "../shared/MonacoDiffEditorHostView";
 
 // =============================================================================
 // Git Tree "Diff" tab (EPIC-031 / US-630).
@@ -135,16 +135,31 @@ export function CommitDiffPanel(props: CommitDiffPanelProps) {
     const { changes, selectedFile, diff } = model.state.use();
     const commits = gitTree.state.use((s) => s.commits);
     const commit = commits.find((c) => c.hash === selectedHash);
-    const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
+    const diffHostRef = useRef<MonacoDiffEditorHostView | null>(null);
+    const language = useMemo(() => {
+        if (!selectedFile) return undefined;
+        const ext = fpExtname(selectedFile);
+        return ext ? getLanguageByExtension(ext)?.id : undefined;
+    }, [selectedFile]);
+
+    useEffect(() => {
+        if (!selectedFile) return;
+        diffHostRef.current?.setDiffValues(diff.before, diff.after);
+    }, [diff.after, diff.before, selectedFile]);
+
+    useEffect(() => {
+        if (!selectedFile) return;
+        diffHostRef.current?.setLanguage(language);
+    }, [language, selectedFile]);
 
     // Reset the diff scroll to the top whenever a new file's diff loads. Monaco
-    // reuses the editor instance across files (setValue), which preserves the
-    // previous scroll position — so a file scrolled to the bottom would leave
-    // the next file scrolled down too. Keyed on `diff` (a fresh object per load)
-    // and runs after @monaco-editor/react's child setValue effect (child effects
-    // fire before parent effects), so the reset lands on the new content.
+    // reuses the editor instance across files, which preserves the previous
+    // scroll position — so a file scrolled to the bottom would leave the next
+    // file scrolled down too. The preceding passive effect synchronizes content before
+    // this parent passive effect resets the scroll. Keyed on `diff` (a fresh
+    // object per load).
     useEffect(() => {
-        const ed = diffEditorRef.current;
+        const ed = diffHostRef.current?.getEditor();
         if (!ed || !selectedFile) return;
         ed.getOriginalEditor().setScrollPosition({ scrollTop: 0, scrollLeft: 0 });
         ed.getModifiedEditor().setScrollPosition({ scrollTop: 0, scrollLeft: 0 });
@@ -211,12 +226,6 @@ export function CommitDiffPanel(props: CommitDiffPanelProps) {
         [changeMap, commit, openInNewTab, model],
     );
 
-    const language = useMemo(() => {
-        if (!selectedFile) return undefined;
-        const ext = fpExtname(selectedFile);
-        return ext ? getLanguageByExtension(ext)?.id : undefined;
-    }, [selectedFile]);
-
     if (!commit) {
         return (
             <Panel padding="md" align="center" justify="center" flex={1}>
@@ -254,18 +263,17 @@ export function CommitDiffPanel(props: CommitDiffPanelProps) {
             />
             <Panel name="commit-diff-view" direction="column" flex={1} overflow="hidden">
                 {selectedFile ? (
-                    <DiffEditor
+                    <MonacoDiffEditorHost
                         language={language}
-                        original={diff.before}
-                        modified={diff.after}
-                        onMount={(editor) => { diffEditorRef.current = editor; }}
+                        initialOriginal={diff.before}
+                        initialModified={diff.after}
+                        onMount={(host) => { diffHostRef.current = host; }}
                         options={{
                             readOnly: true,
                             originalEditable: false,
                             renderSideBySide: false,
                             automaticLayout: true,
                         }}
-                        theme="custom-dark"
                     />
                 ) : (
                     <Panel padding="md" align="center" justify="center" flex={1}>

@@ -6,7 +6,11 @@ import "./MonacoDiffEditorHostView.css";
 export type MonacoModelOwnership = "owned" | "borrowed";
 
 export interface MonacoDiffEditorHostProps {
+    initialOriginal?: string;
+    initialModified?: string;
+    language?: string;
     options?: monaco.editor.IStandaloneDiffEditorConstructionOptions;
+    onMount?: (host: MonacoDiffEditorHostView) => void;
 }
 
 function createHostRoot(): HTMLDivElement {
@@ -22,6 +26,9 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
     private readonly ownedModels = new Set<monaco.editor.ITextModel>();
     private readonly ownedSubscriptions = new Set<monaco.IDisposable>();
     private modifiedContentSubscription: monaco.IDisposable | undefined;
+    private ownedOriginal: monaco.editor.ITextModel | undefined;
+    private ownedModified: monaco.editor.ITextModel | undefined;
+    private currentLanguage: string | undefined;
     private hostDisposed = false;
 
     public constructor(props: MonacoDiffEditorHostProps = {}) {
@@ -33,8 +40,54 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
             automaticLayout: true,
             ...this.props.options,
         });
+        if (this.props.initialOriginal !== undefined || this.props.initialModified !== undefined) {
+            const language = this.props.language ?? "plaintext";
+            const original = this.createModel(this.props.initialOriginal ?? "", language);
+            const modified = this.createModel(this.props.initialModified ?? "", language);
+            this.setModel({ original, modified }, "owned");
+            this.ownedOriginal = original;
+            this.ownedModified = modified;
+            this.currentLanguage = language;
+        }
         // setTheme is global and redundant-but-harmless: this is the only theme name the app defines.
         monaco.editor.setTheme(MONACO_THEME_NAME);
+        this.props.onMount?.(this);
+    }
+
+    protected onUpdate(props: MonacoDiffEditorHostProps): void {
+        const editor = this.assertReady();
+        editor.updateOptions(props.options ?? {});
+    }
+
+    public setDiffValues(original: string, modified: string): void {
+        const editor = this.assertReady();
+        const originalModel = this.ownedOriginal;
+        const modifiedModel = this.ownedModified;
+        if (!originalModel || !modifiedModel) return;
+
+        if (originalModel.getValue() === original && modifiedModel.getValue() === modified) return;
+        if (originalModel.getValue() !== original) originalModel.setValue(original);
+        if (modifiedModel.getValue() === modified) return;
+        const modifiedEditor = editor.getModifiedEditor();
+        if (modifiedEditor.getOption(monaco.editor.EditorOption.readOnly)) {
+            modifiedEditor.setValue(modified);
+        } else {
+            modifiedEditor.executeEdits("external-sync", [{
+                range: modifiedModel.getFullModelRange(),
+                text: modified,
+                forceMoveMarkers: true,
+            }]);
+            modifiedEditor.pushUndoStop();
+        }
+    }
+
+    public setLanguage(language?: string): void {
+        this.assertReady();
+        const nextLanguage = language ?? "plaintext";
+        if (nextLanguage === this.currentLanguage) return;
+        if (this.ownedOriginal) monaco.editor.setModelLanguage(this.ownedOriginal, nextLanguage);
+        if (this.ownedModified) monaco.editor.setModelLanguage(this.ownedModified, nextLanguage);
+        this.currentLanguage = nextLanguage;
     }
 
     public createModel(value: string, language?: string, uri?: monaco.Uri): monaco.editor.ITextModel {
@@ -56,11 +109,26 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
         ownership: MonacoModelOwnership = "borrowed",
     ): void {
         const editor = this.assertReady();
+        const current = editor.getModel();
+        const samePair = current && models
+            && current.original === models.original
+            && current.modified === models.modified;
+
+        if (!samePair && current) {
+            editor.setModel(null);
+            this.releaseOwnedModels([current.original, current.modified]);
+            if (current.original === this.ownedOriginal) this.ownedOriginal = undefined;
+            if (current.modified === this.ownedModified) this.ownedModified = undefined;
+        }
         if (models && ownership === "owned") {
             this.ownedModels.add(models.original);
             this.ownedModels.add(models.modified);
         }
-        editor.setModel(models);
+        if (!samePair) editor.setModel(models);
+    }
+
+    public getEditor(): monaco.editor.IStandaloneDiffEditor {
+        return this.assertReady();
     }
 
     public listenToModifiedContent(listener: () => void): void {
@@ -90,6 +158,8 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
             editor.dispose();
         }
         this.editor = undefined;
+        this.ownedOriginal = undefined;
+        this.ownedModified = undefined;
         this.scheduleModelDisposal(ownedModels);
     }
 

@@ -10,6 +10,7 @@
 import * as monaco from "monaco-editor";
 import { TComponentModel } from "../../core/state/model";
 import { git } from "../../api/git";
+import type { MonacoDiffEditorHostView } from "../shared/MonacoDiffEditorHostView";
 import type { FileDiffEditor, RevSel } from "./FileDiffEditor";
 
 export interface FileDiffBodyState {
@@ -33,14 +34,7 @@ function revKey(sel: RevSel): string {
 
 export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDiffBodyProps> {
     private modifiedEditor: monaco.editor.ICodeEditor | null = null;
-    private contentSub: monaco.IDisposable | null = null;
     private subs: (() => void)[] = [];
-    // The DiffEditor's two models. We pass keepCurrent*Model so @monaco-editor/react
-    // disposes only the widget on unmount (not the models) — disposing the models
-    // while the widget still listens triggers monaco's "TextModel got disposed
-    // before DiffEditorWidget model got reset". We dispose them ourselves after.
-    private originalModel: monaco.editor.ITextModel | null = null;
-    private modifiedModel: monaco.editor.ITextModel | null = null;
 
     private get editor(): FileDiffEditor {
         return this.props.model;
@@ -114,13 +108,9 @@ export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDi
 
     /** Wire editable write-back: when `to` is Unstaged, edits to the modified
      *  side flow back into the working file (host content). Mirrors CompareEditor. */
-    onDiffMount = (diffEditor: monaco.editor.IStandaloneDiffEditor): void => {
-        this.modifiedEditor = diffEditor.getModifiedEditor();
-        const m = diffEditor.getModel();
-        this.originalModel = m?.original ?? null;
-        this.modifiedModel = m?.modified ?? null;
-        this.contentSub?.dispose();
-        this.contentSub = this.modifiedEditor.onDidChangeModelContent(() => {
+    onDiffMount = (host: MonacoDiffEditorHostView): void => {
+        this.modifiedEditor = host.getEditor().getModifiedEditor();
+        host.listenToModifiedContent(() => {
             if (this.editor.state.get().to.kind !== "unstaged") return;
             const host = this.editor.host;
             if (!host || !this.modifiedEditor) return;
@@ -132,24 +122,6 @@ export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDi
     dispose(): void {
         this.subs.forEach((u) => u());
         this.subs = [];
-        this.contentSub?.dispose();
-        this.contentSub = null;
         this.modifiedEditor = null;
-        // Defer model disposal to a macrotask. This dispose() runs during React's
-        // unmount commit, but @monaco-editor/react disposes the diff widget in its
-        // own (later) cleanup AND monaco 0.52 removes the widget's model listeners
-        // asynchronously — so disposing the models now (while the widget still
-        // listens) throws "TextModel got disposed before DiffEditorWidget model got
-        // reset". By the next macrotask the widget is fully gone. keepCurrent*Model
-        // ensures monaco-react never disposes these models, so there's no double-
-        // dispose and no leak.
-        const original = this.originalModel;
-        const modified = this.modifiedModel;
-        this.originalModel = null;
-        this.modifiedModel = null;
-        setTimeout(() => {
-            original?.dispose();
-            modified?.dispose();
-        }, 0);
     }
 }

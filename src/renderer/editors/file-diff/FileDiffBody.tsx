@@ -1,5 +1,4 @@
-import { DiffEditor } from "@monaco-editor/react";
-
+import { useCallback, useEffect, useRef } from "react";
 import { useComponentModel } from "../../core/state/model";
 import { useOptionalState, type TOneState } from "../../core/state/state";
 import type { TextFileEditorModelState } from "../text/TextEditorModel";
@@ -8,6 +7,8 @@ import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { FileDiffBodyModel, defaultFileDiffBodyState } from "./FileDiffBodyModel";
 import type { FileDiffEditor } from "./FileDiffEditor";
+import { MonacoDiffEditorHost } from "../shared/MonacoDiffEditorHost";
+import type { MonacoDiffEditorHostView } from "../shared/MonacoDiffEditorHostView";
 
 export function FileDiffBody({ model }: { model: FileDiffEditor }) {
     const bodyModel = useComponentModel({ model }, FileDiffBodyModel, defaultFileDiffBodyState);
@@ -26,6 +27,21 @@ export function FileDiffBody({ model }: { model: FileDiffEditor }) {
     const gitRepo = useOptionalState(hostState, (s) => s.gitRepo, undefined);
     const language = useOptionalState(hostState, (s) => s.language, undefined);
     const filePath = useOptionalState(hostState, (s) => s.filePath, undefined);
+    const diffHostRef = useRef<MonacoDiffEditorHostView | null>(null);
+    const handleDiffMount = useCallback((host: MonacoDiffEditorHostView) => {
+        diffHostRef.current = host;
+        bodyModel.onDiffMount(host);
+    }, [bodyModel]);
+
+    useEffect(() => {
+        if (!gitRepo || !filePath) return;
+        diffHostRef.current?.setDiffValues(fromText, toText);
+    }, [filePath, fromText, gitRepo, toText]);
+
+    useEffect(() => {
+        if (!gitRepo || !filePath) return;
+        diffHostRef.current?.setLanguage(language);
+    }, [filePath, gitRepo, language]);
 
     // Nothing to compare — not in a repo / no file / git unavailable (Concern 4).
     // The "Switch to Text Editor" button is the escape hatch: the switch widget
@@ -54,16 +70,11 @@ export function FileDiffBody({ model }: { model: FileDiffEditor }) {
 
     return (
         <Panel name="file-diff-body" direction="column" flex={1} overflow="hidden">
-            <DiffEditor
+            <MonacoDiffEditorHost
                 language={language}
-                original={fromText}
-                modified={toText}
-                onMount={bodyModel.onDiffMount}
-                // The body model disposes the models itself (after the widget) to
-                // avoid monaco's "TextModel got disposed before DiffEditorWidget
-                // model got reset" on unmount.
-                keepCurrentOriginalModel
-                keepCurrentModifiedModel
+                initialOriginal={fromText}
+                initialModified={toText}
+                onMount={handleDiffMount}
                 options={{
                     // Right/modified side editable only when comparing to the
                     // working tree (Unstaged); left is never editable (Concern 3).
@@ -72,7 +83,6 @@ export function FileDiffBody({ model }: { model: FileDiffEditor }) {
                     renderSideBySide: true,
                     automaticLayout: true,
                 }}
-                theme="custom-dark"
             />
         </Panel>
     );
