@@ -15,7 +15,7 @@ export interface MarkdownImageViewProps {
 // mirroring the Mermaid diagram toolbar for visual consistency. The wrapper is
 // inline-block because markdown images are inline-level content.
 export class MarkdownImageView extends VanillaView<MarkdownImageViewProps> {
-    private readonly image: HTMLImageElement;
+    private image!: HTMLImageElement;
     private copiedTimer: ReturnType<typeof setTimeout> | undefined;
     private copyButton: HTMLButtonElement | undefined;
 
@@ -23,10 +23,10 @@ export class MarkdownImageView extends VanillaView<MarkdownImageViewProps> {
         const root = document.createElement("span");
         root.className = "md-image";
         super(props, root);
-        this.image = document.createElement("img");
     }
 
     protected onMount(): void {
+        this.image = document.createElement("img");
         const properties = { ...this.props.properties, src: this.props.src };
         applyHastProperties(this.image, properties, "html");
 

@@ -8,13 +8,8 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-060** — [De-React Epic E2 — The embeddable bodies](epics/EPIC-060.md)
-  - [ ] [US-1051: Convert the `svg` and `html` bodies to `BodyView`](epics/EPIC-060.md)
-  - [ ] [US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla](tasks/US-1048-hast-dom-markdown/README.md)
-  - [ ] [US-1052: Convert the `markdown` body](epics/EPIC-060.md)
-  - [ ] [US-1053: Convert the `grid` body](epics/EPIC-060.md)
-  - [ ] [US-1054: Delete the React `Body` arm from the editor registry](epics/EPIC-060.md)
 - *(no epic)*
+  - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
@@ -28,13 +23,16 @@ Overview of all active and planned epics and tasks.
   epic in Epic C. **Epic D is complete as [EPIC-058](epics/EPIC-058.md)** — the shell is vanilla and
   the application root is flipped. **Epic E is split: E1 is complete as
   [EPIC-059](epics/EPIC-059.md)** — the four editor seams every conversion needs now exist, each with
-  a converted pilot — and **E2 is active as [EPIC-060](epics/EPIC-060.md)**, the first conversion
-  epic: the five editors that supply `EditorModule.Body`, closing with that React contract deleted
-  from the registry. It carries the task E1 deferred,
-  [US-1048: `hast → DOM` markdown renderer](tasks/US-1048-hast-dom-markdown/README.md) (EPIC-059
-  E1-12), whose plan is already written. Further conversion epics (E3…) are scoped as each opens; the
-  large editors — `graph`, `link-editor`, `notebook` — are deliberately not in E2. Next free epic
-  number: **EPIC-061**.
+  a converted pilot — and **E2 is complete as [EPIC-060](epics/EPIC-060.md)**: the five
+  `EditorModule.Body` providers are vanilla and that React contract is deleted from the registry.
+  `react-markdown` now has no importer. **E3 is next**, scoped when it opens. Two things it inherits:
+  the remaining editors, of which the large ones are `graph` (3,259), `link-editor` (2,847) and
+  `notebook` (2,001) — two of them also carrying removal-ledger entries (`RenderGrid`,
+  `RenderFlexGrid`, `highlight`'s React form), so they are conversion *plus* collection work — and the
+  14 `<TextChrome>` call sites, which EPIC-060 deliberately did not touch: the chrome converts for free
+  once the last shell is vanilla (EPIC-059 E1-8). Scoping an epic by the **shared contract** it can
+  delete rather than by line count is the pattern EPIC-060 established and worth repeating where one
+  exists. Next free epic number: **EPIC-061**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

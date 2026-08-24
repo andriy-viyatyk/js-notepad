@@ -56,13 +56,13 @@ hiding in a render function that has to be excavated first.
 | `react-tooltip` | our own `uikit/Tooltip` | **Done — uninstalled in C1.** It had zero importers; it was an uninstall, not a migration |
 | `zustand` (1 file) | A value plus the listener array `TOneState` already keeps | Small — the dependency is deleted, not replaced (§3.3) |
 | Emotion (85 files) | CSS custom properties + static CSS | Medium, mechanical. **58 production importers as of C2 open** — `uikit` 35, `components` 11, `ui` 10, `theme` 1, `editors` 0 |
-| `react-markdown` | Its own `remark`/`rehype` stack, minus the React step | Small — see §3.6 |
+| `react-markdown` | The existing `remark`/`rehype` stack plus the hand-written `hast → DOM` walker | Converted in the editor migration; the package remains installed until Epic F |
 
 `react-markdown` looked like the only entry with no cheap swap: it backs the markdown preview, the
 notebook note editor and the MCP inspector, all through custom component overrides. Investigation
 (open decision #1, settled 2026-08-18) found it is a thin React binding over a parsing stack that is
-already framework-free, so the parser is kept and only its final `hast → React` step is replaced.
-The remaining work is the five node overrides. See §3.6.
+already framework-free, so the parser was kept and only its final `hast → React` step was replaced
+by the local DOM walker described in §3.6. The package remains installed until Epic F.
 
 ## 3. What we keep
 
@@ -264,9 +264,10 @@ framework-free.** It is `remark-parse` → `remark-gfm` → `mdast-util-to-hast`
 **`hast-util-to-jsx-runtime`**. Only the last step is React. Every one of those packages is already
 in `node_modules` as a transitive dependency.
 
-**The decision: keep the whole stack and replace only the final step with a `hast → DOM` renderer**
-(`hast-util-to-dom` is the ecosystem's own version of it, same authors, same tree shape). Everything
-upstream is untouched.
+**The decision: keep the whole stack and replace only the final step with a hand-written `hast → DOM`
+walker** (`markdown/hast-dom.ts`). Everything upstream is untouched; the walker is deliberately
+local so it can preserve the existing interactive `code`, `pre`, and `img` seams without adopting
+another renderer package.
 
 What that buys, concretely:
 
@@ -278,13 +279,11 @@ What that buys, concretely:
 - **The output tree is identical**, so `MarkdownBlock.css` and the `.markdown-block` scoping survive
   as they are.
 
-The work is then the five node overrides in `getComponents()` — `code` (Monaco-colorized
-`CodeBlock`), `pre` (mermaid SVG), `input` (checkbox → icon), `a` (link resolution), `img`
-(`MarkdownImage`) — which become "when the walker reaches this hast node, build this DOM instead".
-Two of them (`code`, `pre`) are substantial because they mount real interactive views, but they are
-being rewritten in Epic E anyway; the other three are near-trivial. Six call sites consume
-`MarkdownBlock` (`MarkdownBody`, `MarkdownOutputView`, `McpInspectorView`, `ResourceContentView`,
-`MnemeRootEditorView`, plus the re-export), and its props stay as they are.
+The five node overrides in `getComponents()` — `code` (Monaco-colorized `CodeBlock`), `pre` (mermaid
+SVG), `input` (checkbox → icon), `a` (link resolution), and `img` (`MarkdownImage`) — are now
+"when the walker reaches this hast node, build this DOM instead". The interactive `code`, `pre`,
+and `img` nodes are owned `VanillaView` instances; `input` and `a` are rehype HAST rewrites. The
+other markdown consumers continue to use the shared block renderer, whose props remain stable.
 
 **Why not `marked`, which the boards catalog recommends?** Because boards and the renderer have
 opposite constraints, and the same choice is right in one and wrong in the other:
@@ -809,10 +808,11 @@ config can be deleted only when the last `@monaco-editor/react` importer is remo
 is a control inversion, not a swap, making it the programme's **third documented Rule 2 exception**
 after C3-1 and C4-2 (E1-3).
 
-**Third, §3.6's "already in `node_modules`" is true but incomplete**: `unified`, `remark-parse`,
-`mdast-util-to-hast` and `hast-util-raw` are present only as **transitive** dependencies, so the
-markdown conversion promotes four packages to direct dependencies and adds `hast-util-to-dom`, which
-is absent. `react-markdown` has exactly one importer, `editors/markdown/MarkdownBlock.tsx`.
+**Third, §3.6's "already in `node_modules`" is true but incomplete**: **EPIC-060 promotes**
+`unified`, `remark-parse`, `remark-rehype`, and `property-information` to direct dependencies for
+the native walker. In `src/`, `react-markdown` now has no importer, while
+`hast-util-to-jsx-runtime` has no importer outside the one explanatory comment in
+`markdown/hast-dom.ts`. Both packages remain installed and are collectable in Epic F.
 
 **Fourth, Epic P's state lifting never reached the long tail — and does not need its own epic.**
 `editors/` holds **107 `useState`**, 153 `useEffect` and 148 `useRef` — against Epic D's 7 in a
@@ -870,6 +870,13 @@ creates the duplicate, not in the epic that hopes to remove it.
 | `uikit/shared/highlight.ts` React form | Five editor consumers still use it: GraphBody, LinksList, LinkCategoryPanel, ExpandedNoteView, and NoteItemView (EPIC-056 C3-7) | Epics D and E convert those editor consumers | C3 / EPIC-056 |
 | `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | The 14 `<TextChrome>` and 6 direct `<PageToolbar>` call sites are vanilla; the slots are then DOM nodes and `fill-slot`'s non-React arm handles them, so the conversion is free | E1 / EPIC-059 |
 | `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
+
+#### Collected or collectable after the editor-body conversion
+
+| Item | State | Removal owner |
+|---|---|---|
+| `EditorModule.Body` React arm and its registry normalization shim | **Collected.** All five embeddable bodies expose `BodyView`; notebook dispatch mounts that view directly. | Done in the editor conversion epic |
+| `react-markdown` and `hast-util-to-jsx-runtime` application importers | **Collectable in Epic F.** Neither has an application importer now; `hast-util-to-jsx-runtime` remains only in one explanatory source comment. The npm packages are still installed. | Epic F |
 
 **One entry is already collectable at the point C4 closes** (RenderGrid's former AVGrid importers),
 which is worth checking there rather than deferring to F on principle:

@@ -41,25 +41,27 @@ function viewportProps(
 export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
     private model: SvgEditor;
     private imageModelSetter: SvgBodyViewProps["imageModelSetter"];
-    private readonly viewport: ImageViewportView;
+    private viewport!: ImageViewportView;
     private hostSubscription: (() => void) | undefined;
     private boundModel: SvgEditor | undefined;
     private boundHost: SvgEditor["host"] = null;
     private queueSubscription: (() => void) | undefined;
 
     public constructor(props: SvgBodyViewProps) {
-        const content = props.model.host?.state.get().content ?? "";
-        const viewport = new ImageViewportView(
-            viewportProps(content, props.imageModelSetter),
-        );
         super(props, createPanelElement(rootPanelProps(props.editorConfig)));
         this.model = props.model;
         this.imageModelSetter = props.imageModelSetter;
-        this.viewport = this.child(viewport);
-        this.root.append(this.viewport.root);
     }
 
     protected onMount(): void {
+        this.model = this.props.model;
+        this.imageModelSetter = this.props.imageModelSetter;
+        applyPanelAttributes(this.root, resolvePanelAttributes(rootPanelProps(this.props.editorConfig)));
+        const content = this.model.host?.state.get().content ?? "";
+        this.viewport = this.child(new ImageViewportView(
+            viewportProps(content, this.imageModelSetter),
+        ));
+        this.root.append(this.viewport.root);
         this.viewport.mount();
         this.bindToHostIfNeeded();
         this.queueSubscription = this.model.typedQueue.subscribe(() => {

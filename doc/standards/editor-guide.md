@@ -36,8 +36,8 @@ Three questions decide the shape of your editor:
 /src/renderer/editors/myeditor/
 ├── index.ts / index.tsx     # EditorModule registration
 ├── MyEditor.ts              # EditorModel subclass
-├── MyEditorBody.tsx         # React component for text-bearing editors
-│                            # (or MyEditorView.tsx for non-text editors)
+├── MyEditorBody.tsx         # React body, or MyEditorBodyView.ts for a vanilla body
+│                            # (MyEditorView.ts / .tsx for a standalone main view)
 └── components/              # (optional) Editor-specific components
 ```
 
@@ -152,8 +152,8 @@ The lifecycle hook order during a switch is:
 Choose the page chrome before writing the view:
 
 - **Chrome-free** — use a plain root for standalone content that needs no shared toolbar, or
-  expose `Body`/`BodyView` for an editor embedded inside another editor (for example notebook
-  notes). An embedded body must not add `PageToolbar` or `TextChrome`.
+  expose `BodyView` for an editor embedded inside another editor (for example notebook notes).
+  An embedded body must not add `PageToolbar` or `TextChrome`.
 - **`PageToolbar`** — use for a non-text editor that needs the standard page toolbar but does not
   need text-host actions, script panel, footer, or editor overlay. The Image editor is the native
   toolbar example.
@@ -162,8 +162,8 @@ Choose the page chrome before writing the view:
   body inside this React shell.
 
 React remains valid for a view, but a converted or new DOM-heavy view may use `VanillaView` and
-export it as `View` (or `BodyView`) instead. Keep the root stable and let the registry provide the
-React compatibility adapter.
+export it as `View` (or `BodyView`) instead. Keep the root stable. A React chrome shell can host a
+vanilla body with `mountVanilla`; the body itself does not create a React root.
 
 ### React view example
 
@@ -235,7 +235,7 @@ export const myEditorModule: EditorModule = {
     // (link decode / path-derived state) — text-bearing editors never need it:
     // newEditorModel: async (filePath?: string) => { ... },
     // Only for embeddable editors (rendered inside Notebook notes):
-    // Body: MyEditorEmbeddedBody,       // or BodyView: MyEditorEmbeddedView
+    // BodyView: MyEditorEmbeddedView,
 };
 ```
 
@@ -347,17 +347,18 @@ replaced record view with `this.child()`.
 - [ ] `getRestoreData()` returns persisted state (stripped of runtime-only fields) — text-bearing editors inherit the identity-only base and extend it only for extra durable fields
 - [ ] `dispose()` calls `super.dispose()` and cleans up domain-only resources (host subscriptions registered via `registerHostSubscription` are torn down by the base)
 - [ ] For text-bearing editors: `displayName` set; host content writes go through `writeToHost`; view settings ride `mirrorHostSettings`
-- [ ] `EditorModule` exports `createEditor` + `Component` (plus `newEditorModel` for standalone file-open editors, `Body` for embeddable ones)
+- [ ] `EditorModule` exports `createEditor` + `Component` or `View` (plus `newEditorModel` for standalone file-open editors, `BodyView` for embeddable ones)
 - [ ] Row added to the `EDITORS` table in `register-editors.ts`; matcher added to `EDITOR_MATCHERS` in `editor-matchers.ts` if the editor matches files/languages
 - [ ] The row's `load` keeps a literal `import("./…")` — preserves code splitting
-- [ ] Error states and loading states are handled in the React component
+- [ ] Error states and loading states are handled in the view (React component or `VanillaView`)
 - [ ] (Optional) Scripting facade added with type declaration
 
 ## Examples
 
 - **Simple viewer:** `/src/renderer/editors/image/` — read-only image viewer, no content host
-- **Text-bearing minimal:** `/src/renderer/editors/svg/` — read-only preview over the host, no domain subscriptions (`/src/renderer/editors/html/` adds an image-export capability)
-- **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with full edit/save flow, custom write-guard, and host-slot settings
+- **Text-bearing minimal:** `/src/renderer/editors/svg/` — read-only `VanillaView` preview over the host (`/src/renderer/editors/html/` adds an image-export capability)
+- **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with a native `DataGridView`, full edit/save flow, custom write-guard, and host-slot settings
+- **Markdown renderer:** `/src/renderer/editors/markdown/` — React `TextChrome` shell with a native body and hand-written HAST-to-DOM rendering
 - **Per-note embedding:** `/src/renderer/editors/notebook/note-editor/` — Notebook embeds text-bearing editors per-note via `NoteItemEditModel` (a non-file IContentHost)
 - **No-host with sidebar:** `/src/renderer/editors/explorer/` — Explorer sidebar editor with no main content area
 - **Multi-process editor:** `/src/renderer/editors/browser/` — webview-based browser spanning three processes ([architecture doc](../architecture/browser-editor.md))

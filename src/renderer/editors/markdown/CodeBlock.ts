@@ -258,30 +258,31 @@ class CodePreModel extends TComponentModel<CodePreState, Record<string, never>> 
 /** Fenced code wrapper with the existing copy-to-clipboard affordance. */
 class CodePreBlockView extends VanillaView<CodePreBlockProps> {
     private readonly driver: ComponentModelDriver<CodePreState, Record<string, never>, CodePreModel>;
-    private readonly pre: HTMLPreElement;
-    private readonly copyButton: HTMLButtonElement;
+    private pre!: HTMLPreElement;
+    private copyButton!: HTMLButtonElement;
     private copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
     public constructor(props: CodePreBlockProps) {
         const root = document.createElement("div");
         root.className = "code-block-wrapper";
+        super(props, root);
+        this.driver = createComponentModelDriver({}, CodePreModel, defaultCodePreState);
+        this.own(() => this.driver.dispose());
+    }
+
+    protected onMount(): void {
         const pre = document.createElement("pre");
-        props.context.applyProperties(pre, props.node.properties, "html");
-        const codeNode = props.node.children.find((child): child is Element => child.type === "element");
-        if (codeNode) pre.append(props.context.renderNode(codeNode, "html"));
+        this.props.context.applyProperties(pre, this.props.node.properties, "html");
+        const codeNode = this.props.node.children.find((child): child is Element => child.type === "element");
+        if (codeNode) pre.append(this.props.context.renderNode(codeNode, "html"));
         const copyButton = document.createElement("button");
         copyButton.className = "copy-btn";
         copyButton.title = "Copy";
         const copyIcon = CopyIcon.createElement?.({ width: 14, height: 14 });
         if (copyIcon) copyButton.append(copyIcon);
-        root.append(pre, copyButton);
-        super(props, root);
         this.pre = pre;
         this.copyButton = copyButton;
-        this.driver = createComponentModelDriver({}, CodePreModel, defaultCodePreState);
-    }
-
-    protected onMount(): void {
+        this.root.append(pre, copyButton);
         this.driver.mount();
         this.bind(this.driver.model.state, (state) => state.copied, (copied) => {
             this.copyButton.classList.toggle("copied", copied);
@@ -296,7 +297,6 @@ class CodePreBlockView extends VanillaView<CodePreBlockProps> {
 
     protected onDispose(): void {
         if (this.copiedTimer !== undefined) clearTimeout(this.copiedTimer);
-        this.driver.dispose();
     }
 }
 

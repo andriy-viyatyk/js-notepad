@@ -166,6 +166,7 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
     private wikiRoot: string | undefined;
     private lookupFilePath: string | undefined;
     private lookupGeneration = 0;
+    private renderGeneration = 0;
     private renderedContent = "";
     private renderedHighlightText: string | undefined;
     private renderedFilePath: string | undefined;
@@ -199,6 +200,7 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
 
     protected onDispose(): void {
         this.lookupGeneration += 1;
+        this.renderGeneration += 1;
         this.unregisterQueue?.();
         this.unregisterQueue = undefined;
         this.disposeTransientViews();
@@ -235,7 +237,9 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
                 if (spans.length > 0 && request.index < spans.length) {
                     const span = spans[request.index];
                     span.classList.add("highlighted-text-active");
+                    const renderGeneration = this.renderGeneration;
                     Promise.resolve().then(() => {
+                        if (renderGeneration !== this.renderGeneration) return;
                         span.scrollIntoView({ block: "center", behavior: "smooth" });
                     });
                 }
@@ -327,6 +331,7 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
     }
 
     private renderTree(content: string, mermaidLightMode: boolean): void {
+        this.renderGeneration += 1;
         this.disposeTransientViews();
         this.root.replaceChildren();
 

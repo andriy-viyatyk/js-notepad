@@ -369,18 +369,20 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── grid/               # JSON/CSV/JSONL grid editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── GridEditor.ts             # EditorModel — parsing, sort/filter/edit state
-│   │   ├── GridBody.tsx              # React component (DataGrid integration)
+│   │   ├── GridBodyView.ts            # Native DataGrid integration
 │   │   ├── components/               # Grid-specific components
 │   │   ├── utils/                    # Grid utilities
 │   │   ├── util.ts                   # Shared utility helpers
 │   │   └── index.tsx
 │   ├── markdown/           # Markdown preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MarkdownEditor.ts         # EditorModel — search state, scroll, compact
-│   │   ├── MarkdownBody.tsx          # React component
-│   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (ReactMarkdown, search + anchor handle)
+│   │   ├── MarkdownBodyView.ts        # Native body (search, minimap, scroll and host binding)
+│   │   ├── MarkdownBlockView.ts       # Reusable markdown rendering (HAST-to-DOM, search + anchors)
 │   │   ├── MarkdownBlock.css         # Scoped stylesheet for generated Markdown DOM
-│   │   ├── CodeBlock.tsx             # Code block + inline Mermaid (+ copyImageToClipboard helper)
-│   │   ├── MarkdownImage.tsx         # Rendered image + hover toolbar (Copy / Open in new tab)
+│   │   ├── CodeBlock.ts              # Code block + inline Mermaid (+ copyImageToClipboard helper)
+│   │   ├── MarkdownImage.ts          # Rendered image + hover toolbar (Copy / Open in new tab)
+│   │   ├── hast-dom.ts               # HAST properties and namespace conversion
+│   │   ├── rehypeMarkdownOverrides.ts # HAST rewrites for links and task-list inputs
 │   │   ├── rehypeHighlight.ts        # Search text highlighting
 │   │   ├── rehypeHeadingIds.ts       # Heading slug ids for #fragment links (+ slugifyHeading)
 │   │   ├── markdown-nav.ts           # isLocalMarkdownHref — local-.md link detection for in-page nav
@@ -456,11 +458,11 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── svg/                # SVG preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── SvgEditor.ts              # EditorModel — SVG state
-│   │   ├── SvgBody.tsx               # React component
+│   │   ├── SvgBodyView.ts             # Native preview body
 │   │   └── index.tsx
 │   ├── html/               # HTML preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── HtmlEditor.ts             # EditorModel — HTML state
-│   │   ├── HtmlBody.tsx              # React component
+│   │   ├── HtmlBodyView.ts            # Native sandboxed preview body
 │   │   └── index.tsx
 │   ├── mermaid/            # Mermaid diagram preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MermaidEditor.ts          # EditorModel — SVG URL, loading, error, light mode

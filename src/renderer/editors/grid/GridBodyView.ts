@@ -93,10 +93,10 @@ function gridProps(
 
 export class GridBodyView extends VanillaView<GridBodyViewProps> {
     private model: GridEditor;
-    private readonly contentPanel: HTMLDivElement;
-    private readonly errorPanel: HTMLDivElement;
-    private readonly errorText: HTMLSpanElement;
-    private readonly dataGridView: DataGridView<any>;
+    private contentPanel!: HTMLDivElement;
+    private errorPanel!: HTMLDivElement;
+    private errorText!: HTMLSpanElement;
+    private dataGridView!: DataGridView<any>;
     private modelSubscription: (() => void) | undefined;
     private queueSubscription: (() => void) | undefined;
     private liveGrid: DataGridInstance<any> | null = null;
@@ -138,29 +138,29 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> {
     };
 
     public constructor(props: GridBodyViewProps) {
+        super(props, createPanelElement(rootPanelProps(props.editorConfig)));
+
+        this.model = props.model;
+        this.lastDisableAutoFocus = props.editorConfig?.disableAutoFocus;
+        this.appliedEmbeddedMode = props.editorConfig?.maxEditorHeight !== undefined;
+    }
+
+    protected onMount(): void {
+        this.model = this.props.model;
         const contentPanel = createPanelElement({ direction: "column", flex: true });
         const errorText = createTextElement("", { color: "warning", preWrap: true });
         const errorPanel = createPanelElement(
             { flex: true, justify: "center", align: "center", padding: "xxl" },
             [errorText],
         );
-
-        super(props, createPanelElement(rootPanelProps(props.editorConfig), [contentPanel, errorPanel]));
-
-        this.model = props.model;
         this.contentPanel = contentPanel;
         this.errorPanel = errorPanel;
         this.errorText = errorText;
-        this.lastDisableAutoFocus = props.editorConfig?.disableAutoFocus;
-        this.appliedEmbeddedMode = props.editorConfig?.maxEditorHeight !== undefined;
-
-        this.dataGridView = this.child(new DataGridView(gridProps(props, this.onGrid)));
+        this.root.append(contentPanel, errorPanel);
+        this.dataGridView = this.child(new DataGridView(gridProps(this.props, this.onGrid)));
         this.contentPanel.append(this.dataGridView.root);
-        this.setHostVisibility(!!this.model.contentHost);
-    }
-
-    protected onMount(): void {
         this.dataGridView.mount();
+        this.setHostVisibility(!!this.model.contentHost);
 
         if (!this.model.contentHost) {
             this.setHostVisibility(false);

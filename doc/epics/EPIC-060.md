@@ -2,9 +2,16 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Complete
 **Created:** 2026-08-24
-**Completed:**
+**Completed:** 2026-08-24
+
+> **Where this landed.** All five tasks implemented, reviewed (Codex `/review`), documented
+> (`/document`; `/userdoc` found nothing warranted), and marked **Done**. The closing property holds:
+> `EditorModule.Body` is gone from `editorRegistry.ts`, its E1-9 shim is deleted, and notebook's
+> per-note dispatch mounts `BodyView` directly. The review found **2 must-fix and 1 advisory**, all
+> fixed and re-verified live. [Testing owed](#testing-owed) is empty — every check was drivable over
+> MCP, so nothing is deferred to a human pass.
 
 ## Overview
 
@@ -338,6 +345,34 @@ converted host rather than only its presence, and open at least one editor the t
   comments or types — so E1's figure holds.
 - The `highlight` React-form ledger entry also holds unchanged: `GraphBody`, `LinksList`,
   `LinkCategoryPanel`, `ExpandedNoteView`, `NoteItemView` — none of them in this epic's scope.
+**Epic close — the review caught a standards violation in all five new views, and it was mine.**
+Codex's `/review` pass reported 2 must-fix and 1 advisory (`doc/tasks/epic60-review.md`):
+
+1. **Child DOM was being built in constructors instead of `onMount()`** — in `GridBodyView`,
+   `MarkdownBodyView`, `SvgBodyView`, `CodeBlock` and `MarkdownImage`. `uikit/CLAUDE.md:496-499` states
+   the rule plainly: the constructor creates the stable root and "must not create child DOM"; `:502`
+   says `mount()` is where child DOM is built. I had waved this through on every one of the four review
+   rounds because `MermaidBodyView` — the template I told each task to copy — does it in the
+   constructor, so I treated the pattern as sanctioned instead of checking the contract. **A template
+   is not a specification.** Fixed in all five, with the constraints that were verified working held
+   explicitly: exactly-once child mounts, FIFO cleanup ordering, and stability of the elements the
+   models hold refs to (`setContainer`, `setGrid`).
+2. **A highlight-scroll microtask in `MarkdownBlockView` could outlive the view** — it called
+   `scrollIntoView()` on a captured span with no disposed/generation guard, while the neighbouring
+   git-root and anchor continuations both had one. Fixed with the same mechanism rather than a third.
+3. *(Advisory)* `MarkdownBlock.css`'s `.md-image[hidden]` did not match the element that can actually
+   receive `hidden` — `MarkdownImage` applies HAST properties to the child `<img>`. The redundant rule
+   was removed rather than realigned, since no author `display` rule makes it necessary.
+
+**Re-verified live after the fixes**, because the refactor touched code that was already confirmed
+working: the fixture still renders exactly **253** elements with 99 colorization spans, 3 task icons and
+0 leftover inputs; `markdown-scroll` still scrollable with the minimap at 120px; grid 1177×962 with 45
+cells; and every embedded body byte-identical to its pre-refactor geometry — grid 1192×284 with 60
+cells, markdown 1166×4657 with 638 elements, html/mermaid/viewport all 1192×400.
+
+**Follow-up left open on purpose:** `mermaid/MermaidBodyView.ts` carries the same constructor violation
+from EPIC-059 and is outside this epic's diff. Recorded as **US-1055** rather than fixed here.
+
 **US-1054 — the closing property is delivered.** `EditorModule.Body` no longer exists in
 `editorRegistry.ts`, its E1-9 normalization shim is deleted, and
 `notebook/note-editor/NoteItemActiveEditor.tsx` mounts `mountVanilla(module.BodyView, …)` directly. The

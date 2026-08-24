@@ -300,20 +300,20 @@ interface EditorModule {
         // the opened path — decoding a link (git-tree, mneme-root, board, toolset, category),
         // seeding path-derived state (image, video), or reading the target (archive)
     // Main editor arm: either React or vanilla. The registry adapts View to
-    // Component for legacy callers after loading, before caching the module.
+    // Component for callers that still consume the React main arm.
     Component?: React.ComponentType<{ model: EditorModel }>;
     View?: VanillaViewCtor<{ model: EditorModel }>;
-    // Chrome-free embedded arm: React Body or vanilla BodyView.
-    Body?: React.ComponentType<{ model: EditorModel }>;
+    // Chrome-free embedded arm: vanilla BodyView.
     BodyView?: VanillaViewCtor<{ model: EditorModel }>;
 }
 ```
 
 `Component`/`View` is a discriminated union in the TypeScript definition: a module must provide
-one main arm, while `Body` and `BodyView` are optional alternatives. The registry normalizes a
-vanilla `View` into a React adapter for callers that still consume `module.Component`, and does
-the same for `BodyView`/`Body`; this happens before the module enters the cache. `AsyncEditorView`
-uses `View` directly when available, avoiding a React root for the converted main view.
+one main arm, while `BodyView` is optional for embeddable editors. The registry normalizes a
+vanilla `View` into a React adapter for callers that still consume `module.Component`; it does not
+create a React `Body` arm. React chrome shells use `mountVanilla` for their body, and
+`AsyncEditorView` uses `View` directly when available, avoiding a React root for the converted main
+view.
 
 The eagerly-registered half is the `EditorDefinition` (`id`, `name`, `accepts`,
 `hasContentHost`, `match?`, `loadModule`). Registration lives in
@@ -496,7 +496,8 @@ Every editor follows this pattern:
 /editors/[name]/
 ├── index.tsx              # EditorModule export — factory + matchers
 ├── [Name]Editor.ts        # EditorModel subclass (state, lifecycle, business logic)
-├── [Name]Body.tsx         # React component (or [Name]View.tsx for non-text editors)
+├── [Name]Body.tsx         # React body, or [Name]BodyView.ts for a native body
+│                          # ([Name]View.ts / .tsx for a standalone main view)
 ├── components/            # Editor-specific components (optional)
 └── utils/                 # Editor-specific utilities (optional)
 ```

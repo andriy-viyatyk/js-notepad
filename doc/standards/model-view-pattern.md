@@ -22,7 +22,7 @@ This separation provides:
 
 Editor views have three intentional shapes:
 
-- **Chrome-free**: a standalone root with no shared shell, or a `Body`/`BodyView` intended for
+- **Chrome-free**: a standalone root with no shared shell, or a `BodyView` intended for
   embedding. This is the only shape suitable for notebook note dispatch.
 - **`PageToolbar`**: a non-text editor's page root plus the standard toolbar. Use it when the
   editor needs toolbar actions but not text-host controls, script panel, footer, or overlay.
@@ -30,8 +30,14 @@ Editor views have three intentional shapes:
   script panel, content-host footer, and editor overlay; the editor-specific body sits inside it.
 
 The shell may remain React while its body or toolbar is a `VanillaView`. Export a native main view
-as `EditorModule.View`, or an embeddable native body as `BodyView`; the editor registry normalizes
-those arms for React consumers, while `AsyncEditorView` mounts a main `View` directly.
+as `EditorModule.View`, or an embeddable native body as `BodyView`; `AsyncEditorView` mounts a main
+`View` directly, and React shells host a `BodyView` with `mountVanilla`.
+
+This is the standard shape for the five embeddable editor bodies that currently use native views:
+`svg`, `html`, `markdown`, `grid`, and `mermaid`. Their `index.tsx` files deliberately remain React
+`TextChrome` shells, while the chrome-free body owns one stable vanilla root and creates no React
+root of its own. Notebook note dispatch mounts `BodyView` directly, so the same body works in the
+embedded path without page chrome.
 
 ## When to Use
 

@@ -104,9 +104,9 @@ function sameBlockProps(a: MarkdownBlockProps | undefined, b: MarkdownBlockProps
 
 export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
     private model: MarkdownEditor;
-    private readonly findColumn: HTMLDivElement;
-    private readonly scrollPanel: HTMLDivElement;
-    private readonly markdownBlock: MarkdownBlockView;
+    private findColumn!: HTMLDivElement;
+    private scrollPanel!: HTMLDivElement;
+    private markdownBlock!: MarkdownBlockView;
     private findBar: FindBarView | undefined;
     private minimap: MinimapView | undefined;
 
@@ -221,45 +221,42 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
     };
 
     public constructor(props: MarkdownBodyViewProps) {
-        const compact = props.editorConfig?.compact || props.model.state.get().compactMode;
-        const showMinimap = !props.editorConfig?.hideMinimap;
-        const findColumn = createPanelElement(findColumnProps());
-        const scrollPanel = createPanelElement(
-            scrollPanelProps(props.editorConfig, compact, showMinimap),
-        );
         const root = createPanelElement(rootPanelProps(props.editorConfig));
 
         super(props, root);
         this.model = props.model;
-        this.findColumn = findColumn;
-        this.scrollPanel = scrollPanel;
         this.appliedRootMaxHeight = props.editorConfig?.maxEditorHeight;
         this.rootLayoutApplied = true;
-        this.appliedScrollLayout = {
-            maxHeight: props.editorConfig?.maxEditorHeight,
-            compact,
-            showMinimap,
-        };
         this.hostProjection = props.model.host
             ? selectHostProjection(props.model.host.state.get())
             : EMPTY_HOST;
+    }
 
+    protected onMount(): void {
+        this.model = this.props.model;
+        const compact = this.props.editorConfig?.compact || this.model.state.get().compactMode;
+        const showMinimap = !this.props.editorConfig?.hideMinimap;
+        this.findColumn = createPanelElement(findColumnProps());
+        this.scrollPanel = createPanelElement(
+            scrollPanelProps(this.props.editorConfig, compact, showMinimap),
+        );
+        this.hostProjection = this.model.host
+            ? selectHostProjection(this.model.host.state.get())
+            : EMPTY_HOST;
         this.markdownBlock = this.child(new MarkdownBlockView({
-            commandQueue: props.model.typedQueue,
+            commandQueue: this.model.typedQueue,
             content: this.hostProjection.content,
             highlightText: this.getHighlightText(),
             compact,
             filePath: this.hostProjection.filePath,
             onMatchCountChange: this.onMatchCountChange,
         }));
-
         this.scrollPanel.append(this.markdownBlock.root);
         this.findColumn.append(this.scrollPanel);
         this.root.append(this.findColumn);
         this.root.tabIndex = -1;
-    }
-
-    protected onMount(): void {
+        this.appliedScrollLayout = undefined;
+        this.applyRootLayout(this.props.editorConfig);
         this.markdownBlock.mount();
         this.lastBlockProps = this.blockProps();
         this.reconcileMinimap();

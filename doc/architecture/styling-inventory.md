@@ -54,16 +54,16 @@ Emotion styling is still a React virtualization survivor; the Tree story is not 
 
 ## Inline-style inventory
 
-The current literal baseline is **122 JSX `style={{...}}` sites across 44 non-story `.tsx` files**.
+The current literal baseline is **121 JSX `style={{...}}` sites across 43 non-story `.tsx` files**.
 
 | Area | Files | Sites | Scope note |
 |---|---:|---:|---|
-| `editors/` | 35 | 103 | Editor-owned runtime/layout styles; migrate with each editor |
+| `editors/` | 34 | 102 | Editor-owned runtime/layout styles; migrate with each editor |
 | `uikit/` | 2 | 12 | RenderGrid runtime placement and the React/vanilla mount host |
 | `ui/` | 1 | 1 | Lazy secondary-view error presentation |
 | `components/` | 5 | 5 | Coupled icon and Git badge presentation |
 | `theme/` | 1 | 1 | React icon sizing/color path |
-| **Total** | **44** | **122** | Non-story `.tsx` only |
+| **Total** | **43** | **121** | Non-story `.tsx` only |
 
 The exact current files are:
 
@@ -90,7 +90,7 @@ The exact current files are:
 
 **`editors/`**
 
-The 35 editor-owned files remain intentionally editor-local and are listed by the verification
+The 34 editor-owned files remain intentionally editor-local and are listed by the verification
 command rather than duplicated here. Their inline styles include measured geometry, third-party
 handles, editor chrome, and content-specific presentation; they are not part of the shell baseline.
 

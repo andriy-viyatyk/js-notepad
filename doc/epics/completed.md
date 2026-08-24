@@ -4,6 +4,66 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-060 — [De-React Epic E2 — The embeddable bodies](EPIC-060.md)
+
+The first editor-conversion epic, and the first scoped by the **contract it deletes** rather than by
+line count. It took the five editors that supply `EditorModule.Body` — the chrome-free body another
+editor can embed — so that the React `Body` arm could be removed from the registry. `mermaid` was
+already converted in E1; `svg`, `html`, `markdown` and `grid` landed here.
+
+**Closing property, delivered:** `EditorModule.Body?: React.ComponentType` no longer exists in
+`editorRegistry.ts`, its EPIC-059 E1-9 normalization shim is deleted, and
+`notebook/note-editor/NoteItemActiveEditor.tsx` mounts `mountVanilla(module.BodyView, …)` directly.
+Notebook itself stays React — a React parent hosting a vanilla child costs zero roots (E1-8), which is
+how a 2,001-line editor avoided being dragged into this epic to delete a type.
+
+The biggest piece was **US-1048**: react-markdown's HAST→JSX step replaced by a hand-written
+`hast → DOM` walker (`markdown/hast-dom.ts`), with `code`/`pre`/`img` as mounted vanilla views and
+`input`/`a` as rehype HAST rewrites. `MarkdownBlock.tsx` survives as a nine-line `mountVanilla` face
+for its four React call sites in `log-view` and `mcp-inspector`. Four transitive packages became
+direct (`unified`, `remark-parse`, `remark-rehype`, `property-information`); `hast-util-to-dom` was
+deliberately **not** adopted. **`react-markdown` and `hast-util-to-jsx-runtime` now have no importer**
+outside one explanatory comment, so both are collectable in Epic F — the packages are still installed.
+
+Every editor's `index.tsx` deliberately stays a React `TextChrome` shell, so the epic reduced the
+`<TextChrome>` call-site count by **zero**, by design. The chrome drains in the epic that owns the last
+shell.
+
+**Rule 4 — React elements created per markdown render: 254 → 0.** Two measurement lessons, both worth
+more than the number. `MutationObserver` **cannot measure a React initial mount** — React 19 assembles
+a subtree detached and attaches it once, so an entire markdown render reads as one `addedNodes` entry
+and the observer reported 0 mutations inside a 254-element tree. And the first pass mistook
+page-manager slot duplication (a retained slot plus a grouped peer) for the renderer rendering twice.
+Both errors had the same shape: measuring the page instead of the component.
+
+**Scope shrank once during the epic, on evidence.** `ColumnsOptions` (394 lines) and `CsvOptions`
+(107) turned out to be opened from the `grid/index.tsx` toolbar, so they are shell-owned and stay React
+until the chrome epic — US-1053 became `GridBody` alone, and the epic's converted surface fell from
+1,627 lines to 1,126.
+
+**Reviews found six real problems across the epic**, which is the argument for keeping the plan-review
+step un-delegated. Before implementation: an iframe whose `sandbox` would have been set *after*
+`mount.tsx` attached the root, allowing one unsandboxed navigation; a queue subscription ordered before
+the child its handler touches, where `ComponentQueue.subscribe` drains synchronously; and two
+unexamined "is the host null" checks. After implementation: an `iframe.srcdoc` written on every update
+— assigning it *navigates*, so the preview reloaded on updates that never touched the content
+(**React gave "only write if changed" for free; a vanilla view loses it, and the writes that hurt are
+the ones with side effects beyond their value**). At epic close, Codex's `/review` caught child DOM
+built in constructors in all five new views, against an explicit rule in `uikit/CLAUDE.md:496-502` —
+waved through four times because the E1 template does it too. *A template is not a specification.*
+
+Verified live throughout rather than structurally, after E1's visual round found three defects that
+structural checks had passed: geometry assertions (`offsetWidth > 0`) on every converted host in both
+the full-page and embedded branches, the fixture's element count against a baseline recorded before
+the conversion, scroll position surviving a full re-render, and the embedded path exercised through a
+real notebook.
+
+Tasks: US-1051 (svg + html), US-1048 (`hast → DOM` renderer), US-1052 (markdown body), US-1053 (grid
+body), US-1054 (delete the `Body` arm). Follow-up: **US-1055** — `MermaidBodyView` carries the same
+constructor violation from EPIC-059, left out of scope deliberately.
+
+---
+
 ## EPIC-059 — [De-React Epic E1 — Editor foundations](EPIC-059.md)
 
 Built the four seams every later editor conversion needs, each shipped with a consumer that uses it.

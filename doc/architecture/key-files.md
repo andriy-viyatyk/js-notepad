@@ -85,7 +85,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
 | Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
-| Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors) | `/src/renderer/editors/base/editorRegistry.ts`    |
+| Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors; embeddable editors expose `BodyView`) | `/src/renderer/editors/base/editorRegistry.ts`    |
 | File→editor matchers (the per-editor `acceptFile`/`switchOption`/`validForLanguage`/`detectsContent` rules + the numeric priority ladder that decides which editor OPENS a file — monaco 0, markdown 10, compound names 20, draw 50, viewers 100, category 200; `acceptFile` is name-only while `switchOption` is language-based, which is why language-only editors like `html-view` never claim a file on open) | `/src/renderer/editors/base/editor-matchers.ts` |
 | Renderer entry and application composition root (`bootstrap()` initializes services/pages/events, then returns the native `mount(container)` callback) | `/src/renderer.tsx`, `/src/renderer/index.tsx` |
 | App shell face (header strip, tab strip, status indicators, Menu Bar host; unchanged React-facing signature) | `/src/renderer/ui/app/MainPage.tsx` |
@@ -116,6 +116,12 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
+| Native grid body (embedded or inside the React `TextChrome` shell; mounts UIKit `DataGridView` directly) | `/src/renderer/editors/grid/GridBodyView.ts` |
+| Native HTML preview body (sandboxed iframe, guarded `srcdoc`, host-content binding) | `/src/renderer/editors/html/HtmlBodyView.ts` |
+| Native SVG preview body (host-content binding and `ImageViewportView`) | `/src/renderer/editors/svg/SvgBodyView.ts` |
+| Native Markdown body (find bar, minimap, scroll projection, and MarkdownBlock lifecycle) | `/src/renderer/editors/markdown/MarkdownBodyView.ts` |
+| Native Markdown block renderer (unified/remark pipeline, HAST overrides, and owned interactive nodes) | `/src/renderer/editors/markdown/MarkdownBlockView.ts` |
+| Hand-written HAST-to-DOM property and namespace conversion | `/src/renderer/editors/markdown/hast-dom.ts` |
 | Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code (Monaco colorize with React residual-props shim) | `/src/renderer/editors/shared/ColorizedCodeView.ts`, `/src/renderer/editors/shared/ColorizedCode.tsx` |
 | Find bar (native input/buttons with React compatibility face) | `/src/renderer/editors/shared/FindBarView.ts`, `/src/renderer/editors/shared/FindBar.tsx` |

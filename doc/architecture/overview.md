@@ -297,7 +297,7 @@ Every editor follows the same pattern:
 /editors/[name]/
 ├── index.ts / index.tsx  # EditorModule registration (factory + matchers; View/BodyView may be vanilla)
 ├── [Name]Editor.ts       # EditorModel subclass — state, lifecycle, business logic
-├── [Name]Body.tsx        # React component (or [Name]View.tsx for older naming)
+├── [Name]Body.tsx        # React body, or [Name]BodyView.ts for a native body
 └── components/           # Editor-specific (optional)
 ```
 
