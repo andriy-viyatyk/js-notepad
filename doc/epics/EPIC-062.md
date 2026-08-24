@@ -681,6 +681,25 @@ Every other file matching `RenderGrid` now matches only in **prose** — a comme
 `uikit/Tree/types.ts:56`, `uikit/shared/async-ref.ts:18`, `uikit/DataGrid/index.ts:11,14`.
 None of them compile against it.
 
+**Correction, 2026-08-25.** That list is **not** the complete prose inventory, as US-1066's own
+audit found when told to re-verify rather than trust this amendment. It omitted `uikit/VirtualGrid/`'s
+own comparison comments (`VirtualGridModel.ts`, `VirtualGridView.ts`, `renderInfo.ts`,
+`rerender-check.ts`, `types.ts`), `src/renderer/uikit/CLAUDE.md`, and the living architecture docs
+(`doc/architecture/overview.md`, `folder-structure.md`, `key-files.md`, `styling-inventory.md`, and
+`doc/de-react.md`). The *substantive* claim above is unaffected — the import-level consumer count
+and the settled repointings both hold — but the prose sweep is larger than stated, and it is split:
+
+  * **`src/` prose** — US-1066.
+  * **Living `doc/` prose** — US-1067, because those documents should describe `RenderGrid` until it
+    actually stops existing, plus `/document` at epic close.
+  * **Historical records** — `doc/epics/EPIC-015`…`EPIC-061`, `completed.md`, and prior
+    `doc/tasks/US-*/README.md`: **never rewritten.** A `RenderGrid` mention in a closed task
+    document is accurate history. This programme's method depends on those staying true to their
+    own moment.
+
+Recorded because the delegation was explicitly told to re-audit rather than trust the summary, and
+that instruction is what caught it.
+
 So **US-1066 reduces to `LinksTiles.tsx` plus that comment sweep**, and the epic is one real
 conversion shorter than E4-8 states. Recorded rather than silently rescoped, because the original
 count is what justified US-1066 being its own task; it still is one, but a much smaller one.

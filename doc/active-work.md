@@ -14,7 +14,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1068: remove the React roots from `PathInputView`](tasks/US-1068-pathinput-no-react-root/README.md)
   - [ ] [US-1064: `NotebookBody` and its cell subtree to `VirtualFlexGrid` (carries Rule 4)](tasks/US-1064-notebook-virtual-flex-grid/README.md)
   - [ ] [US-1065: `LogBody` and its cell subtree to `VirtualFlexGrid`](tasks/US-1065-logbody-virtual-flex-grid/README.md)
-  - [ ] US-1066: `LinksTiles` plus the eight `RenderGridModel` repointings
+  - [ ] [US-1066: `LinksTiles` to `VirtualGridView`](tasks/US-1066-linkstiles-virtual-grid/README.md)
   - [ ] US-1067: delete `uikit/RenderGrid/` — the closing property
 - *(no epic)*
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
