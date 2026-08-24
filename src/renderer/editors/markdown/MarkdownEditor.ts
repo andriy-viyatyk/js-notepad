@@ -100,9 +100,8 @@ export class MarkdownEditor extends TextHostEditorModel<
     adoptHost(host: TextFileModel): void {
         super.adoptHost(host);
 
-        // No host-content subscription needed — the body reads
-        // `host.state.use((s) => s.content)` directly; MarkdownBlock re-renders
-        // on every content change via React props.
+        // The vanilla body subscribes to host.state and updates its owned
+        // MarkdownBlockView directly; no editor-side content event is needed.
 
         // HS1 — seed `compactMode` from host slot (sync, no flicker) and mirror
         // changes back. Slice-bound so search-state mutations (the dominant

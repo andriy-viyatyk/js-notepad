@@ -282,7 +282,7 @@ of the renderer.
 |------|-------|--------|
 | US-1051 | Convert the `svg` and `html` bodies to `BodyView` — the two trivial twins; `MermaidBodyView` is the template | **Done** |
 | US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | **Done** |
-| US-1052 | Convert the `markdown` body: `MarkdownBody`, `CodeBlock`, `MarkdownImage` | Planned |
+| US-1052 | Convert the `markdown` body: `MarkdownBody` → `MarkdownBodyView` (`CodeBlock`/`MarkdownImage` landed with US-1048) | **Done** |
 | US-1053 | Convert the `grid` body: `GridBody` only — both popovers proved shell-owned | **Done** |
 | US-1054 | Delete the React `Body` arm: repoint `NoteItemActiveEditor` to `BodyView`, remove `Body` and the E1-9 normalization shim | Planned |
 

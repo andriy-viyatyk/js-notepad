@@ -1,11 +1,12 @@
 import { TComponentState, useOptionalState } from "../../core/state/state";
 import { MarkdownEditor, defaultMarkdownEditorState } from "./MarkdownEditor";
-import { MarkdownBody } from "./MarkdownBody";
+import { MarkdownBodyView } from "./MarkdownBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { Button, IconButton } from "../../uikit";
 import { ArrowLeftIcon, CompactViewIcon, NormalViewIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
+import { mountVanilla } from "../../uikit/shared/mount";
 
 function MarkdownToolbarBits({ model }: { model: MarkdownEditor }) {
     const compactMode = model.state.use((s) => s.compactMode);
@@ -49,20 +50,16 @@ function MarkdownEditorView({ model }: { model: EditorModel }) {
             toolbarContributions={<MarkdownBackButton model={md} />}
             rightToolbarContributions={<MarkdownToolbarBits model={md} />}
         >
-            <MarkdownBody model={md} />
+            {mountVanilla(MarkdownBodyView, { model: md })}
         </TextChrome>
     );
-}
-
-function MarkdownEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
-    return <MarkdownBody model={model as MarkdownEditor} editorConfig={editorConfig} />;
 }
 
 export const markdownModule: EditorModule = {
     createEditor: () =>
         new MarkdownEditor(new TComponentState({ ...defaultMarkdownEditorState })),
     Component: MarkdownEditorView,
-    Body: MarkdownEmbeddedBody,
+    BodyView: MarkdownBodyView,
 };
 
 export { MarkdownEditor, defaultMarkdownEditorState };
