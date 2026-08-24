@@ -211,6 +211,20 @@ Two passes are worth naming individually, because they are the defect rather tha
   start of the sweep and built again on arriving back at the same coordinate. That is
   `renderInfo.ts:314` keying by row index, caught in the act.
 
+**The fixture's composition makes the total count evidence on its own.** `test.note.json` holds 13
+notes, of which **7 are `monaco`** kind (order: `monaco`, `html-view`, `mermaid-view`, `monaco`,
+`grid-json`, `monaco`, `md-view`, `monaco`, `monaco`, `monaco`, `md-view`, `grid-json`, `monaco`).
+Three consecutive `monaco` notes at rows 7–9 are what produce the observed `live3` peak.
+
+Two consequences:
+
+- **8 constructions against 7 text notes proves a rebuild arithmetically**, before any argument
+  about which pass caused it. At least one note was constructed twice no matter how the sweep is
+  attributed.
+- **A correct implementation constructs at most 3** — one host per simultaneously live cell, since
+  a cell re-points its host rather than rebuilding it. So the ceiling is **8 → ≤3**, and the
+  per-pass rule is zero on any pass that revisits an already-visited row.
+
 So the target is now stated against a measured number rather than an inherited claim: **0 after the
 initial paint**, i.e. `8 → 1`. A post-conversion sweep that reports any `new` count on a pass other
 than the first fails Rule 4, and the return-to-0 pass is the sharpest single check — it is the one
