@@ -507,7 +507,7 @@ translation with the model largely intact — which is exactly the shape roadmap
 | US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | **Done** |
 | US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | **Done** |
 | US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | **Done** |
-| US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned |
+| US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | **Deferred to E2** (E1-12) — plan written and inherited |
 
 Seven tasks. Two changes from the first draft, both from reading the code rather than re-planning:
 **the `editors/base` chrome task was withdrawn** (E1-8 — counterproductive, not merely risky), and
@@ -517,6 +517,36 @@ Seven tasks. Two changes from the first draft, both from reading the code rather
 Ordering constraints: **US-1042 first** — everything else registers through it. US-1043 and US-1046
 before US-1048 (E1-5: the `code` and `pre` overrides mount a Monaco block and a mermaid SVG). US-1044,
 US-1045 and US-1047 are independent of each other.
+
+### E1-12 — US-1048 is deferred to Epic E2, exercising E1-5's pre-authorisation
+
+E1-5 designated the markdown renderer as this epic's slip item before any of it was written. It is
+being used as designed, on evidence rather than on caution: the task was **fully investigated and
+planned** first (`doc/tasks/US-1048-hast-dom-markdown/README.md`), and E2 inherits that plan intact.
+
+Three findings decide it:
+
+1. **No E1 task depends on it.** All six seams shipped and were proven without a vanilla
+   `MarkdownBlock`. E1's purpose is the foundations; this task is a dependency removal that no
+   foundation needs.
+2. **It is one indivisible correctness unit.** A walker shipped without the `code`/`pre` overrides
+   either regresses Monaco colorization and mermaid output or mounts a React root **per code block** —
+   worse than today. Dropping the `img` override regresses the image toolbar. The security-sensitive
+   walker and all three mounted substitutions land together or not at all, and both of `CodeBlock`'s
+   `TComponentModel`s need lifecycle changes in the same change.
+3. **E2 is where the renderer's owner appears.** E2 converts the `markdown` editor itself, giving
+   `MarkdownBlock` its first fully vanilla consumer. Landing the renderer beside its owner is better
+   engineering than splitting them across two epics for the sake of a closing tally.
+
+Measured surface, for E2's scoping: `MarkdownBlock.tsx` 323 lines, `CodeBlock.tsx` 246 (holding
+`MermaidModel` and `CodePreModel`), `MarkdownImage.tsx` 55 — plus the hand-written walker. The two
+rehype plugins (`rehypeHeadingIds` 77, `rehypeHighlight` 86) are already framework-free and are kept.
+
+Two corrections to figures this epic carried: `MarkdownBlock` has **5 runtime call sites** plus a
+value/type re-export, not the 8 files that merely mention it; and mermaid **rendering** is already
+shared through `mermaid/render-mermaid.ts` (three consumers), so there is no render duplication — only
+three near-identical mermaid *view* wrappers (`CodeBlock`'s `MermaidBlock`, `log-view`'s
+`MermaidOutputView`, and the now-vanilla `MermaidBodyView`), which E2 may be able to collapse to one.
 
 ## Rule 4 — the measured number
 

@@ -15,7 +15,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-1045: Convert the `image` editor inside its React `<PageToolbar>` shell
   - [ ] US-1046: Convert the `mermaid` editor body inside its React `TextChrome` shell
   - [ ] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
-  - [ ] US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla
+  - [ ] US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla — **deferred to Epic E2** per EPIC-059 E1-12; [plan already written](tasks/US-1048-hast-dom-markdown/README.md) and inherited
 - *(no epic)*
   - [x] US-1049: Closing a grouped page threw an immer `MapSet` error and orphaned the page — `PagesModel.removePage` read the `compareGroups` Set off the immer draft, which this repo cannot do because it deliberately never calls `enableMapSet()` (US-970). Found while verifying US-1043; fixed by reading the pre-update snapshot. Marked `[x]` as implemented, but its `/review` + docs pass rides along with EPIC-059's close rather than running the standalone flow for a one-line fix in the same code area.
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
