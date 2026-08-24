@@ -404,12 +404,22 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         this.root.style.padding = "8px 48px 8px 24px";
         this.root.style.position = "relative";
         this.root.style.outline = "none";
-        this.listen(this.root, "focus", () => { this.focused = true; this.sync(); });
-        this.listen(this.root, "blur", (event) => {
-            if (!this.root.contains(event.relatedTarget as Node | null)) {
-                this.focused = false;
-                this.sync();
-            }
+        // `focusin`/`focusout`, not `focus`/`blur`: a note is "active" whenever focus is anywhere in
+        // its subtree, and clicking the body lands focus on a descendant — Monaco's textarea, the
+        // grid, an input. The non-bubbling `focus` only fires when the root itself receives it,
+        // which is why activation used to work by clicking the drag indicator (a plain child, so
+        // focus fell through to the root) and nowhere else. React's onFocus/onBlur, which this was
+        // converted from, are delegated through the bubbling pair — hence the containment check
+        // below, which is only meaningful for `focusout`.
+        this.listen(this.root, "focusin", () => {
+            if (this.focused) return;
+            this.focused = true;
+            this.sync();
+        });
+        this.listen(this.root, "focusout", (event) => {
+            if (this.root.contains(event.relatedTarget as Node | null)) return;
+            this.focused = false;
+            this.sync();
         });
         this.listen(this.root, "mouseenter", () => this.setHovered(true));
         this.listen(this.root, "mouseleave", () => this.setHovered(false));
