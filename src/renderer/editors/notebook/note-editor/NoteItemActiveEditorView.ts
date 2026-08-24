@@ -6,6 +6,7 @@ import { VanillaView, type IOwnedView } from "../../../uikit/shared/vanilla-view
 import { NoteItem } from "../notebookTypes";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import { MiniTextEditorView } from "./MiniTextEditorView";
+import { errMessage } from "../../../../shared/utils";
 
 export interface NoteItemActiveEditorViewProps {
     model: NoteItemEditModel;
@@ -164,7 +165,7 @@ export class NoteItemActiveEditorView extends VanillaView<NoteItemActiveEditorVi
             view.mount();
         } catch (error) {
             if (generation !== this.generation || this.activeKind !== kind) return;
-            this.renderError(error instanceof Error ? error.message : String(error));
+            this.renderError(errMessage(error));
         }
     }
 

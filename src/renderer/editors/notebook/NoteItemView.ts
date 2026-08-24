@@ -228,7 +228,12 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         const showExtras = this.hovered || this.focused;
         this.root.style.opacity = this.dragging ? "0.5" : "1";
         this.firstToolbar.style.opacity = showToolbar ? "1" : "0";
-        this.contentArea.style.border = `1px solid ${showToolbar ? color.background.light : "transparent"}`;
+        // The border is always 1px so the box never changes size: this cell's height is
+        // *measured* by the flex grid, so a border appearing on hover would re-measure the row
+        // and invalidate geometry below it (E4-12). Hidden state uses the note's own background
+        // rather than `transparent`, which keeps the reserved space without a hardcoded color.
+        const borderColor = showToolbar ? color.background.light : color.background.default;
+        this.contentArea.style.border = `1px solid ${borderColor}`;
         this.contentDimmer.style.opacity = this.focused ? "0" : "0.5";
         this.indicator.style.color = this.focused ? color.misc.blue : color.text.light;
         this.indicatorLine.style.backgroundColor = this.focused ? color.misc.blue : color.background.light;

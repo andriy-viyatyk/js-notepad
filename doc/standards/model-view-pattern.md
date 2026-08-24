@@ -295,6 +295,13 @@ React render loop. `VirtualGridModel` owns the measured render window, sticky-re
 scroll/resize handling, dirty-cell information, and the pooled elements that have scrolled out of
 view. `VirtualGridView` owns the DOM shell and schedules paints from the model's repaint callback.
 
+`VirtualFlexGridView` composes a `VirtualGridView` with a measured-height collaborator. The cell
+renderer may nominate a content element through its `measure` callback; a shared `ResizeObserver`
+feeds committed heights back into the grid's row geometry. The wrapper owns observation and
+measurement policy, while `VirtualGridModel` remains the sole owner of render-window and geometry
+calculation. Both views expose the actual scroll element and a small `GridModelCapability` rather
+than leaking their concrete model implementation.
+
 The cell contract is deliberately framework-free: `renderCell` returns an `HTMLElement` or
 `undefined`, and the engine applies the computed pixel geometry to that element. A cell renderer
 should update an existing `previous` element when possible, use `recycle()` only for a detached
@@ -303,6 +310,13 @@ contents, attributes, classes, and listeners. The engine's `RerenderInfo` is a d
 smallest changed scope (`cells`, `rows`, `columns`, or `all`) so a state change does not repaint
 unrelated visible cells.
 
+Use a consumer-owned reuse key when different cell kinds own incompatible subtrees. Reuse is then
+restricted to compatible pooled cells; a renderer still performs a total update for both
+`previous` and `recycle()` paths. Virtualized cells must own their DOM subtrees directly: do not
+create a React root per admitted cell, and do not dispose a child view merely because its cell was
+evicted. Dispose pooled child views with the owning grid view, or explicitly discard a poisoned
+record when an update throws.
+
 `ListBoxView` and `TreeView` compose this engine for virtualized rows. Their model state and view
 props must expose every value that changes cell output through a stable repaint signature or an
 explicit state-to-view callback. Do not rely on an incidental parent render to recreate a row
@@ -310,6 +324,27 @@ renderer: in a vanilla view there is no render pass to hide a missing dependency
 depends on a scrollbar or a newly attached container is recomputed from the view's measured DOM,
 and scroll-to-row requests that arrive before a usable paint remain pending until the paint path
 can satisfy them.
+
+### Direct-DOM conversion checklist
+
+React supplies several behaviours implicitly; direct DOM and `VanillaView` do not. Before calling a
+conversion complete, inspect the original JSX and exercise each interaction path against this list:
+
+- **Own the scroller.** Pass or expose the actual scrolling element; never locate it through an
+  implementation id or a deleted component's markup.
+- **Preserve bubbling focus semantics.** Use `focusin`/`focusout` when the React code depended on
+  delegated `onFocus`/`onBlur`, and handle platform focus transitions that emit no DOM focus event
+  (for example, interaction with an embedded frame) through the existing interaction signal.
+- **Preserve layout-only components.** A component that contributes no DOM still affects layout in
+  JSX. Use root adoption or `display: contents` where a wrapper would break a flex chain, and set
+  `min-height: 0` on nested flex panels that must shrink.
+- **Make teardown order explicit.** Capture state from an owner while child views are still ready;
+  do not reach through a child during `onDispose`. Clear ownership/bookkeeping before teardown that
+  may throw, and contain or report child failures so one cell cannot abort the enclosing paint.
+- **Test behaviour, not just structure.** Typechecking and geometry checks cannot prove focus,
+  wheel routing, embedded-frame activation, editing round trips, drag/drop, dialog actions, or
+  state restoration. Exercise the real path after the direct-DOM conversion, including cold mount,
+  recycling, and teardown.
 
 ## Effects and the vanilla driver
 

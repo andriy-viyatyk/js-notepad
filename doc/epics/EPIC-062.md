@@ -504,16 +504,29 @@ overflow (the cap is 2000) detaches. This preserves the iframe's document across
 also fixes a quieter defect in the same place: re-inserting an iframe reloads it, so before this
 change the HTML note reloaded its `srcdoc` every time it scrolled back into view.
 
-**At the end of a paint, the container's scroll position must equal the model's offset; if it does
-not, the DOM was clobbered and the model wins.** Retention alone was not sufficient — a cell
-admitted for a note of a *different kind* still disposes the old arm, and `HtmlBodyView`'s root
-being the iframe means that path detaches a frame too. That destruction is legitimate (the note is
-gone), so the answer is to compensate deterministically rather than to prevent it. The invariant is
-sound in both directions, which is what distinguishes it from the ad-hoc restore it replaced: a
-genuine user scroll reaches `onScroll` first, so model and DOM already agree by paint time and
-nothing is written; a browser-internal reset changes the DOM without touching the model, so a
-mismatch at paint end is unambiguous evidence of a clobber; and the offset re-asserted is the one
-the paint just computed its window from, so the cells on screen already match it.
+**Superseded — an end-of-paint "the model wins" invariant was tried here and removed.** The
+reasoning was that a cell admitted for a note of a *different kind* still disposes the old arm, and
+`HtmlBodyView`'s root **is** the iframe, so that path detaches a frame even though retention is in
+force. The destruction is legitimate (the note is gone), so the plan was to compensate
+deterministically: at the end of every paint, assert the container's scroll offset equals the
+model's, on the argument that a genuine user scroll reaches `onScroll` first and so cannot produce
+a mismatch, while a browser-internal reset can.
+
+**The argument was sound and the invariant still had to go**, because it was reasoning about the
+wrong actor. Writing `scrollTop` during a native scrollbar thumb drag *cancels the drag* — the
+browser stops tracking the pointer even though the button is still held. So the invariant
+introduced the very symptom it was meant to cure, and did so only for users dragging the
+scrollbar, which is exactly how the defect was originally reported. A correctness rule that is
+unobservable to the code and visible only to a human hand is not testable from inside the app; it
+took a user saying "the indicator stops moving while I'm still holding the button".
+
+The real fix was E4-14: stop the clobber at its source by making attachment idempotent, rather
+than detecting it after the fact and compensating. **Compensating for a mutation you can prevent is
+a worse design than not performing it**, and it fails in the one case where the compensation itself
+is observable. Recorded rather than deleted because the reasoning is reusable: an
+assert-and-correct invariant over a property the *user* also manipulates directly will fight the
+user, and the fight will be invisible in every automated probe — a programmatic `scrollTop` write
+cannot reproduce a cancelled drag.
 
 **The generalisation for US-1065 and every later virtualized consumer:** a cell subtree is not
 inert DOM. Once cells can contain arbitrary editors, eviction can destroy an iframe, a webview, a
@@ -877,6 +890,58 @@ a teardown round trip.
 language and kind switching (`NoteItemToolbarView` still has no live coverage), search highlighting,
 script actions, and drag and drop. Typing into Monaco remains undrivable; synthetic *mouse* events
 do reach it (E4-15).
+
+### US-1065 — verified live, 2026-08-25
+
+Run under `npm start` on a pushed fixture spanning every leaf kind.
+
+| Check | Result |
+|---|---|
+| Renders on the new engine | **Pass.** Measured flex heights 18/18/225/143/199/311/43 — content-measured, not fixed-row. iframe, Monaco, DataGrid and mermaid SVG all present. |
+| Preserved auto-scroll | **Pass.** Landed at 348 with max scroll 348 — exactly the bottom. |
+| 996px sweep, both directions | **Pass.** Zero position resets, zero duplicate `data-row`, zero empty paints. |
+| **E4-13 on a frame with no literal tag** | **Pass, and the sharpest result.** `MarkdownBlockView` sets `allowDangerousHtml: true` with `rehypeRaw` (`MarkdownBlockView.ts:338-343`), so a markdown log entry can contain an iframe although log-view contains no `iframe` anywhere. That iframe survived the whole sweep as the **same element**, still connected. |
+| **Rule 4** | **Pass.** Three Monaco instances served five Monaco rows; **zero** new constructions on the return pass — inside the per-entry ceiling. |
+| **Total writes (E4-7)** | **Pass, and this is the one that matters.** Every Monaco row showed exactly one distinct text across the sweep, each matching its own entry. Rows 4 and 9 *did* swap Monaco instances mid-sweep — pooling working — and no recycled cell ever displayed another entry's content. |
+
+**Not verified live:** the six interactive dialog leaves (`ConfirmDialogView`, `ButtonsDialogView`,
+`TextInputDialogView`, `CheckboxesDialogView`, `RadioboxesDialogView`, `SelectDialogView`). They
+block until answered, so an automated probe cannot drive them without hanging.
+
+### US-1066 — NOT verified live
+
+Committed with tsc, lint and the production build passing, and statically checked: no React import
+/ `react-dom` / `mountReact` / `createPortal` in the tiles subtree; `display: contents` only on the
+view root; `minHeight: 0` on the tiles' own panels; the grid attached once in `onMount`; generation
+guards on both async favicon and image repaints; and `additionalIconHost.replaceChildren()`
+covering the absence case that US-1062 specifically proved.
+
+**The tile layout itself was never exercised.** The `link-editor-view-mode` control did not respond
+to a synthetic `click()` or to a full pointer sequence (`pointerdown`/`mousedown`/`pointerup`/
+`mouseup`/`click`), and no popover opened — so the editor stayed in list mode throughout. Tile
+geometry (four dimension presets, multi-column layout), tile recycling, and favicon repaint **in
+tile layout** rest on static reading plus a passing build. Verified only that the link editor still
+renders and the list view is unaffected: 1028x960, 17 cells, favicons resolving.
+
+This is the least-evidenced code in the epic and is named as such rather than rounded up. A manual
+check has been requested from the user.
+
+### US-1067 — verified live, 2026-08-25
+
+Preconditions independently re-verified before deleting, not taken on trust. The third was the one
+that mattered: `RenderCellParams` (17 uses) and `RenderSizeOptional` (9 uses) looked live, but were
+**defined twice** — in both `RenderGrid/types.ts` and `VirtualGrid/types.ts` — and every consumer
+imports the `VirtualGrid` copy. *Still referenced* and *still needed* were different questions.
+
+After deletion: tsc, lint and the production build pass, zero `RenderGrid` references remain in
+`src/`, and the app runs — Explorer (240x896, 4 cells) and link editor (1028x960, 17 cells) both
+render with no console errors. The runtime check matters independently of the build: a deletion can
+break a lazy chunk that typechecks.
+
+**Unplanned closing property.** `RenderGrid.tsx` imported `@emotion/styled` and was the fourth of
+the four residual Emotion importers `CLAUDE.md` documented. Three remain
+(`core/state/view.tsx`, `theme/GlobalStyles.tsx`, `uikit/Tree/Tree.story.tsx`), and `CLAUDE.md` has
+been corrected. **This epic removed an Emotion importer as well as the grid contract.**
 
 ### US-1068 — build-verified only
 

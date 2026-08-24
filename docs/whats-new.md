@@ -10,6 +10,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Large notebooks stay responsive** — Long notebooks scroll more smoothly without disturbing note editing. Expanding and collapsing a note keeps its editor state, and scrolling over inactive note content continues to move the notebook.
+
+- **Long Log Views stay responsive** — Large log streams remain smooth to browse while preserving message and inline-output layout. If you are already at the bottom, new output continues to follow the latest entry; scrolling upward keeps your position.
+
 - **Large trees, lists, and dropdowns stay more responsive** — File Explorer trees, selection lists, and searchable dropdowns now update and scroll more smoothly when they contain many items. Keyboard navigation, filtering, selection, and existing editor workflows are unchanged.
 
 - **The active tab stays visible** — Activating a tab that is off-screen now scrolls the tab bar just enough to reveal it. Tabs that are already visible stay where they are instead of being recentered.

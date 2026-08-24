@@ -396,6 +396,10 @@ Changes to Expand Depth and Max Visible are deferred — they take effect when t
 
 For `.log.jsonl` files — a structured log reader that renders each line as a typed entry (info, warning, error, success, plain text, progress bars, inline grids, Markdown, Mermaid diagrams, and interactive dialogs) instead of raw JSON text.
 
+Long log streams remain responsive while scrolling. When you are already at the
+bottom, new output continues to follow the latest entry; scrolling upward keeps
+your current position while earlier entries are added.
+
 You'll most often meet this editor without opening a file yourself: it's what powers the **Log View page** that scripts (via the `ui` global) and AI agents (via the MCP `ui_push` tool) use as their output channel. The page is created automatically on first use and reused afterward. See [Scripting — The `ui` Object](./scripting.md#the-ui-object-log-view) for what scripts can push to it, and [MCP Server Setup](./mcp-setup.md#available-tools) for the `ui_push` tool agents use the same way.
 
 ## Drawing Editor

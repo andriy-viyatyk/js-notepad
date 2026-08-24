@@ -416,18 +416,19 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── notebook/           # Notebook editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── NotebookEditor.ts         # EditorModel — page-level notes, categories, tags
-│   │   ├── NotebookBody.tsx          # React component
-│   │   ├── NoteItemView.tsx
+│   │   ├── NotebookBody.tsx          # React-facing mount face
+│   │   ├── NotebookBodyView.ts       # Native body (VirtualFlexGrid + expanded overlay)
+│   │   ├── NoteItemView.ts           # Recycled native note cell
 │   │   ├── NoteItemViewModel.ts      # Per-row view model for virtualized note list
-│   │   ├── ExpandedNoteView.tsx      # Expanded note (portal overlay)
+│   │   ├── ExpandedNoteView.ts        # Expanded note overlay
 │   │   ├── TagsListView.tsx
 │   │   ├── category-tree.tsx
 │   │   ├── notebookTypes.ts
 │   │   ├── note-editor/              # Per-note embedded editor subsystem
 │   │   │   ├── NoteItemEditModel.ts  # IContentHost for one note (no file I/O — state in notebook JSON)
-│   │   │   ├── MiniTextEditor.tsx    # Monaco mini-editor used for monaco notes
-│   │   │   ├── NoteItemActiveEditor.tsx # Embeds language-gated editors per note
-│   │   │   ├── NoteItemToolbar.tsx
+│   │   │   ├── MiniTextEditorView.ts  # Monaco mini-editor used for monaco notes
+│   │   │   ├── NoteItemActiveEditorView.ts # Embeds language-gated editors per note
+│   │   │   ├── NoteItemToolbarView.ts
 │   │   │   └── index.ts
 │   │   ├── panels/                   # Secondary view panel components
 │   │   │   ├── NotebookCategoriesSecondaryView.tsx  # "notebook-categories" panel
@@ -448,8 +449,10 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   │   ├── LinkCategorySecondaryView.tsx  # Secondary view wrapper
 │   │   │   ├── LinkTagsSecondaryView.tsx      # Secondary view wrapper
 │   │   │   └── LinkHostnamesSecondaryView.tsx # Secondary view wrapper
-│   │   ├── LinksList.tsx             # View-only list rendering
-│   │   ├── LinksTiles.tsx            # View-only tiles rendering
+│   │   ├── LinksList.tsx             # React-facing mount face
+│   │   ├── LinksListView.ts           # Native VirtualGrid list renderer
+│   │   ├── LinksTiles.tsx            # React-facing mount face
+│   │   ├── LinksTilesView.ts          # Native VirtualGrid tile renderer
 │   │   ├── LinkItemList.tsx          # Wrapper: wires LinksList to LinkEditor
 │   │   ├── LinkItemTiles.tsx         # Wrapper: wires LinksTiles to LinkEditor
 │   │   ├── LinkTooltip.tsx
@@ -503,10 +506,11 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
 │   │   ├── LogBodyView.ts             # Log viewer native view (VirtualFlexGridView + auto-scroll)
-│   │   ├── LogEntryWrapper.tsx       # Cell root — subscribes to entries[index]
-│   │   ├── LogEntryContent.tsx       # Type router — dispatches to entry renderers
-│   │   ├── LogMessageView.tsx        # Log message renderer
-│   │   ├── StyledTextView.tsx        # StyledText renderer
+│   │   ├── LogBody.tsx               # React-facing mount face
+│   │   ├── LogEntryWrapper.ts        # Cell root — subscribes to entries[index]
+│   │   ├── LogEntryContent.ts        # Type router — dispatches to entry renderers
+│   │   ├── LogMessageView.ts          # Log message renderer
+│   │   ├── StyledTextView.ts          # StyledText renderer
 │   │   ├── logTypes.ts               # LogEntry, StyledText, dialog/output types
 │   │   ├── logConstants.ts
 │   │   ├── items/                    # Dialog and output entry renderers (15 files)

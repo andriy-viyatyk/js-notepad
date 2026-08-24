@@ -35,6 +35,9 @@ Alternatively, open a new tab, change the language to JSON, and rename the tab t
 +----------------------------------------------------------------+
 ```
 
+The notes list stays responsive as a notebook grows. Moving notes in and out of
+view does not discard their current editor content or editing state.
+
 ## Notes
 
 ### Creating a Note
@@ -169,6 +172,9 @@ Click the expand icon (visible on hover, top-right of note) to open a note in fu
 - Click the collapse button (top-right) or press **Escape** to return to the list
 
 Expanding is useful when you need more space to work with a note's content, especially for large code files or data.
+
+When you collapse the note, you return to the list without losing the note's
+editor state.
 
 ## File Format
 
