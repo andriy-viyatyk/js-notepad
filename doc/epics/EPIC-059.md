@@ -2,9 +2,14 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Active — implementation, review and docs complete; **blocked on the Testing owed table**
 **Created:** 2026-08-24
 **Completed:** —
+
+> **Where this stands.** Six of seven tasks are implemented, reviewed (Codex `/review`), documented
+> (`/document` + `/userdoc`), and marked `[x]`. US-1048 is deferred to Epic E2 with its plan written
+> (E1-12). The epic does **not** close until every row in [Testing owed](#testing-owed) is cleared with
+> the user — that is this epic's own rule, and two rows are open.
 
 ## Overview
 
@@ -238,6 +243,7 @@ row the moment you defer something; do not batch them up at the end from memory.
 
 | Task | What to look at | How to reach it |
 |---|---|---|
+| **close review** | **Re-verify the surfaces the close-review fix touched** — compare open/close, the sidebar secondary panel opening and closing repeatedly, the image toolbar's Save menu, the mermaid preview, the find bar, and a `TagsInput`. The fix changed 13 files including `VanillaView` itself (`releaseChild`), so this is the broadest single change in the epic and the only one with no live check. Gates pass and every hunk was reviewed; what is missing is that it *runs*. | Ordinary use of each surface. The Persephone MCP server disconnected mid-pass and did not return in-session, which is why this is owed rather than done. |
 | US-1043 | The **compare editor**'s appearance: the two file-path labels ellipsizing on the *left* (`dir="rtl"`), the `→` separator between them, toolbar background/border, and the exit button. Structure was verified over MCP (both labels present with `dir="rtl"` and full-path `title`, `.toolbar-root` with `role="toolbar"`, `data-name="compare-exit"`, one `.monaco-diff-editor`, `→` present) — what is owed is only the visual judgement that it matches the React version. | Group two files and enter compare mode (or run `app._pages.openDiff({firstPath, secondPath})` from a script). |
 | US-1042 | The converted **toolset editor** rendered on screen: header row (icon · title · Registered/Not-registered badge · Refresh pushed to the far right by the spacer), the Open Folder / Open Log buttons, and either the manifest-error list or the `Tools (n)` cards. Compare against the React version in `git show 8ed0ee0b:src/renderer/editors/toolset/ToolsetEditorView.tsx`. | Sidebar → Agent Tools → click a registered toolset. **Could not be reached autonomously:** the editor is only routed to from the registered-toolset list, and `create_toolset` requires a human confirmation prompt to register, so no toolset could be created without you. Everything reachable without one was verified — see the Notes entry for US-1042. |
 
@@ -841,6 +847,34 @@ is accepted.
   module" — a **stale Vite module graph** after the `.tsx` → `.ts` rename, not a defect. A main-process
   touch cannot clear Vite's graph; killing the dev server and running `npm start` did, and it worked on
   the cold start. Third HMR failure in this epic, all on multi-file renames.
+- **Epic close: review, docs and the fixes they produced.** `/review`, `/document` and `/userdoc` all
+  ran through **Codex**, never a forked Claude subagent. The review raised nine concerns and my own
+  audit added two; together they collapsed into two systemic classes, both worth naming because Epic E2
+  will meet them constantly:
+
+  **A — `VanillaView` had no way to unregister a child.** `child()` pushed onto a private array cleared
+  only by `dispose()`, so every site that disposed a child and created a replacement retained the dead
+  one for the parent's lifetime. Four instances: `RenderEditorView` (per editor change),
+  `PageContentView`'s `secondaryView` (per sidebar cycle), `TagsInputView`'s `inputView` (per slot
+  toggle), and the compare view I had already hand-fixed in US-1043. Four instances of one footgun is
+  what justified fixing the **primitive** rather than the call sites: `releaseChild(child)` now disposes,
+  detaches and unregisters in a `try/finally`. The ~154 call sites whose child outlives nothing are
+  untouched — `child()` is correct there.
+
+  **B — unguarded disposal on paths reachable from a state notification.** `dispose()` rethrows the
+  first cleanup error by design, so an unguarded call inside a subscription callback or `onUpdate` can
+  abort the notification and leave the app half-updated. Nine sites now use `guard()`, with detachment in
+  `finally`. I had fixed exactly one instance of this during US-1042 and did not generalise it; the
+  review did.
+
+  Plus two individual defects: **`CompareEditor` leaked two Monaco text models per rebind**
+  (`createModel` adds to the host's owned set and nothing released the previous pair), fixed at the host
+  with `releaseOwnedModels` and a `setModel(null)` before the deferred disposal; and `FindBarView`
+  rebuilt its keyboard callback every update.
+
+  Worth recording plainly: **the review found two real defects I had missed** — the `RenderEditorView`
+  retention and the compare model leak — and its dominant finding was a generalisation of a fix I had
+  applied in only one place. That is the review doing its job, and the reason it is not optional.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale

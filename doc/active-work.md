@@ -9,12 +9,12 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - **EPIC-059** — [De-React Epic E1 — Editor foundations](epics/EPIC-059.md)
-  - [ ] US-1042: Vanilla editor registration seam + convert the `toolset` editor
-  - [ ] US-1043: Vanilla Monaco host + convert the `compare` editor
-  - [ ] US-1044: `editors/shared` widgets to vanilla
-  - [ ] US-1045: Convert the `image` editor inside its React `<PageToolbar>` shell
-  - [ ] US-1046: Convert the `mermaid` editor body inside its React `TextChrome` shell
-  - [ ] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
+  - [x] US-1042: Vanilla editor registration seam + convert the `toolset` editor
+  - [x] US-1043: Vanilla Monaco host + convert the `compare` editor
+  - [x] US-1044: `editors/shared` widgets to vanilla
+  - [x] US-1045: Convert the `image` editor inside its React `<PageToolbar>` shell
+  - [x] US-1046: Convert the `mermaid` editor body inside its React `TextChrome` shell
+  - [x] US-1047: Secondary-view vanilla arm + convert one editor-owned panel
   - [ ] US-1048: `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla — **deferred to Epic E2** per EPIC-059 E1-12; [plan already written](tasks/US-1048-hast-dom-markdown/README.md) and inherited
 - *(no epic)*
   - [x] US-1049: Closing a grouped page threw an immer `MapSet` error and orphaned the page — `PagesModel.removePage` read the `compareGroups` Set off the immer draft, which this repo cannot do because it deliberately never calls `enableMapSet()` (US-970). Found while verifying US-1043; fixed by reading the pre-update snapshot. Marked `[x]` as implemented, but its `/review` + docs pass rides along with EPIC-059's close rather than running the standalone flow for a one-line fix in the same code area.
