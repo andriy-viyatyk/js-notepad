@@ -10,9 +10,10 @@ import { showCsvOptions } from "./components/CsvOptions";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 import { GridEditor, defaultGridEditorState } from "./GridEditor";
-import { GridBody, getVisibleRowsLabel } from "./GridBody";
+import { GridBodyView, getVisibleRowsLabel } from "./GridBodyView";
 import type { DataGridInstance } from "../../uikit/DataGrid";
 import type { GridEditorId } from "./util";
+import { mountVanilla } from "../../uikit/shared/mount";
 
 function GridEditorView({ model }: { model: EditorModel }) {
     const editor = model as GridEditor;
@@ -31,10 +32,10 @@ function GridEditorView({ model }: { model: EditorModel }) {
                 <GridFooterBits editor={editor} />
             }
         >
-            <GridBody
-                model={editor}
-                onModel={(grid) => { gridRefHolder.current = grid; }}
-            />
+            {mountVanilla(GridBodyView, {
+                model: editor,
+                onModel: (grid) => { gridRefHolder.current = grid; },
+            })}
         </TextChrome>
     );
 }
@@ -123,16 +124,12 @@ function GridFooterBits({
     );
 }
 
-function GridEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
-    return <GridBody model={model as GridEditor} editorConfig={editorConfig} />;
-}
-
 function makeModule(id: GridEditorId): EditorModule {
     return {
         createEditor: () =>
             new GridEditor(new TComponentState({ ...defaultGridEditorState }), id),
         Component: GridEditorView,
-        Body: GridEmbeddedBody,
+        BodyView: GridBodyView,
     };
 }
 

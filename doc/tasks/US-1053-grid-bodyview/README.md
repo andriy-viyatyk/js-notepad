@@ -103,6 +103,37 @@ The sidebar focus helper remains `isFocusInSidebar` at
 `src/renderer/core/utils/focus-utils.ts:17-25`; only the React effect that called it moves to the
 vanilla mount/update lifecycle.
 
+### Explicit error-branch decision
+
+The implementation deliberately changes the current parse-error lifecycle. Today
+`src/renderer/editors/grid/GridBody.tsx:74-75` returns `null` for a missing host and returns a new
+React `EditorError` instead of the Panel/DataGrid subtree when `state.error` is set; that unmounts
+av-grid and sends `null` through `DataGridView.onGrid`.
+
+The vanilla body will keep its one `DataGridView` mounted and hide it behind a nested Panel while
+showing the equivalent error Panel. This is an intentional, better-behaved difference: it preserves
+av-grid's scroll position, column widths, and owned row array across a transient parse error, and
+avoids a mount/dispose cycle for every edit that temporarily makes the document malformed.
+
+The source proves that this does not leave stale rows when the error clears:
+
+- `GridEditor.parseContent` writes the parse error or clears it at `GridEditor.ts:514-545`.
+- For non-empty content, `reparseRows` always follows `parseContent` with `setRows(...)`: parsed
+  arrays/objects use `GridEditor.ts:459-465`, and primitives/null use `:466-468`. An error result
+  therefore still replaces the live rows with an empty set; a later successful parse replaces them
+  with fresh rows.
+- Empty content goes through `initEmptyPage` at `GridEditor.ts:446-448`, which calls `setRows` and
+  clears `state.error` at `:489-512`. Unlocking encrypted content also re-enters `reparseRows`
+  through the encrypted-state subscription at `GridEditor.ts:316-327`; its success path reaches the
+  same `setRows` calls.
+- `setRows` stores the new rows and calls `this._grid?.setRows(rows)` at `GridEditor.ts:478-487`.
+  The body has already populated `_grid` through the mounted child's `onGrid` callback, and the
+  error branch never calls that callback with `null`. Thus `_grid` remains populated while the grid
+  is merely hidden, and the successful reparse refreshes the hidden instance before it is shown.
+
+The view must preserve this distinction in code: `state.error` toggles only the nested content/error
+Panels; only actual view disposal, or a host extraction as described below, invokes the null handoff.
+
 ## Implementation Plan
 
 ### 1. Create `src/renderer/editors/grid/GridBodyView.ts` and remove `GridBody.tsx`
@@ -120,11 +151,33 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> { ... }
 ```
 
 Build the semantic `grid-editor-root` with `createPanelElement` and the same panel attributes as the
-React body. Keep a nested content Panel containing one `DataGridView` child and an
-`editor-error` Panel containing a warning/pre-wrapped text element equivalent to
-`src/renderer/editors/base/EditorError.tsx:9-21`. Toggle the two Panel branches from the subscribed
-`error` projection; do not replace the owned DataGridView when an error appears or clears. This
-keeps one grid instance and lets the existing Panel `[hidden]` counter-rule handle visibility.
+ React body. Keep a nested content Panel containing one `DataGridView` child and an
+ `editor-error` Panel containing a warning/pre-wrapped text element equivalent to
+ `src/renderer/editors/base/EditorError.tsx:9-21`. Toggle the two Panel branches from the subscribed
+error projection; do not replace the owned DataGridView when an error appears or clears. This is the
+explicit error-branch decision above: it keeps one grid instance, preserves av-grid state across
+transient parse errors, and lets the existing Panel `[hidden]` counter-rule handle visibility.
+
+#### Host-presence gate
+
+Unlike a React function, this view cannot return `null`. The normal mount path has a host: restore
+assigns or creates one and adopts it on both success and catch paths at
+`src/renderer/editors/base/TextHostEditorModel.ts:205-224`; switching adopts the extracted host
+before `onHostAttached` at `:180-203`; open-file attachment calls `adoptHost` before
+`bootstrapFromHost` at `src/renderer/api/pages/PagesLifecycleModel.ts:71-83`; and the notebook
+publishes the embedded editor only after `adoptHost`/`restore` at
+`src/renderer/editors/notebook/note-editor/NoteItemActiveEditor.tsx:76-85`. Therefore a null host at
+the first body mount is unreachable in the verified lifecycle.
+
+Still, `extractContentHost` can set `_host` to `null` while a view is transiently mounted during a
+switch-away (`TextHostEditorModel.ts:70-81`). The view must handle that state explicitly to preserve
+the old `return null` result: set `this.root.hidden = true`, hide both nested branches, stop the
+queue/state work that can act on the detached model, and call the null handoff once so
+`GridEditor._grid` and the shell's `gridRefHolder` do not retain an orphaned grid. Keep the
+`DataGridView` object owned and mounted but inaccessible; if the same view receives a later update
+with a host again, unhide the root, republish its existing `dataGridView.grid`, apply the current
+state projection, and subscribe to the queue after confirming the child is mounted. This host-null
+release is distinct from a parse error: an error never clears `_grid`.
 
 Construct `DataGridView` directly with the old `DataGrid` options:
 
@@ -143,13 +196,15 @@ state update.
 
 Use the following lifecycle order in `onMount`:
 
-1. Append the already-owned DataGridView root during construction and call
-   `this.dataGridView.mount()` exactly once. Its `onGrid` callback must run before anything drains
-   focus events, and it is where `GridEditor.setGrid` receives the instance.
+1. Check `model.contentHost` before exposing the body. In the normal non-null case, append the
+   already-owned DataGridView root during construction and call `this.dataGridView.mount()` exactly
+   once. Its `onGrid` callback must run before anything drains focus events, and it is where
+   `GridEditor.setGrid` receives the instance. If the defensive null-host case occurs, keep
+   `root.hidden = true` and delay the child/queue binding until a later update sees a host.
 2. Apply the initial state projection and subscribe to `model.state` with a selector for
    `columns`, `search`, and `error`. The selector replaces `state.use`; the subscription must update
    the existing `DataGridView` through its `update()` method, update the error text/visibility, and
-   never recreate the child.
+   never recreate the child. While `contentHost` is null, the projection must not unhide any branch.
 3. Subscribe with `model.typedQueue.subscribe(...)` and own the returned unsubscribe. The handler
    uses the class-held live instance for `focus` and `focusCell`. `ComponentQueue.subscribe` drains
    synchronously (`src/renderer/core/state/ComponentQueue.ts:33-45`), so this subscription must come
@@ -166,6 +221,9 @@ model, but this makes the vanilla view's incoming-props contract safe.
 
 `onUpdate(props)` must:
 
+- re-check `props.model.contentHost` before showing the root. On a transition to null, perform the
+  host-null release above; on a transition back, republish the existing grid (or mount it if it was
+  deferred), then establish state/queue bindings in the same child-before-queue order;
 - reapply `grid-editor-root` attributes from the new `editorConfig`, including the exact
   `maxEditorHeight` mode;
 - update the current model/options projection and `DataGridView` in place;
@@ -174,7 +232,8 @@ model, but this makes the vanilla view's incoming-props contract safe.
 
 `onDispose()` must unsubscribe state and queue listeners, call the model's `setGrid(null)`, and let
 `VanillaView` dispose the child. `DataGridView` itself owns av-grid destruction and calls its
-`onGrid(null)` callback; do not destroy the av-grid instance twice.
+`onGrid(null)` callback; do not destroy the av-grid instance twice. The null handoff is not called
+when only `state.error` changes.
 
 Before:
 
@@ -283,8 +342,10 @@ shell-to-toolbar bridge, not body state. The shell's React hook is therefore not
    synchronously.
 4. Use `DataGridView`, not the React `DataGrid` face. Keep one av-grid instance and update option
    values in place so the model, body, and shell all refer to the same instance.
-5. Preserve the current grid error behavior, rows ownership, filters, focus/sort restoration,
-   context menu, and sidebar autofocus behavior. The body must not parse host content a second time.
+5. The parse-error behavior change is explicit: keep the mounted grid hidden behind a Panel while
+   showing the error Panel. Do not clear `_grid` for an error; preserve rows/columns/scroll state
+   across the transient error, and rely on `GridEditor.setRows` to refresh the same instance when a
+   reparse succeeds. The body must not parse host content a second time.
 6. Preserve `maxEditorHeight`: the root is `height: "fit-content"` with the embedded value and
    `height: 200` otherwise; `growToHeight` is `${maxEditorHeight}px` only in the embedded case.
    `applyPanelAttributes` must clear stale inline height/flex properties when switching modes.
@@ -294,6 +355,9 @@ shell-to-toolbar bridge, not body state. The shell's React hook is therefore not
 8. The semantic `GridBodyView.root` is the geometry subject, not `mountVanilla`'s
    `display: contents` adapter host. The root and its `[data-type="data-grid"]` descendant must be
    measurable after layout.
+9. A null host is proven unreachable at first publication but is handled defensively while mounted:
+   the semantic root becomes hidden and the model/shell grid handles are released until a host is
+   restored.
 
 ## Acceptance Criteria
 
@@ -310,8 +374,12 @@ shell-to-toolbar bridge, not body state. The shell's React hook is therefore not
   search/highlight, editing/add/delete operations, visible-row reporting, context menu behavior,
   and av-grid-owned row updates.
 - State changes update the existing grid in place; host parsing remains solely in `GridEditor`.
-- Grid parse errors show the existing warning/pre-wrapped `EditorError` visual behavior, and clearing
-  the error restores the same live grid without replacing it.
+- Grid parse errors show the existing warning/pre-wrapped `EditorError` visual behavior while the
+  same DataGridView remains mounted and hidden; clearing the error reveals that same instance after
+  `GridEditor.setRows` has supplied fresh rows, without a null handoff.
+- A null host at mount or during switch-away leaves no visible semantic body root; the host-null path
+  releases the model and shell grid handles, and a later host transition can republish the existing
+  mounted grid in the documented lifecycle order.
 - `editorConfig.maxEditorHeight` matches the old root/grow-to-height behavior in both embedded and
   full-page modes, including clearing stale styles on updates.
 - `index.tsx` remains a React `TextChrome` shell, mounts `GridBodyView` via `mountVanilla`, removes
@@ -328,13 +396,20 @@ editing, add/delete rows and columns, sorting, filtering, search highlighting, f
 context-menu actions, CSV delimiter/header options, columns popover apply/cancel, serialization,
 and the existing sidebar-focus autofocus rule.
 
-Run DOM/runtime assertions against the semantic converted host, not only its presence:
+Run separate DOM/runtime assertions against the semantic converted host in both layout modes, not
+only its presence:
 
-- the `grid-editor-root` body root has `offsetWidth > 0` and `offsetHeight > 0` in full-page mode;
-- the same root has `offsetWidth > 0` and positive height in an embedded notebook note with
-  `maxEditorHeight`;
-- its `[data-type="data-grid"]` descendant also has `offsetWidth > 0` and positive height;
-- the adapter host created by `mountVanilla` remains `display: contents` and is not used as the
+- Full-page mode (`height: 200`, flex growth, no `growToHeight`): assert the `grid-editor-root` body
+  root has `offsetWidth > 0` and `offsetHeight > 0`; assert its `[data-type="data-grid"]` descendant
+  has `offsetWidth > 0` and positive height; and assert at least one visible
+  `[data-type="data-cell"]` has a `getBoundingClientRect()` with positive width and height.
+- Embedded notebook mode (`height: "fit-content"` plus `growToHeight`): repeat all three assertions
+  separately with `maxEditorHeight`, including positive root/grid width and height and a laid-out
+  `[data-type="data-cell"]`. This specifically exercises the embedded path rather than inferring
+  it from full-page geometry.
+- In both modes, assert the cell count is non-zero for a non-empty fixture and that the sampled cell
+  rectangles are positive; a present grid root without laid-out cells is a failure.
+- The adapter host created by `mountVanilla` remains `display: contents` and is not used as the
   geometry assertion target.
 
 Open a notebook containing a grid note to verify that registry normalization produces one body with
