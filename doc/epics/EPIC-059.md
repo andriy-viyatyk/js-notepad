@@ -504,7 +504,7 @@ translation with the model largely intact — which is exactly the shape roadmap
 | US-1042 | Vanilla editor registration seam (`Component`/`Body` arms, registry normalization, `AsyncEditorView` branch, `EditorErrorBoundary` exemption) + convert the **`toolset`** editor | **Done** |
 | US-1043 | Vanilla Monaco host; repoint the 6 non-component `@monaco-editor/react` importers; convert the `compare` editor | **Done** |
 | US-1044 | `editors/shared` widgets to vanilla (`FindBar`, `ColorizedCode`, `editor-menu-items`, `link-open-menu`) | **Done** |
-| US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | Planned |
+| US-1045 | Convert the `image` editor inside its React `<PageToolbar>` shell — the chrome-shell shape; moves `WithMenu` → `openMenu` | **Done** |
 | US-1046 | `EditorModule.Body` arm's proof: convert the `mermaid` editor body inside its React `TextChrome` shell | Planned |
 | US-1047 | Secondary-view vanilla arm + convert one editor-owned panel | Planned |
 | US-1048 | `hast → DOM` markdown renderer; `MarkdownBlock` to vanilla; `a` and `input` overrides become rehype plugins | Planned |
@@ -710,6 +710,44 @@ is accepted.
   main-process touch did not clear it; killing Vite + Electron and running `npm start` did, and the code
   was fine on a cold start. Recorded because it is the second time HMR has failed on a multi-file rename
   in this epic, and it is not a defect.
+- **US-1045 done — the `<PageToolbar>` chrome-shell shape is now established**, and five editors
+  (`archive`, `board-info`, `git-tree`, `video`, `category`) copy it. `ImageView.tsx` keeps a 17-line
+  React shell rendering `<PageToolbar rightContributions={mountVanilla(ImageToolbarView, { model })} />`
+  plus `<ImageViewport …>`; roughly 45 of its 72 lines — the toolbar contributions — became a vanilla
+  view. **Zero React roots added**, because `mountVanilla` is a component in the existing tree.
+  `<WithMenu>` tags 13 → **12** (across 9 files): the Save menu now calls `openMenu` directly, collecting
+  one of the removal ledger's 14 render-prop call sites.
+
+  **I trimmed my own plan mid-review.** The first version also replaced `<ImageViewport …>` with
+  `mountVanilla(ImageViewportView, …)`. Reading `ImageViewport.tsx:276-278` showed its React face is a
+  *pure* two-line `mountVanilla` passthrough, so the substitution produced an identical call one layer
+  down while reaching past a public UIKit façade from an editor file — churn, not conversion. It was cut,
+  and the task document now states plainly that the body was already vanilla behind its face and is
+  untouched.
+
+  **Accepted scope addition:** `IconButtonProps.icon` widened from `IconRef` to `IconRef | Node`. Needed
+  because `DrawIcon` has no icon-registry entry — `icon-registry.ts:123` records that language icons are
+  **excluded by design**, so the registry must not grow — and a vanilla view's only React-free way to
+  show such an icon is its `createElement()` DOM node. `IconButtonViewProps = IconButtonProps`, so the
+  face and the view move together, and `DialogContent.tsx:19` already used exactly this pattern. **`IconRef`
+  itself must not gain a `Node` arm**: `renderIcon(icon: IconRef): ReactNode` would then accept a DOM node
+  React cannot render, converting a compile error into a runtime one. Widening only the components whose
+  icon path runs through `fillSlot` is the correct narrower change. This will recur — 54 language icons
+  have no registry entry.
+
+  Two defects found in review and fixed: the `DrawIcon` node was rebuilt on **every** update
+  (`drawButtonProps` called `createDirectToolbarIcon` from `onUpdate`), which is §6.1's "fresh object per
+  render whose identity is the only thing driving the rebuild" — it is now built once as a field; and the
+  new `Node` branch in `updateIcon` had no identity gate, so re-passing the same node still ran
+  `fillSlot`'s unconditional `replaceChildren()` + `append()`, detaching and reattaching the identical
+  element. A matching `appliedIconNode` gate was added and is cleared alongside `appliedIconName`.
+
+  *Verified live over MCP:* opening `assets/icon.png` produced the toolbar with all three buttons
+  (`image-save`, `image-open-draw`, `image-copy`), each rendering exactly one `<svg>` — including the
+  DrawIcon DOM-node path; clicking Save opened a menu with exactly "Save as .png" and "Save original", and
+  Escape closed it, so the `MenuHandle` disposal works. Closing the page left zero `image-toolbar` nodes.
+  Note `title` legitimately does not appear as a DOM attribute — `IconButtonView` routes it through
+  `attachTooltip` and destructures it out of the rest props.
 - **Two counting errors of my own, corrected.** `<TextChrome>` has **14** JSX call sites, not 25 — the
   original figure counted comment mentions alongside tags. And `image` is **not** chrome-free: it
   renders `<PageToolbar>` (`image/ImageView.tsx:60`). The second error improved the pilot rationale

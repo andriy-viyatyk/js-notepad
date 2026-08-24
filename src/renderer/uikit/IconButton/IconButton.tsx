@@ -7,7 +7,8 @@ export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
     ref?: React.Ref<HTMLButtonElement>;
     name?: string;
     title?: string;
-    icon: IconRef;
+    // DOM Node icons support registry-excluded language icons; see icon-registry.ts:123 and DialogContent.tsx:19.
+    icon: IconRef | Node;
     size?: "sm" | "md";
     variant?: "default" | "chip";
     active?: boolean;

@@ -23,6 +23,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
      * keystroke — and `createIconElement` would rebuild the `svg` each time.
      */
     private appliedIconName: string | undefined;
+    private appliedIconNode: Node | undefined;
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: (() => void) = () => undefined;
     private boundRef: React.Ref<HTMLButtonElement> | undefined;
@@ -94,19 +95,28 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
      * pre-cleared, or the React root it caches per host is discarded and the
      * next call builds a second root on the same element.
      */
-    private updateIcon(icon: IconRef): void {
+    private updateIcon(icon: IconRef | Node): void {
         if (typeof icon === "string") {
             if (this.appliedIconName === icon) return;
             this.appliedIconName = icon;
+            this.appliedIconNode = undefined;
             this.iconCleanup = fillSlot(
                 this.iconHost,
                 createIconElement(isIconName(icon) ? icon : icon as never),
             );
             return;
         }
+        if (icon instanceof Node) {
+            if (this.appliedIconNode === icon) return;
+            this.appliedIconName = undefined;
+            this.appliedIconNode = icon;
+            this.iconCleanup = fillSlot(this.iconHost, icon);
+            return;
+        }
         // A React value keeps the ungated path: `fillSlot` re-renders into the cached root, so an
         // inline element (always a fresh object) costs a reconcile rather than a rebuilt subtree.
         this.appliedIconName = undefined;
+        this.appliedIconNode = undefined;
         this.iconCleanup = fillSlot(this.iconHost, renderIcon(icon));
     }
 
@@ -114,6 +124,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         this.iconCleanup?.();
         this.iconCleanup = undefined;
         this.appliedIconName = undefined;
+        this.appliedIconNode = undefined;
     }
 
     private setRef(ref: React.Ref<HTMLButtonElement> | undefined): void {
