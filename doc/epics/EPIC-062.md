@@ -221,10 +221,29 @@ to a previous occupant it cannot see. The imperative host APIs E3 built are alre
 for this: `MonacoEditorHostView.setValue()` compares against the live model and returns early, so a
 total write is cheap when it is redundant and correct when it is not.
 
-Practically this means the cell renderer needs a per-element record of what it built — VSCode's
-`renderTemplate` / `renderElement` split (§3.4), which is the same "build once, keep named
-references, update in place" shape the whole programme uses. `WeakMap<HTMLElement, CellParts>` is
-the natural home for it.
+**And the pattern is not new either — it is shipped, and this epic adopts it rather than inventing
+it.** `uikit/ListBox/ListBoxView.ts` has implemented exactly this policy since C3:
+`:30-45` documents the record (*"Do not 'helpfully' clear elements in `CellPool.release()`: this
+view depends on the opposite"*), `:74-75` holds the `WeakMap<HTMLElement, CellRecord>` plus a `Set`
+retaining every view so the pool cannot hide one from disposal, and `:297-343` is the renderer —
+`record.index = p.row` rewritten unconditionally, `view.update(props)` as a total write on every
+admission, and recreation **only** when the cell's *kind* changes. `:410-423` adds `activeRecord`
+and `releaseCell`.
+
+That is the E4-7 policy in full, already in the tree. US-1062's job is therefore to adopt it and
+document where `LinksList` must differ (the tooltip attachment and the drag listeners are the likely
+two), not to establish it — which is worth more to US-1064/1065 than a fresh pattern would be. It is
+also VSCode's `renderTemplate` / `renderElement` split (§3.4), the same shape the whole programme
+uses.
+
+**A trap the precedent also documents** (`ListBoxView.ts:52-56`), and the one most likely to be lost
+in translation: **`renderCell` must be a bound field, not a closure.** `VirtualGridModel.inputChanged()`
+compares it by identity, so a per-update closure makes the engine repaint every visible cell on every
+update — which is what the React version did and what the repaint gate exists to stop (§6.1's first
+instance, US-1014). Every converted consumer in this epic currently holds its renderer in a
+`useCallback` with a long dependency list, so the literal translation is the defect. The consequence
+is the point, not a limitation: because the identity never changes, a favicon or selection change
+reaches the DOM **only** through an explicit `model.update({ rows })`.
 
 **E3's design decision is what makes E4-6 reachable, and this is worth recording as a payoff.**
 EPIC-061 E3-3 chose *uncontrolled* Monaco hosts with imperative `setValue()` / `update(props)` over
@@ -234,6 +253,60 @@ recreating it, which a controlled `value` prop cannot express and an imperative 
 `setValue` already compares against the live model and returns early, so the redundant case is free.
 The chain is therefore complete without new primitives: `previous`/`recycle()` yields the element,
 the `WeakMap` yields its owned views, and E3's host API re-points them.
+
+---
+
+## E4-9 — `onGridModel` is typed against a capability, not a model class
+
+*Taken during US-1062 plan review, 2026-08-24.*
+
+`LinksList` hands its grid model out to callers through `onGridModel?: (m: RenderGridModel | null)
+=> void`, and there are **nine** declarations of that type across the boundary — `CategoryViewModel`,
+`CategoryViewImpl`, `CategoryEditor`, `LinkItemList`, `LinkItemTiles`, the two link-editor panels,
+`LinkEditor.gridModel`/`setGridModel`, and `LinkBody`. The vanilla view can only honestly hand out a
+`VirtualGridModel`, and the two forks are not interchangeable classes.
+
+The investigation proposed either repointing every declaration to `VirtualGridModel` or taking a
+Rule 2 exception. **Both are wrong, and a cast is prohibited outright.** Every one of those consumers
+uses exactly two members — `update(rerender?)` and `scrollToRow(row, align)` — and the signatures are
+identical on both forks (`VirtualGridModel.ts:650` and `RenderGridModel.ts:505` are both
+`async scrollToRow(row: number, rowAlign: RowAlign = "nearest")`).
+
+**The decision: `onGridModel` is typed against a narrow capability interface naming those two
+members, exported from `uikit/VirtualGrid/`.** Both models satisfy it structurally. That buys three
+things a class-typed repoint does not:
+
+- **Rule 2 stays intact.** The programme's documented exception count stays at three (C3-1, C4-2,
+  E1-3); this epic adds none.
+- **The boundary files repoint once**, to a stable name, instead of churning again in US-1066 when
+  the remaining link-editor consumers convert.
+- It names **precisely the subset that must stay parallel** across the two forks, which is the honest
+  form of the fork-parity hazard rather than a nominal class incompatibility. Three of EPIC-061's
+  defects were two implementations "meaning different things by the same method name"; an interface
+  is where that is stated rather than hoped for.
+
+---
+
+## E4-10 — `getAdditionalIcon` is Epic P residue, not an exception
+
+*Taken during US-1062 plan review, 2026-08-24.*
+
+`LinksList.tsx:189` declares `getAdditionalIcon?: (link: ILink) => React.ReactNode`, and E4-3
+forbids the cell from hosting a React root. The investigation read this as a conflict needing either
+a Rule 2 exception or a documented partial failure of E4-3.
+
+It is neither. The roadmap settles this class of prop in Epic P item 1, verbatim: *"Rule 2 ('preserve
+the React-facing signature') cannot save these, **because the signature *is* React.** Each becomes
+either a data descriptor (icon name + props) or a neutral slot callback."* This is one of the 109
+files Epic P was chartered to convert and never reached — scheduled programme work, not an exception.
+
+**The decision: change it to a DOM-capable descriptor and update the caller.** It is nearly free —
+the only live caller is `LinkItemList.tsx:141-143`, returning
+`pinnedLinkIds.has(link.id) ? <PinFilledIcon width={16} height={16} /> : null`, which is an icon name
+plus a size. Reuse the established descriptor shape (`theme/icon-registry`, `renderIcon`'s `IconRef`,
+`components/icons/icon-elements.ts`'s DOM builders) rather than inventing one. A temporary React slot
+for one residual producer, and a new "DOM conversion contract" for React nodes, are both worse than
+converting a single call site.
 
 ---
 
