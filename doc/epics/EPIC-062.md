@@ -200,8 +200,22 @@ has two failure modes pointing in opposite directions:
 - **Reuse blindly.** Fast, and the recycled cell shows the *previous* row's note until something
   else forces an update — which is §6.1's masked-defect class, in its most literal form.
 
+**The plumbing already exists** — verified at epic open, and it changes E4-7 from a design problem
+into a policy one. `VirtualGrid/types.ts:148-169` gives the cell renderer two distinct handles:
+
+- `previous?: HTMLElement` — "the element already rendered at this coordinate […] the cell is being
+  re-rendered because it went dirty, not because it just scrolled into view." Preferred, because
+  "anything living on the element survives — focus, an open editor, a running transition."
+- `recycle?: RecycleFunc` — an element from the pool, arriving "in **whatever state its previous
+  occupant left it**".
+
+The distinction is the whole contract, and the trap is that **`previous` is keyed by coordinate, not
+by item identity** — `key` is still `` `${row}_${col}` ``. So `previous` means "the same cell
+position", which after a scroll is a *different note* in the same slot. A renderer that treats
+`previous` as "same content, nothing to do" produces §6.1's masked defect exactly.
+
 **The decision: a recycled cell re-points its owned views rather than recreating them, and the
-re-point is an explicit, total write.** A cell renderer that recycles must set every field it owns
+re-point is an explicit, total write — for `previous` and `recycle()` alike.** A cell renderer that recycles must set every field it owns
 on every admission, including the ones that happen to be unchanged, because "unchanged" is relative
 to a previous occupant it cannot see. The imperative host APIs E3 built are already the right shape
 for this: `MonacoEditorHostView.setValue()` compares against the live model and returns early, so a
@@ -211,6 +225,15 @@ Practically this means the cell renderer needs a per-element record of what it b
 `renderTemplate` / `renderElement` split (§3.4), which is the same "build once, keep named
 references, update in place" shape the whole programme uses. `WeakMap<HTMLElement, CellParts>` is
 the natural home for it.
+
+**E3's design decision is what makes E4-6 reachable, and this is worth recording as a payoff.**
+EPIC-061 E3-3 chose *uncontrolled* Monaco hosts with imperative `setValue()` / `update(props)` over
+the wrapper's controlled props, and rejected Codex's controlled-prop reconciliation twice. A
+recycled cell needs exactly that API: it must re-point a live editor at different content without
+recreating it, which a controlled `value` prop cannot express and an imperative total write can —
+`setValue` already compares against the live model and returns early, so the redundant case is free.
+The chain is therefore complete without new primitives: `previous`/`recycle()` yields the element,
+the `WeakMap` yields its owned views, and E3's host API re-points them.
 
 ---
 
@@ -250,6 +273,15 @@ the pilot does not depend on the new primitive:
    This is the single most likely defect in US-1062 and it should be verified live, not reasoned
    about.
 
+   **Verified at epic open, and the owner already exists.** `components/icons/favicon-cache.ts:144`
+   exports `onFaviconReady(hostname, callback)` — a framework-free, one-shot subscription
+   (`notifyListeners` deletes the list after firing). `useFavicons` at `:168` is nothing but a React
+   shim that converts those callbacks into a version counter. So the vanilla view subscribes
+   directly and repaints only the rows whose hostname resolved, which is **strictly better than the
+   React path**, where any one favicon re-rendered every visible cell. Note the hook has *two* arms
+   and both need an owner: the `onFaviconReady` subscription, and the `getFaviconPath(...).then()`
+   disk-check resolution at `:185`, which bumps the version with no listener involved.
+
 2. **`NotebookBody.tsx:2` imports `createPortal`.** One of the portal hosts Epic P routed through a
    shared helper (P5). The vanilla equivalent is an `appendChild` to the layer element; check
    whether the shared helper's non-React arm already covers this call site before writing a new
@@ -272,13 +304,22 @@ the pilot does not depend on the new primitive:
    from-scratch rewrite of `VirtualFlexGridView` that treats these as incidental will reintroduce
    the jumps they were added to fix. Port the bookkeeping deliberately.
 
-6. **`RenderGridModel` is React-coupled at the import line** (`import React, { CSSProperties,
+6. **The repaint channel is verified present and is a recompute.** `VirtualGridModel.update(rerender?:
+   RerenderInfo)` at `:434` accepts `{ rows: [n] }`, coalesces bursts onto a microtask, and calls
+   `updateRenderInfo()` — a geometry recompute, not a bare repaint, which is what a row-height change
+   requires (§6.1: "a repaint cannot change what `calcRenderInfo` already decided"). The model's own
+   comments at `:300` and `:550` already carry that lesson. This does **not** make
+   `RenderFlexGrid`'s 50 ms debounce redundant: the microtask coalescer batches within a tick, while
+   the debounce suppresses intermediate `ResizeObserver` values across ticks. Both are needed, for
+   different reasons.
+
+7. **`RenderGridModel` is React-coupled at the import line** (`import React, { CSSProperties,
    HTMLAttributes }`), so the eight repointings in US-1066 are not pure type substitutions — check
    each against `VirtualGridModel`'s actual surface rather than assuming parity, which is the C4
    lesson (the two models "meaning different things by the same method name" was E3's recurring
    defect shape three times over).
 
-7. **Two `renderInfo.ts` / `rerender-check.ts` pairs exist** — one in `RenderGrid/` (704 + 348) and
+8. **Two `renderInfo.ts` / `rerender-check.ts` pairs exist** — one in `RenderGrid/` (704 + 348) and
    one in `VirtualGrid/` (796 + 380). They are the React and vanilla forks of the same geometry.
    US-1067 deletes the React fork; confirm no consumer has come to depend on a behavioural
    divergence between them before doing so.
