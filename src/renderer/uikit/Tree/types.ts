@@ -80,7 +80,10 @@ export interface TreeItemRenderContext<T> {
 // =============================================================================
 
 export interface TreeProps<T = ITreeItem>
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    extends Omit<
+        React.HTMLAttributes<HTMLDivElement>,
+        "style" | "className" | "onChange" | "onContextMenu"
+    > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -179,7 +182,7 @@ export interface TreeProps<T = ITreeItem>
     onItemContextMenu?: (
         item: T,
         level: number,
-        event: React.MouseEvent<HTMLDivElement>,
+        event: MouseEvent,
     ) => void;
     /**
      * Per-row context menu items. Returning `undefined` or an empty array suppresses the menu
@@ -191,7 +194,7 @@ export interface TreeProps<T = ITreeItem>
      * Container-level context menu — invoked when the user right-clicks on the empty area of
      * the tree (no row hit, OR the row's `getContextMenu` returned nothing).
      */
-    onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onContextMenu?: (event: MouseEvent) => void;
 
     /** Custom row renderer. Receives a context with the resolved item + flags. */
     renderItem?: (ctx: TreeItemRenderContext<T>) => React.ReactNode;

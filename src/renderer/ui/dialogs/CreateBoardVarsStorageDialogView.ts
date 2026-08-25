@@ -100,7 +100,7 @@ export class CreateBoardVarsStorageDialogView extends VanillaView<DialogViewProp
             className: props.className,
             name: "create-board-vars-storage-dialog",
             autoFocus: false,
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent as KeyboardEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

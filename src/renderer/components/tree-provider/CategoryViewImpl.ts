@@ -7,7 +7,6 @@ import { InputView } from "../../uikit/Input/InputView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { createIconElement } from "../../uikit/shared/slots";
 import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
-import { toPublicEvent } from "../../uikit/shared/react-compat";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { IconName } from "../../theme/icon-registry";
@@ -207,32 +206,24 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private installRootListeners(): void {
         this.listen(this.root, "contextmenu", (event) => {
             if (this.arm !== "content") return;
-            this.model.onBackgroundContextMenu(
-                toPublicEvent(event) as unknown as React.MouseEvent<HTMLDivElement>,
-            );
+            this.model.onBackgroundContextMenu(event);
         });
         this.listen(this.root, "keydown", (event) => {
             if (this.arm !== "content") return;
-            this.model.onKeyDown(
-                toPublicEvent(event) as unknown as React.KeyboardEvent<HTMLDivElement>,
-            );
+            this.model.onKeyDown(event);
         });
         this.listen(this.root, "dragenter", (event) => {
-            if (this.arm === "content") this.model.onDragEnter(null, this.publicDragEvent(event));
+            if (this.arm === "content") this.model.onDragEnter(null, event);
         });
         this.listen(this.root, "dragover", (event) => {
-            if (this.arm === "content") this.model.onDragOver(null, this.publicDragEvent(event));
+            if (this.arm === "content") this.model.onDragOver(null, event);
         });
         this.listen(this.root, "dragleave", (event) => {
-            if (this.arm === "content") this.model.onDragLeave(null, this.publicDragEvent(event));
+            if (this.arm === "content") this.model.onDragLeave(null, event);
         });
         this.listen(this.root, "drop", (event) => {
-            if (this.arm === "content") this.model.onDrop(null, this.publicDragEvent(event));
+            if (this.arm === "content") this.model.onDrop(null, event);
         });
-    }
-
-    private publicDragEvent(event: DragEvent): React.DragEvent {
-        return toPublicEvent(event) as unknown as React.DragEvent;
     }
 
     private applyState(state: StateSelection): void {
@@ -426,7 +417,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.toolbarTarget = null;
     }
 
-    private readonly onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    private readonly onSearchKeyDown = (event: KeyboardEvent): void => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         this.model.setSearchText("");
@@ -437,9 +428,10 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.searchField?.blur();
     };
 
-    private readonly onViewModeMenu = (event: React.MouseEvent): void => {
+    private readonly onViewModeMenu = (event: MouseEvent): void => {
         const onViewModeChange = this.props.onViewModeChange;
         if (!onViewModeChange) return;
+        if (!(event.currentTarget instanceof Element)) return;
         const rect = event.currentTarget.getBoundingClientRect();
         const viewMode = this.props.viewMode ?? "list";
         void showAppPopupMenu(rect.left, rect.bottom + 2, VIEW_MODE_ORDER.map((mode) => ({
@@ -450,7 +442,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         })));
     };
 
-    private readonly onItemClick = (item: ITreeProviderItem, event?: React.MouseEvent): void => {
+    private readonly onItemClick = (item: ITreeProviderItem, event?: MouseEvent): void => {
         this.model.onItemClick(item, event);
     };
 
@@ -458,7 +450,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.model.onItemDoubleClick(item);
     };
 
-    private readonly onItemContextMenu = (event: React.MouseEvent, item: ITreeProviderItem): void => {
+    private readonly onItemContextMenu = (event: MouseEvent, item: ITreeProviderItem): void => {
         this.model.onItemContextMenu(item, event);
     };
 
@@ -470,23 +462,23 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         void this.model.deleteItemAction(item);
     };
 
-    private readonly onItemDragEnter = (item: ITreeProviderItem, event: React.DragEvent): void => {
+    private readonly onItemDragEnter = (item: ITreeProviderItem, event: DragEvent): void => {
         if (item.isDirectory) this.model.onDragEnter(item, event);
     };
 
-    private readonly onItemDragOver = (item: ITreeProviderItem, event: React.DragEvent): void => {
+    private readonly onItemDragOver = (item: ITreeProviderItem, event: DragEvent): void => {
         if (item.isDirectory) this.model.onDragOver(item, event);
     };
 
-    private readonly onItemDragLeave = (item: ITreeProviderItem, event: React.DragEvent): void => {
+    private readonly onItemDragLeave = (item: ITreeProviderItem, event: DragEvent): void => {
         if (item.isDirectory) this.model.onDragLeave(item, event);
     };
 
-    private readonly onItemDrop = (item: ITreeProviderItem, event: React.DragEvent): void => {
+    private readonly onItemDrop = (item: ITreeProviderItem, event: DragEvent): void => {
         if (item.isDirectory) this.model.onDrop(item, event);
     };
 
-    private readonly onDragStartOverride = (item: ITreeProviderItem, event: React.DragEvent): boolean => {
+    private readonly onDragStartOverride = (item: ITreeProviderItem, event: DragEvent): boolean => {
         return this.model.handleOsDragStart(item, event);
     };
 }

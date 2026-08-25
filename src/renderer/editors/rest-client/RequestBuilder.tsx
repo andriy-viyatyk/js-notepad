@@ -149,7 +149,7 @@ export function RequestBuilder(props: RequestBuilderProps) {
     );
 
     const handleUrlKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
+        (e: KeyboardEvent) => {
             if (e.key === "Enter") {
                 e.preventDefault();
                 vm.sendRequest();
@@ -159,7 +159,7 @@ export function RequestBuilder(props: RequestBuilderProps) {
     );
 
     const handleUrlPaste = useCallback(
-        (e: React.ClipboardEvent) => {
+        (e: ClipboardEvent) => {
             const text = e.clipboardData.getData("text");
             if (!text) return;
             const trimmed = text.trim();

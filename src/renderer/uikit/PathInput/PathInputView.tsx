@@ -239,7 +239,7 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             autoFocus,
             onFocus: this.driver.model.onInputFocus,
             onBlur: this.driver.model.onInputBlur,
-            onKeyDown: (event) => this.driver.model.onInputKeyDown(event.nativeEvent),
+            onKeyDown: this.driver.model.onInputKeyDown,
             autoComplete: "off",
             "aria-label": props["aria-label"],
             "aria-labelledby": props["aria-labelledby"],

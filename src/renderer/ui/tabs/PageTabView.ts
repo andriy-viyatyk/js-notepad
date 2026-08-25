@@ -1,4 +1,3 @@
-import React from "react";
 import { api } from "../../../ipc/renderer/api";
 import type { PageDragData } from "../../../shared/types";
 import { parseObject } from "../../core/utils/parse-utils";
@@ -404,7 +403,7 @@ export class PageTabView extends VanillaView<PageTabProps> {
         this.closeIconCleanup = fillSlot(this.closeIconHost, icon);
     }
 
-    private onLanguageClick(event: React.SyntheticEvent<HTMLElement>): void {
+    private onLanguageClick(event: MouseEvent): void {
         // Capture BEFORE `showPage`. `pagesModel.showPage` notifies synchronously, which runs this
         // view's own active-state binding and flips `this.isActive` to true mid-handler — so reading
         // it afterwards always says "active" and the menu opens on the very first click. A tab must
@@ -412,8 +411,8 @@ export class PageTabView extends VanillaView<PageTabProps> {
         // can afford to be icon-width. The React original was immune because `isActive` was a value
         // captured in that render's closure, not a mutable field.
         const wasActive = this.isActive;
-        if (!wasActive && (event.nativeEvent as MouseEvent).ctrlKey) {
-            this.handleClick(event.nativeEvent as MouseEvent);
+        if (!wasActive && event.ctrlKey) {
+            this.handleClick(event);
             return;
         }
         const pageId = this.props.model.id;

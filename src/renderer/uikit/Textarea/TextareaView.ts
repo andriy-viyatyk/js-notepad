@@ -1,9 +1,7 @@
-import React from "react";
 import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
-    toPublicEvent,
     type RestPropsState,
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
@@ -185,13 +183,12 @@ export class TextareaView extends VanillaView<TextareaProps> {
         this.props.onChange?.(text);
     };
 
-    private readonly handlePaste = (event: Event): void => {
-        const publicEvent = toPublicEvent(event) as React.ClipboardEvent<HTMLDivElement>;
-        this.props.onPaste?.(publicEvent);
+    private readonly handlePaste = (event: ClipboardEvent): void => {
+        this.props.onPaste?.(event);
         if (event.defaultPrevented) return;
 
         event.preventDefault();
-        let text = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+        let text = event.clipboardData?.getData("text/plain") ?? "";
         if (this.props.singleLine) text = text.replace(/\n/g, "");
 
         const selection = window.getSelection();
@@ -208,11 +205,10 @@ export class TextareaView extends VanillaView<TextareaProps> {
         this.props.onChange?.(innerTextToString(this.root.innerText));
     };
 
-    private readonly handleKeyDown = (event: Event): void => {
-        const publicEvent = toPublicEvent(event) as React.KeyboardEvent<HTMLDivElement>;
-        this.props.onKeyDown?.(publicEvent);
+    private readonly handleKeyDown = (event: KeyboardEvent): void => {
+        this.props.onKeyDown?.(event);
         if (event.defaultPrevented) return;
-        if (this.props.singleLine && (event as KeyboardEvent).key === "Enter") {
+        if (this.props.singleLine && event.key === "Enter") {
             event.preventDefault();
         }
     };

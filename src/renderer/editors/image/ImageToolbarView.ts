@@ -79,8 +79,9 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
         this.focusedBeforeMenu = null;
     }
 
-    private readonly onSaveClick = (event: { currentTarget: HTMLButtonElement }): void => {
+    private readonly onSaveClick = (event: MouseEvent): void => {
         if (!this.model.state.get().url) return;
+        if (!(event.currentTarget instanceof Element)) return;
 
         this.focusedBeforeMenu = document.activeElement instanceof HTMLElement
             ? document.activeElement

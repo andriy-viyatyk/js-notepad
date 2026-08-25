@@ -1,6 +1,6 @@
 import React from "react";
 
-export type PublicEventHandler = (event: React.SyntheticEvent<HTMLElement>) => void;
+type PublicEventHandler = (event: React.SyntheticEvent<HTMLElement>) => void;
 
 export interface RestPropsState {
     attributes: Set<string>;
@@ -18,7 +18,7 @@ export function createRestPropsState(): RestPropsState {
 }
 
 /** Preserve the React-facing event shape while using a native listener. */
-export function toPublicEvent(event: Event): React.SyntheticEvent<HTMLElement> {
+function toPublicEvent(event: Event): React.SyntheticEvent<HTMLElement> {
     let propagationStopped = false;
     // Keep the facade's own React-compatible methods on the target, but resolve
     // every other property through the native event as its receiver. WebIDL

@@ -1,10 +1,8 @@
-import type React from "react";
 import { createComponentModelDriver } from "../../core/state/model";
 import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
-    toPublicEvent,
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { defaultMinimapState, MinimapModel, type MinimapState } from "./MinimapModel";
@@ -52,7 +50,7 @@ export class MinimapView extends VanillaView<MinimapProps> {
         this.listen(this.root, "click", (event) => {
             const handler = this.props.onClick;
             if (handler) {
-                handler(toPublicEvent(event) as React.MouseEvent<HTMLDivElement>);
+                handler(event);
             } else {
                 model.handleBackgroundClick(event);
             }
@@ -60,7 +58,7 @@ export class MinimapView extends VanillaView<MinimapProps> {
         this.listen(this.root, "mouseenter", (event) => {
             const handler = this.props.onMouseEnter;
             if (handler) {
-                handler(toPublicEvent(event) as React.MouseEvent<HTMLDivElement>);
+                handler(event);
             } else {
                 model.mouseEnter();
             }

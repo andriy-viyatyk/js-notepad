@@ -115,7 +115,7 @@ function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
         }
     }, [editor, maxVisibleStr, opts.maxVisible, model]);
 
-    const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, commit: () => void) => {
+    const onKeyDown = useCallback((e: KeyboardEvent, commit: () => void) => {
         if (e.key === "Enter") {
             commit();
             (e.target as HTMLInputElement).blur();

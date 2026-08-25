@@ -5,7 +5,6 @@ import {
     bindRef,
     clearRestListeners,
     createRestPropsState,
-    toPublicEvent,
     type RestPropsState,
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
@@ -180,8 +179,7 @@ export class DialogView extends VanillaView<DialogProps> {
     };
 
     private readonly onKeyDown = (event: KeyboardEvent): void => {
-        const publicEvent = toPublicEvent(event) as React.KeyboardEvent<HTMLDivElement>;
-        this.props.onKeyDown?.(publicEvent);
+        this.props.onKeyDown?.(event);
         if (event.defaultPrevented || event.key !== "Tab") return;
 
         const focusables = getFocusable(this.root);
@@ -207,8 +205,7 @@ export class DialogView extends VanillaView<DialogProps> {
     };
 
     private readonly onClick = (event: MouseEvent): void => {
-        const publicEvent = toPublicEvent(event) as React.MouseEvent<HTMLDivElement>;
-        this.props.onClick?.(publicEvent);
+        this.props.onClick?.(event);
         if (event.defaultPrevented) return;
         if (event.target === this.root) this.props.onBackdropClick?.();
     };

@@ -9,7 +9,6 @@ import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from
 import { applyCellStyle } from "../../uikit/VirtualGrid/cell-style";
 import type { ElementLength, GridModelCapability, Percent, RenderCellFunc, RenderCellParams, RenderSizeOptional } from "../../uikit/VirtualGrid/types";
 import { VirtualGridView } from "../../uikit/VirtualGrid/VirtualGridView";
-import { toPublicEvent } from "../../uikit/shared/react-compat";
 import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { LinkViewMode } from "./linkTypes";
@@ -34,9 +33,6 @@ const TILE_DIMENSIONS: Record<Exclude<LinkViewMode, "list">, TileDimensions> = {
 
 const defaultGetId = (link: ILink): string => link.id ?? link.href;
 const columnWidth: ElementLength = (() => "100%" as Percent) as ElementLength;
-type SelectEvent = Parameters<NonNullable<LinksTilesProps["onSelect"]>>[1];
-type ContextMenuEvent = Parameters<NonNullable<LinksTilesProps["onContextMenu"]>>[0];
-type PublicDragEvent = Parameters<NonNullable<LinksTilesProps["onItemDragEnter"]>>[1];
 
 interface CellRecord {
     cell: HTMLElement;
@@ -554,7 +550,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         this.listen(tile, "click", (event) => {
             const current = this.cells.get(record.cell);
             if (!current?.link || this.inert) return;
-            current.onSelect?.(current.link, toPublicEvent(event) as unknown as SelectEvent);
+            current.onSelect?.(current.link, event);
         });
         this.listen(tile, "dblclick", () => {
             const current = this.cells.get(record.cell);
@@ -565,7 +561,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         this.listen(tile, "contextmenu", (event) => {
             const current = this.cells.get(record.cell);
             if (!current?.link || this.inert) return;
-            current.onContextMenu?.(toPublicEvent(event) as unknown as ContextMenuEvent, current.link);
+            current.onContextMenu?.(event, current.link);
         });
         this.listen(tile, "dragstart", (event) => {
             const current = this.cells.get(record.cell);
@@ -578,7 +574,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
             const dragOverride = current.onDragStartOverride;
             if (dragOverride?.(
                 current.link,
-                toPublicEvent(event) as unknown as Parameters<NonNullable<LinksTilesProps["onDragStartOverride"]>>[1],
+                event,
             )) return;
             if (!event.dataTransfer) return;
             setTraitDragData(event.dataTransfer, TraitTypeId.ILink, {
@@ -608,6 +604,6 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         const current = this.cells.get(record.cell);
         if (!current?.link || this.inert) return;
         const handler = current[callback];
-        handler?.(current.link, toPublicEvent(event) as unknown as PublicDragEvent);
+        handler?.(current.link, event);
     }
 }

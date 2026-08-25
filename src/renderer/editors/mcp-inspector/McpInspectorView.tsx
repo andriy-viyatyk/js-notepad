@@ -57,7 +57,7 @@ function McpInspectorView({ model }: McpInspectorViewProps) {
         }
     }, [model, isConnected, isConnecting]);
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === "Enter" && !isConnected && !isConnecting) {
             model.connect();
         }
@@ -74,7 +74,7 @@ function McpInspectorView({ model }: McpInspectorViewProps) {
         if (conn) model.fillFromSaved(conn);
     }, [model, connections]);
 
-    const handleDeleteConnection = useCallback((e: React.MouseEvent, id: string) => {
+    const handleDeleteConnection = useCallback((e: MouseEvent, id: string) => {
         e.stopPropagation();
         model.deleteSavedConnection(id);
     }, [model]);

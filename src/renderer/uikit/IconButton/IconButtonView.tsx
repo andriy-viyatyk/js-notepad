@@ -37,6 +37,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         this.applyProps(this.props);
         this.root.append(this.iconHost);
         this.updateIcon(this.props.icon);
+        this.listen(this.root, "click", this.handleClick);
         this.setRef(this.props.ref);
         this.tooltip = attachTooltip(this.root, { content: this.props.title ?? null });
         this.own(() => this.tooltip?.dispose());
@@ -61,6 +62,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
             warning,
             disabled,
             title: _title,
+            onClick: _onClick,
             icon: _icon,
             hideUntilParentHover,
             strikethrough,
@@ -134,4 +136,8 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         this.refCleanup = () => undefined;
         this.boundRef = undefined;
     }
+
+    private readonly handleClick = (event: MouseEvent): void => {
+        this.props.onClick?.(event);
+    };
 }

@@ -9,7 +9,12 @@ import "./Dialog.css";
 export type DialogPosition = "center" | "right";
 
 export interface DialogProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "children"> {
+    extends Omit<
+        React.HTMLAttributes<HTMLDivElement>,
+        "style" | "className" | "children" | "onKeyDown" | "onClick"
+    > {
+    onKeyDown?: (event: KeyboardEvent) => void;
+    onClick?: (event: MouseEvent) => void;
     ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */

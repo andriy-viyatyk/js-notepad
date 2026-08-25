@@ -1,4 +1,3 @@
-import React from "react";
 import { menuFolders, type MenuFolder } from "../../api/menu-folders";
 import {
     getTraitDragData,
@@ -6,7 +5,6 @@ import {
     setTraitDragData,
     TraitTypeId,
 } from "../../core/traits";
-import { toPublicEvent } from "../../uikit/shared/react-compat";
 import { createIconElement } from "../../uikit/shared/slots";
 import { ListItemView } from "../../uikit/ListBox/ListItemView";
 import type { IListBoxItem, ListItemDragProps } from "../../uikit/ListBox/types";
@@ -21,7 +19,7 @@ export interface FolderItemProps {
     label: string;
     tooltip?: string;
     onDoubleClick?: (folder: MenuFolder) => void;
-    onSelectedIconClick?: (folder: MenuFolder, event: React.MouseEvent) => void;
+    onSelectedIconClick?: (folder: MenuFolder, event: MouseEvent) => void;
     canDrag?: boolean;
     canDrop?: boolean;
 }
@@ -49,7 +47,7 @@ function selectedArrow(
     button.append(arrow);
     button.addEventListener("click", (event) => {
         event.stopPropagation();
-        onSelectedIconClick(folder, toPublicEvent(event) as unknown as React.MouseEvent);
+        onSelectedIconClick(folder, event);
     });
     return button;
 }

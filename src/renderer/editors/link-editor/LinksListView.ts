@@ -24,7 +24,6 @@ import type {
 } from "../../uikit/VirtualGrid";
 import { attachTooltip, type TooltipAttachment } from "../../uikit/Tooltip/attach-tooltip";
 import { createIconElement } from "../../uikit/shared/slots";
-import { toPublicEvent } from "../../uikit/shared/react-compat";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { IconName } from "../../theme/icon-registry";
 import { LinkTooltipContent } from "./LinkTooltip";
@@ -402,7 +401,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
             if (!current || this.inert) return;
             current.onSelect?.(
                 current.link,
-                toPublicEvent(event) as unknown as React.MouseEvent,
+                event,
             );
         });
         this.listen(row, "dblclick", () => {
@@ -415,7 +414,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
             const current = this.cells.get(record.cell);
             if (!current || this.inert) return;
             current.onContextMenu?.(
-                toPublicEvent(event) as unknown as React.MouseEvent,
+                event,
                 current.link,
             );
         });
@@ -429,7 +428,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
             event.stopPropagation();
             if (current.onDragStartOverride?.(
                 current.link,
-                toPublicEvent(event) as unknown as React.DragEvent,
+                event,
             )) return;
             if (!event.dataTransfer) return;
             setTraitDragData(event.dataTransfer, TraitTypeId.ILink, {
@@ -460,7 +459,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         if (!current || this.inert) return;
         current[callback]?.(
             current.link,
-            toPublicEvent(event) as unknown as React.DragEvent,
+            event,
         );
     }
 }

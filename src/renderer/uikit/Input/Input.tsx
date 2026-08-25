@@ -6,13 +6,14 @@ import type { SlotContent } from "../shared/fill-slot";
 // --- Types ---
 
 export interface InputProps
-    extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "size"> {
+    extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "size" | "onKeyDown"> {
     ref?: React.Ref<HTMLInputElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
     /** Change handler — receives the string value directly, not the event. */
     onChange?: (value: string) => void;
+    onKeyDown?: (event: KeyboardEvent) => void;
     /** Control height. Default: "md". */
     size?: "sm" | "md";
     /**

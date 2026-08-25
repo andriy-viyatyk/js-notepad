@@ -27,8 +27,8 @@ interface TabItemProps {
     isHovered: boolean;
     groupColorIndex: number;
     onSwitch: (tabId: string) => void;
-    onClose: (e: React.MouseEvent, tabId: string) => void;
-    onToggleMute: (e: React.MouseEvent, tabId: string) => void;
+    onClose: (e: MouseEvent, tabId: string) => void;
+    onToggleMute: (e: MouseEvent, tabId: string) => void;
     onContextMenu: (e: React.MouseEvent, tabId: string) => void;
     onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>, tabId: string) => void;
     onMouseLeave?: () => void;
@@ -234,7 +234,7 @@ export function BrowserTabsPanel({
     );
 
     const handleCloseTab = useCallback(
-        (e: React.MouseEvent, tabId: string) => {
+        (e: MouseEvent, tabId: string) => {
             e.stopPropagation();
             model.closeTab(tabId);
         },
@@ -242,7 +242,7 @@ export function BrowserTabsPanel({
     );
 
     const handleToggleMute = useCallback(
-        (e: React.MouseEvent, tabId: string) => {
+        (e: MouseEvent, tabId: string) => {
             e.stopPropagation();
             model.toggleMute(tabId);
         },
@@ -250,7 +250,7 @@ export function BrowserTabsPanel({
     );
 
     const handleExtensionClose = useCallback(
-        (e: React.MouseEvent, tabId: string) => {
+        (e: MouseEvent, tabId: string) => {
             e.stopPropagation();
             model.closeTab(tabId);
             setHoveredTabId(null);

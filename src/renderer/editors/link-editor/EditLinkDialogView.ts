@@ -338,7 +338,7 @@ export class EditLinkDialogView extends VanillaView<DialogViewProps> {
         const dialogView = this.child(new DialogView({
             className: this.props.className,
             name: "edit-link-dialog",
-            onKeyDown: (event) => this.model.handleKeyDown(event.nativeEvent),
+            onKeyDown: (event) => this.model.handleKeyDown(event),
             autoFocus: false,
             children: contentView.root,
         } as DialogProps & { className?: string }));

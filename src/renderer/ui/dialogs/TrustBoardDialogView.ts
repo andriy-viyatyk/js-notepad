@@ -67,7 +67,7 @@ export class TrustBoardDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "trust-board-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent as KeyboardEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

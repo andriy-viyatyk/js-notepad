@@ -2,7 +2,7 @@ import React from "react";
 import type { NotificationProps, NotificationSeverity } from "./Notification";
 import { createIconElement } from "../shared/slots";
 import { applyTextAttributes, resolveTextAttributes } from "../Text/text-style";
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, toPublicEvent, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import { IconButtonView } from "../IconButton/IconButtonView";
@@ -85,9 +85,7 @@ export class NotificationView extends VanillaView<NotificationProps> {
         this.updateMessage(this.props.message);
         this.setRef(this.props.ref);
         this.listen(this.root, "click", (event) => {
-            this.props.onClick?.(
-                toPublicEvent(event) as React.MouseEvent<HTMLDivElement>,
-            );
+            this.props.onClick?.(event);
         });
         this.own(() => this.closeSwap?.dispose());
         this.own(() => this.clearRef());

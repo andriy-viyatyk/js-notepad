@@ -17,7 +17,7 @@ export interface FileListProps {
     items: FileListItem[];
     onClick: (item: FileListItem) => void;
     getContextMenu?: (item: FileListItem) => MenuItem[] | undefined;
-    onContextMenu?: (e: React.MouseEvent) => void;
+    onContextMenu?: (event: MouseEvent) => void;
     searchable?: boolean;
     getTrailing?: (item: FileListItem) => ReactNode;
     compact?: boolean;

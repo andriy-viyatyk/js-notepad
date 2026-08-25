@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useMemo, useState } from "react";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Textarea } from "../../uikit/Textarea";
@@ -70,7 +70,7 @@ export function MnemeRootEditorView({ model }: { model: MnemeRootEditorModel }) 
 
     // Textarea is `singleLine`, so its internal handler suppresses Enter — but the
     // caller hook runs first and `preventDefault()` takes ownership for submit.
-    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             void model.runSearch();

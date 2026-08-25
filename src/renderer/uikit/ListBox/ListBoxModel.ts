@@ -1,6 +1,4 @@
-import type React from "react";
 import { TComponentModel } from "../../core/state/model";
-import { toPublicEvent } from "../shared/react-compat";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
 import { VirtualGridModel } from "../VirtualGrid";
 import type { RowAlign } from "../VirtualGrid";
@@ -161,12 +159,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      */
     onRootContextMenu = (e: MouseEvent) => {
         if (e.contextMenuEvent?.items.length) return;
-        // `onContextMenu` is public and typed as a React handler (C3-5 freezes the prop), so the
-        // native event is wrapped in the same facade the rest-prop bridge uses. Callers keep
-        // reading `e.nativeEvent`, `preventDefault()` and the rest exactly as before.
-        this.props.onContextMenu?.(
-            toPublicEvent(e) as unknown as React.MouseEvent<HTMLDivElement>,
-        );
+        this.props.onContextMenu?.(e);
     };
 
     onKeyDown = (e: KeyboardEvent) => {

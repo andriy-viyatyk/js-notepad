@@ -52,6 +52,7 @@ export class InputView extends VanillaView<InputProps> {
         this.updateSlots(this.props);
         this.updateRef(this.props.ref);
         this.listen(this.field, "input", this.handleInput);
+        this.listen(this.field, "keydown", this.handleKeyDown);
 
         this.own(() => this.clearSlots());
         this.own(() => this.clearRef());
@@ -76,6 +77,7 @@ export class InputView extends VanillaView<InputProps> {
         const {
             name,
             onChange: _onChange,
+            onKeyDown: _onKeyDown,
             size = "md",
             variant = "default",
             tone = "default",
@@ -209,5 +211,9 @@ export class InputView extends VanillaView<InputProps> {
 
     private readonly handleInput = (event: Event): void => {
         this.props.onChange?.((event.currentTarget as HTMLInputElement).value);
+    };
+
+    private readonly handleKeyDown = (event: KeyboardEvent): void => {
+        this.props.onKeyDown?.(event);
     };
 }

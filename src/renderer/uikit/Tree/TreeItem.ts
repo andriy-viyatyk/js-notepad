@@ -1,13 +1,12 @@
-import React from "react";
+import type React from "react";
 import { mountVanilla } from "../shared/mount";
-import { toPublicEvent } from "../shared/react-compat";
 import type { IconRef, SlotText } from "../shared/slots";
-import { TreeItemView, type TreeItemViewProps } from "./TreeItemView";
+import { TreeItemView } from "./TreeItemView";
 
 // --- Types ---
 
 export interface TreeItemProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onContextMenu"> {
     ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
@@ -58,7 +57,9 @@ export interface TreeItemProps
      * Called when the user clicks the chevron. Tree's model owns expansion state — pass
      * `(e) => model.onChevronClick(e, idx)` from the View.
      */
-    onChevronClick?: (e: React.MouseEvent) => void;
+    onChevronClick?: (event: MouseEvent) => void;
+    /** Called when the user opens this row's context menu. */
+    onContextMenu?: (event: MouseEvent) => void;
     /**
      * Optional right-aligned trailing content (e.g. a per-row action IconButton).
      * Rendered after the label, which is `flex:1 1 auto` and pushes this to the row's
@@ -79,17 +80,5 @@ export interface TreeItemProps
 // --- Component ---
 
 export function TreeItem(props: TreeItemProps): React.ReactElement {
-    const { onChevronClick, ...viewProps } = props;
-    const nativeCallback = onChevronClick
-        ? (event: MouseEvent): void => {
-              onChevronClick(
-                  toPublicEvent(event) as unknown as React.MouseEvent<HTMLButtonElement>,
-              );
-          }
-        : undefined;
-
-    return mountVanilla(TreeItemView, {
-        ...viewProps,
-        onChevronClickNative: nativeCallback,
-    } as TreeItemViewProps);
+    return mountVanilla(TreeItemView, props);
 }

@@ -33,7 +33,7 @@ function DialogDemo({
     const [first, setFirst] = useState("");
     const [second, setSecond] = useState("");
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === "Escape") {
             e.preventDefault();
             setOpen(false);

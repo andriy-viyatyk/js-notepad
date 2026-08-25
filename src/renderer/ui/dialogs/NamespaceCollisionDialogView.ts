@@ -65,7 +65,7 @@ export class NamespaceCollisionDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "namespace-collision-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent as KeyboardEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

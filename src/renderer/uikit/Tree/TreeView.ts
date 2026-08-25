@@ -457,14 +457,14 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             trailingVisibility: this.props.getTrailingVisibility?.(row.source, row.level),
             trailing: this.props.renderTrailing?.(row.source, row.level),
             onContextMenu: this.props.onItemContextMenu
-                ? (event: React.MouseEvent<HTMLDivElement>) => {
+                ? (event: MouseEvent) => {
                     this.props.onItemContextMenu?.(row.source, row.level, event);
                 }
                 : undefined,
             // A fresh closure per render is fine here — it is a row *prop*, not the engine's
             // `renderCell`, and `update()` re-supplies it with the current index on every render, so
             // a recycled row never calls the previous row's handler.
-            onChevronClickNative: (event: MouseEvent) => {
+            onChevronClick: (event: MouseEvent) => {
                 this.model.onChevronClick(event, index);
             },
         };

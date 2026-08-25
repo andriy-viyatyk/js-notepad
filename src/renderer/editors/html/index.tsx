@@ -47,7 +47,9 @@ function HtmlToolbarBits({ model }: { model: HtmlEditor }) {
                         title="More image actions"
                         icon="more-vert"
                         disabled={capturing}
-                        onClick={(e) => setOpen(e.currentTarget)}
+                        onClick={(e) => {
+                            if (e.currentTarget instanceof Element) setOpen(e.currentTarget);
+                        }}
                     />
                 )}
             </WithMenu>

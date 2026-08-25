@@ -29,7 +29,7 @@ export interface PopoverPosition {
 }
 
 export interface PopoverProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className">,
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onKeyDown">,
         PopoverPosition {
     /** Optional debug label emitted as `data-name` on the popover's floating root.
      *  Use to disambiguate multiple instances in DOM inspector output. Never used for styling. */
@@ -38,6 +38,7 @@ export interface PopoverProps
     open: boolean;
     /** Called on click-outside or Escape. */
     onClose?: () => void;
+    onKeyDown?: (event: KeyboardEvent) => void;
     /** Caller-set max-height override. The component also auto-caps to viewport. */
     maxHeight?: number | string;
     /**

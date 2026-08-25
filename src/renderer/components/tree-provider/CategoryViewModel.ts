@@ -62,19 +62,19 @@ export interface CategoryItemsRendererProps {
     selectedId?: string;
     selectedIds?: ReadonlySet<string>;
     searchText: string;
-    onSelect: (item: ITreeProviderItem, e?: React.MouseEvent) => void;
+    onSelect: (item: ITreeProviderItem, event?: MouseEvent) => void;
     onDoubleClick: (item: ITreeProviderItem) => void;
     onEdit?: (item: ITreeProviderItem) => void;
     onDelete?: (item: ITreeProviderItem, skipConfirm: boolean) => void;
-    onContextMenu: (e: React.MouseEvent, item: ITreeProviderItem) => void;
+    onContextMenu: (e: MouseEvent, item: ITreeProviderItem) => void;
     onGridModel: (model: GridModelCapability | null) => void;
-    onItemDragEnter?: (item: ITreeProviderItem, e: React.DragEvent) => void;
-    onItemDragOver?: (item: ITreeProviderItem, e: React.DragEvent) => void;
-    onItemDragLeave?: (item: ITreeProviderItem, e: React.DragEvent) => void;
-    onItemDrop?: (item: ITreeProviderItem, e: React.DragEvent) => void;
+    onItemDragEnter?: (item: ITreeProviderItem, e: DragEvent) => void;
+    onItemDragOver?: (item: ITreeProviderItem, e: DragEvent) => void;
+    onItemDragLeave?: (item: ITreeProviderItem, e: DragEvent) => void;
+    onItemDrop?: (item: ITreeProviderItem, e: DragEvent) => void;
     dropTargetId?: string | null;
     dragSourceId?: string;
-    onDragStartOverride?: (item: ITreeProviderItem, e: React.DragEvent) => boolean;
+    onDragStartOverride?: (item: ITreeProviderItem, event: DragEvent) => boolean;
 }
 
 export interface CategoryViewProps {
@@ -315,7 +315,7 @@ export class CategoryViewModel extends TComponentModel<
      * `e` is optional because the row's own action buttons call this to mean "select this row"
      * without forwarding their own modifiers.
      */
-    onItemClick = (item: ITreeProviderItem, e?: React.MouseEvent) => {
+    onItemClick = (item: ITreeProviderItem, e?: MouseEvent) => {
         if (!this.props.multiSelect) {
             this.props.onItemClick?.(item);
             return;
@@ -352,7 +352,7 @@ export class CategoryViewModel extends TComponentModel<
 
     /** Keys handled while the item grid has focus. No-op unless multiSelect is on, so
      *  single-select folder pages keep native behavior. */
-    onKeyDown = (e: React.KeyboardEvent) => {
+    onKeyDown = (e: KeyboardEvent) => {
         if (!this.props.multiSelect) return;
         // The search input (or any editable element) keeps native key behavior.
         const t = e.target as HTMLElement;
@@ -423,7 +423,7 @@ export class CategoryViewModel extends TComponentModel<
      * Returns false when there is nothing to drag, letting the caller fall back to the
      * in-process trait drag.
      */
-    handleOsDragStart = (item: ITreeProviderItem, e: React.DragEvent): boolean => {
+    handleOsDragStart = (item: ITreeProviderItem, e: DragEvent): boolean => {
         if (!supportsOsClipboard(this.props.provider)) return false;
         const paths = this.dragItemsFor(item).map((i) => i.href);
         if (!paths.length) return false;
@@ -487,7 +487,7 @@ export class CategoryViewModel extends TComponentModel<
         });
     };
 
-    onDragEnter = (item: ITreeProviderItem | null, e: React.DragEvent) => {
+    onDragEnter = (item: ITreeProviderItem | null, e: DragEvent) => {
         if (!this.acceptsDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
@@ -503,13 +503,13 @@ export class CategoryViewModel extends TComponentModel<
     /** The target is irrelevant here — dragover exists only to keep re-asserting that the drop
      *  is allowed (the browser cancels it otherwise). The signature mirrors the others so the
      *  view can wire all four the same way. */
-    onDragOver = (_item: ITreeProviderItem | null, e: React.DragEvent) => {
+    onDragOver = (_item: ITreeProviderItem | null, e: DragEvent) => {
         if (!this.acceptsDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
     };
 
-    onDragLeave = (item: ITreeProviderItem | null, _e: React.DragEvent) => {
+    onDragLeave = (item: ITreeProviderItem | null, _e: DragEvent) => {
         const key = this.dropKey(item);
         if (!this.dragEnterCounts.leave(key)) return;
         this.setDragState((s) => {
@@ -536,7 +536,7 @@ export class CategoryViewModel extends TComponentModel<
      * `GlobalEventService` installs a bubble-phase fallback that opens dropped paths as tabs,
      * which is what a folder page did with dropped files before this existed.
      */
-    onDrop = (item: ITreeProviderItem | null, e: React.DragEvent) => {
+    onDrop = (item: ITreeProviderItem | null, e: DragEvent) => {
         if (!this.acceptsDrops) return;
         e.preventDefault();
         e.stopPropagation();
@@ -600,7 +600,7 @@ export class CategoryViewModel extends TComponentModel<
 
     // ── Context menus ────────────────────────────────────────────────────
 
-    onItemContextMenu = (item: ITreeProviderItem, e: React.MouseEvent) => {
+    onItemContextMenu = (item: ITreeProviderItem, e: MouseEvent) => {
         // Right-click moves the selection to this row ONLY when the row is outside the current
         // selection. Right-clicking one of N selected rows must keep all N, so the menu it opens
         // can act on the whole set (Windows Explorer / VS Code behavior). No navigation — a
@@ -644,7 +644,7 @@ export class CategoryViewModel extends TComponentModel<
         // folder-content view gets identical link items from one central place.
         // Set contextMenuPromise so GlobalEventService waits for the async handlers
         // before showing the popup menu.
-        e.nativeEvent.contextMenuPromise = app.events.linkContextMenu.sendAsync(
+        e.contextMenuPromise = app.events.linkContextMenu.sendAsync(
             ctxEvent as ContextMenuEvent<ITreeProviderItem>,
         );
     };
@@ -669,8 +669,8 @@ export class CategoryViewModel extends TComponentModel<
     // that folder's own menu already carries its New File / New Folder items. Mirrors
     // TreeProviderViewModel.onBackgroundContextMenu, but rooted at the open category
     // rather than the provider root.
-    onBackgroundContextMenu = (e: React.MouseEvent) => {
-        const ctxEvent = e.nativeEvent.contextMenuEvent;
+    onBackgroundContextMenu = (e: MouseEvent) => {
+        const ctxEvent = e.contextMenuEvent;
         const isFolder = ctxEvent?.target && (ctxEvent.target as ITreeProviderItem).isDirectory;
         const { provider } = this.props;
 

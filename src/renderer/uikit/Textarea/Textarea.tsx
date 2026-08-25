@@ -64,14 +64,14 @@ export interface TextareaProps
      * has taken ownership of the event). Use this for URL-bar style flows where Enter must
      * trigger a submit instead of inserting a newline.
      */
-    onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
+    onKeyDown?: (event: KeyboardEvent) => void;
     /**
      * Caller-supplied paste hook. Runs BEFORE the internal handler. If the caller calls
      * `e.preventDefault()`, the internal paste-insertion is skipped (the caller has fully
      * handled the paste — typically by replacing the value through some other route).
      * Use this for paste-detection flows (e.g. cURL/fetch parsing in a URL bar).
      */
-    onPaste?: React.ClipboardEventHandler<HTMLDivElement>;
+    onPaste?: (event: ClipboardEvent) => void;
 }
 
 // --- Component ---

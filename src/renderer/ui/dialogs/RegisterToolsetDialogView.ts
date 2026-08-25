@@ -68,7 +68,7 @@ export class RegisterToolsetDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "register-toolset-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent as KeyboardEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

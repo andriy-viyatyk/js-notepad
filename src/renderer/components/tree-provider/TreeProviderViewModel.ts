@@ -739,7 +739,7 @@ export class TreeProviderViewModel extends TComponentModel<
      * when the key was consumed. Wired from TreeProviderView's wrapper onKeyDown,
      * which sees keys bubbled from the Tree.
      */
-    onTreeKeyDown = (e: React.KeyboardEvent): boolean => {
+    onTreeKeyDown = (e: KeyboardEvent): boolean => {
         // The search input (or any editable element) keeps native key behavior.
         const t = e.target as HTMLElement;
         if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) {
@@ -803,7 +803,7 @@ export class TreeProviderViewModel extends TComponentModel<
 
     // ── Context menus ────────────────────────────────────────────────────
 
-    onItemContextMenu = (node: TreeProviderNode, e: React.MouseEvent) => {
+    onItemContextMenu = (node: TreeProviderNode, e: MouseEvent) => {
         // Right-click selects the row (Windows Explorer / VS Code behavior). In multiSelect
         // mode TreeModel owns that rule (it keeps a right-click inside an existing selection
         // intact and emits through setSelection first), so only single-select writes here.
@@ -837,11 +837,11 @@ export class TreeProviderViewModel extends TComponentModel<
             );
             return result;
         })();
-        e.nativeEvent.contextMenuPromise = promise;
+        e.contextMenuPromise = promise;
     };
 
-    onBackgroundContextMenu = (e: React.MouseEvent) => {
-        const ctxEvent = e.nativeEvent.contextMenuEvent;
+    onBackgroundContextMenu = (e: MouseEvent) => {
+        const ctxEvent = e.contextMenuEvent;
         const isFolder = ctxEvent?.target && (ctxEvent.target as any).isDirectory; // eslint-disable-line @typescript-eslint/no-explicit-any
         const { provider } = this.props;
         if (isFolder) return;

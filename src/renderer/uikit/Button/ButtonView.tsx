@@ -43,6 +43,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
     protected onMount(): void {
         this.applyProps(this.props);
         this.updateContent(this.props.icon, this.props.children);
+        this.listen(this.root, "keydown", this.handleKeyDown);
         this.setRef(this.props.ref);
         this.tooltip = attachTooltip(this.root, {
             content: this.props.title ?? null,
@@ -70,6 +71,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
             icon: _icon,
             disabled,
             title: _title,
+            onKeyDown: _onKeyDown,
             hideUntilParentHover,
             children: _children,
             ref: _ref,
@@ -182,4 +184,8 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
         this.iconHost = undefined;
         this.childrenHost = undefined;
     }
+
+    private readonly handleKeyDown = (event: KeyboardEvent): void => {
+        this.props.onKeyDown?.(event);
+    };
 }

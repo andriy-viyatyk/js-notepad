@@ -45,10 +45,7 @@ const defaultIndentSize = 16;
  * flex rules. React rendered each only when its content was present, so both are attached and
  * detached rather than left empty in the flex flow.
  */
-export interface TreeItemViewProps extends TreeItemProps {
-    /** Native-only callback used by TreeView; public React callbacks are adapted by TreeItem.tsx. */
-    onChevronClickNative?: (event: MouseEvent) => void;
-}
+export type TreeItemViewProps = TreeItemProps;
 
 export class TreeItemView extends VanillaView<TreeItemViewProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
@@ -108,6 +105,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
 
         this.applyProps(this.props);
         this.setRef(this.props.ref);
+        this.listen(this.root, "contextmenu", (event) => this.props.onContextMenu?.(event));
 
         this.own(() => this.tooltip?.dispose());
         this.own(() => this.clearChevron());
@@ -150,11 +148,14 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
             hideChevron: _hideChevron,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onChevronClick: _onChevronClick,
+            // The row callback is owned by this view and must not enter the React-compatible
+            // residual-prop listener path.
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            onContextMenu: _onContextMenu,
             trailing,
             trailingVisibility = "always",
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             ref: _ref,
-            onChevronClickNative: _onChevronClickNative,
             ...rest
         } = props;
 
@@ -247,7 +248,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         // Read the handler from the live props at event time: this element outlives the row it was
         // created for, so a captured closure would call the previous row's callback.
         button.addEventListener("click", (event) => {
-            this.props.onChevronClickNative?.(event);
+            this.props.onChevronClick?.(event);
         });
         this.chevronButton = button;
         this.chevronHost.append(button);

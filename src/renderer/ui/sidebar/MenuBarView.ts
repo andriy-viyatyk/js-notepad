@@ -1,4 +1,3 @@
-import React from "react";
 import { api } from "../../../ipc/renderer/api";
 import { pagesModel } from "../../api/pages";
 import { menuFolders, type MenuFolder } from "../../api/menu-folders";
@@ -437,8 +436,8 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         this.props.onClose?.();
     }
 
-    private onLeftPanelContextMenu(event: React.MouseEvent<HTMLDivElement>): void {
-        if (event.nativeEvent.contextMenuEvent) return;
+    private onLeftPanelContextMenu(event: MouseEvent): void {
+        if (event.contextMenuEvent) return;
         const contextEvent = ContextMenuEvent.fromNativeEvent(event, "sidebar-background");
         contextEvent.items.push({
             label: "Add Folder",

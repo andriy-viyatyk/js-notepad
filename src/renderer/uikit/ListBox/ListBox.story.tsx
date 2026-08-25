@@ -126,7 +126,7 @@ function ListBoxDemo({
         : undefined;
 
     const onContextMenu = contextMenu
-        ? (e: React.MouseEvent<HTMLDivElement>) => {
+        ? (e: MouseEvent) => {
             const ctx = ContextMenuEvent.fromNativeEvent(e, "generic");
             ctx.items.push({
                 label: "List background action",

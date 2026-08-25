@@ -115,7 +115,7 @@ export class CreateBoardDialogView extends VanillaView<DialogViewProps> {
             className: props.className,
             name: "create-board-dialog",
             autoFocus: false,
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent as KeyboardEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

@@ -84,7 +84,7 @@ export class OpenUrlDialogView extends VanillaView<DialogViewProps> {
             className: props.className,
             name: "open-url-dialog",
             autoFocus: false,
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent as KeyboardEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

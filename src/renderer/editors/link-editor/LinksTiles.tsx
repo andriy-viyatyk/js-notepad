@@ -17,29 +17,29 @@ export interface LinksTilesProps {
     selectedIds?: ReadonlySet<string>;
     /** Extract ID from a link for selection matching. Defaults to link.id ?? link.href. */
     getId?: (link: ILink) => string;
-    onSelect?: (link: ILink, e?: React.MouseEvent) => void;
+    onSelect?: (link: ILink, event?: MouseEvent) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
     /** Override double-click behavior. When not set, double-click calls onEdit. */
     onDoubleClick?: (link: ILink) => void;
-    onContextMenu?: (e: React.MouseEvent, link: ILink) => void;
+    onContextMenu?: (event: MouseEvent, link: ILink) => void;
     /** Callback to get an additional registry icon for a tile (e.g., pin indicator). */
     getAdditionalIcon?: (link: ILink) => IconName | undefined;
     /** Enable drag. When set, items are draggable with this sourceId in drag payload. */
     dragSourceId?: string;
     /** First chance to take over the gesture (native OS file drag). Return true to suppress the
      *  in-process trait drag entirely. */
-    onDragStartOverride?: (link: ILink, e: React.DragEvent) => boolean;
+    onDragStartOverride?: (link: ILink, event: DragEvent) => boolean;
     /** US-896 - Tor session to fetch remote images through, when on a Tor page. */
     imageProxy?: TorProxyInfo | null;
     /** Called with the grid capability on mount, null on unmount. */
     onGridModel?: (model: GridModelCapability | null) => void;
     /** Tile drop targets. Raw DragEvents are forwarded untouched - the consumer owns the whole
      *  policy. Leave unset and tiles are not drop targets at all. */
-    onItemDragEnter?: (link: ILink, e: React.DragEvent) => void;
-    onItemDragOver?: (link: ILink, e: React.DragEvent) => void;
-    onItemDragLeave?: (link: ILink, e: React.DragEvent) => void;
-    onItemDrop?: (link: ILink, e: React.DragEvent) => void;
+    onItemDragEnter?: (link: ILink, event: DragEvent) => void;
+    onItemDragOver?: (link: ILink, event: DragEvent) => void;
+    onItemDragLeave?: (link: ILink, event: DragEvent) => void;
+    onItemDrop?: (link: ILink, event: DragEvent) => void;
     /** Id (per `getId`) of the tile currently under a drag. */
     dropTargetId?: string | null;
 }

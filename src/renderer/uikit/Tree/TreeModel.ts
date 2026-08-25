@@ -1,7 +1,5 @@
-import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, Traited, TraitType } from "../../core/traits/traits";
-import { toPublicEvent } from "../shared/react-compat";
 import { VirtualGridModel } from "../VirtualGrid";
 import type { RowAlign } from "../VirtualGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
@@ -414,10 +412,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      */
     onRootContextMenu = (e: MouseEvent) => {
         if (e.contextMenuEvent?.items.length) return;
-        // The public prop keeps its React signature — Epic F owns API cleanup — so bridge here.
-        this.props.onContextMenu?.(
-            toPublicEvent(e) as unknown as React.MouseEvent<HTMLDivElement>,
-        );
+        this.props.onContextMenu?.(e);
     };
 
     onKeyDown = this.keyboard.onKeyDown;

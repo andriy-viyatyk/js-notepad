@@ -504,7 +504,9 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                                 size="sm"
                             icon="more-vert"
                                 title="Page Menu"
-                                onClick={(e) => openMenu(e.currentTarget)}
+                                onClick={(e) => {
+                                    if (e.currentTarget instanceof Element) openMenu(e.currentTarget);
+                                }}
                             />
                         )}
                     </WithMenu>

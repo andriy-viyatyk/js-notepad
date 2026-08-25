@@ -328,7 +328,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
         editor.revealAndSelectNode(nodeId);
     }, [editor]);
 
-    const onSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const onSearchKeyDown = useCallback((e: KeyboardEvent) => {
         const results = editor.state.get().searchResults;
         const count = results?.length ?? 0;
 

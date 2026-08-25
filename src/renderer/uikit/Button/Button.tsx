@@ -4,12 +4,13 @@ import { ButtonView } from "./ButtonView";
 import type { IconRef } from "../shared/slots";
 import "./Button.css";
 
-export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title"> {
+export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title" | "onKeyDown"> {
     ref?: React.Ref<HTMLButtonElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
     title?: string;
+    onKeyDown?: (event: KeyboardEvent) => void;
     variant?: "default" | "primary" | "ghost" | "danger" | "link";
     size?: "sm" | "md";
     icon?: IconRef;

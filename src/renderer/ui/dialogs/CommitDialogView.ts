@@ -100,7 +100,7 @@ export class CommitDialogView extends VanillaView<DialogViewProps> {
             className: props.className,
             name: "commit-dialog",
             autoFocus: false,
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

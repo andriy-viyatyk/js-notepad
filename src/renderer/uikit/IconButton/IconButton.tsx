@@ -3,10 +3,11 @@ import { mountVanilla } from "../shared/mount";
 import { IconButtonView } from "./IconButtonView";
 import type { IconRef } from "../shared/slots";
 
-export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title"> {
+export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
     ref?: React.Ref<HTMLButtonElement>;
     name?: string;
     title?: string;
+    onClick?: (event: MouseEvent) => void;
     // DOM Node icons support registry-excluded language icons.
     icon: IconRef;
     size?: "sm" | "md";

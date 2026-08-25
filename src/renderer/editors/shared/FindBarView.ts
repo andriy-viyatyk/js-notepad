@@ -136,7 +136,7 @@ export class FindBarView extends VanillaView<FindBarProps> {
     }
 
     private readonly handleInputKeyDown: NonNullable<InputProps["onKeyDown"]> = (event): void => {
-        this.handleKeyDown(event.nativeEvent);
+        this.handleKeyDown(event);
     };
 
     private readonly handleKeyDown = (event: KeyboardEvent): void => {

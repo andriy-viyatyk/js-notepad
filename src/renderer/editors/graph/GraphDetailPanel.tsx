@@ -475,7 +475,7 @@ function GraphDetailPanel({
         onUpdateProps(singleNode.id, { title: value || undefined });
     }, [singleNode, editTitle, onUpdateProps]);
 
-    const handleKeyDown = useCallback((_commit: () => void) => (e: React.KeyboardEvent) => {
+    const handleKeyDown = useCallback((_commit: () => void) => (e: KeyboardEvent) => {
         if (e.key === "Enter") {
             e.preventDefault();
             (e.target as HTMLElement).blur();
@@ -1162,7 +1162,7 @@ interface InfoTabProps {
     idError: string;
     commitId: () => void;
     commitTitle: () => void;
-    handleKeyDown: (commit: () => void) => (e: React.KeyboardEvent) => void;
+    handleKeyDown: (commit: () => void) => (e: KeyboardEvent) => void;
     onUpdateProps: (nodeId: string, props: Partial<GraphNode>) => void;
 }
 

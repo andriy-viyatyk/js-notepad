@@ -1,4 +1,3 @@
-import type React from "react";
 import { maxSearchResults } from "../../../ipc/search-ipc";
 import { applyCellStyle, VirtualGridView } from "../../uikit/VirtualGrid";
 import type { RenderCellFunc } from "../../uikit/VirtualGrid";
@@ -167,7 +166,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         this.queryField = field ?? undefined;
     };
 
-    private readonly onQueryKeyDown = (event: React.KeyboardEvent): void => {
+    private readonly onQueryKeyDown = (event: KeyboardEvent): void => {
         if (event.key === "Enter") {
             event.preventDefault();
             this.model.triggerSearch();

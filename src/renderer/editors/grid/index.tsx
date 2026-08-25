@@ -56,6 +56,7 @@ function GridToolbarBits({
                 onClick={(e) => {
                     const grid = gridRefHolder.current;
                     if (grid) {
+                        if (!(e.currentTarget instanceof Element)) return;
                         showColumnsOptions(
                             e.currentTarget,
                             grid,

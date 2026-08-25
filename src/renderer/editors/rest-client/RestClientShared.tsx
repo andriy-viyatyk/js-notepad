@@ -240,7 +240,9 @@ export function SplitDetailPanel({ vm, request, state }: {
                                 size="sm"
                                 icon="copy"
                                 title="Copy request as..."
-                                onClick={(e) => setOpen(e.currentTarget)}
+                                onClick={(e) => {
+                                    if (e.currentTarget instanceof Element) setOpen(e.currentTarget);
+                                }}
                             />
                         )}
                     </WithMenu>

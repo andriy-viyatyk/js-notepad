@@ -83,10 +83,9 @@ export function setEventTraitDragData(e: DragEvent, payload: TraitDragPayload): 
 
 /** Read the trait descriptor from a drop event — the event expando first (set by the
  *  global capture handler for OS files), then the `dataTransfer` MIME. Accepts a React
- *  or native DragEvent. The one accessor every drop target uses, so internal trait
- *  drags and OS file drags read identically. */
-export function getTraitDragDataFromEvent(e: React.DragEvent | DragEvent): TraitDragPayload | null {
-    const native = "nativeEvent" in e ? e.nativeEvent : e;
-    const fromEvent = (native as { [LINK_DROP_DESCRIPTOR]?: TraitDragPayload })[LINK_DROP_DESCRIPTOR];
+ *  drag events. The one accessor every drop target uses, so internal trait drags and OS file drags
+ *  read identically. */
+export function getTraitDragDataFromEvent(e: DragEvent): TraitDragPayload | null {
+    const fromEvent = (e as { [LINK_DROP_DESCRIPTOR]?: TraitDragPayload })[LINK_DROP_DESCRIPTOR];
     return fromEvent ?? getTraitDragData(e.dataTransfer);
 }

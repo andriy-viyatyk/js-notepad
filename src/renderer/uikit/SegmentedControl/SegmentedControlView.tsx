@@ -78,7 +78,7 @@ export class SegmentedControlView extends VanillaView<SegmentedControlViewProps>
             "aria-checked": selected,
             tabIndex: index === this.fallbackIndex() ? 0 : -1,
             onClick: () => this.props.onChange(segment.value),
-            onKeyDown: (event) => this.handleKey(event.nativeEvent, index),
+            onKeyDown: (event) => this.handleKey(event, index),
             children: segment.label ?? segment.value,
         };
     }

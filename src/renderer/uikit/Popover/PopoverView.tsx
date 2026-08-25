@@ -84,6 +84,8 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         // `pointerdown` always fires, is not cancellable away, and covers touch and pen for free.
         this.listen(document, "pointerdown", this.onDocumentPointerDown);
         this.listen(document, "keydown", this.onDocumentKeyDown);
+        this.listen(this.root, "keydown", this.onRootKeyDown);
+        this.listen(this.root, "pointerdown", this.onResizePointerDown);
 
         if (this.props.contentView) {
             // Menu uses this internal branch so the floating root's direct
@@ -125,7 +127,6 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         this.model.cancelResize();
         clearRestListeners(this.root, this.restPropsState);
         this.nativeResizeHandle?.remove();
-        this.nativeResizeHandle?.removeEventListener("pointerdown", this.onNativeResizePointerDown);
         this.nativeResizeHandle = undefined;
 
         this.refCleanup?.();
@@ -167,6 +168,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
             offset: _offset,
             onClose: _onClose,
             outsideClickIgnoreSelector: _outsideClickIgnoreSelector,
+            onKeyDown: _onKeyDown,
             matchAnchorWidth: _matchAnchorWidth,
             onResize: _onResize,
             contentView: _contentView,
@@ -225,7 +227,6 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
                 <div
                     data-type="popover-resize-handle"
                     data-edge={isTop ? "top" : "bottom"}
-                    onPointerDown={(event) => this.model.onHandlePointerDown(event.nativeEvent)}
                 >
                     <ResizeHandleIcon />
                 </div>
@@ -246,7 +247,6 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         const handle = this.nativeResizeHandle ?? document.createElement("div");
         if (!this.nativeResizeHandle) {
             handle.dataset.type = "popover-resize-handle";
-            handle.addEventListener("pointerdown", this.onNativeResizePointerDown);
             handle.append(ResizeHandleIcon.createElement?.() ?? document.createElementNS(
                 "http://www.w3.org/2000/svg",
                 "svg",
@@ -257,7 +257,13 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         handle.dataset.edge = this.model.isTopPlacement ? "top" : "bottom";
     }
 
-    private readonly onNativeResizePointerDown = (event: PointerEvent): void => {
+    private readonly onRootKeyDown = (event: KeyboardEvent): void => {
+        this.props.onKeyDown?.(event);
+    };
+
+    private readonly onResizePointerDown = (event: PointerEvent): void => {
+        const target = event.target;
+        if (!(target instanceof Element) || !target.closest('[data-type="popover-resize-handle"]')) return;
         this.model.onHandlePointerDown(event);
     };
 

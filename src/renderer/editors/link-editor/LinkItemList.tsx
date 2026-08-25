@@ -71,7 +71,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds, sear
         model.deleteLink(link.id, skipConfirm);
     }, [model]);
 
-    const handleContextMenu = useCallback((e: React.MouseEvent, link: ILink) => {
+    const handleContextMenu = useCallback((e: MouseEvent, link: ILink) => {
         model.selectLink(link.id);
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "link-item");
         ctxEvent.target = link;
@@ -132,7 +132,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds, sear
         );
 
         // Layer 2: Event channel — type-aware items (browser open for HTTP, file open for local)
-        e.nativeEvent.contextMenuPromise = app.events.linkContextMenu.sendAsync(
+        e.contextMenuPromise = app.events.linkContextMenu.sendAsync(
             ctxEvent as ContextMenuEvent<ILink>,
         );
     }, [model]);

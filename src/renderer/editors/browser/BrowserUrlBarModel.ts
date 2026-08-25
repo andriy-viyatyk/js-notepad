@@ -1,4 +1,4 @@
-import { KeyboardEvent } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import {
     detectSearchEngine,
     SEARCH_ENGINES,
@@ -134,7 +134,7 @@ export class BrowserUrlBarModel {
     // Event Handlers
     // =====================================================================
 
-    handleUrlKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    handleUrlKeyDown = (e: KeyboardEvent) => {
         const s = this.model.state.get();
         const items = this.suggestionsItems;
 
@@ -198,7 +198,7 @@ export class BrowserUrlBarModel {
         this.urlInputRef?.blur();
     };
 
-    handleUrlContextMenu = (e: React.MouseEvent) => {
+    handleUrlContextMenu = (e: ReactMouseEvent) => {
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "browser-url-bar");
         ctxEvent.items.push({
             label: "Paste and Go",

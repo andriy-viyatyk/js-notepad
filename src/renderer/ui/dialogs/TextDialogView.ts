@@ -50,7 +50,7 @@ export class TextDialogView extends VanillaView<DialogViewProps> {
             className: props.className,
             name: "text-dialog",
             autoFocus: false,
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

@@ -79,7 +79,7 @@ export class McpSectionModel extends TComponentModel<McpSectionState, McpSection
         else this.setMnemePortValue(String(this.props.mnemePort));
     };
 
-    handlePortKeyDown = (event: React.KeyboardEvent) => {
+    handlePortKeyDown = (event: KeyboardEvent) => {
         if (event.key === "Enter") (event.target as HTMLInputElement).blur();
     };
 

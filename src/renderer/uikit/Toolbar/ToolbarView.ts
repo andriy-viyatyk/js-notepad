@@ -4,7 +4,6 @@ import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
-    toPublicEvent,
     type RestPropsState,
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
@@ -169,7 +168,7 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
         }
 
         const callback = this.props.onKeyDown;
-        callback?.(toPublicEvent(event) as React.KeyboardEvent<HTMLDivElement>);
+        callback?.(event);
     };
 
     private readonly onFocusIn = (event: FocusEvent): void => {
@@ -180,6 +179,6 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
             this.activeIndex = index;
             this.applyRovingTabIndex();
         }
-        this.props.onFocusCapture?.(toPublicEvent(event) as React.FocusEvent<HTMLDivElement>);
+        this.props.onFocusCapture?.(event);
     };
 }

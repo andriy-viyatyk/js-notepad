@@ -138,7 +138,7 @@ export class TorInfoDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "tor-info-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event.nativeEvent),
+            onKeyDown: (event) => model.handleKeyDown(event),
             children: contentView.root,
         } as DialogProps & { className?: string });
 
@@ -207,5 +207,4 @@ export class TorInfoDialogView extends VanillaView<DialogViewProps> {
         });
     }
 }
-
 

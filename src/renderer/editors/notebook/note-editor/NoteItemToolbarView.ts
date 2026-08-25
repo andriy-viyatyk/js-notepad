@@ -12,7 +12,6 @@ import { createPanelElement } from "../../../uikit/Panel/panel-style";
 import { SegmentedControlView, type SegmentedControlViewProps } from "../../../uikit/SegmentedControl/SegmentedControlView";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import type { EditorView } from "../../../../shared/types";
-import type React from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import "../../../uikit/SegmentedControl/SegmentedControl.css";
 
@@ -180,8 +179,8 @@ export class NoteItemToolbarView extends VanillaView<NoteItemToolbarViewProps> {
             size: "sm" as const,
             icon: createFileTypeIconElement({ language, width: 16, height: 16 }),
             title: language,
-            onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
-                this.openLanguageMenu(event.currentTarget);
+            onClick: (event: MouseEvent) => {
+                if (event.currentTarget instanceof Element) this.openLanguageMenu(event.currentTarget);
             },
         };
     }

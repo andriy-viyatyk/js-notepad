@@ -101,7 +101,7 @@ export class BrowserProfilesSectionModel extends TComponentModel<BrowserProfiles
     };
 
     handleClearProfileBookmarks = (name: string) => settings.set("browser-profiles", this.props.profiles.map((profile) => profile.name === name ? { ...profile, bookmarksFile: undefined } : profile));
-    handleKeyDown = (event: React.KeyboardEvent) => { if (event.key === "Enter") this.handleAddProfile(); };
+    handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Enter") this.handleAddProfile(); };
 
     get torPortValue(): string {
         return this.state.get().torPortValue ?? String(this.props.torSocksPort);

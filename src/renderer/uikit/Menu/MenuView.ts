@@ -147,7 +147,7 @@ class MenuContentView extends VanillaView<MenuModel> {
             value,
             onChange: this.model.onSearchChange,
             placeholder: "Search...",
-            onKeyDown: (event) => this.model.onKeyDown(event.nativeEvent),
+            onKeyDown: this.model.onKeyDown,
         };
     }
 
@@ -345,7 +345,7 @@ export class MenuView extends VanillaView<MenuProps & { ref?: React.Ref<HTMLDivE
             onClose: this.driver.model.onPopoverClose,
             onKeyDown: showSearch
                 ? undefined
-                : (event) => this.driver.model.onKeyDown(event.nativeEvent),
+                : this.driver.model.onKeyDown,
             outsideClickIgnoreSelector: '[data-type="menu"]',
             maxHeight: MAX_HEIGHT,
             scroll: false,

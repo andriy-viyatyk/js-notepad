@@ -76,7 +76,10 @@ export interface ListItemRenderContext<T> {
 // =============================================================================
 
 export interface ListBoxProps<T = IListBoxItem>
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    extends Omit<
+        React.HTMLAttributes<HTMLDivElement>,
+        "style" | "className" | "onChange" | "onContextMenu"
+    > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -134,7 +137,7 @@ export interface ListBoxProps<T = IListBoxItem>
      * empty area of the list (no row hit, OR the row's `getContextMenu` returned nothing).
      * Use this to add list-background actions ("New file", "Refresh", etc.).
      */
-    onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onContextMenu?: (event: MouseEvent) => void;
     /** Custom row renderer. Receives a context with the resolved item + flags. */
     renderItem?: (ctx: ListItemRenderContext<T>) => React.ReactNode;
     /** When true, the ListBox handles ArrowUp/ArrowDown/Home/End/Enter on its root. Default: false. */

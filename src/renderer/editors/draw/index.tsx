@@ -172,7 +172,9 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                         size="sm"
                         title="Save as file"
                         icon="download"
-                        onClick={(e) => setOpen(e.currentTarget)}
+                        onClick={(e) => {
+                            if (e.currentTarget instanceof Element) setOpen(e.currentTarget);
+                        }}
                     />
                 )}
             </WithMenu>
@@ -183,7 +185,9 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                         size="sm"
                         title="Open in new tab"
                         icon="new-window"
-                        onClick={(e) => setOpen(e.currentTarget)}
+                        onClick={(e) => {
+                            if (e.currentTarget instanceof Element) setOpen(e.currentTarget);
+                        }}
                     />
                 )}
             </WithMenu>

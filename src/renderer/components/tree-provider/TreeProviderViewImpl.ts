@@ -21,7 +21,6 @@ import type { TreeModel } from "../../uikit/Tree/TreeModel";
 import { InputView } from "../../uikit/Input/InputView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import { toPublicEvent } from "../../uikit/shared/react-compat";
 import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";
 import "./TreeProviderView.css";
@@ -97,9 +96,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         });
         this.listen(this.root, "contextmenu", (event) => {
             if (this.arm !== "tree") return;
-            this.model.onBackgroundContextMenu(
-                toPublicEvent(event) as unknown as React.MouseEvent<HTMLDivElement>,
-            );
+            this.model.onBackgroundContextMenu(event);
         });
 
         this.driver.mount();
@@ -399,12 +396,11 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     private readonly onItemContextMenu = (
         node: TreeProviderNode,
         _level: number,
-        event: React.MouseEvent<HTMLDivElement>,
+        event: MouseEvent,
     ): void => this.model.onItemContextMenu(node, event);
 
     private readonly onRootKeyDown = (event: KeyboardEvent): void => {
-        const publicEvent = toPublicEvent(event) as unknown as React.KeyboardEvent<HTMLDivElement>;
-        if (this.model.onTreeKeyDown(publicEvent)) return;
+        if (this.model.onTreeKeyDown(event)) return;
         if (event.ctrlKey && event.key === "f") {
             event.preventDefault();
             event.stopPropagation();
@@ -419,7 +415,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         }
     };
 
-    private readonly onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    private readonly onSearchKeyDown = (event: KeyboardEvent): void => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();

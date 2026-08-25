@@ -34,7 +34,7 @@ export function LinkTooltipContent({ link, allTags, onToggleTag, showCopyJson, i
         setNewTag("");
     }, [link, onToggleTag]);
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === "Enter") {
             e.preventDefault();
             commitNewTag((e.target as HTMLInputElement).value);

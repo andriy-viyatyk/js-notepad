@@ -1,4 +1,3 @@
-import type React from "react";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
@@ -179,7 +178,7 @@ export class FileListView extends VanillaView<FileListProps> {
         this.driver.model.hideSearchAndFocus();
     };
 
-    private readonly onSearchKeyDown = (event: React.KeyboardEvent): void => {
+    private readonly onSearchKeyDown = (event: KeyboardEvent): void => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
