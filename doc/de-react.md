@@ -835,6 +835,33 @@ import are gone. Opening the four surfaces now creates 0 React roots, down from 
 `data-react-root` is authoritative, while `data-part="react-slot"` can be present on native Dialog
 and Tag slots and therefore over-report.
 
+**E8 ([EPIC-066](epics/completed.md)) deleted the synthetic-event round trip.** Converted views no
+longer type their public props with React event types, so none of them wraps the native event it
+already has: the 27 `toPublicEvent` call sites outside `react-compat.ts` are gone, along with all 17
+`as unknown as` double casts and all 11 lossy `nativeEvent as KeyboardEvent`/`as MouseEvent` casts.
+`.nativeEvent` reads went 32 → 1, `core/traits/dnd.ts`'s dual arm collapsed, and already-vanilla `.ts`
+files importing React went 65 → 58. `toPublicEvent` and `PublicEventHandler` are module-private rather
+than deleted, because `applyRestProps` uses both — a direct contradiction between two of that epic's
+own non-goals, invisible until the external caller count reached zero.
+
+Two lessons from E8 that later epics should carry:
+
+- **A `mountVanilla` face is not a React implementation.** React never creates events for a view whose
+  DOM node belongs to a vanilla view, so React event types on such props are nominal for *every*
+  caller, JSX included. This is the test that separates a dead dual arm from a load-bearing one — and
+  the one surviving arm (`core/events/context-menu.ts`) is load-bearing precisely because four real
+  React components in the browser and link editors still dispatch to it. The rule now lives in
+  [standards/model-view-pattern.md](standards/model-view-pattern.md).
+- **Compute task boundaries from the type graph, not the directory tree.** E8's breakdown was mis-cut
+  three times by folder and produced one red build before settling on *the connected component of the
+  prop-type graph* as the atomic unit: retyping a prop breaks all of its callers in the same compile,
+  and two prop chains that meet at a single forwarding caller are one unit. Keeping green `tsc` a
+  per-task gate rather than an end-of-epic one is what caught it.
+
+E8 also confirmed, deliberately, that **Rule 4 does not measure everything**: its root count did not
+move, because it removed event *translation* rather than roots. The root count measures the React that
+renders, not the React that types, and the remaining work is increasingly the latter.
+
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
 the former measured React grid wrapper unmounting off-screen rows — `renderInfo.ts:314` keys

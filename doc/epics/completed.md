@@ -4,6 +4,57 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-066 — [De-React Epic E8: delete the synthetic-event round trip](EPIC-066.md)
+
+The contract was found by search, not inherited: **65 already-vanilla `.ts` files still imported
+React**, and **48 of the React symbols they used were event types**. Converted views were typing their
+public props with React event types, so a vanilla view wrapped the native event it already had via
+`toPublicEvent` and its caller unwrapped it again. **All 27 wrap sites were cast, 17 with the double
+`as unknown as`** — the compiler stating outright that the prop type was wrong. Six tasks, all
+reviewed.
+
+| Measure | Start | End |
+|---|---|---|
+| `toPublicEvent` call sites outside `react-compat.ts` | 27 | **0** |
+| …using `as unknown as` | 17 | **0** |
+| Exported `toPublicEvent` / `PublicEventHandler` | 2 | **0** (module-private) |
+| Lossy `nativeEvent as KeyboardEvent`/`as MouseEvent` casts | 11 | **0** |
+| `.nativeEvent` read sites | 32 | **1** |
+| Dual-armed `"nativeEvent" in e` accessors | 2 | **1** |
+| Already-vanilla `.ts` files importing React | 65 | **58** |
+
+**Rule 4 deliberately did not move** (7 roots on a 7-page session): this epic removed event
+*translation*, not roots — the root count measures the React that renders, not the React that types.
+Verified live on a cold-started app: all nine converted seams deliver a real native event class
+(`Dialog`, `Toolbar`, `Textarea` keydown/paste, `ListBox`/`Tree` context menu, `Input`/`Button`
+keydown), asserted on `constructor.name`, which the old `Object.create(null)` Proxy could never
+report.
+
+Its central finding is a reusable test: **a `mountVanilla` face is not a React implementation.** React
+never creates events for a view whose DOM node belongs to a vanilla view, so React event types on such
+props are nominal for *every* caller, JSX included — which is what separates a dead dual arm from a
+load-bearing one. Three self-corrections are recorded in the epic: the closing property promised to
+delete `toPublicEvent`, but `applyRestProps` calls it (E8-13); the task breakdown was mis-cut three
+times by directory, costing one red build, before settling on *the connected component of the
+prop-type graph* as the atomic unit (E8-8); and E8-11 was stated as an absolute about the app when the
+evidence only supported a claim about `uikit/` (E8-14).
+
+- [x] [US-1093: Pilot + seam decision — `Textarea`](../tasks/US-1093-textarea-native-events/README.md)
+- [x] [US-1094: The React-faced four + all 14 dialog callers](../tasks/US-1094-react-faced-native-events/README.md)
+- [x] [US-1095: The `onContextMenu` prop chain](../tasks/US-1095-context-menu-native-events/README.md)
+- [x] [US-1096: `components/tree-provider`](../tasks/US-1096-tree-provider-native-events/README.md)
+- [x] [US-1097: `editors/link-editor` + `ui/sidebar`](../tasks/US-1097-link-editor-native-events/README.md)
+- [x] [US-1098: Close the round trip](../tasks/US-1098-close-the-round-trip/README.md)
+
+**Left deliberately:** `applyRestProps` / `clearRestListeners` (39/38 files) and `bindRef` (17) — the
+JSX rest-props bridge, which goes with `<TextChrome>` at the end of the programme;
+`core/events/context-menu.ts`'s dual arm, blocked behind the browser editor and the link-editor React
+islands, which still dispatch genuine SyntheticEvents; and the two JSX-free `mountVanilla` faces in
+`components/tree-provider`, left for a deliberate sweep of the population EPIC-064 measured rather
+than renamed for sitting in a touched folder.
+
+---
+
 ## EPIC-065 — [De-React Epic E7: the dialog/popper view registry](EPIC-065.md)
 
 The contract was `core/state/view.tsx`'s `Views.registerView(viewId, React.FC)` /

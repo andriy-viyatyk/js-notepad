@@ -92,11 +92,51 @@ Overview of all active and planned epics and tasks.
   free epic number: **EPIC-066**; next free task number: **US-1093**. **Closing property met:**
   `core/state/view.tsx` is deleted, `ui/dialogs/dialog-view-registry.ts` is the only registry, and the
   four surfaces open with **0** React roots (from 10). It leaves `theme/GlobalStyles.tsx` as the last
-  non-story Emotion importer. **No E8 candidate is named here on purpose** — E5-1 requires the next
+  non-story Emotion importer. It named **no E8 candidate on purpose** — E5-1 requires the next
   epic to run its own contract search, and E7 is the third consecutive epic whose axis was found by
-  searching rather than inherited from the folder the previous one touched. What remains unscheduled:
-  `graph` (3,259), the browser editor (1,692), and the `editors/base` chrome with its 24 `<TextChrome>`
-  call sites, which stay last (E1-8).
+  searching rather than inherited from the folder the previous one touched. **E8 is
+  [EPIC-066](epics/completed.md), complete 2026-08-26** — that search was run over the whole import graph and found
+  the contract in the one number nobody had looked at: **65 already-vanilla `.ts` files still import
+  React**, and **48 of the React symbols they use are event types**. The contract is that *the public
+  props of converted views are typed with React event types*, mediated by `toPublicEvent` in
+  `uikit/shared/react-compat.ts` — so a vanilla view wraps the native event it already has, and its
+  caller unwraps it again. **All 27 wrap sites are cast, 17 of them with the double `as unknown as`**,
+  which is the compiler stating that the prop type is wrong; the other end reads `.nativeEvent` at 32
+  sites and needs 11 lossy `as KeyboardEvent`/`as MouseEvent` casts. The tell is the dual-armed
+  `"nativeEvent" in e ? e.nativeEvent : e` in `core/events/context-menu.ts` and `core/traits/dnd.ts`
+  — the same shape as every contract this programme has deleted, now found in the two accessors every
+  context menu and every drop target funnels through. Two scoping decisions worth carrying forward:
+  **Rule 4 will not move**, because `toPublicEvent` translates events rather than creating roots (the
+  second consecutive epic needing a different metric — the root count measures the React that
+  *renders*, not the React that *types*); and the ordering is **hardest first**, because one seam
+  decision governs all 27 sites, so the pilot is a React-faced view (`Textarea`, whose
+  `ClipboardEvent` is the WebIDL case the Proxy was built for) rather than one of the eight easy
+  pure-vanilla files. Rivals rejected on numbers: `Tree`/`ListBox` `renderItem` (**0** real callers —
+  a dead arm, the third time that pattern has appeared), `highlight()`'s React form (**1** caller,
+  blocked behind graph), and the graph editor (line count, and a contract exists). Deliberately out of
+  scope: `applyRestProps`/`clearRestListeners` (**39/38** files) and `bindRef` (17) — the JSX
+  rest-props compatibility layer that made incremental conversion possible, which can only go after
+  the last JSX caller and therefore belongs with `<TextChrome>` at the end. **Closing property met,
+  with two corrections recorded rather than quietly dropped:** `toPublicEvent` and
+  `PublicEventHandler` are **module-private, not deleted** — `applyRestProps` calls both, so the
+  epic's own two non-goals contradicted each other and it went unnoticed until the external count hit
+  zero (E8-13); and **one dual arm survives**, `core/events/context-menu.ts`, because four genuine
+  React components in the browser and link editors still dispatch real SyntheticEvents (E8-14).
+  Everything else reads 0: 27 wrap sites, 17 `as unknown as`, 11 lossy casts, and 31 of the 32
+  `.nativeEvent` reads are gone; already-vanilla `.ts` files importing React went **65 → 58**.
+  **Rule 4 deliberately did not move** (7 roots), as E8-4 predicted — the root count measures the
+  React that *renders*, not the React that *types*, and that is increasingly what remains. Its
+  transferable finding is a test, now written into
+  [`model-view-pattern.md`](standards/model-view-pattern.md): **a `mountVanilla` face is not a React
+  implementation**, so React event types on its props are nominal for every caller — which is what
+  distinguishes a dead dual arm from a load-bearing one. Its most expensive lesson is a process one:
+  the task breakdown was mis-cut **three times** by scoping to directories, costing one red build,
+  before settling on *the connected component of the prop-type graph* as the atomic unit. Next free
+  epic number: **EPIC-067**; next free task number: **US-1099**. **No E9 candidate is named here on
+  purpose** — E5-1 requires the next epic to run its own contract search, now four consecutive times
+  vindicated. What remains unscheduled: `graph` (8,100 lines across the folder), the browser editor
+  (1,692), and the `editors/base` chrome with its 24 `<TextChrome>` call sites, which stay last
+  (E1-8) — and which now share their fate with the `applyRestProps` bridge.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

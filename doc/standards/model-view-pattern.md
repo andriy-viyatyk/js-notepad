@@ -212,6 +212,12 @@ The model remains independent of the DOM. A React View renders JSX and uses Reac
 a vanilla View owns a stable DOM root and uses native events. Adapters belong at the boundary, not
 inside model methods or ordinary component props.
 
+When a React face is only `mountVanilla(View, props)`, the face does not own a React-rendered DOM
+element and therefore does not receive SyntheticEvents, even when a caller is written in JSX. Its
+event props should use the corresponding native DOM event types, and the view should pass its native
+listener event through unchanged. Keep a React-event adapter only for a face that renders the
+element itself and is actually dispatched to by React.
+
 ## Vanilla lifecycle
 
 `VanillaView<P>` is the framework-free lifecycle base at

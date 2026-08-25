@@ -12,16 +12,16 @@ persephone uses a custom context menu system that replaces the native browser co
 User right-clicks
     |
     v
-React onContextMenu handler (deepest child)
+Native or React-owned onContextMenu handler (deepest child)
     -> ContextMenuEvent.fromNativeEvent(e, targetKind)
     -> Pushes items to ctxEvent.items
     |
     v  (DOM event bubbles up)
-React onContextMenu handler (parent)
+Native or React-owned onContextMenu handler (parent)
     -> Reuses same ContextMenuEvent via fromNativeEvent()
     -> Pushes more items
     -> Optionally fires EventChannel (sendAsync) for script integration
-    -> Attaches promise to e.nativeEvent.contextMenuPromise
+    -> Attaches promise to the native event's contextMenuPromise expando
     |
     v  (DOM event bubbles to document)
 GlobalEventService.handleContextMenu()
@@ -37,7 +37,10 @@ AppPopupMenuModel
 
 ## ContextMenuEvent on the Native Event
 
-All context menu handlers communicate through a shared `ContextMenuEvent` object attached to the native DOM event:
+All context menu handlers communicate through a shared `ContextMenuEvent` object attached to the native DOM event.
+Handlers on `mountVanilla` faces receive a native `MouseEvent` directly. A React-owned element may
+still supply a React event; `fromNativeEvent` unwraps that one genuine React boundary before reading
+the same native expando.
 
 ```typescript
 // Type augmentation (src/renderer/types/events.d.ts)
@@ -105,7 +108,7 @@ Target types marked with "—" are not yet wired to EventChannels. As new EventC
 Handlers push items to `ContextMenuEvent.items` and let the event bubble to `GlobalEventService`:
 
 ```typescript
-onContextMenu = (e: React.MouseEvent) => {
+onContextMenu = (e: MouseEvent) => {
     const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "my-kind");
     ctxEvent.items.push(
         { label: "Action 1", onClick: () => { ... } },
@@ -137,7 +140,8 @@ The EventChannel system allows scripts to subscribe to context menu events and m
 
 1. **Item handler** sets the typed `target` on the event
 2. **Container handler** (parent in the DOM tree) fires `sendAsync()` after all built-in items are collected
-3. The promise is attached to `e.nativeEvent.contextMenuPromise`
+3. The promise is attached to the native event's `contextMenuPromise` expando (unwrap a React event
+   first only when the handler is attached to a React-owned element)
 4. `GlobalEventService` awaits the promise before showing the menu
 5. Scripts see all items and can push, remove, or replace them
 

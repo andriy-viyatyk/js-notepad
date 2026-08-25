@@ -40,7 +40,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Shared DOM id allocation for generated component elements | `/src/renderer/uikit/shared/element-id.ts` |
 | React/vanilla boundary adapters (`mountVanilla` stable host, `mountReact`/`mountReactHandle` owned roots, commit-safe host replacement, and `data-react-root` observability marker for direct React islands) | `/src/renderer/uikit/shared/mount.tsx` |
 | React-valued slot bridge (host ownership, React-root reuse, and deferred disposal across React commits) | `/src/renderer/uikit/shared/fill-slot.ts` |
-| Native bridge for residual React props/events (`applyRestProps`, branded-event facade, and ref cleanup) | `/src/renderer/uikit/shared/react-compat.ts` |
+| Native bridge for residual React props/events (`applyRestProps`, its module-private branded-event facade, and ref cleanup) | `/src/renderer/uikit/shared/react-compat.ts` |
 | Non-React component model driver (initial prop pump, explicit mount/update/dispose, and zero-effect guard) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
 | Framework-free virtualization engine (render-window calculation, pooled cells, sticky regions, scroll/resize handling, and scheduled repaint) | `/src/renderer/uikit/VirtualGrid/` |
