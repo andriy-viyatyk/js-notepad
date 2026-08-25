@@ -1,10 +1,9 @@
-import React from "react";
 import { TComponentState } from "../../core/state/state";
 import {
     EditorModel,
     type EditorStateBase,
 } from "../base/EditorModel";
-import { FolderIcon } from "../../components/icons/FileIcon";
+import { createFolderIconElement } from "../../components/icons/icon-elements";
 import { fpBasename } from "../../core/utils/file-path";
 import {
     decodeCategoryLink,
@@ -34,12 +33,15 @@ export class CategoryEditorModel extends EditorModel<CategoryEditorModelState> {
 
     constructor(state?: TComponentState<CategoryEditorModelState>) {
         super(state ?? new TComponentState(getDefaultCategoryEditorModelState()));
-        this.getIcon = () => React.createElement(
-            "span",
-            { style: { display: "inline-block", transform: "translate(-2px, -3px)" } },
-            React.createElement(FolderIcon),
-        );
     }
+
+    getIconElement = (): HTMLElement => {
+        const wrapper = document.createElement("span");
+        wrapper.style.display = "inline-block";
+        wrapper.style.transform = "translate(-2px, -3px)";
+        wrapper.append(createFolderIconElement());
+        return wrapper;
+    };
 
     /** Decoded category path from the tree-category:// link in filePath. */
     get categoryPath(): string {

@@ -2,7 +2,6 @@ import { settings } from "../../../api/settings";
 import { app } from "../../../api/app";
 import { api } from "../../../../ipc/renderer/api";
 import { fpBasename } from "../../../core/utils/file-path";
-import { CloseIcon } from "../../../theme/icons";
 import color from "../../../theme/color";
 import { Panel } from "../../../uikit/Panel";
 import { Button } from "../../../uikit/Button";
@@ -259,7 +258,7 @@ export function VideoPlayerSection() {
                     {vlcFilename
                         ? <span style={{ ...labelTextStyle, ...linkStyle }} title={vlcPath} onClick={() => void handleBrowseVlc()}>{vlcFilename}</span>
                         : <span style={{ ...labelTextStyle, ...placeholderStyle }} onClick={() => void handleBrowseVlc()}>Auto-detect</span>}
-                    {vlcFilename && <IconButton size="sm" icon={<CloseIcon />} title="Remove VLC path" onClick={() => settings.set("vlc-path", "")} />}
+                    {vlcFilename && <IconButton size="sm" icon="close" title="Remove VLC path" onClick={() => settings.set("vlc-path", "")} />}
                 </Panel>
                 <Panel direction="row" align="center" gap="md" paddingTop="xs" paddingRight="md" paddingBottom="sm" paddingLeft="xxl">
                     <span style={fieldLabelStyle}>Stream port:</span>

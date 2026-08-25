@@ -6,7 +6,6 @@ import { Button } from "../Button/Button";
 import { IconButton } from "../IconButton/IconButton";
 import { Input } from "../Input/Input";
 import { Text } from "../Text/Text";
-import { SettingsIcon, RenameIcon } from "../../theme/icons";
 import { Story } from "../../editors/storybook/storyTypes";
 
 interface DemoProps {
@@ -79,13 +78,13 @@ function DialogDemo({
                     >
                         <DialogContent
                             title="Edit settings"
-                            icon={showIcon ? <RenameIcon /> : undefined}
+                            icon={showIcon ? "rename" : undefined}
                             onClose={() => setOpen(false)}
                             headerButtons={
                                 showHeaderButtons ? (
                                     <IconButton
                                         size="sm"
-                                        icon={<SettingsIcon />}
+                                        icon="settings"
                                         aria-label="More"
                                     />
                                 ) : undefined

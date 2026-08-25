@@ -10,7 +10,6 @@ import {
 } from "../../uikit";
 import type { MenuItem } from "../../uikit";
 import universalColors from "../../theme/universal-colors";
-import { CopyIcon, DeleteIcon } from "../../theme/icons";
 import { app } from "../../api/app";
 import { RequestBuilder } from "./RequestBuilder";
 import { ResponseViewer, getResponseSize } from "./ResponseViewer";
@@ -239,7 +238,7 @@ export function SplitDetailPanel({ vm, request, state }: {
                             <IconButton
                                 name="request-copy-as"
                                 size="sm"
-                                icon={<CopyIcon />}
+                                icon="copy"
                                 title="Copy request as..."
                                 onClick={(e) => setOpen(e.currentTarget)}
                             />
@@ -248,7 +247,7 @@ export function SplitDetailPanel({ vm, request, state }: {
                     <IconButton
                         name="request-delete"
                         size="sm"
-                        icon={<DeleteIcon />}
+                        icon="delete"
                         title="Delete request"
                         onClick={handleDelete}
                     />

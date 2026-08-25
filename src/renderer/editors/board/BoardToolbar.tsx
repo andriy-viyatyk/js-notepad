@@ -13,7 +13,7 @@ import { IconButton } from "../../uikit/IconButton";
 import { Text } from "../../uikit/Text";
 import { Popover } from "../../uikit/Popover";
 import { Dot } from "../../uikit/Dot";
-import { RefreshIcon, LogIcon, NavPanelIcon, InfoIcon } from "../../theme/icons";
+import { createIconElement } from "../../uikit/shared/slots";
 import { SwitchWidget } from "../base/PageToolbar";
 import { openBoardInfo } from "../board-info/open-board-info";
 import { BoardsTree } from "./BoardsTree";
@@ -96,7 +96,7 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
                 name="board-toolbar-explorer"
                 size="sm"
                 title="File Explorer"
-                icon={<NavPanelIcon width={14} height={14} />}
+                icon={createIconElement("nav-panel", { width: 14, height: 14 })}
                 onClick={() => void model.page?.toggleNavigator(null, boardRoot)}
             />
             {/* Full board path → switcher anchor. The click handler is on the Text (the label)
@@ -126,14 +126,14 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
                 name="board-toolbar-reload"
                 size="sm"
                 title="Reload board"
-                icon={<RefreshIcon width={14} height={14} />}
+                icon={createIconElement("refresh", { width: 14, height: 14 })}
                 onClick={() => model.reloadBoard()}
             />
             <IconButton
                 name="board-toolbar-log"
                 size="sm"
                 title="Open board log"
-                icon={<LogIcon width={14} height={14} />}
+                icon={createIconElement("log", { width: 14, height: 14 })}
                 onClick={() => void openLog()}
             />
             {/* Board properties (EPIC-045 / US-867) — navigates the page to the Board Info screen
@@ -144,7 +144,7 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
                     name="board-toolbar-properties"
                     size="sm"
                     title={hasUpdate ? "Board properties — update available" : "Board properties"}
-                    icon={<InfoIcon width={14} height={14} />}
+                icon={createIconElement("info", { width: 14, height: 14 })}
                     onClick={openProperties}
                 />
                 {hasUpdate && (

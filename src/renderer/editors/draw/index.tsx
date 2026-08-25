@@ -6,7 +6,6 @@ import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit/IconButton";
 import { WithMenu } from "../../uikit/Menu";
 import type { MenuItem } from "../../uikit/Menu";
-import { SunIcon, MoonIcon, CopyIcon, DownloadIcon, NewWindowIcon, SnipIcon } from "../../theme/icons";
 import { exportAsSvgText, exportAsPngBlob, getImageDimensions, IMAGE_OFFSET_X, IMAGE_OFFSET_Y } from "./drawExport";
 import { convertToExcalidrawElements, MIME_TYPES } from "@excalidraw/excalidraw";
 import type { DataURL } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
@@ -156,14 +155,14 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                 name="draw-theme"
                 size="sm"
                 title={darkMode ? "Switch to Light Theme" : "Switch to Dark Theme"}
-                icon={darkMode ? <SunIcon /> : <MoonIcon />}
+                icon={darkMode ? "sun" : "moon"}
                 onClick={editor.toggleDarkMode}
             />
             <IconButton
                 name="draw-copy-image"
                 size="sm"
                 title="Copy Image to Clipboard"
-                icon={<CopyIcon />}
+                icon="copy"
                 onClick={handleCopyToClipboard}
             />
             <WithMenu items={saveMenuItems}>
@@ -172,7 +171,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                         name="draw-save"
                         size="sm"
                         title="Save as file"
-                        icon={<DownloadIcon />}
+                        icon="download"
                         onClick={(e) => setOpen(e.currentTarget)}
                     />
                 )}
@@ -183,7 +182,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                         name="draw-open-new-tab"
                         size="sm"
                         title="Open in new tab"
-                        icon={<NewWindowIcon />}
+                        icon="new-window"
                         onClick={(e) => setOpen(e.currentTarget)}
                     />
                 )}
@@ -192,7 +191,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                 name="draw-snip"
                 size="sm"
                 title="Screen Snip"
-                icon={<SnipIcon />}
+                icon="snip"
                 onClick={handleScreenSnip}
             />
         </>

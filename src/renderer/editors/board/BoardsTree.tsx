@@ -1,5 +1,6 @@
 import type React from "react";
 import type { MenuItem } from "../../uikit/Menu";
+import type { SlotText } from "../../uikit/shared/slots";
 import { mountVanilla } from "../../uikit/shared/mount";
 import { BoardsTreeView } from "./BoardsTreeView";
 
@@ -31,7 +32,7 @@ export interface BoardsTreeProps {
     /** Optional per-board context menu (e.g. the global tab's "Remove"). Boards only. */
     getBoardContextMenu?: (root: string) => MenuItem[] | undefined;
     /** Shown when `boards` is empty. */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText | Node;
 }
 
 export function BoardsTree(props: BoardsTreeProps): React.ReactElement {

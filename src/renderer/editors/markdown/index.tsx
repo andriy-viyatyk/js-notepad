@@ -3,7 +3,6 @@ import { MarkdownEditor, defaultMarkdownEditorState } from "./MarkdownEditor";
 import { MarkdownBodyView } from "./MarkdownBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { Button, IconButton } from "../../uikit";
-import { ArrowLeftIcon, CompactViewIcon, NormalViewIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 import { mountVanilla } from "../../uikit/shared/mount";
@@ -16,7 +15,7 @@ function MarkdownToolbarBits({ model }: { model: MarkdownEditor }) {
             size="sm"
             active={compactMode}
             title={compactMode ? "Normal View" : "Compact View"}
-            icon={compactMode ? <NormalViewIcon /> : <CompactViewIcon />}
+            icon={compactMode ? "normal-view" : "compact-view"}
             onClick={model.toggleCompact}
         />
     );
@@ -34,7 +33,7 @@ function MarkdownBackButton({ model }: { model: MarkdownEditor }) {
             variant="ghost"
             size="sm"
             title="Back"
-            icon={<ArrowLeftIcon />}
+            icon="arrow-left"
             onClick={() => void model.navigateBack()}
         >
             Back

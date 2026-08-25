@@ -278,13 +278,9 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     // Slots
     // -----------------------------------------------------------------------
 
-    /**
-     * An icon *name* becomes a DOM `svg` with no React root; anything else is a React node and goes
-     * through `fillSlot`. React rendered the host only when `icon` was truthy, so an absent icon
-     * detaches the host rather than leaving an empty flex item behind.
-     */
+    /** An icon *name* becomes a DOM `svg` with no React root. */
     private setIcon(icon: IconRef | undefined, iconElement: Node | undefined): void {
-        if (iconElement === undefined && (icon == null || icon === false || icon === "")) {
+        if (iconElement === undefined && icon == null) {
             this.directIconElement = undefined;
             if (this.iconAttached) {
                 this.iconCleanup?.();

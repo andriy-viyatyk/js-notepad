@@ -7,7 +7,6 @@ import { Button } from "../../uikit/Button";
 import { Spinner } from "../../uikit/Spinner";
 import { TagsInput } from "../../uikit/TagsInput";
 import { DateInput } from "../../uikit/DateInput";
-import { SearchIcon, ChevronDownIcon, ChevronRightIcon, CloseIcon } from "../../theme/icons";
 import type { IListBoxItem } from "../../uikit/ListBox";
 import { MarkdownBlock } from "../markdown";
 import {
@@ -118,7 +117,7 @@ export function MnemeRootEditorView({ model }: { model: MnemeRootEditorModel }) 
                     <Button
                         name="mneme-filters-toggle"
                         size="sm"
-                        icon={filtersOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}
+                        icon={filtersOpen ? "chevron-down" : "chevron-right"}
                         onClick={toggleFilters}
                     >
                         {activeFilterCount > 0 ? `Filters (${activeFilterCount})` : "Filters"}
@@ -126,7 +125,7 @@ export function MnemeRootEditorView({ model }: { model: MnemeRootEditorModel }) 
                     <Button
                         name="mneme-search-run"
                         size="sm"
-                        icon={<SearchIcon />}
+                        icon="search"
                         onClick={() => void model.runSearch()}
                         disabled={busy || !s.rootName}
                     >
@@ -191,7 +190,7 @@ export function MnemeRootEditorView({ model }: { model: MnemeRootEditorModel }) 
                                     name="mneme-filters-clear"
                                     variant="link"
                                     size="sm"
-                                    icon={<CloseIcon />}
+                                    icon="close"
                                     onClick={() => model.clearFilters()}
                                 >
                                     Clear

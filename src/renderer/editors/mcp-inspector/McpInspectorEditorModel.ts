@@ -1,4 +1,3 @@
-import { createElement, ReactNode } from "react";
 import {
     EditorModel,
     type EditorStateBase,
@@ -772,9 +771,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         await super.dispose();
     }
 
-    getIcon = (): ReactNode => {
-        return createElement(McpIcon);
-    };
+    getIconElement = (): SVGElement | undefined => McpIcon.createElement?.();
 }
 
 // ============================================================================

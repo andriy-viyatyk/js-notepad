@@ -1,4 +1,3 @@
-import React from "react";
 import { pagesModel } from "../../api/pages";
 import { fs } from "../../api/fs";
 import { BrowserProfile } from "../../api/settings";
@@ -6,9 +5,9 @@ import {
     DrawIcon, GraphIcon, GridIcon, IncognitoIcon, RestClientIcon, TorIcon,
     JavascriptIcon, LinkIcon, NotebookIcon, TypescriptIcon,
 } from "../../theme/language-icons";
-import { GlobeIcon, McpIcon, MemoryIcon, OpenFileIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
-import { FolderIcon } from "../../components/icons/FileIcon";
 import { DEFAULT_BROWSER_COLOR, MEMORY_ICON_COLOR } from "../../theme/palette-colors";
+import { createFolderIconElement } from "../../components/icons/icon-elements";
+import { createIconElement } from "../../uikit/shared/slots";
 import type { IconRef } from "../../uikit";
 
 // =============================================================================
@@ -28,6 +27,7 @@ export interface CreatableItem {
     category: "editor" | "tool";
 }
 
+
 // =============================================================================
 // Default pinned IDs
 // =============================================================================
@@ -44,7 +44,7 @@ const staticItems: CreatableItem[] = [
     {
         id: "open-folder",
         label: "Open Folder",
-        icon: React.createElement(FolderIcon),
+        icon: createFolderIconElement(),
         create: () => {
             void (async () => {
                 const picked = await fs.showFolderDialog({ title: "Open Folder in Explorer" });
@@ -58,126 +58,126 @@ const staticItems: CreatableItem[] = [
     {
         id: "open-file",
         label: "Open File",
-        icon: React.createElement(OpenFileIcon),
+        icon: createIconElement("open-file"),
         create: () => { void pagesModel.openFileFromDialog(); },
         category: "tool",
     },
     {
         id: "open-url",
         label: "Open URL",
-        icon: React.createElement(OpenFileIcon),
+        icon: createIconElement("open-file"),
         create: () => { void pagesModel.openFileWithDialog(); },
         category: "tool",
     },
     {
         id: "script-js",
         label: "Script (JS)",
-        icon: React.createElement(JavascriptIcon),
+        icon: JavascriptIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("monaco", "javascript", "untitled.js"),
         category: "editor",
     },
     {
         id: "script-ts",
         label: "Script (TS)",
-        icon: React.createElement(TypescriptIcon),
+        icon: TypescriptIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("monaco", "typescript", "untitled.ts"),
         category: "editor",
     },
     {
         id: "draw-view",
         label: "Drawing",
-        icon: React.createElement(DrawIcon),
+        icon: DrawIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("draw-view", "json", "untitled.excalidraw"),
         category: "editor",
     },
     {
         id: "grid-json",
         label: "Grid (JSON)",
-        icon: React.createElement(GridIcon),
+        icon: GridIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("grid-json", "json", "untitled.grid.json"),
         category: "editor",
     },
     {
         id: "grid-csv",
         label: "Grid (CSV)",
-        icon: React.createElement(GridIcon),
+        icon: GridIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("grid-csv", "csv", "untitled.grid.csv"),
         category: "editor",
     },
     {
         id: "notebook-view",
         label: "Notebook",
-        icon: React.createElement(NotebookIcon),
+        icon: NotebookIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("notebook-view", "json", "untitled.note.json"),
         category: "editor",
     },
     {
         id: "link-view",
         label: "Links",
-        icon: React.createElement(LinkIcon),
+        icon: LinkIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("link-view", "json", "untitled.link.json"),
         category: "editor",
     },
     {
         id: "graph-view",
         label: "Force Graph",
-        icon: React.createElement(GraphIcon),
+        icon: GraphIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("graph-view", "json", "untitled.fg.json"),
         category: "editor",
     },
     {
         id: "rest-client",
         label: "Rest Client",
-        icon: React.createElement(RestClientIcon),
+        icon: RestClientIcon.createElement?.(),
         create: () => pagesModel.addEditorPage("rest-client", "json", "untitled.rest.json"),
         category: "tool",
     },
     {
         id: "browser",
         label: "Browser",
-        icon: React.createElement(GlobeIcon, { color: DEFAULT_BROWSER_COLOR }),
+        icon: createIconElement("globe", { color: DEFAULT_BROWSER_COLOR }),
         create: () => { pagesModel.showBrowserPage(); },
         category: "tool",
     },
     {
         id: "browser-incognito",
         label: "Browser (Incognito)",
-        icon: React.createElement(IncognitoIcon),
+        icon: IncognitoIcon.createElement?.(),
         create: () => { pagesModel.showBrowserPage({ incognito: true }); },
         category: "tool",
     },
     {
         id: "browser-tor",
         label: "Browser (Tor)",
-        icon: React.createElement(TorIcon),
+        icon: TorIcon.createElement?.(),
         create: () => { pagesModel.showBrowserPage({ tor: true }); },
         category: "tool",
     },
     {
         id: "mcp-inspector",
         label: "MCP Inspector",
-        icon: React.createElement(McpIcon),
+        icon: createIconElement("mcp"),
         create: () => { pagesModel.showMcpInspectorPage(); },
         category: "tool",
     },
     {
         id: "mneme-config",
         label: "Mneme",
-        icon: React.createElement(MemoryIcon, { color: MEMORY_ICON_COLOR }),
+        icon: createIconElement("memory", { color: MEMORY_ICON_COLOR }),
         create: () => { pagesModel.showMnemeConfigPage(); },
         category: "tool",
     },
     {
         id: "storybook",
         label: "Storybook",
-        icon: React.createElement(StorybookIcon),
+        icon: createIconElement("storybook"),
         create: () => { pagesModel.showStorybookPage(); },
         category: "tool",
     },
     {
         id: "video-view",
         label: "Video Player",
-        icon: React.createElement(PlayerIcon, { color: DEFAULT_BROWSER_COLOR }),
+        icon: createIconElement("player", { color: DEFAULT_BROWSER_COLOR }),
         create: () => pagesModel.showVideoPlayerPage(),
         category: "tool" as const,
     },
@@ -193,7 +193,7 @@ export function getCreatableItems(
     const profileItems: CreatableItem[] = browserProfiles.map((profile) => ({
         id: `browser-profile-${profile.name}`,
         label: `Browser (${profile.name})`,
-        icon: React.createElement(GlobeIcon, { color: profile.color }),
+        icon: createIconElement("globe", { color: profile.color }),
         create: () => { pagesModel.showBrowserPage({ profileName: profile.name }); },
         category: "tool" as const,
     }));

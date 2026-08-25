@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { GridModelCapability } from "../../uikit/VirtualGrid";
-import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, PinIcon, RenameIcon } from "../../theme/icons";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import type { ILink } from "../../api/types/io.tree";
@@ -73,7 +72,7 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
         ctxEvent.items.push(
             {
                 label: "Edit",
-                icon: <RenameIcon />,
+                icon: "rename",
                 onClick: () => model.showLinkDialog(link.id),
                 startGroup: customItems?.length ? true : undefined,
             },
@@ -81,7 +80,7 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
         ctxEvent.items.push(
             {
                 label: "Copy URL",
-                icon: <CopyIcon />,
+                icon: "copy",
                 onClick: () => { if (link.href) clipboard.writeText(link.href); },
                 disabled: !link.href,
             },
@@ -91,13 +90,13 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
             ctxEvent.items.push(
                 {
                     label: "Copy Image URL",
-                    icon: <CopyIcon />,
+                    icon: "copy",
                     onClick: () => clipboard.writeText(imgUrl),
                     startGroup: true,
                 },
                 {
                     label: "Open Image in New Tab",
-                    icon: <OpenFileIcon />,
+                    icon: "open-file",
                     onClick: async () => {
                         const { pagesModel } = await import("../../api/pages");
                         pagesModel.openImageInNewTab(imgUrl);
@@ -109,13 +108,13 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
         ctxEvent.items.push(
             {
                 label: isPinned ? "Unpin" : "Pin",
-                icon: isPinned ? <PinFilledIcon /> : <PinIcon />,
+                icon: isPinned ? "pin-filled" : "pin",
                 onClick: () => model.togglePinLink(link.id),
                 startGroup: true,
             },
             {
                 label: "Delete",
-                icon: <DeleteIcon />,
+                icon: "delete",
                 onClick: () => model.deleteLink(link.id),
             },
         );

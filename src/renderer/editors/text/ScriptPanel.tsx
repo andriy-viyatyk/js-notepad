@@ -10,7 +10,6 @@ import { Spacer } from "../../uikit/Spacer/Spacer";
 import { Select } from "../../uikit/Select/Select";
 import { IListBoxItem } from "../../uikit/ListBox";
 import { EditorToolbar } from "../base/EditorToolbar";
-import { CloseIcon, OpenFileIcon, RunAllIcon, RunIcon, SaveIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { fs } from "../../api/fs";
 import { parseObject } from "../../core/utils/parse-utils";
@@ -391,7 +390,7 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                     name="script-run"
                     title={state.hasSelection ? "Run Selected Script (F5)" : "Run Script (F5)"}
                     size="sm"
-                    icon={<RunIcon />}
+                    icon="run"
                     onClick={() => model.runRelatedScript()}
                 />
                 {state.hasSelection && (
@@ -400,7 +399,7 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                         name="script-run-all"
                         size="sm"
                         title="Run All Script"
-                        icon={<RunAllIcon />}
+                        icon="run-all"
                         onClick={() => model.runRelatedScript(true)}
                     />
                 )}
@@ -417,7 +416,7 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                     name="script-save"
                     title="Save Script to Library"
                     size="sm"
-                    icon={<SaveIcon />}
+                        icon="save"
                     disabled={!state.dirty}
                     onClick={scriptModel.saveToLibrary}
                 />
@@ -425,7 +424,7 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                     name="script-open-tab"
                     title="Open in New Tab"
                     size="sm"
-                    icon={<OpenFileIcon />}
+                        icon="open-file"
                     onClick={scriptModel.openInTab}
                 />
                 <Spacer />
@@ -433,7 +432,7 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                     name="script-close"
                     title="Close Script Editor"
                     size="sm"
-                    icon={<CloseIcon />}
+                        icon="close"
                     onClick={scriptModel.toggleOpen}
                 />
             </EditorToolbar>

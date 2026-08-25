@@ -8,12 +8,7 @@ import type { FileListItem, FileListModel, FileListProps } from "../../component
 import type { MenuItem } from "../../uikit/Menu";
 import { api } from "../../../ipc/renderer/api";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import {
-    FolderOpenIcon,
-    NewWindowIcon,
-    OpenFileIcon,
-    RemoveIcon,
-} from "../../theme/icons";
+import { createIconElement } from "../../uikit/shared/slots";
 
 export interface RecentFileListProps {
     onClose?: () => void;
@@ -84,23 +79,23 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
         return [
             {
                 label: "Open",
-                icon: React.createElement(OpenFileIcon),
+                icon: createIconElement("open-file"),
                 onClick: () => this.openItem(item),
             },
             {
                 label: "Open in New Window",
-                icon: React.createElement(NewWindowIcon),
+                icon: createIconElement("new-window"),
                 onClick: () => pagesModel.openPathInNewWindow(item.filePath),
                 invisible: item.isFolder,
             },
             {
                 label: "Show in File Explorer",
-                icon: React.createElement(FolderOpenIcon),
+                icon: createIconElement("folder-open"),
                 onClick: () => { api.showItemInFolder(item.filePath); },
             },
             {
                 label: "Remove from Recent",
-                icon: React.createElement(RemoveIcon),
+                icon: createIconElement("remove"),
                 onClick: async () => {
                     const filePath = item.filePath;
                     await recent.remove(filePath);
@@ -112,4 +107,3 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
         ];
     }
 }
-import React from "react";

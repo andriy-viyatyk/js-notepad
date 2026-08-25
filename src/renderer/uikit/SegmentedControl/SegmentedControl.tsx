@@ -1,5 +1,6 @@
 import React from "react";
 import { mountVanilla } from "../shared/mount";
+import type { IconRef } from "../shared/slots";
 import { SegmentedControlView } from "./SegmentedControlView";
 import type { Traited } from "../../core/traits/traits";
 import "./SegmentedControl.css";
@@ -7,7 +8,7 @@ import "./SegmentedControl.css";
 export interface ISegment {
     value: string;
     label?: React.ReactNode;
-    icon?: React.ReactNode;
+    icon?: IconRef;
     title?: string;
     disabled?: boolean;
 }

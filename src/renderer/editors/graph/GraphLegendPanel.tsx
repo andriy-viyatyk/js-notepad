@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Input, Panel } from "../../uikit";
 import color from "../../theme/color";
 import type { GraphEditor } from "./GraphEditor";
 import { NodeShape } from "./types";
-import { ShapeIcon, LevelIcon } from "./GraphIcons";
+import { createShapeIconElement, createLevelIconElement } from "./GraphIcons";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
@@ -17,6 +17,10 @@ type SelectionFilter = "" | "selected" | "not-selected" | "selected-with-childre
 
 /** Host type for this panel. */
 type GraphLegendHost = GraphEditor;
+
+function asReactNode(element: Node): React.ReactNode {
+    return element as unknown as React.ReactNode;
+}
 
 // =============================================================================
 // Inline styles
@@ -432,7 +436,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasRoot && (
                                             <LegendRow
                                                 label="Root"
-                                                icon={<LevelIcon level="root" size={14} />}
+                                                icon={asReactNode(createLevelIconElement("root", 14))}
                                                 checked={checkedLevels.has("root")}
                                                 description={descriptions.levels?.root ?? ""}
                                                 onToggle={() => toggleCheck("level", "root")}
@@ -442,7 +446,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasGroup && (
                                             <LegendRow
                                                 label="Group"
-                                                icon={<ShapeIcon shape="group" size={14} />}
+                                                icon={asReactNode(createShapeIconElement("group", 14))}
                                                 checked={checkedLevels.has("group")}
                                                 description={descriptions.levels?.group ?? ""}
                                                 onToggle={() => toggleCheck("level", "group")}
@@ -453,7 +457,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                             <LegendRow
                                                 key={level}
                                                 label={`Level ${level}`}
-                                                icon={<LevelIcon level={level} size={14} />}
+                                                icon={asReactNode(createLevelIconElement(level, 14))}
                                                 checked={checkedLevels.has(String(level))}
                                                 description={descriptions.levels?.[String(level)] ?? ""}
                                                 onToggle={() => toggleCheck("level", String(level))}
@@ -467,7 +471,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasRoot && (
                                             <LegendRow
                                                 label="Root"
-                                                icon={<ShapeIcon shape="root" size={14} />}
+                                                icon={asReactNode(createShapeIconElement("root", 14))}
                                                 checked={checkedShapes.has("root")}
                                                 description={descriptions.shapes?.root ?? ""}
                                                 onToggle={() => toggleCheck("shape", "root")}
@@ -477,7 +481,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasGroup && (
                                             <LegendRow
                                                 label="Group"
-                                                icon={<ShapeIcon shape="group" size={14} />}
+                                                icon={asReactNode(createShapeIconElement("group", 14))}
                                                 checked={checkedShapes.has("group")}
                                                 description={descriptions.shapes?.group ?? ""}
                                                 onToggle={() => toggleCheck("shape", "group")}
@@ -488,7 +492,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                             <LegendRow
                                                 key={shape}
                                                 label={shape.charAt(0).toUpperCase() + shape.slice(1)}
-                                                icon={<ShapeIcon shape={shape} size={14} />}
+                                                icon={asReactNode(createShapeIconElement(shape, 14))}
                                                 checked={checkedShapes.has(shape)}
                                                 description={descriptions.shapes?.[shape] ?? ""}
                                                 onToggle={() => toggleCheck("shape", shape)}
@@ -539,6 +543,22 @@ interface LegendRowProps {
 }
 
 function LegendRow({ label, icon, checked, description, onToggle, onDescriptionChange }: LegendRowProps) {
+    const iconHostRef = useRef<HTMLSpanElement>(null);
+    const nativeIcon = icon instanceof Node ? icon : undefined;
+
+    useLayoutEffect(() => {
+        const iconHost = iconHostRef.current;
+        if (!nativeIcon || !iconHost) return;
+        // React cannot reconcile a DOM Node as a child. Replace the single-use node in a
+        // dedicated host so the DOM builder keeps the same SVG attributes and layout contract.
+        iconHost.replaceChildren(nativeIcon);
+        return () => {
+            if (iconHost.firstChild === (nativeIcon as unknown as ChildNode)) {
+                iconHost.replaceChildren();
+            }
+        };
+    }, [nativeIcon]);
+
     return (
         <div style={rowStyle}>
             <input
@@ -547,7 +567,7 @@ function LegendRow({ label, icon, checked, description, onToggle, onDescriptionC
                 checked={checked}
                 onChange={onToggle}
             />
-            <span style={iconCellStyle}>{icon}</span>
+            <span ref={iconHostRef} style={iconCellStyle}>{nativeIcon ? null : icon}</span>
             <span style={labelStyle}>{label}</span>
             <Panel direction="row" flex={1} minWidth={0}>
                 <Input

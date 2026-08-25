@@ -2,12 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import { ListItem, Panel, Text } from "../../uikit";
 import color from "../../theme/color";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
-import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, RenameIcon } from "../../theme/icons";
+import { PinFilledIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { LinkItem, LinkSource } from "./linkTypes";
 import { LinkTooltipContent } from "./LinkTooltip";
-import { TreeProviderItemIcon } from "../../components/icons/TreeProviderItemIcon";
+import { createTreeProviderItemIconElement } from "../../components/icons/icon-elements";
 import { getHostname, requestFaviconSave, useFavicons } from "../../components/icons/favicon-cache";
 
 const { clipboard } = require("electron");
@@ -104,7 +104,7 @@ function PinnedItem({ link, index, isSelected, model, onOpenLink, onContextMenu 
                 selectionStyle="focus"
                 showSelectionIcon={false}
                 selected={isSelected}
-                icon={<TreeProviderItemIcon item={link} />}
+                icon={createTreeProviderItemIconElement(link)}
                 label={link.title || "Untitled"}
                 tooltip={<LinkTooltipContent link={link} imageProxy={model.imageProxy} />}
                 tooltipDelayShow={1200}
@@ -184,7 +184,7 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
         ctxEvent.items.push(
             {
                 label: "Edit",
-                icon: <RenameIcon />,
+                icon: "rename",
                 onClick: () => model.showLinkDialog(link.id),
                 startGroup: customItems?.length ? true : undefined,
             },
@@ -195,7 +195,7 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
         ctxEvent.items.push(
             {
                 label: "Copy URL",
-                icon: <CopyIcon />,
+                icon: "copy",
                 onClick: () => { if (link.href) clipboard.writeText(link.href); },
                 disabled: !link.href,
             },
@@ -205,13 +205,13 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
             ctxEvent.items.push(
                 {
                     label: "Copy Image URL",
-                    icon: <CopyIcon />,
+                    icon: "copy",
                     onClick: () => clipboard.writeText(imgUrl),
                     startGroup: true,
                 },
                 {
                     label: "Open Image in New Tab",
-                    icon: <OpenFileIcon />,
+                    icon: "open-file",
                     onClick: async () => {
                         const { pagesModel } = await import("../../api/pages");
                         pagesModel.openImageInNewTab(imgUrl);
@@ -222,13 +222,13 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
         ctxEvent.items.push(
             {
                 label: "Unpin",
-                icon: <PinFilledIcon />,
+                icon: "pin-filled",
                 onClick: () => model.togglePinLink(link.id),
                 startGroup: true,
             },
             {
                 label: "Delete",
-                icon: <DeleteIcon />,
+                icon: "delete",
                 onClick: () => model.deleteLink(link.id),
             },
         );

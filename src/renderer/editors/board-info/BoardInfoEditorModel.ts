@@ -1,5 +1,3 @@
-import { createElement, type ReactNode } from "react";
-
 import { Subscription } from "../../core/state/events";
 import type { TComponentState } from "../../core/state/state";
 import { EditorModel, type EditorStateBase, type RestoreData } from "../base/EditorModel";
@@ -143,7 +141,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     skipSave = false; // delegates dirty/save to the held host (if any)
     showBackgroundOrnament = true;
 
-    getIcon = (): ReactNode => createElement(BoardColorIcon);
+    getIconElement = (): SVGElement | undefined => BoardColorIcon.createElement?.();
 
     private _host: TextFileModel | null = null;
     private _hostStateUnsub: (() => void) | null = null;

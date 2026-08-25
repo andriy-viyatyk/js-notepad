@@ -3,12 +3,12 @@ import { IconButton } from "./IconButton";
 import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
 import { resolveIconPreset } from "../../editors/storybook/iconPresets";
-import { SettingsIcon } from "../../theme/icons";
+import { createIconElement } from "../shared/slots";
 import { Story } from "../../editors/storybook/storyTypes";
 
 const IconButtonWithPreset = (props: any) => {
     const { iconPreset, title, hideUntilParentHover, ...rest } = props;
-    const icon = resolveIconPreset(iconPreset) ?? React.createElement(SettingsIcon);
+    const icon = resolveIconPreset(iconPreset) ?? createIconElement("settings");
     const iconButton = React.createElement(IconButton, {
         ...rest,
         title: title || undefined,

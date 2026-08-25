@@ -7,40 +7,51 @@ import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function TimestampIcon({ active }: { active: boolean }) {
-    return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle
-                cx="8"
-                cy="8"
-                r="6.5"
-                stroke="currentColor"
-                strokeWidth="1"
-                opacity={active ? 1 : 0.5}
-            />
-            <polyline
-                points="8,4 8,8 11,10"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={active ? 1 : 0.5}
-            />
-        </svg>
-    );
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+// Opacity follows the owning React state; rebuilding keeps each render's single-use node independent.
+function createTimestampIconElement(active: boolean): SVGElement {
+    const element = document.createElementNS(SVG_NAMESPACE, "svg");
+    element.setAttribute("width", "16");
+    element.setAttribute("height", "16");
+    element.setAttribute("viewBox", "0 0 16 16");
+    element.setAttribute("fill", "none");
+
+    const opacity = active ? "1" : "0.5";
+    const circle = document.createElementNS(SVG_NAMESPACE, "circle");
+    circle.setAttribute("cx", "8");
+    circle.setAttribute("cy", "8");
+    circle.setAttribute("r", "6.5");
+    circle.setAttribute("stroke", "currentColor");
+    circle.setAttribute("stroke-width", "1");
+    circle.setAttribute("opacity", opacity);
+
+    const hands = document.createElementNS(SVG_NAMESPACE, "polyline");
+    hands.setAttribute("points", "8,4 8,8 11,10");
+    hands.setAttribute("stroke", "currentColor");
+    hands.setAttribute("stroke-width", "1");
+    hands.setAttribute("stroke-linecap", "round");
+    hands.setAttribute("stroke-linejoin", "round");
+    hands.setAttribute("opacity", opacity);
+
+    element.append(circle, hands);
+    return element;
 }
 
-function ClearIcon() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-                d="M2 5h8M2 8h5M2 11h3M10.5 5.5l4 4M14.5 5.5l-4 4"
-                stroke="currentColor"
-                strokeWidth="1.1"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
+function createClearIconElement(): SVGElement {
+    const element = document.createElementNS(SVG_NAMESPACE, "svg");
+    element.setAttribute("width", "16");
+    element.setAttribute("height", "16");
+    element.setAttribute("viewBox", "0 0 16 16");
+    element.setAttribute("fill", "none");
+
+    const path = document.createElementNS(SVG_NAMESPACE, "path");
+    path.setAttribute("d", "M2 5h8M2 8h5M2 11h3M10.5 5.5l4 4M14.5 5.5l-4 4");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.1");
+    path.setAttribute("stroke-linecap", "round");
+    element.append(path);
+    return element;
 }
 
 function LogToolbarBits({ model }: { model: LogViewEditor }) {
@@ -50,7 +61,7 @@ function LogToolbarBits({ model }: { model: LogViewEditor }) {
             <IconButton
                 name="log-clear"
                 size="sm"
-                icon={<ClearIcon />}
+                icon={createClearIconElement()}
                 title="Clear log"
                 onClick={async () => {
                     const result = await showConfirmationDialog({
@@ -62,7 +73,7 @@ function LogToolbarBits({ model }: { model: LogViewEditor }) {
             <IconButton
                 name="log-toggle-timestamps"
                 size="sm"
-                icon={<TimestampIcon active={showTimestamps} />}
+                icon={createTimestampIconElement(showTimestamps)}
                 title={showTimestamps ? "Hide timestamps" : "Show timestamps"}
                 onClick={model.toggleTimestamps}
             />

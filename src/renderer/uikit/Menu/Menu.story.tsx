@@ -3,47 +3,39 @@ import { WithMenu } from "./WithMenu";
 import { Button } from "../Button/Button";
 import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
-import {
-    SettingsIcon,
-    FolderOpenIcon,
-    SaveIcon,
-    CopyIcon,
-    RenameIcon,
-    CloseIcon,
-} from "../../theme/icons";
 import type { MenuItem } from "./types";
 import { Story } from "../../editors/storybook/storyTypes";
 
 const SMALL_ITEMS: MenuItem[] = [
-    { label: "New Page",      icon: <FolderOpenIcon />, hotKey: "Ctrl+N",       onClick: () => alert("New Page")        },
-    { label: "Open File…",    icon: <FolderOpenIcon />, hotKey: "Ctrl+O",       onClick: () => alert("Open File")       },
-    { label: "Save",          icon: <SaveIcon />,       hotKey: "Ctrl+S",       onClick: () => alert("Save")            },
-    { label: "Save As…",      icon: <SaveIcon />,       hotKey: "Ctrl+Shift+S", onClick: () => alert("Save As")         },
-    { label: "Rename",        icon: <RenameIcon />,                              onClick: () => alert("Rename"), startGroup: true },
-    { label: "Copy Path",     icon: <CopyIcon />,                                onClick: () => alert("Copy Path")       },
-    { label: "Close",         icon: <CloseIcon />,      hotKey: "Ctrl+W",       onClick: () => alert("Close"), startGroup: true, minor: true },
-    { label: "Close All",     icon: <CloseIcon />,                              onClick: () => alert("Close All")       },
+    { label: "New Page",      icon: "folder-open", hotKey: "Ctrl+N",       onClick: () => alert("New Page")        },
+    { label: "Open File…",    icon: "folder-open", hotKey: "Ctrl+O",       onClick: () => alert("Open File")       },
+    { label: "Save",          icon: "save",       hotKey: "Ctrl+S",       onClick: () => alert("Save")            },
+    { label: "Save As…",      icon: "save",       hotKey: "Ctrl+Shift+S", onClick: () => alert("Save As")         },
+    { label: "Rename",        icon: "rename",                              onClick: () => alert("Rename"), startGroup: true },
+    { label: "Copy Path",     icon: "copy",                                onClick: () => alert("Copy Path")       },
+    { label: "Close",         icon: "close",      hotKey: "Ctrl+W",       onClick: () => alert("Close"), startGroup: true, minor: true },
+    { label: "Close All",     icon: "close",                              onClick: () => alert("Close All")       },
     { label: "Disabled item", disabled: true,                                   onClick: () => alert("Should not run")  },
 ];
 
 const SUBMENU_ITEMS: MenuItem[] = [
     {
         label: "File",
-        icon: <FolderOpenIcon />,
+        icon: "folder-open",
         items: [
-            { label: "New Page", icon: <FolderOpenIcon />, hotKey: "Ctrl+N", onClick: () => alert("New") },
-            { label: "Open…",    icon: <FolderOpenIcon />, hotKey: "Ctrl+O", onClick: () => alert("Open") },
+            { label: "New Page", icon: "folder-open", hotKey: "Ctrl+N", onClick: () => alert("New") },
+            { label: "Open…",    icon: "folder-open", hotKey: "Ctrl+O", onClick: () => alert("Open") },
         ],
     },
     {
         label: "Edit",
-        icon: <CopyIcon />,
+        icon: "copy",
         items: [
             { label: "Copy",  hotKey: "Ctrl+C", onClick: () => alert("Copy") },
             { label: "Paste", hotKey: "Ctrl+V", onClick: () => alert("Paste") },
         ],
     },
-    { label: "Settings", icon: <SettingsIcon />, onClick: () => alert("Settings") },
+    { label: "Settings", icon: "settings", onClick: () => alert("Settings") },
 ];
 
 const FRUITS = ["Apple", "Banana", "Cherry", "Date", "Elderberry"];
@@ -83,7 +75,7 @@ const MenuDemo = ({
                 {(setOpen) => (
                     <Button
                         onClick={(e) => setOpen(e.currentTarget)}
-                        icon={<SettingsIcon />}
+                        icon="settings"
                     >
                         Open menu
                     </Button>

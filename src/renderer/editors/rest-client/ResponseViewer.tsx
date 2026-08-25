@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { LanguageIcon } from "../../components/icons/LanguageIcon";
+import { createFileTypeIconElement } from "../../components/icons/icon-elements";
 import {
     Button,
     IconButton,
@@ -10,7 +10,6 @@ import {
     WithMenu,
 } from "../../uikit";
 import type { MenuItem } from "../../uikit";
-import { CopyIcon, NewWindowIcon, SaveIcon } from "../../theme/icons";
 import { app } from "../../api/app";
 import { pagesModel } from "../../api/pages";
 import { RestResponse } from "./restClientTypes";
@@ -209,15 +208,14 @@ export function ResponseViewer(props: ResponseViewerProps) {
         return URL.createObjectURL(blob);
     }, [isImage, response]);
 
-    const languageMenuItems: MenuItem[] = useMemo(
-        () => RESPONSE_LANGUAGES.map((l) => ({
-            label: l,
-            icon: <LanguageIcon language={l} width={16} height={16} />,
-            selected: l === language,
-            onClick: () => model.setLanguageOverride(l),
-        })),
-        [language, model],
-    );
+    // Build file icons with each render because menu rows append their Node values directly;
+    // caching this array would reuse single-use nodes when the menu is reopened or updated.
+    const languageMenuItems: MenuItem[] = RESPONSE_LANGUAGES.map((l) => ({
+        label: l,
+        icon: createFileTypeIconElement({ language: l, width: 16, height: 16 }),
+        selected: l === language,
+        onClick: () => model.setLanguageOverride(l),
+    }));
 
     const handleOpenInTab = useCallback(() => {
         if (!response) return;
@@ -289,7 +287,7 @@ export function ResponseViewer(props: ResponseViewerProps) {
                         <IconButton
                             name="response-open-in-tab"
                             size="sm"
-                            icon={<NewWindowIcon />}
+                            icon="new-window"
                             title="Open in new tab"
                             onClick={handleOpenInTab}
                         />
@@ -299,7 +297,7 @@ export function ResponseViewer(props: ResponseViewerProps) {
                                     name="response-language"
                                     size="sm"
                                     variant="ghost"
-                                    icon={<LanguageIcon language={language} width={16} height={16} />}
+                                    icon={createFileTypeIconElement({ language, width: 16, height: 16 })}
                                     title="Change response language"
                                     onClick={(e) => setOpen(e.currentTarget)}
                                 >
@@ -321,7 +319,7 @@ export function ResponseViewer(props: ResponseViewerProps) {
                         <IconButton
                             name="response-copy-headers"
                             size="sm"
-                            icon={<CopyIcon />}
+                            icon="copy"
                             title="Copy headers as JSON"
                             onClick={handleCopyHeaders}
                         />
@@ -359,9 +357,9 @@ export function ResponseViewer(props: ResponseViewerProps) {
                                 />
                             )}
                             <Panel name="response-binary-actions" direction="row" gap="sm">
-                                <Button icon={<SaveIcon />} onClick={handleSaveBinary}>Save to File</Button>
+                                <Button icon="save" onClick={handleSaveBinary}>Save to File</Button>
                                 {isImage && (
-                                    <Button icon={<NewWindowIcon />} onClick={handleOpenImage}>
+                                    <Button icon="new-window" onClick={handleOpenImage}>
                                         Open in Image Viewer
                                     </Button>
                                 )}

@@ -1,11 +1,5 @@
 import { app } from "../api/app";
 import { createLinkData } from "../../shared/link-data";
-import {
-    FolderOpenIcon,
-    NewWindowIcon,
-    OpenFileIcon,
-    OpenLinkIcon,
-} from "../theme/icons";
 import { openWithDefaultApp } from "./open-with-default-app";
 
 /**
@@ -57,7 +51,7 @@ export function registerTreeContextMenuHandlers(): void {
                 {
                     startGroup: true,
                     label: "Open in New Tab",
-                    icon: <OpenFileIcon />,
+                    icon: "open-file",
                     onClick: async () => {
                         const { pagesModel } = await import("../api/pages");
                         pagesModel.addEmptyPageWithNavPanel(item.href);
@@ -67,7 +61,7 @@ export function registerTreeContextMenuHandlers(): void {
             // Show in File Explorer (folders)
             event.items.push({
                 label: "Show in File Explorer",
-                icon: <FolderOpenIcon />,
+                icon: "folder-open",
                 onClick: async () => {
                     const { api } = await import("../../ipc/renderer/api");
                     api.showFolder(item.href);
@@ -78,12 +72,12 @@ export function registerTreeContextMenuHandlers(): void {
                 {
                     startGroup: true,
                     label: "Open in New Tab",
-                    icon: <OpenFileIcon />,
+                    icon: "open-file",
                     onClick: () => app.events.openRawLink.sendAsync(createLinkData(item.href)),
                 },
                 {
                     label: "Open in New Window",
-                    icon: <NewWindowIcon />,
+                    icon: "new-window",
                     onClick: async () => {
                         const { pagesModel } = await import("../api/pages");
                         pagesModel.openPathInNewWindow(item.href);
@@ -94,12 +88,12 @@ export function registerTreeContextMenuHandlers(): void {
                     // same `shell.openPath` call (it opens an Explorer window on the folder),
                     // so a second entry there would just duplicate it.
                     label: "Open with Default App",
-                    icon: <OpenLinkIcon />,
+                    icon: "open-link",
                     onClick: () => openWithDefaultApp(item.href),
                 },
                 {
                     label: "Show in File Explorer",
-                    icon: <FolderOpenIcon />,
+                    icon: "folder-open",
                     onClick: async () => {
                         const { api } = await import("../../ipc/renderer/api");
                         api.showItemInFolder(item.href);

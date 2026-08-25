@@ -6,7 +6,6 @@ import { Breadcrumb } from "../../uikit/Breadcrumb";
 import { Button } from "../../uikit/Button";
 import { IconButton } from "../../uikit/IconButton";
 import { Input } from "../../uikit/Input";
-import { CloseIcon, PlusIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
@@ -49,7 +48,7 @@ function NotebookToolbarBits({ model: editor }: NotebookContributionProps) {
                 name="notebook-add-note"
                 variant="primary"
                 size="sm"
-                icon={<PlusIcon />}
+                icon="plus"
                 title="Add Note"
                 onClick={editor.addNote}
             >
@@ -67,7 +66,7 @@ function NotebookToolbarBits({ model: editor }: NotebookContributionProps) {
                         <IconButton
                             name="notebook-search-clear"
                             size="sm"
-                            icon={<CloseIcon />}
+                            icon="close"
                             title="Clear search"
                             onClick={editor.clearSearch}
                         />

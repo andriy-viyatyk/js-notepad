@@ -1,10 +1,8 @@
-import { createElement, type ReactNode } from "react";
-
 import {
     EditorModel,
     type EditorStateBase,
 } from "../base/EditorModel";
-import { GitIcon, FolderOpenIcon, CopyIcon } from "../../theme/icons";
+import { GitIcon } from "../../theme/icons";
 import { GitTreeModel, GitChangesModel, GitBranchesModel, type GitColumnLayout, type GitRefNodeKind } from "../../components/git-tree";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import type { MenuItem } from "../../uikit";
@@ -19,6 +17,7 @@ import { DirectoryWatcher } from "../../core/utils/file-watcher";
 import { decodeGitTreeLink, encodeGitTreeLink } from "../../content/git-tree-link";
 import type { GitFileChange, GitSwitchTarget, GitPullOptions } from "../../../ipc/git-ipc";
 import type { ILinkDiffRevision } from "../../api/types/io.link-data";
+import { createIconElement } from "../../uikit/shared/slots";
 
 export interface GitTreeEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -121,8 +120,6 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
      *  navigation settles. */
     private diffNavInFlight: string | undefined;
 
-    /** Tab icon — the git glyph (EPIC-030 / US-612). */
-    getIcon = (): ReactNode => createElement(GitIcon, { width: 16, height: 16 });
     getIconElement = (): SVGElement | undefined => GitIcon.createElement?.({ width: 16, height: 16 });
 
     /** Page-tab context-menu items specific to the Git Tree editor: reveal the
@@ -136,7 +133,7 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         return [
             {
                 label: "Open Git Root Folder",
-                icon: createElement(FolderOpenIcon),
+                icon: createIconElement("folder-open"),
                 onClick: () => {
                     if (repoRoot) api.showItemInFolder(repoRoot);
                 },
@@ -144,7 +141,7 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
             },
             {
                 label: "Copy Remote URL",
-                icon: createElement(CopyIcon),
+                icon: createIconElement("copy"),
                 onClick: async () => {
                     const url = await git.getRemoteUrl(repoRoot, remote);
                     if (url) navigator.clipboard.writeText(url);

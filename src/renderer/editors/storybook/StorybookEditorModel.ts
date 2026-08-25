@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import {
     EditorModel,
     type EditorStateBase,
@@ -54,7 +53,7 @@ export class StorybookEditorModel extends EditorModel<StorybookEditorState> {
 
     noLanguage = true;
     skipSave = true;
-    getIcon = () => createElement(StorybookIcon);
+    getIconElement = (): SVGElement | undefined => StorybookIcon.createElement?.();
 
     selectStory = (id: string): void => {
         const story = findStory(id);

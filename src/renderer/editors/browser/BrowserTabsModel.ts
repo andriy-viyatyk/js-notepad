@@ -1,7 +1,6 @@
 const { ipcRenderer } = require("electron");
-import { createElement } from "react";
 import { BrowserChannel } from "../../../ipc/browser-ipc";
-import { OpenLinkIcon } from "../../theme/icons";
+import { createIconElement } from "../../uikit/shared/slots";
 import { settings, BrowserProfile } from "../../api/settings";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 import type {
@@ -255,7 +254,7 @@ export class BrowserTabsModel {
         };
         bm.linkEditor.onGetLinkMenuItems = (link) => link.href ? [{
             label: "Open in New Tab",
-            icon: createElement(OpenLinkIcon),
+            icon: createIconElement("open-link"),
             onClick: () => this.addTab(link.href),
         }] : [];
         bm.linkEditor.imageProxySource = () => {

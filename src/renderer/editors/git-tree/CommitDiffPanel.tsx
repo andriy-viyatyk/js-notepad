@@ -11,7 +11,6 @@ import { git } from "../../api/git";
 import { createLinkData } from "../../../shared/link-data";
 import { fpExtname, fpJoin } from "../../core/utils/file-path";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
-import { CompareIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
@@ -219,7 +218,7 @@ export function CommitDiffPanel(props: CommitDiffPanelProps) {
             model.setSelectedFile(item.filePath);
             return [{
                 label: "Open in new Tab",
-                icon: <CompareIcon />,
+                icon: "compare",
                 onClick: () => openInNewTab(change),
             }];
         },

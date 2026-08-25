@@ -9,10 +9,9 @@ import { settings } from "../../api/settings";
 import type { EditorOrHost } from "../../editors/base";
 import { monacoLanguages } from "../../core/utils/monaco-languages";
 import { TraitTypeId, getTraitDragData, hasTraitDragData, setTraitDragData } from "../../core/traits";
-import { CircleIcon, CloseIcon, DuplicateIcon, GroupIcon, VolumeIcon, VolumeMutedIcon } from "../../theme/icons";
-import { LanguageIcon } from "../../components/icons/LanguageIcon";
-import { createEditorIconElement, subscribeFileIconElements, type EditorIconElement } from "../../components/icons/icon-elements";
-import { fillSlot, type SlotContent } from "../../uikit/shared/fill-slot";
+import { createEditorIconElement, createFileTypeIconElement, subscribeFileIconElements } from "../../components/icons/icon-elements";
+import { createIconElement } from "../../uikit/shared/slots";
+import { fillSlot } from "../../uikit/shared/fill-slot";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { attachTooltip, type TooltipAttachment } from "../../uikit/Tooltip/attach-tooltip";
@@ -75,11 +74,6 @@ function selectEditorState(state: EditorTabState): EditorProjection {
         anyTabAudible: state._anyTabAudible ?? false,
         pageMuted: state.pageMuted ?? false,
     };
-}
-
-function slotForEditorIcon(result: EditorIconElement): SlotContent {
-    if (!result) return null;
-    return result.kind === "element" ? result.element : result.value;
 }
 
 function setPresence(element: HTMLElement, name: string, value: boolean): void {
@@ -292,7 +286,7 @@ export class PageTabView extends VanillaView<PageTabProps> {
 
     private syncEditorKind(editor: EditorOrHost | null): void {
         const noLanguage = Boolean(editor?.noLanguage);
-        setPresence(this.emptyLanguage, "data-with-icon", Boolean(editor?.getIcon));
+        setPresence(this.emptyLanguage, "data-with-icon", Boolean(editor?.getIconElement));
         if (noLanguage) {
             if (this.languageButton.root.parentNode) this.languageButton.root.remove();
             if (!this.emptyLanguage.parentNode) this.root.insertBefore(this.emptyLanguage, this.titleLabel);
@@ -343,8 +337,8 @@ export class PageTabView extends VanillaView<PageTabProps> {
                 active: this.projection.anyTabAudible || this.projection.pageMuted || undefined,
                 title: this.projection.pageMuted ? "Unmute Page" : "Mute Page",
                 icon: this.projection.pageMuted
-                    ? React.createElement(VolumeMutedIcon)
-                    : React.createElement(VolumeIcon),
+                    ? createIconElement("volume-muted")
+                    : createIconElement("volume"),
                 onClick: (event) => {
                     event.stopPropagation();
                     (this.currentEditor as { toggleMuteAll?: () => void } | null)?.toggleMuteAll?.();
@@ -364,8 +358,8 @@ export class PageTabView extends VanillaView<PageTabProps> {
                 active: this.projection.anyTabAudible || this.projection.pageMuted || undefined,
                 title: this.projection.pageMuted ? "Unmute Page" : "Mute Page",
                 icon: this.projection.pageMuted
-                    ? React.createElement(VolumeMutedIcon)
-                    : React.createElement(VolumeIcon),
+                    ? createIconElement("volume-muted")
+                    : createIconElement("volume"),
                 onClick: (event) => {
                     event.stopPropagation();
                     (this.currentEditor as { toggleMuteAll?: () => void } | null)?.toggleMuteAll?.();
@@ -379,29 +373,34 @@ export class PageTabView extends VanillaView<PageTabProps> {
         if (editor?.noLanguage) {
             this.emptyIconCleanup = fillSlot(
                 this.emptyIconHost,
-                slotForEditorIcon(createEditorIconElement({ noLanguage: true, getIcon: editor.getIcon })),
+                createEditorIconElement({
+                    noLanguage: true,
+                    getIconElement: editor.getIconElement,
+                })?.element ?? null,
             );
             this.languageIconCleanup = fillSlot(this.languageIconHost ?? this.emptyIconHost, null);
         } else {
             this.emptyIconCleanup = fillSlot(this.emptyIconHost, null);
             this.languageIconCleanup = fillSlot(
                 this.languageIconHost ?? this.emptyIconHost,
-                slotForEditorIcon(createEditorIconElement({
+                createEditorIconElement({
                     language: this.projection.language,
                     title: this.projection.title,
-                })),
+                })?.element ?? null,
             );
         }
     }
 
     private updateCloseIcon(): void {
         if (!this.closeIconHost) return;
-        const icon = React.createElement(
-            React.Fragment,
-            null,
-            React.createElement(this.isGrouped ? GroupIcon : CloseIcon, { "data-part": "close-icon" } as React.Attributes),
-            React.createElement(CircleIcon, { "data-part": "modified-icon" } as React.Attributes),
-        );
+        // Keep both SVGs as fragment siblings: the tab CSS and data-name contract target these
+        // exact data-part values, so the attributes must live on the DOM elements themselves.
+        const icon = document.createDocumentFragment();
+        const closeIcon = createIconElement(this.isGrouped ? "group" : "close");
+        closeIcon.dataset.part = "close-icon";
+        const modifiedIcon = createIconElement("circle");
+        modifiedIcon.dataset.part = "modified-icon";
+        icon.append(closeIcon, modifiedIcon);
         this.closeIconCleanup = fillSlot(this.closeIconHost, icon);
     }
 
@@ -465,7 +464,7 @@ export class PageTabView extends VanillaView<PageTabProps> {
         const items = monacoLanguages.map((language) => ({
             id: language.id,
             label: language.aliases[0] || language.id,
-            icon: React.createElement(LanguageIcon, { language: language.id }),
+            icon: createFileTypeIconElement({ language: language.id }),
             onClick: () => {
                 editor.changeLanguage(language.id);
                 this.setActiveLanguage(language.id);
@@ -519,7 +518,7 @@ export class PageTabView extends VanillaView<PageTabProps> {
         }
         menuItems.push({
             label: "Duplicate Tab",
-            icon: React.createElement(DuplicateIcon),
+            icon: createIconElement("duplicate"),
             onClick: () => pagesModel.duplicatePage(page.id),
             startGroup: isPinned,
         });

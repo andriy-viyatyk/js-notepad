@@ -12,8 +12,7 @@ import {
     Checkbox,
 } from "../../uikit";
 import type { MenuItem } from "../../uikit";
-import { LanguageIcon } from "../../components/icons/LanguageIcon";
-import { CloseIcon, CopyIcon, FolderOpenIcon } from "../../theme/icons";
+import { createFileTypeIconElement } from "../../components/icons/icon-elements";
 import { app } from "../../api/app";
 import { BodyType, RAW_LANGUAGES, RestRequest } from "./restClientTypes";
 import type { RestClientSource, RestClientViewState } from "./restClientTypes";
@@ -211,15 +210,14 @@ export function RequestBuilder(props: RequestBuilderProps) {
         [vm, request.id],
     );
 
-    const languageMenuItems: MenuItem[] = useMemo(
-        () => RAW_LANGUAGES.map((l) => ({
-            label: l,
-            icon: <LanguageIcon language={l} width={16} height={16} />,
-            selected: l === request.bodyLanguage,
-            onClick: () => vm.updateBodyLanguage(request.id, l),
-        })),
-        [vm, request.id, request.bodyLanguage],
-    );
+    // Menu rows append their Node values directly, so rebuild file icons per render instead
+    // of memoising one array that could be reused after the menu is reopened.
+    const languageMenuItems: MenuItem[] = RAW_LANGUAGES.map((l) => ({
+        label: l,
+        icon: createFileTypeIconElement({ language: l, width: 16, height: 16 }),
+        selected: l === request.bodyLanguage,
+        onClick: () => vm.updateBodyLanguage(request.id, l),
+    }));
 
     const handleMonacoBodyChange = useCallback(
         (value: string) => {
@@ -349,7 +347,7 @@ export function RequestBuilder(props: RequestBuilderProps) {
                         <IconButton
                             name="headers-copy"
                             size="sm"
-                            icon={<CopyIcon />}
+                            icon="copy"
                             title="Copy headers as JSON"
                             onClick={handleCopyHeaders}
                         />
@@ -436,7 +434,7 @@ export function RequestBuilder(props: RequestBuilderProps) {
                                         size="sm"
                                         variant="ghost"
                                         background="dark"
-                                        icon={<LanguageIcon language={request.bodyLanguage} width={16} height={16} />}
+                                        icon={createFileTypeIconElement({ language: request.bodyLanguage, width: 16, height: 16 })}
                                         title="Change body language"
                                         onClick={(e) => setOpen(e.currentTarget)}
                                     >
@@ -501,7 +499,7 @@ function BodyContent({ vm, request, onMonacoChange }: {
                     paddingY="sm"
                 >
                     <Panel direction="row" align="center" gap="sm">
-                        <Button size="sm" title="Select file" onClick={handleSelectFile} icon={<FolderOpenIcon />}>
+                        <Button size="sm" title="Select file" onClick={handleSelectFile} icon="folder-open">
                             Select File
                         </Button>
                         <Panel flex={1} minWidth={0}>
@@ -643,7 +641,7 @@ function FormDataEditor({ vm, request }: { vm: RestClientSource; request: RestRe
                                 <IconButton
                                     name="form-data-browse"
                                     size="sm"
-                                    icon={<FolderOpenIcon />}
+                                    icon="folder-open"
                                     title="Browse"
                                     onClick={() => handleBrowse(index)}
                                 />
@@ -679,7 +677,7 @@ function FormDataEditor({ vm, request }: { vm: RestClientSource; request: RestRe
                             <IconButton
                                 name="form-data-delete"
                                 size="sm"
-                                icon={<CloseIcon />}
+                                icon="close"
                                 title="Delete"
                                 onClick={() => vm.deleteFormDataEntry(request.id, index)}
                             />

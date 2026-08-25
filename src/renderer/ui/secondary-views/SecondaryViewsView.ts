@@ -236,7 +236,6 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
 
         const editorIcon = createEditorIconElement({
             noLanguage: panel.model.noLanguage,
-            getIcon: panel.model.getIcon,
             getIconElement: panel.model.getIconElement,
             language: panel.model.language,
             title: panel.model.title,

@@ -7,15 +7,7 @@ import {
     Input,
 } from "../../uikit";
 import { showAppPopupMenu } from "../../ui/dialogs";
-import {
-    CloseIcon,
-    PlusIcon,
-    ViewLandscapeBigIcon,
-    ViewLandscapeIcon,
-    ViewListIcon,
-    ViewPortraitBigIcon,
-    ViewPortraitIcon,
-} from "../../theme/icons";
+import type { IconName } from "../../theme/icon-registry";
 import { TextChrome } from "../base/TextChrome";
 import { LinkEditor, defaultLinkEditorState } from "./LinkEditor";
 import { LinkBody } from "./LinkBody";
@@ -35,12 +27,12 @@ const VIEW_MODE_LABELS: Record<LinkViewMode, string> = {
     "tiles-portrait-big": "Portrait (Large)",
 };
 
-const VIEW_MODE_ICONS: Record<LinkViewMode, React.ReactNode> = {
-    "list": <ViewListIcon />,
-    "tiles-landscape": <ViewLandscapeIcon />,
-    "tiles-landscape-big": <ViewLandscapeBigIcon />,
-    "tiles-portrait": <ViewPortraitIcon />,
-    "tiles-portrait-big": <ViewPortraitBigIcon />,
+const VIEW_MODE_ICONS: Record<LinkViewMode, IconName> = {
+    "list": "view-list",
+    "tiles-landscape": "view-landscape",
+    "tiles-landscape-big": "view-landscape-big",
+    "tiles-portrait": "view-portrait",
+    "tiles-portrait-big": "view-portrait-big",
 };
 
 const VIEW_MODE_ORDER: LinkViewMode[] = [
@@ -128,7 +120,7 @@ export function LinkActionBits({ model: editor }: { model: LinkEditor }) {
                 size="sm"
                 variant="link"
                 title="Add Link"
-                icon={<PlusIcon />}
+                icon="plus"
                 onClick={() => editor.showLinkDialog()}
             >
                 Add Link
@@ -156,7 +148,7 @@ export function LinkActionBits({ model: editor }: { model: LinkEditor }) {
                             name="link-editor-search-clear"
                             size="sm"
                             title="Clear search"
-                            icon={<CloseIcon />}
+                            icon="close"
                             onClick={editor.clearSearch}
                         />
                     ) : undefined

@@ -32,7 +32,7 @@ export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
 export { getIcon } from "../theme/icon-registry";
 export type { IconName } from "../theme/icon-registry";
-export { createIconElement, isIconName, renderIcon } from "./shared/slots";
+export { createIconElement, isIconName } from "./shared/slots";
 export type { IconRef, SlotText } from "./shared/slots";
 export { SplitButton } from "./SplitButton";
 export type { SplitButtonProps } from "./SplitButton";

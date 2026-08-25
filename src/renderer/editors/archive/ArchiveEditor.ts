@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { TComponentState, TOneState } from "../../core/state/state";
 import {
     EditorModel,
@@ -53,7 +52,6 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
 
     constructor(state: TComponentState<ArchiveEditorState>) {
         super(state);
-        this.getIcon = () => createElement(ArchiveIcon, { width: 16, height: 16 });
         this.getIconElement = () => ArchiveIcon.createElement?.({ width: 16, height: 16 });
     }
 

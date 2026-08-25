@@ -4,10 +4,10 @@ import { toolsTrust } from "../../api/tools/tools-trust";
 import { registeredTools } from "../../api/tools/registered-tools";
 import { openToolset } from "../../content/persephone-toolset-link";
 import type { MenuItem } from "../../uikit";
-import { Text } from "../../uikit/Text";
-import { RemoveIcon } from "../../theme/icons";
+import { createTextElement } from "../../uikit/Text/text-style";
 import { ToolsTree } from "../../editors/tools/ToolsTree";
 import { fillSlot } from "../../uikit/shared/fill-slot";
+import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 
 export interface TrustedToolsListProps {
@@ -38,7 +38,7 @@ function TrustedToolsTreeSlot({ onClose }: TrustedToolsListProps) {
     const getContextMenu = useCallback((root: string): MenuItem[] => [
         {
             label: "Remove",
-            icon: <RemoveIcon width={14} height={14} />,
+            icon: createIconElement("remove", { width: 14, height: 14 }),
             onClick: () => { void handleRemove(root); },
         },
     ], [handleRemove]);
@@ -49,7 +49,7 @@ function TrustedToolsTreeSlot({ onClose }: TrustedToolsListProps) {
             toolsets={toolsets}
             onOpenToolset={handleOpen}
             getContextMenu={getContextMenu}
-            emptyMessage={<Text size="sm" color="light">No registered tools yet</Text>}
+            emptyMessage={createTextElement("No registered tools yet", { size: "sm", color: "light" })}
         />
     );
 }

@@ -4,12 +4,7 @@ import { Tree, ITreeItem, TreeItemRenderContext } from "./Tree";
 import type { TreeModel } from "./TreeModel";
 import { Panel } from "../Panel/Panel";
 import { Button } from "../Button/Button";
-import {
-    CopyIcon,
-    RemoveIcon,
-} from "../../theme/icons";
-import { FolderIcon } from "../../components/icons/FileIcon";
-import { FileTypeIcon } from "../../components/icons/LanguageIcon";
+import { createFileTypeIconElement, createFolderIconElement } from "../../components/icons/icon-elements";
 import { ContextMenuEvent } from "../../api/events/events";
 import type { MenuItem } from "../Menu";
 import { Story } from "../../editors/storybook/storyTypes";
@@ -63,19 +58,21 @@ const CustomRow = styled.div<{ $level: number; $selected: boolean; $active: bool
 
 // --- Sample data --------------------------------------------------------------
 
-function leaf(value: string, label: string): ITreeItem {
+type StoryTreeItem = ITreeItem & { storyIcon?: "file" | "folder" };
+
+function leaf(value: string, label: string): StoryTreeItem {
     return {
         value,
         label,
-        icon: <FileTypeIcon fileName={label} width={16} height={16} />,
+        storyIcon: "file",
     };
 }
 
-function folder(value: string, label: string, items: ITreeItem[]): ITreeItem {
-    return { value, label, icon: <FolderIcon />, items };
+function folder(value: string, label: string, items: StoryTreeItem[]): StoryTreeItem {
+    return { value, label, storyIcon: "folder", items };
 }
 
-const REGULAR_TREE: ITreeItem[] = [
+const REGULAR_TREE: StoryTreeItem[] = [
     folder("src", "src", [
         folder("src/uikit", "uikit", [
             folder("src/uikit/ListBox", "ListBox", [
@@ -125,7 +122,7 @@ const REGULAR_TREE: ITreeItem[] = [
     leaf("package.json", "package.json"),
 ];
 
-function findByValue(items: ITreeItem[], value: string | number): ITreeItem | null {
+function findByValue(items: StoryTreeItem[], value: string | number): StoryTreeItem | null {
     for (const it of items) {
         if (it.value === value) return it;
         if (it.items) {
@@ -141,7 +138,7 @@ function findByValue(items: ITreeItem[], value: string | number): ITreeItem | nu
 // Mutable copy is created per-render-cycle by `makeLazyTree`; `loadChildren` mutates
 // it in place. The model bumps `state.revision` after each resolve, forcing the
 // rows-memo to re-walk against the now-populated subtree.
-const LAZY_NESTED_CHILDREN: Record<string, ITreeItem[]> = {
+const LAZY_NESTED_CHILDREN: Record<string, StoryTreeItem[]> = {
     "lazy/dirA": [
         leaf("lazy/dirA/file1.ts", "file1.ts"),
         leaf("lazy/dirA/file2.ts", "file2.ts"),
@@ -151,7 +148,7 @@ const LAZY_NESTED_CHILDREN: Record<string, ITreeItem[]> = {
         leaf("lazy/dirB/notes.md", "notes.md"),
     ],
     "lazy/dirC": [
-        { value: "lazy/dirC/inner", label: "inner", icon: <FolderIcon />, items: undefined },
+        { value: "lazy/dirC/inner", label: "inner", storyIcon: "folder", items: undefined },
         leaf("lazy/dirC/x.ts", "x.ts"),
     ],
     "lazy/dirC/inner": [
@@ -159,16 +156,16 @@ const LAZY_NESTED_CHILDREN: Record<string, ITreeItem[]> = {
     ],
 };
 
-function makeLazyTree(): ITreeItem[] {
+function makeLazyTree(): StoryTreeItem[] {
     return [
-        { value: "lazy/dirA", label: "dirA", icon: <FolderIcon />, items: undefined },
-        { value: "lazy/dirB", label: "dirB", icon: <FolderIcon />, items: undefined },
-        { value: "lazy/dirC", label: "dirC (deeper)", icon: <FolderIcon />, items: undefined },
+        { value: "lazy/dirA", label: "dirA", storyIcon: "folder", items: undefined },
+        { value: "lazy/dirB", label: "dirB", storyIcon: "folder", items: undefined },
+        { value: "lazy/dirC", label: "dirC (deeper)", storyIcon: "folder", items: undefined },
         leaf("lazy/standalone.txt", "standalone.txt"),
     ];
 }
 
-const SECTIONED_TREE: ITreeItem[] = [
+const SECTIONED_TREE: StoryTreeItem[] = [
     {
         value: "section-recent",
         label: "Recent",
@@ -202,20 +199,20 @@ const SECTIONED_TREE: ITreeItem[] = [
  * samples above are only three levels deep and a few dozen rows, which is not enough to surface a
  * stale level guide left behind on a recycled row.
  */
-function makeDeepTree(): ITreeItem[] {
-    const chain = (depth: number, prefix: string): ITreeItem[] | undefined =>
+function makeDeepTree(): StoryTreeItem[] {
+    const chain = (depth: number, prefix: string): StoryTreeItem[] | undefined =>
         depth === 0
             ? undefined
             : [{
                 value: `${prefix}/d${depth}`,
                 label: `deep-${depth}`,
-                icon: <FolderIcon />,
+                storyIcon: "folder",
                 items: chain(depth - 1, prefix),
             }];
     return Array.from({ length: 60 }, (_, i) => ({
         value: `synthetic/root-${i}`,
         label: `root-${i}`,
-        icon: <FolderIcon />,
+        storyIcon: "folder",
         items: chain(i % 8, `synthetic/root-${i}`),
     }));
 }
@@ -255,15 +252,15 @@ function TreeDemo({
     lazy = false,
     deep = false,
 }: DemoProps) {
-    const treeRef = useRef<TreeModel<ITreeItem> | null>(null);
-    const [value, setValue] = useState<ITreeItem | null>(null);
+    const treeRef = useRef<TreeModel<StoryTreeItem> | null>(null);
+    const [value, setValue] = useState<StoryTreeItem | null>(null);
     // Multi-selection lives here, in the consumer — the Tree stores none of it. Held as a Set of
     // `value`s and painted back through `isSelected`, which is also how the Tree reads the current
     // selection when a gesture starts.
-    const [selectedValues, setSelectedValues] = useState<Set<ITreeItem["value"]>>(new Set());
+    const [selectedValues, setSelectedValues] = useState<Set<StoryTreeItem["value"]>>(new Set());
     const [active, setActive] = useState<number | null>(0);
-    const [removed, setRemoved] = useState<Set<ITreeItem["value"]>>(new Set());
-    const [lazyTree, setLazyTree] = useState<ITreeItem[] | null>(null);
+    const [removed, setRemoved] = useState<Set<StoryTreeItem["value"]>>(new Set());
+    const [lazyTree, setLazyTree] = useState<StoryTreeItem[] | null>(null);
 
     // Reset the lazy-tree mutable structure when the toggle flips. Fresh unloaded
     // folders on every lazy-on; cleared on lazy-off.
@@ -277,7 +274,7 @@ function TreeDemo({
         const base = sections ? SECTIONED_TREE : REGULAR_TREE;
         if (removed.size === 0) return base;
         // Recursively filter — only used in the customRow demo.
-        const filterTree = (nodes: ITreeItem[]): ITreeItem[] =>
+        const filterTree = (nodes: StoryTreeItem[]): StoryTreeItem[] =>
             nodes
                 .filter((n) => !removed.has(n.value))
                 .map((n) => (n.items ? { ...n, items: filterTree(n.items) } : n));
@@ -285,7 +282,7 @@ function TreeDemo({
     }, [lazy, lazyTree, deep, sections, removed]);
 
     const renderItem = customRow
-        ? (ctx: TreeItemRenderContext<ITreeItem>) => (
+        ? (ctx: TreeItemRenderContext<StoryTreeItem>) => (
             <CustomRow
                 id={ctx.id}
                 $level={ctx.level}
@@ -306,20 +303,20 @@ function TreeDemo({
         : undefined;
 
     const getTooltip = tooltip
-        ? (it: ITreeItem): React.ReactNode =>
+        ? (it: StoryTreeItem): React.ReactNode =>
             typeof it.label === "string" ? `Tooltip: ${it.label}` : null
         : undefined;
 
     const getContextMenu = contextMenu
-        ? (it: ITreeItem): MenuItem[] => [
+        ? (it: StoryTreeItem): MenuItem[] => [
             {
                 label: typeof it.label === "string" ? `Copy "${it.label}"` : "Copy",
-                icon: <CopyIcon />,
+                icon: "copy",
                 onClick: () => {},
             },
             {
                 label: "Remove",
-                icon: <RemoveIcon />,
+                icon: "remove",
                 onClick: () => {
                     setRemoved((s) => {
                         const next = new Set(s);
@@ -343,30 +340,30 @@ function TreeDemo({
 
     // multiSelect wins over predicateSelection: the Set-backed predicate IS the selection.
     const isSelected = multiSelect
-        ? (it: ITreeItem) => selectedValues.has(it.value)
+        ? (it: StoryTreeItem) => selectedValues.has(it.value)
         : predicateSelection
-            ? (it: ITreeItem) =>
+            ? (it: StoryTreeItem) =>
                 typeof it.value === "string" && it.value.endsWith(".tsx")
             : undefined;
 
     // DnD demo wiring — getDragData returns a serializable shape; canTraitDrop forbids
     // self-drop; onTraitDrop logs (consumer migration tasks own the actual move).
     const getDragData = dnd
-        ? (it: ITreeItem) => ({
+        ? (it: StoryTreeItem) => ({
             value: it.value,
             label: typeof it.label === "string" ? it.label : String(it.value),
         })
         : undefined;
 
     const canTraitDrop = dnd
-        ? (target: ITreeItem, payload: TraitDragPayload) => {
+        ? (target: StoryTreeItem, payload: TraitDragPayload) => {
             const data = payload.data as { value: string | number };
             return data.value !== target.value;
         }
         : undefined;
 
     const onTraitDrop = dnd
-        ? (target: ITreeItem, payload: TraitDragPayload) => {
+        ? (target: StoryTreeItem, payload: TraitDragPayload) => {
             const data = payload.data as { value: string | number; label: string };
             // eslint-disable-next-line no-console
             console.log(
@@ -379,12 +376,12 @@ function TreeDemo({
     // is in LAZY_NESTED_CHILDREN; loadChildren sleeps 400ms then attaches the children
     // in place.
     const getHasChildren = lazy
-        ? (it: ITreeItem) =>
+        ? (it: StoryTreeItem) =>
             typeof it.value === "string" && LAZY_NESTED_CHILDREN[it.value] !== undefined
         : undefined;
 
     const lazyLoadChildren = lazy
-        ? async (source: ITreeItem) => {
+        ? async (source: StoryTreeItem) => {
             await new Promise((r) => setTimeout(r, 400));
             const v = source.value as string;
             const children = LAZY_NESTED_CHILDREN[v];
@@ -441,6 +438,11 @@ function TreeDemo({
                 searchText={searchText}
                 renderItem={renderItem}
                 getTooltip={getTooltip}
+                getIconElement={(item) => item.storyIcon === "folder"
+                    ? createFolderIconElement()
+                    : item.storyIcon === "file"
+                        ? createFileTypeIconElement({ fileName: String(item.label), width: 16, height: 16 })
+                        : undefined}
                 getContextMenu={getContextMenu}
                 onContextMenu={onContextMenu}
                 keyboardNav={keyboardNav}

@@ -16,7 +16,6 @@ import {
     type DataGridInstance,
     type DeleteRowsEvent,
 } from "../../uikit/DataGrid";
-import { DeleteIcon, UnlockIcon } from "../../theme/icons";
 import type { EditorConfig } from "../base/EditorConfig";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 // Direct import (not the api/board-vars barrel) — see the note in EnvVarsEditor.ts.
@@ -35,7 +34,7 @@ function LockedState({ model }: { model: EnvVarsEditor }) {
             <Button
                 name="env-vars-unlock"
                 variant="primary"
-                icon={<UnlockIcon />}
+                icon="unlock"
                 onClick={() =>
                     void model.host?.showEncryptionDialog(
                         "Decrypt the environment variables file to continue.",
@@ -94,7 +93,7 @@ function NamespaceList({
                             <IconButton
                                 name="env-vars-delete-namespace"
                                 size="sm"
-                                icon={<DeleteIcon />}
+                                icon="delete"
                                 title="Delete namespace"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -347,7 +346,7 @@ function ProfilePane({
                     <IconButton
                         name="env-vars-delete-profile"
                         size="sm"
-                        icon={<DeleteIcon />}
+                        icon="delete"
                         title="Delete profile"
                         onClick={() => void model.deleteProfile(namespace, profile)}
                     />

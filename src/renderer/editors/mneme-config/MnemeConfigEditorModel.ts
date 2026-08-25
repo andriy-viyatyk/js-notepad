@@ -1,4 +1,3 @@
-import { createElement, ReactNode } from "react";
 import { EditorModel, type EditorStateBase } from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence";
 import { TComponentState } from "../../core/state/state";
@@ -552,7 +551,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
 
     // Warm green icon accent (a fixed icon color, like the browser-profile colors),
     // shared by the page tab and the Tools & Editors sidebar entry.
-    getIcon = (): ReactNode => createElement(MemoryIcon, { color: MEMORY_ICON_COLOR });
+    getIconElement = (): SVGElement | undefined => MemoryIcon.createElement?.({ color: MEMORY_ICON_COLOR });
 
     async dispose(): Promise<void> {
         this.stopPolling();

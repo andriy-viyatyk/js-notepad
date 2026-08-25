@@ -11,7 +11,6 @@ import { GraphDetailPanel } from "./GraphDetailPanel";
 import { GraphTuningSliders } from "./GraphTuningSliders";
 import { GraphExpansionSettings } from "./GraphExpansionSettings";
 import { GraphLegendPanel } from "./GraphLegendPanel";
-import { CloseIcon, SettingsIcon, RefreshIcon, ExpandAllIcon, GraphGroupIcon } from "../../theme/icons";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import color from "../../theme/color";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
@@ -557,7 +556,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                             <IconButton
                                 name="graph-settings"
                                 size="sm"
-                                icon={<SettingsIcon />}
+                                icon="settings"
                                 active={toolbarPanel === "settings"}
                                 onClick={toggleSettings}
                                 title="Force tuning"
@@ -565,7 +564,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                             <IconButton
                                 name="graph-toggle-grouping"
                                 size="sm"
-                                icon={<GraphGroupIcon />}
+                                icon="graph-group"
                                 strikethrough={groupingEnabled}
                                 disabled={!editor.hasGroups}
                                 onClick={() => editor.toggleGrouping()}
@@ -574,7 +573,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                             <IconButton
                                 name="graph-reset-view"
                                 size="sm"
-                                icon={<RefreshIcon />}
+                                icon="refresh"
                                 onClick={() => editor.resetView()}
                                 title="Reset view"
                             />
@@ -582,7 +581,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                                 <IconButton
                                     name="graph-expand-all"
                                     size="sm"
-                                    icon={<ExpandAllIcon />}
+                                    icon="expand-all"
                                     onClick={handleExpandAll}
                                     title="Expand all nodes"
                                 />
@@ -602,7 +601,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                                         <IconButton
                                             name="graph-search-clear"
                                             size="sm"
-                                            icon={<CloseIcon />}
+                                            icon="close"
                                             title="Clear search"
                                             onClick={onSearchClear}
                                         />

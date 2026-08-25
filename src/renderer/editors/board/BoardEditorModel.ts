@@ -1,10 +1,7 @@
-import { createElement, type ReactNode } from "react";
-
 import { EditorModel, type EditorStateBase } from "../base/EditorModel";
 import { editorRegistry } from "../base/editorRegistry";
 import { api } from "../../../ipc/renderer/api";
 import { BOARD_CDP_TAB } from "../../../ipc/api-types";
-import { BoardIcon } from "../../theme/icons";
 import { fpBasename, fpExtname, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { fs as appFs } from "../../api/fs";
@@ -16,7 +13,6 @@ import { boardEditorId } from "./custom-editor-registry";
 import { isBoardFolder, normalizeSecondaryViews, readBoardManifest, readBoardSecondaryViews, type SecondaryViewDecl } from "./board-manifest";
 import { boardSecondaryPanelId } from "./board-secondary";
 import { BoardTargetModel } from "./BoardTargetModel";
-import { BoardGlyph } from "./BoardGlyph";
 import { createBoardGlyphElement } from "./board-glyph-element";
 import { invalidateBoardIcon } from "./board-icon-cache";
 import { markBoardBusy } from "./busy-boards";
@@ -212,17 +208,6 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         const s = this.state.get();
         return s.selectedBoard ? s.boardRoot : undefined;
     }
-
-    /** Tab/panel icon — the board's own icon when it resolves (falls back to the
-     *  dashboard glyph). The tab re-invokes this when `state.iconKey` changes (set
-     *  in `selectBoard`). */
-    getIcon = (): ReactNode => {
-        const root = this.currentBoardRoot();
-        if (root) {
-            return createElement(BoardGlyph, { boardRoot: root });
-        }
-        return createElement(BoardIcon);
-    };
 
     getIconElement = (): Element => createBoardGlyphElement(this.currentBoardRoot(), 16);
 

@@ -285,7 +285,12 @@ export class PageTabsView extends VanillaView<object> {
             const ref = decodePin(stored);
             if (ref.kind === "editor") {
                 const item = allItems.find((candidate) => candidate.id === ref.id);
-                if (item) items.push({ label: item.label, icon: item.icon, onClick: item.create });
+                if (item) {
+                    // Pinned items are also displayed in the sidebar rail. Clone native icons so
+                    // opening this menu cannot move the rail's single-use DOM node to the menu.
+                    const icon = item.icon instanceof Node ? item.icon.cloneNode(true) : item.icon;
+                    items.push({ label: item.label, icon, onClick: item.create });
+                }
             } else {
                 const root = ref.root;
                 items.push({

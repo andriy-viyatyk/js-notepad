@@ -213,11 +213,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
         this.appliedChecked = checked;
     }
 
-    /**
-     * An icon *name* becomes a DOM `svg` with no React root; anything else is a React node and goes
-     * through `fillSlot`. Passing names through `fillSlot`'s React arm would put a root behind the
-     * library's most common non-empty slot, which is the cost this whole design exists to avoid.
-     */
+    /** An icon *name* becomes a DOM `svg` with no React root. */
     private setIcon(icon: IconRef | undefined, iconElement: Node | undefined): void {
         if (iconElement !== undefined) {
             if (this.appliedIconElement === iconElement) return;

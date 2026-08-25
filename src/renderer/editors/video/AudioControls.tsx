@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { IconButton, Panel, Slider } from "../../uikit";
 import color from "../../theme/color";
-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMutedIcon, ShuffleIcon, NextTrackIcon } from "../../theme/icons";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -97,7 +96,7 @@ export function AudioControls({ audioRef, playing, hasNext, shuffle, onNext, onT
             <IconButton
                 name="audio-play-pause"
                 size="sm"
-                icon={playing ? <PauseIcon /> : <PlayIcon />}
+                icon={playing ? "pause" : "play"}
                 title={playing ? "Pause" : "Play"}
                 hideUntilParentHover
                 onClick={togglePlay}
@@ -107,7 +106,7 @@ export function AudioControls({ audioRef, playing, hasNext, shuffle, onNext, onT
                 <IconButton
                     name="audio-next"
                     size="sm"
-                    icon={<NextTrackIcon />}
+                    icon="next-track"
                     title="Next Track"
                     hideUntilParentHover
                     onClick={onNext}
@@ -134,7 +133,7 @@ export function AudioControls({ audioRef, playing, hasNext, shuffle, onNext, onT
             <IconButton
                 name="audio-mute"
                 size="sm"
-                icon={muted ? <VolumeMutedIcon /> : <VolumeIcon />}
+                icon={muted ? "volume-muted" : "volume"}
                 title={muted ? "Unmute" : "Mute"}
                 hideUntilParentHover
                 onClick={toggleMute}
@@ -144,7 +143,7 @@ export function AudioControls({ audioRef, playing, hasNext, shuffle, onNext, onT
                 <IconButton
                     name="audio-shuffle"
                     size="sm"
-                    icon={<ShuffleIcon />}
+                    icon="shuffle"
                     title={shuffle ? "Shuffle: On" : "Shuffle: Off"}
                     active={shuffle}
                     hideUntilParentHover

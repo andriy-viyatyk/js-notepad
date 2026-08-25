@@ -3,20 +3,6 @@ const { ipcRenderer } = require("electron");
 import { EditorToolbar } from "../base/EditorToolbar";
 import color from "../../theme/color";
 import { Panel, Input, Button, IconButton, Spinner, Text, Dot, Splitter, WithMenu } from "../../uikit";
-import {
-    ArrowLeftIcon,
-    ArrowRightIcon,
-    BookmarkIcon,
-    CloseIcon,
-    HomeIcon,
-    MoreVertIcon,
-    QuestionIcon,
-    RefreshIcon,
-    SettingsIcon,
-    StarFilledIcon,
-    StarIcon,
-    StopIcon,
-} from "../../theme/icons";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
 import { TorStatusOverlay } from "./TorStatusOverlay";
 import {
@@ -326,14 +312,14 @@ function renderUrlEndSlot(
             <IconButton
                 name="url-navigate"
                 size="sm"
-                icon={<ArrowRightIcon />}
+                icon="arrow-right"
                 title="Navigate"
                 onClick={onNavigate}
             />
             <IconButton
                 name="url-bookmark-toggle"
                 size="sm"
-                icon={isBookmarked ? <StarFilledIcon /> : <StarIcon />}
+                icon={isBookmarked ? "star-filled" : "star"}
                 title={isBookmarked ? "Edit Bookmark" : "Add Bookmark"}
                 active={isBookmarked}
                 onClick={onStar}
@@ -436,7 +422,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="toolbar-home"
                         size="sm"
-                        icon={<HomeIcon />}
+                        icon="home"
                         title={homeUrl ? `Go to ${homeUrl}` : "Home"}
                         onClick={model.goHome}
                         disabled={!homeUrl}
@@ -444,7 +430,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="toolbar-back"
                         size="sm"
-                        icon={<ArrowLeftIcon />}
+                        icon="arrow-left"
                         title="Back (Alt+Left)"
                         onClick={webview.goBack}
                         disabled={!canGoBack}
@@ -452,7 +438,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="toolbar-forward"
                         size="sm"
-                        icon={<ArrowRightIcon />}
+                        icon="arrow-right"
                         title="Forward (Alt+Right)"
                         onClick={webview.goForward}
                         disabled={!canGoForward}
@@ -460,7 +446,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="toolbar-reload"
                         size="sm"
-                        icon={loading ? <StopIcon /> : <RefreshIcon />}
+                        icon={loading ? "stop" : "refresh"}
                         title={loading ? "Stop" : "Reload"}
                         onClick={webview.reloadOrStop}
                     />
@@ -496,7 +482,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="toolbar-bookmarks"
                         size="sm"
-                        icon={<BookmarkIcon />}
+                        icon="bookmark"
                         title="Open Bookmarks"
                         onClick={bookmarksUI.handleOpenBookmarks}
                     />
@@ -505,7 +491,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                         <IconButton
                             name="toolbar-tor-info"
                             size="sm"
-                            icon={<QuestionIcon />}
+                            icon="question"
                             title="Tor connection info"
                             onClick={model.showTorInfoDialog}
                         />
@@ -516,7 +502,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                             <IconButton
                                 name="toolbar-more"
                                 size="sm"
-                                icon={<MoreVertIcon />}
+                            icon="more-vert"
                                 title="Page Menu"
                                 onClick={(e) => openMenu(e.currentTarget)}
                             />
@@ -525,14 +511,14 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="toolbar-devtools"
                         size="sm"
-                        icon={<SettingsIcon />}
+                        icon="settings"
                         title="Open DevTools"
                         onClick={webview.openDevTools}
                     />
                     <IconButton
                         name="toolbar-close"
                         size="sm"
-                        icon={<CloseIcon />}
+                        icon="close"
                         title="Close Tab"
                         onClick={() => model.closeTab(activeTabId)}
                     />
@@ -568,7 +554,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                     <IconButton
                         name="popup-dismiss"
                         size="sm"
-                        icon={<CloseIcon />}
+                        icon="close"
                         title="Dismiss"
                         onClick={model.dismissBlockedPopups}
                     />

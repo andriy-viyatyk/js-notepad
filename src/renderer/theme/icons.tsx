@@ -14,6 +14,22 @@ export type SvgIconComponent = ((props: SvgIconProps) => ReactElement) & {
     viewBox?: string;
 };
 
+
+/**
+ * Build an icon component's DOM form. `createElement` is optional on the type because an icon
+ * defined with a JSX body has no string source to build from, so callers cannot assume it exists —
+ * and a `!` here would turn a missing builder into a confusing null-append far from the cause.
+ * Prefer `createIconElement(name)` when the icon is in the name registry; use this for the icons
+ * that are not.
+ */
+export function createIconComponentElement(icon: SvgIconComponent, props?: SvgIconProps): SVGElement {
+    const builder = icon.createElement;
+    if (!builder) {
+        throw new Error(`Icon "${icon.name}" has no DOM builder.`);
+    }
+    return builder(props);
+}
+
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 const svgAttributeNames: Record<string, string> = {

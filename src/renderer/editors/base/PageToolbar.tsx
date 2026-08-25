@@ -4,7 +4,6 @@ import { EditorToolbar } from "./EditorToolbar";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { SegmentedControl, type ISegment } from "../../uikit/SegmentedControl/SegmentedControl";
 import { Spacer } from "../../uikit/Spacer/Spacer";
-import { NavPanelIcon } from "../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
 import { customEditorRegistry } from "../board/custom-editor-registry";
 import { isPlainLocalPath, fpNormalizeForCompare } from "../../core/utils/file-path";
@@ -57,7 +56,7 @@ function NavPanelButton({ model }: { model: EditorModel }) {
             name="page-nav-panel"
             size="sm"
             title="File Explorer"
-            icon={<NavPanelIcon />}
+            icon="nav-panel"
             onClick={() => model.page?.toggleNavigator(target.pipe, target.filePath)}
         />
     );

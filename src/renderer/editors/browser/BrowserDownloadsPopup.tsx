@@ -1,5 +1,4 @@
 import { Panel, Text, Button, IconButton, Spacer, Popover, Tooltip } from "../../uikit";
-import { CloseIcon, FolderOpenIcon } from "../../theme/icons";
 import color from "../../theme/color";
 import { downloads } from "../../api/downloads";
 import { DownloadEntry } from "../../../ipc/api-param-types";
@@ -188,7 +187,7 @@ function DownloadItem({ entry, showBorder }: { entry: DownloadEntry; showBorder:
                         <IconButton
                             size="sm"
                             title="Show in Folder"
-                            icon={<FolderOpenIcon />}
+                            icon="folder-open"
                             onClick={() => downloads.showInFolder(id)}
                         />
                     </>
@@ -197,7 +196,7 @@ function DownloadItem({ entry, showBorder }: { entry: DownloadEntry; showBorder:
                     <IconButton
                         size="sm"
                         title="Dismiss"
-                        icon={<CloseIcon />}
+                        icon="close"
                         onClick={() => downloads.clearCompleted()}
                     />
                 )}

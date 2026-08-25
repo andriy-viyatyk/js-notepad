@@ -6,7 +6,6 @@ import { IconButton } from "../../uikit/IconButton";
 import { Spacer } from "../../uikit/Spacer";
 import { Dot, DotColor } from "../../uikit/Dot";
 import { EditorToolbar } from "../base/EditorToolbar";
-import { RefreshIcon, LogIcon, McpIcon } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import type { EditorModel } from "../base";
 import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
@@ -78,7 +77,7 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
                             name="mneme-restart"
                             size="sm"
                             warning
-                            icon={<RefreshIcon />}
+                            icon="refresh"
                             title="Restart Mneme"
                             onClick={() => model.restartMneme()}
                         />
@@ -88,14 +87,14 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
                     <IconButton
                         name="mneme-open-mcp-inspector"
                         size="sm"
-                        icon={<McpIcon />}
+                        icon="mcp"
                         title="Open in MCP Inspector"
                         onClick={() => model.openInMcpInspector()}
                     />
                     <IconButton
                         name="mneme-open-log"
                         size="sm"
-                        icon={<LogIcon />}
+                        icon="log"
                         title="Open Mneme log"
                         onClick={() => model.openLog()}
                     />

@@ -23,18 +23,9 @@ import { SplitterView } from "../../uikit/Splitter/SplitterView";
 import { ListBoxView } from "../../uikit/ListBox/ListBoxView";
 import type { ListBoxProps } from "../../uikit/ListBox/types";
 import type { IconRef } from "../../uikit/shared/slots";
+import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import {
-    ClearListIcon,
-    EmptyIcon,
-    FolderOpenIcon,
-    FolderPlusIcon,
-    OpenFileIcon,
-    RemoveIcon,
-    ScriptLibraryIcon,
-    TerminalIcon,
-} from "../../theme/icons";
-import { FolderIcon } from "../../components/icons/FileIcon";
+import { createFolderIconElement } from "../../components/icons/icon-elements";
 import {
     createFolderItemRecord,
     type FolderItemRecord,
@@ -70,10 +61,6 @@ const isStaticFolder = (folder: MenuFolder): boolean =>
 
 const canOpenInTab = (folder: MenuFolder): boolean =>
     !isStaticFolder(folder) || folder.id === scriptLibraryId;
-
-function iconName(icon: IconRef): IconRef {
-    return icon;
-}
 
 export class MenuBarView extends VanillaView<MenuBarProps> {
     private readonly content = document.createElement("div");
@@ -337,13 +324,13 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
 
     private getFolderIcon(folder: MenuFolder): IconRef {
         switch (folder.id) {
-            case openTabsId: return iconName("tabs");
-            case recentFilesId: return iconName("history");
-            case toolsEditorsId: return iconName("tools");
-            case scriptLibraryId: return React.createElement(ScriptLibraryIcon);
+            case openTabsId: return "tabs";
+            case recentFilesId: return "history";
+            case toolsEditorsId: return "tools";
+            case scriptLibraryId: return createIconElement("script-library");
             default: return folder.path
-                ? React.createElement(FolderIcon)
-                : React.createElement(EmptyIcon);
+                ? createFolderIconElement()
+                : createIconElement("empty");
         }
     }
 
@@ -374,7 +361,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         if (folder.id === recentFilesId) {
             return [{
                 label: "Clear Recent Files",
-                icon: React.createElement(ClearListIcon),
+                icon: createIconElement("clear-list"),
                 onClick: () => { void this.clearRecentFiles(); },
             }];
         }
@@ -382,19 +369,19 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             const libraryPath = settings.get("script-library.path");
             const items = [{
                 label: "Change Library Folder",
-                icon: React.createElement(FolderOpenIcon),
+                icon: createIconElement("folder-open"),
                 onClick: () => { void this.changeLibraryFolder(); },
             }];
             if (libraryPath) {
                 items.push(
                     {
                         label: "Open in Explorer",
-                        icon: React.createElement(FolderOpenIcon),
+                        icon: createIconElement("folder-open"),
                         onClick: () => { api.showFolder(libraryPath); },
                     },
                     {
                         label: "Unlink Library",
-                        icon: React.createElement(RemoveIcon),
+                        icon: createIconElement("remove"),
                         onClick: () => this.unlinkLibraryFolder(),
                     },
                 );
@@ -404,12 +391,12 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         return [
             {
                 label: "Open in New Tab",
-                icon: React.createElement(OpenFileIcon),
+                icon: createIconElement("open-file"),
                 onClick: () => this.openFolderInTab(folder),
             },
             {
                 label: "Remove Folder",
-                icon: React.createElement(RemoveIcon),
+                icon: createIconElement("remove"),
                 onClick: () => {
                     const folderId = folder.id;
                     if (folderId) menuFolders.remove(folderId);
@@ -417,12 +404,12 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             },
             {
                 label: "Show in File Explorer",
-                icon: React.createElement(FolderOpenIcon),
+                icon: createIconElement("folder-open"),
                 onClick: () => { if (folder.path) api.showFolder(folder.path); },
             },
             {
                 label: "Open Terminal here",
-                icon: React.createElement(TerminalIcon),
+                icon: createIconElement("terminal"),
                 onClick: async () => {
                     const folderPath = folder.path;
                     if (!folderPath) return;
@@ -455,7 +442,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         const contextEvent = ContextMenuEvent.fromNativeEvent(event, "sidebar-background");
         contextEvent.items.push({
             label: "Add Folder",
-            icon: React.createElement(FolderPlusIcon),
+            icon: createIconElement("folder-plus"),
             onClick: () => { void this.addFolder(); },
         });
     }

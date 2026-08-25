@@ -2,7 +2,6 @@ import React from "react";
 import { PageToolbar } from "../base";
 import { Button, Panel, Text, Textarea } from "../../uikit";
 import color from "../../theme/color";
-import { VlcIcon } from "../../theme/icons";
 import { VPlayer } from "./VPlayer";
 import { settings } from "../../api/settings";
 import { VideoEditor } from "./VideoEditor";
@@ -95,7 +94,7 @@ export function VideoView({ model }: VideoViewProps) {
                 )}
                 {showVlcButton && (
                     <div style={vlcButtonContainerStyle}>
-                        <Button name="video-open-vlc" variant="link" icon={<VlcIcon />} onClick={model.openInVlc}>
+                        <Button name="video-open-vlc" variant="link" icon="vlc" onClick={model.openInVlc}>
                             Open in VLC
                         </Button>
                     </div>

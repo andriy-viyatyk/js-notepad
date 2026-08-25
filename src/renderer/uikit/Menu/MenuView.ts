@@ -6,6 +6,7 @@ import type { InputProps } from "../Input/Input";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import { KeyedList } from "../shared/keyed-list";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
+import { createIconElement, isIconName } from "../shared/slots";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import {
@@ -42,6 +43,12 @@ function iconElement(component: { createElement?: () => SVGElement }): SVGElemen
     const icon = component.createElement?.();
     if (!icon) throw new Error("Menu icon does not have a DOM builder.");
     return icon;
+}
+
+function menuIconContent(icon: unknown): SlotContent {
+    if (typeof icon === "string") return isIconName(icon) ? createIconElement(icon) : null;
+    if (icon instanceof Node || icon == null || icon === false) return icon as SlotContent;
+    return null;
 }
 
 /** Native menu content mounted directly into PopoverFloatingView's root. */
@@ -189,7 +196,7 @@ class MenuContentView extends VanillaView<MenuModel> {
             parts.iconHost = undefined;
         }
         if (parts.iconHost) {
-            parts.iconCleanup = fillSlot(parts.iconHost, (record.item.icon ?? null) as SlotContent);
+            parts.iconCleanup = fillSlot(parts.iconHost, menuIconContent(record.item.icon));
         }
 
         parts.label.textContent = record.item.label;

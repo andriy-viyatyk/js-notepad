@@ -1,9 +1,7 @@
-import type { ReactNode } from "react";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import { createBoardGlyphElement } from "../../editors/board/board-glyph-element";
 import { GitIcon, MemoryIcon, BoardIcon, type SvgIconComponent, type SvgIconProps } from "../../theme/icons";
 import { DefaultIcon } from "../../theme/language-icons";
-import { createIconElement, isIconName, type IconRef } from "../../uikit/shared/slots";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import { fpExtname, fpBasename } from "../../core/utils/file-path";
 import { getHostname, getFaviconPathSync } from "./favicon-cache";
@@ -14,10 +12,9 @@ import {
     type FileTypeIconProps,
 } from "./LanguageIcon";
 
-/** The result of resolving an editor icon before its remaining React producers migrate. */
+/** The result of resolving an editor icon into a native element. */
 export type EditorIconElement =
     | { kind: "element"; element: Element }
-    | { kind: "react"; value: ReactNode }
     | null;
 
 function createSvg(icon: SvgIconComponent, props: SvgIconProps = {}): SVGElement {
@@ -117,15 +114,9 @@ export function createTreeProviderItemIconElement(item: ITreeProviderItem): Elem
     return createFileTypeIconElement({ fileName: item.title, width: 16, height: 16 });
 }
 
-/**
- * Resolve an editor icon without silently dropping the remaining React-valued producer arm.
- * Registry names and language/file icons are returned as actual DOM elements. Known editor
- * producers that still return React nodes are returned explicitly for a later bridge/consumer
- * migration; no React element internals are inspected here.
- */
+/** Resolve an editor icon into a native element. */
 export function createEditorIconElement(source: {
     noLanguage?: boolean;
-    getIcon?: () => IconRef;
     getIconElement?: () => Element | undefined;
     language?: string;
     title?: string;
@@ -140,14 +131,7 @@ export function createEditorIconElement(source: {
         };
     }
 
-    const icon = source.getIcon?.();
-    if (!icon) return null;
-    if (typeof icon === "string") {
-        return isIconName(icon)
-            ? { kind: "element", element: createIconElement(icon) }
-            : null;
-    }
-    return { kind: "react", value: icon };
+    return null;
 }
 
 /**

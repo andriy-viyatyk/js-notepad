@@ -6,7 +6,6 @@ import {
     Panel,
     Textarea,
 } from "../../uikit";
-import { CloseIcon } from "../../theme/icons";
 import { RestHeader } from "./restClientTypes";
 
 interface KeyValueEditorProps {
@@ -149,7 +148,7 @@ function KeyValueRow({
                 <IconButton
                     name="kv-row-delete"
                     size="sm"
-                    icon={<CloseIcon />}
+                    icon="close"
                     title="Delete"
                     onClick={handleDelete}
                 />

@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { Panel, IconButton } from "../../uikit";
-import { DownloadIcon } from "../../theme/icons";
 import color from "../../theme/color";
 import { downloads } from "../../api/downloads";
 import {
@@ -48,7 +47,7 @@ export function DownloadButton() {
                 size="sm"
                 title="Downloads"
                 active={hasActive || undefined}
-                icon={<DownloadIcon />}
+                icon="download"
                 onClick={handleClick}
             />
             {hasActive && (

@@ -10,7 +10,6 @@ import { SplitButton } from "../../uikit/SplitButton";
 import { Divider } from "../../uikit/Divider";
 import { Tag } from "../../uikit/Tag";
 import type { MenuItem } from "../../uikit/Menu";
-import { RefreshIcon, GitIcon, GlobeIcon, DownloadIcon, UploadIcon } from "../../theme/icons";
 import color from "../../theme/color";
 import { GitTree, type GitCommitRow } from "../../components/git-tree";
 import { CommitInfoPanel } from "./CommitInfoPanel";
@@ -97,21 +96,21 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
             for (const ref of row.refs) {
                 if (ref.kind === "head") {
                     hasLocalBranch = true;
-                    items.push({ label: `Switch to Branch '${ref.name}' (current)`, icon: <GitIcon />, disabled: true });
+                    items.push({ label: `Switch to Branch '${ref.name}' (current)`, icon: "git", disabled: true });
                 } else if (ref.kind === "branch") {
                     hasLocalBranch = true;
-                    items.push({ label: `Switch to Branch '${ref.name}'`, icon: <GitIcon />, disabled: multi, onClick: () => void model.switchTo({ type: "branch", name: ref.name }) });
+                    items.push({ label: `Switch to Branch '${ref.name}'`, icon: "git", disabled: multi, onClick: () => void model.switchTo({ type: "branch", name: ref.name }) });
                 }
             }
             for (const ref of row.refs) {
                 if (ref.kind === "remote") {
-                    items.push({ label: `Switch to Remote Branch '${ref.name}'`, icon: <GlobeIcon />, disabled: multi, onClick: () => void model.switchTo({ type: "remote", ref: ref.name }) });
+                    items.push({ label: `Switch to Remote Branch '${ref.name}'`, icon: "globe", disabled: multi, onClick: () => void model.switchTo({ type: "remote", ref: ref.name }) });
                 }
             }
             if (!hasLocalBranch) {
                 items.push({
                     label: `Switch to Commit ${row.shortHash}`,
-                    icon: <GitIcon />,
+                    icon: "git",
                     startGroup: items.length > 0,
                     disabled: multi,
                     onClick: () => void model.switchTo({ type: "commit", hash: row.hash }),
@@ -119,7 +118,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
             }
             items.push({
                 label: "Create branch here…",
-                icon: <GitIcon />,
+                icon: "git",
                 startGroup: items.length > 0,
                 disabled: multi,
                 onClick: () => void model.createBranchAt(row.hash, row.shortHash),
@@ -184,7 +183,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                         name="git-tree-refresh"
                         size="sm"
                         title="Refresh"
-                        icon={<RefreshIcon />}
+                        icon="refresh"
                         disabled={loading}
                         onClick={() => model.refresh()}
                     />
@@ -215,7 +214,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                     <SplitButton
                         name="git-tree-pull"
                         size="sm"
-                        icon={<DownloadIcon />}
+                        icon="download"
                         title={
                             !aheadBehind.hasUpstream ? "Pull (no upstream configured)"
                                 : aheadBehind.behind > 0 ? `Pull ${aheadBehind.behind} commit(s) — merge`
@@ -227,7 +226,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                         items={[
                             {
                                 label: "Pull (merge)",
-                                icon: <DownloadIcon />,
+                                icon: "download",
                                 disabled: !aheadBehind.hasUpstream,
                                 onClick: () => void model.pull(),
                             },
@@ -246,7 +245,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                                 : aheadBehind.ahead > 0 ? `Push ${aheadBehind.ahead} commit(s)`
                                     : "Nothing to push"
                         }
-                        icon={<UploadIcon />}
+                        icon="upload"
                         disabled={pushing || (aheadBehind.hasUpstream && aheadBehind.ahead === 0)}
                         onClick={() => void model.push()}
                     />

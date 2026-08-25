@@ -8,7 +8,6 @@ import { BoardScreenshot } from "../board-info/BoardScreenshot";
 import { boardUsageGroup, type BoardUsageGroup, type BoardManifest } from "../board/board-manifest";
 import { fpNormalizeForCompare } from "../../core/utils/file-path";
 import { formatBytes } from "../../core/utils/format-bytes";
-import { RefreshIcon } from "../../theme/icons";
 import type { PublishedBoardInfo } from "../../../ipc/api-param-types";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 
@@ -98,7 +97,7 @@ export function SearchBoardsTab() {
                 <IconButton
                     name="search-boards-refresh"
                     size="sm"
-                    icon={<RefreshIcon />}
+                    icon="refresh"
                     title="Refresh catalog"
                     disabled={refreshing}
                     onClick={() => { void refresh(); }}

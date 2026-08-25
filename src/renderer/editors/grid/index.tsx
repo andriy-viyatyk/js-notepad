@@ -4,7 +4,6 @@ import { TextChrome } from "../base/TextChrome";
 import { Input } from "../../uikit/Input";
 import { IconButton } from "../../uikit/IconButton";
 import { Button } from "../../uikit/Button";
-import { CloseIcon, ColumnsIcon } from "../../theme/icons";
 import { showColumnsOptions } from "./components/ColumnsOptions";
 import { showCsvOptions } from "./components/CsvOptions";
 import type { EditorModule } from "../base/editorRegistry";
@@ -53,7 +52,7 @@ function GridToolbarBits({
                 name="grid-columns"
                 size="sm"
                 title="Edit Columns"
-                icon={<ColumnsIcon />}
+                icon="columns"
                 onClick={(e) => {
                     const grid = gridRefHolder.current;
                     if (grid) {
@@ -97,7 +96,7 @@ function GridSearchInput({ editor }: { editor: GridEditor }) {
                         name="grid-search-clear"
                         size="sm"
                         title="Clear Search"
-                        icon={<CloseIcon />}
+                        icon="close"
                         onClick={editor.clearSearch}
                     />
                 ) : undefined

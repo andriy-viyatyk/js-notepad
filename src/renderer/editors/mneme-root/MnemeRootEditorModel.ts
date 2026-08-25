@@ -1,5 +1,3 @@
-import { createElement, type ReactNode } from "react";
-
 import { EditorModel, type EditorStateBase, type RestoreData } from "../base/EditorModel";
 import { MemoryIcon } from "../../theme/icons";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
@@ -146,8 +144,6 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
     /** Connection-status subscription, so a late connection self-resolves. */
     private _statusSub: ISubscriptionObject | null = null;
 
-    /** Tab/panel icon — the Mneme (Memory) glyph. */
-    getIcon = (): ReactNode => createElement(MemoryIcon, { color: MEMORY_ICON_COLOR });
     getIconElement = (): SVGElement | undefined => MemoryIcon.createElement?.({ color: MEMORY_ICON_COLOR });
 
     /** Register the read-only "Wiki" tree panel when attached to a page

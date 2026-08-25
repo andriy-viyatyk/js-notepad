@@ -4,7 +4,6 @@ import { GraphEditor, defaultGraphEditorState } from "./GraphEditor";
 import { GraphBody } from "./GraphBody";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
-import { CopyIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage } from "../draw/drawExport";
@@ -45,14 +44,14 @@ function GraphToolbarBits({ model: editor, canvasRef }: GraphToolbarBitsProps) {
             <IconButton
                 name="graph-open-in-draw"
                 size="sm"
-                icon={<DrawIcon />}
+                icon={DrawIcon.createElement?.() ?? null}
                 title="Open in Drawing Editor"
                 onClick={onOpenDraw}
             />
             <IconButton
                 name="graph-copy-image"
                 size="sm"
-                icon={<CopyIcon />}
+                icon="copy"
                 title="Copy Image to Clipboard"
                 onClick={onCopyImage}
             />

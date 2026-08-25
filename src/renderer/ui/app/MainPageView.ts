@@ -4,6 +4,7 @@ import type { MenuItem } from "../../uikit/Menu/types";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { themeState } from "../../theme/theme-state";
 import { app } from "../../api/app";
 import { autoloadService } from "../../api/autoload-service";
 import { mnemeStatusModel } from "../../api/mneme-status";
@@ -84,6 +85,7 @@ export class MainPageView extends VanillaView<object> {
         this.bind(app.window.state, (state): MainPageState => state, (state) => this.updateIndicators(state));
         this.bind(autoloadService.state, (state) => state.needsReload, (visible) => { this.autoloadWrap.style.display = visible ? "" : "none"; });
         this.bind(mnemeStatusModel.state, (state) => state, (state) => this.updateMneme(state));
+        this.bindMenuGlyphToTheme();
         this.own(() => this.snipMenu?.dispose());
     }
 
@@ -92,10 +94,14 @@ export class MainPageView extends VanillaView<object> {
         this.snipMenu = undefined;
     }
 
+    /** Retained so the theme binding can rebuild its glyph — see `bindMenuGlyphToTheme`. */
+    private menuButton: HTMLButtonElement | undefined;
+
     private buildHeader(): void {
         this.header.className = "app-header";
         this.header.dataset.name = "app-header";
-        this.header.append(this.createButton("persephone-menu", "app-button", "Menu", createIconElement("persephone"), () => app.window.toggleMenuBar()), this.pageTabs.root);
+        this.menuButton = this.createButton("persephone-menu", "app-button", "Menu", createIconElement("persephone"), () => app.window.toggleMenuBar());
+        this.header.append(this.menuButton, this.pageTabs.root);
         this.header.append(createPanelElement({ name: "app-header-spacer", flex: 1, minWidth: 40 }));
         this.autoloadWrap.className = "autoload-reload";
         this.header.append(this.autoloadWrap, this.buildZoomButton(), this.createSystemButton("window-minimize", createIconElement("window-minimize"), "Minimize", () => app.window.minimize()), this.toggleWindowButton, this.createSystemButton("window-close", createIconElement("close"), "Close", () => app.window.close()));
@@ -113,6 +119,22 @@ export class MainPageView extends VanillaView<object> {
         this.snipButton.addEventListener("click", () => this.toggleSnipMenu());
         this.statusIndicators.append(this.snipButton, this.mnemeIndicator, this.mcpIndicator);
         this.header.append(this.statusIndicators);
+    }
+
+    /**
+     * `PersephoneIcon` is the one icon whose glyph depends on the theme: its DOM builder bakes the
+     * light/dark background in at build time (`themeState.get()`), where the React component read
+     * `themeState.use()` and re-rendered on a flip. A builder that returns a detached element cannot
+     * own a subscription without leaking it, so keeping the glyph current is the owner's job —
+     * this view rebuilds it. Without this, switching theme left the app-menu glyph on the previous
+     * background until something else rebuilt the header (EPIC-064 E6-6 concern 1).
+     */
+    private bindMenuGlyphToTheme(): void {
+        this.bind(themeState, (state) => state.isDark, () => {
+            const button = this.menuButton;
+            if (!button) return;
+            button.replaceChildren(createIconElement("persephone"));
+        });
     }
 
     private createButton(name: string, className: string, title: string, icon: SVGElement, onClick: () => void): HTMLButtonElement {

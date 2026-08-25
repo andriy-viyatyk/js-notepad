@@ -7,12 +7,6 @@ import { PageToolbar } from "./PageToolbar";
 import { ContentHostFooter } from "./ContentHostFooter";
 import { Panel } from "../../uikit/Panel/Panel";
 import { IconButton } from "../../uikit/IconButton/IconButton";
-import {
-    CompareIcon,
-    RunAllIcon,
-    RunIcon,
-    WebScraperIcon,
-} from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import { ui } from "../../api/ui";
 import { isScriptLanguage } from "../../scripting/transpile";
@@ -137,7 +131,7 @@ function CompareButton({ model }: { model: EditorModel }) {
             name="text-compare-left"
             size="sm"
             title="Compare with Left Page"
-            icon={<CompareIcon />}
+            icon="compare"
             onClick={() => pagesModel.enterCompareMode(ownerPage.id)}
         />
     );
@@ -161,7 +155,7 @@ function RunButtons({ model, host }: { model: EditorModel; host: TextFileModel }
                 name="text-run-script"
                 size="sm"
                 title={hasSelection ? "Run Selected Script (F5)" : "Run Script (F5)"}
-                icon={<RunIcon />}
+                icon="run"
                 onClick={() => void runScript()}
             />
             {hasSelection && (
@@ -169,7 +163,7 @@ function RunButtons({ model, host }: { model: EditorModel; host: TextFileModel }
                     name="text-run-all-script"
                     size="sm"
                     title="Run All Script"
-                    icon={<RunAllIcon />}
+                    icon="run-all"
                     onClick={() => void runScript(true)}
                 />
             )}
@@ -185,7 +179,7 @@ function ShowResourcesButton({ host }: { host: TextFileModel }) {
             name="text-show-resources"
             size="sm"
             title="Show Resources"
-            icon={<WebScraperIcon />}
+            icon="web-scraper"
             onClick={() => void showHtmlResources(host)}
         />
     );

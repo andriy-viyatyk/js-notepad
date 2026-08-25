@@ -153,27 +153,50 @@ export function buildMarkdown(node: GraphNode, isRoot?: boolean): string {
     return lines.join("\n");
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * DOM builders for this tooltip's two local glyphs. They are NOT the registry's `copy` and `check`
+ * icons — those are 24/16-viewBox fill-based paths, while these are 12x12 stroke-based outlines —
+ * so the registry names would change the rendering. A fresh element per call: a DOM node is
+ * single-use, and this pair alternates on the same host as `copied` flips (EPIC-064 E6-6 concern 3).
+ */
+function createTooltipGlyph(strokeWidth: string): SVGSVGElement {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", "12");
+    svg.setAttribute("height", "12");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", strokeWidth);
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    return svg;
+}
+
 /** Copy icon (two overlapping rectangles). */
-const CopyIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="5.5" y="5.5" width="9" height="9" rx="1" />
-        <path d="M3.5 10.5h-1a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v1" />
-    </svg>
-);
+function createCopyIconElement(): SVGSVGElement {
+    const svg = createTooltipGlyph("1.5");
+    const rect = document.createElementNS(SVG_NS, "rect");
+    rect.setAttribute("x", "5.5");
+    rect.setAttribute("y", "5.5");
+    rect.setAttribute("width", "9");
+    rect.setAttribute("height", "9");
+    rect.setAttribute("rx", "1");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", "M3.5 10.5h-1a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v1");
+    svg.append(rect, path);
+    return svg;
+}
 
 /** Check icon (shown briefly after copy). */
-const CheckIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="3 8 7 12 13 4" />
-    </svg>
-);
-
-/** Open/launch icon (matches OpenLinkIcon from the Links editor). */
-const OpenIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24">
-        <path d="M14 4l6 5-6 5V10c-5 0-9 2-11 7 1-7 5-11 11-12V4z" fill="currentColor" />
-    </svg>
-);
+function createCheckIconElement(): SVGSVGElement {
+    const svg = createTooltipGlyph("2");
+    const polyline = document.createElementNS(SVG_NS, "polyline");
+    polyline.setAttribute("points", "3 8 7 12 13 4");
+    svg.append(polyline);
+    return svg;
+}
 
 function GraphTooltip({ node, x, y, isRoot, onMouseEnter, onMouseLeave }: GraphTooltipProps) {
     const ref = useRef<HTMLDivElement>(null);
@@ -246,13 +269,13 @@ function GraphTooltip({ node, x, y, isRoot, onMouseEnter, onMouseLeave }: GraphT
                 </div>
                 <IconButton
                     size="sm"
-                    icon={copied ? <CheckIcon /> : <CopyIcon />}
+                    icon={copied ? createCheckIconElement() : createCopyIconElement()}
                     onClick={handleCopy}
                     title="Copy as Markdown"
                 />
                 <IconButton
                     size="sm"
-                    icon={<OpenIcon />}
+                    icon="open-link"
                     onClick={handleOpen}
                     title="Open in new page"
                 />

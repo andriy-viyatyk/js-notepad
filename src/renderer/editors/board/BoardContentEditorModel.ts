@@ -112,7 +112,7 @@ export class BoardContentEditorModel extends BoardEditorModel {
         );
         const { filePath, title, id } = host.state.get();
         this.state.update((s) => {
-            // Tab shows the FILE name (the board's own icon still comes from `getIcon`).
+            // Tab shows the FILE name; the board's own icon remains state-derived.
             s.title = title || (filePath ? fpBasename(filePath) : s.title);
             if (id) s.id = id;
         });

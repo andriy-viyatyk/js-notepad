@@ -5,8 +5,8 @@ import { SvgBodyView } from "./SvgBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
 import { mountVanilla } from "../../uikit/shared/mount";
-import { CopyIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
+import { createIconComponentElement } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
@@ -39,21 +39,21 @@ function SvgToolbarBits({ model, imageModel }: SvgToolbarBitsProps) {
                 size="sm"
                 title="Open in Drawing Editor"
                 onClick={onOpenDraw}
-                icon={<DrawIcon />}
+                icon={createIconComponentElement(DrawIcon)}
             />
             <IconButton
                 name="svg-save"
                 size="sm"
                 title="Save as PNG"
                 onClick={() => savePngViaDialog(model)}
-                icon={<SaveIcon />}
+                icon="save"
             />
             <IconButton
                 name="svg-copy"
                 size="sm"
                 title="Copy Image to Clipboard (Ctrl+C)"
                 onClick={() => imageModel.current?.copyToClipboard()}
-                icon={<CopyIcon />}
+                icon="copy"
             />
         </>
     );

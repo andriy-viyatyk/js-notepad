@@ -7,7 +7,6 @@ import { Panel, IconButton, Button, Text, Spinner } from "../../uikit";
 import { ColorizedCode } from "../shared/ColorizedCode";
 import { TorIcon } from "../../theme/language-icons";
 import { TOR_BROWSER_COLOR } from "../../theme/palette-colors";
-import { CloseIcon } from "../../theme/icons";
 import type { BrowserEditorModel } from "./BrowserEditorModel";
 
 interface TorStatusOverlayProps {
@@ -57,7 +56,7 @@ export function TorStatusOverlay({ model, torStatus, torLog }: TorStatusOverlayP
                         size="sm"
                         title="Close"
                         onClick={() => model.toggleTorOverlay()}
-                        icon={<CloseIcon />}
+                        icon="close"
                     />
                 </Panel>
             )}

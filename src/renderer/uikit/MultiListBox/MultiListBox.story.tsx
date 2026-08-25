@@ -3,7 +3,6 @@ import { MultiListBox } from "./MultiListBox";
 import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
 import { IListBoxItem } from "../ListBox";
-import { GlobeIcon } from "../../theme/icons";
 import { Story } from "../../editors/storybook/storyTypes";
 
 interface DemoProps {
@@ -25,7 +24,7 @@ function buildItems(count: number, withIcons: boolean): IListBoxItem[] {
         out.push({
             value: i,
             label: `Option ${i} — apple banana cherry`,
-            icon: withIcons ? <GlobeIcon /> : undefined,
+            icon: withIcons ? "globe" : undefined,
             disabled: i % 13 === 0 && i !== 0,
         });
     }

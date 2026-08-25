@@ -4,7 +4,6 @@ import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
 import { Button } from "../Button/Button";
 import { IListBoxItem } from "../ListBox";
-import { GlobeIcon } from "../../theme/icons";
 import { Story } from "../../editors/storybook/storyTypes";
 
 const COMMON_HEADERS = [
@@ -64,7 +63,7 @@ function buildIconItems(): IListBoxItem[] {
     return COMMON_HEADERS.map((h) => ({
         value: h,
         label: h,
-        icon: <GlobeIcon />,
+        icon: "globe",
     }));
 }
 

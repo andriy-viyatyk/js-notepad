@@ -6,10 +6,6 @@ import { TComponentState } from "../../core/state/state";
 import { Panel } from "../../uikit/Panel";
 import { IconButton } from "../../uikit/IconButton";
 import { Text } from "../../uikit/Text";
-import {
-    CollapseAllIcon,
-    RefreshIcon,
-} from "../../theme/icons";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
@@ -69,14 +65,14 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditor }) {
                             name="archive-collapse-all"
                             size="sm"
                             title="Collapse All"
-                            icon={<CollapseAllIcon />}
+                            icon="collapse-all"
                             onClick={handleCollapseAll}
                         />
                         <IconButton
                             name="archive-refresh"
                             size="sm"
                             title="Refresh"
-                            icon={<RefreshIcon />}
+                            icon="refresh"
                             onClick={handleRefresh}
                         />
                     </>

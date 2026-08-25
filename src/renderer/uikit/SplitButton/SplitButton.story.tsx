@@ -1,20 +1,22 @@
 import React from "react";
 import { SplitButton } from "./SplitButton";
 import { resolveIconPreset } from "../../editors/storybook/iconPresets";
-import { DownloadIcon } from "../../theme/icons";
+import { createIconElement } from "../shared/slots";
 import { Story } from "../../editors/storybook/storyTypes";
 
 const SplitButtonWithPreset = (props: any) => {
     const { iconPreset, title, menuTitle, ...rest } = props;
-    const icon = resolveIconPreset(iconPreset) ?? React.createElement(DownloadIcon);
+    // A DOM icon node is single-use: appending it to a second host *moves* it, blanking the first.
+    // The primary button and the menu row are two hosts, so each needs its own node.
+    const makeIcon = () => resolveIconPreset(iconPreset) ?? createIconElement("download");
     return React.createElement(SplitButton, {
         ...rest,
         title: title || undefined,
         menuTitle: menuTitle || undefined,
-        icon,
+        icon: makeIcon(),
         onClick: () => console.log("SplitButton primary clicked"),
         items: [
-            { label: "Pull (merge)", icon, onClick: () => console.log("Pull (merge)") },
+            { label: "Pull (merge)", icon: makeIcon(), onClick: () => console.log("Pull (merge)") },
             { label: "Fetch all", startGroup: true, onClick: () => console.log("Fetch all") },
         ],
     });

@@ -16,7 +16,7 @@ export interface DialogContentProps
     /** Title text. */
     title?: string;
     /** Optional leading icon in the header. */
-    icon?: IconRef | Node;
+    icon?: IconRef;
     /** Close-X button click. When unset, the X is hidden. */
     onClose?: () => void;
     /** Inline buttons rendered between the title and the close X. */

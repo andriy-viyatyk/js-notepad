@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { TComponentState } from "../../core/state/state";
 import {
     EditorModel,
@@ -77,7 +76,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     constructor(state: TComponentState<VideoEditorState>) {
         super(state);
-        this.getIcon = () => createElement(PlayerIcon, { color: DEFAULT_BROWSER_COLOR });
+        this.getIconElement = () => PlayerIcon.createElement?.({ color: DEFAULT_BROWSER_COLOR });
     }
 
     /** Update raw input text as user types. */

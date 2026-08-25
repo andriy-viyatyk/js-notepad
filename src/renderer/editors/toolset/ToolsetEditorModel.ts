@@ -1,5 +1,3 @@
-import { createElement, type ReactNode } from "react";
-
 import { EditorModel, type EditorStateBase } from "../base/EditorModel";
 import { ToolsIcon } from "../../theme/icons";
 import { fpBasename, fpJoin, fpNormalizeForCompare } from "../../core/utils/file-path";
@@ -54,7 +52,7 @@ export class ToolsetEditorModel extends EditorModel<ToolsetEditorState> {
     skipSave = true;
     showBackgroundOrnament = true;
 
-    getIcon = (): ReactNode => createElement(ToolsIcon);
+    getIconElement = (): SVGElement | undefined => ToolsIcon.createElement?.();
 
     /** Absolute path to this toolset's execution log (for the Open-Log action), or undefined
      *  when no toolset is resolved. */

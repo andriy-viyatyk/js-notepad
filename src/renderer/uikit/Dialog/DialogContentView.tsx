@@ -176,7 +176,7 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.headerButtonsHost = headerButtonsHost;
     }
 
-    private syncIcon(icon: IconRef | Node | undefined): void {
+    private syncIcon(icon: IconRef | undefined): void {
         if (!hasSlot(icon)) {
             this.iconCleanup?.();
             this.iconCleanup = undefined;

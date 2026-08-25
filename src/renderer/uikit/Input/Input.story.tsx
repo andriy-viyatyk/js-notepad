@@ -3,7 +3,7 @@ import { Input } from "./Input";
 import { IconButton } from "../IconButton/IconButton";
 import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
-import { ChevronDownIcon, CloseIcon, SearchIcon } from "../../theme/icons";
+import { SearchIcon } from "../../theme/icons";
 import { height } from "../tokens";
 import { Story } from "../../editors/storybook/storyTypes";
 
@@ -38,13 +38,13 @@ function InputDemo({
     let endSlot: React.ReactNode = undefined;
 
     if (slotPreset === "chevron") {
-        endSlot = <IconButton icon={<ChevronDownIcon />} size="sm" tabIndex={-1} disabled={disabled} />;
+        endSlot = <IconButton icon="chevron-down" size="sm" tabIndex={-1} disabled={disabled} />;
     } else if (slotPreset === "search") {
         startSlot = <SearchIcon width={height.iconMd} height={height.iconMd} />;
         if (value !== "") {
             endSlot = (
                 <IconButton
-                    icon={<CloseIcon />}
+                    icon="close"
                     size="sm"
                     tabIndex={-1}
                     disabled={disabled}

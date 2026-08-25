@@ -1,5 +1,6 @@
 import type React from "react";
 import type { MenuItem } from "../../uikit/Menu";
+import type { SlotText } from "../../uikit/shared/slots";
 import { mountVanilla } from "../../uikit/shared/mount";
 import { ToolsTreeView } from "./ToolsTreeView";
 import type { ToolsetTreeInput } from "./tools-tree-build";
@@ -29,7 +30,7 @@ export interface ToolsTreeProps {
     /** Optional per-toolset context menu (e.g. "Remove"). Toolsets only. */
     getContextMenu?: (root: string) => MenuItem[] | undefined;
     /** Shown when `toolsets` is empty. */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText | Node;
 }
 
 export function ToolsTree(props: ToolsTreeProps): React.ReactElement {

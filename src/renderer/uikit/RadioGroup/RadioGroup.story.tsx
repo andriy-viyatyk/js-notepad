@@ -2,7 +2,6 @@ import React from "react";
 import { RadioGroup, IRadio } from "./RadioGroup";
 import { Panel } from "../Panel/Panel";
 import { Text } from "../Text/Text";
-import { CheckIcon } from "../../theme/icons";
 import { Story } from "../../editors/storybook/storyTypes";
 
 interface DemoProps {
@@ -30,7 +29,7 @@ function RadioGroupDemo({
         return Array.from({ length: Math.max(1, count) }, (_, i) => ({
             value: `opt-${i + 1}`,
             label: `Option ${i + 1}`,
-            icon: withIcons ? <CheckIcon /> : undefined,
+            icon: withIcons ? "check" : undefined,
             disabled: disableSecond && i === 1,
         }));
     }, [count, withIcons, disableSecond]);

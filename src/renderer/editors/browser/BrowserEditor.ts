@@ -1,4 +1,3 @@
-import { createElement, ReactNode } from "react";
 const { ipcRenderer } = require("electron");
 import { TComponentState } from "../../core/state/state";
 import {
@@ -300,15 +299,11 @@ export class BrowserEditor extends EditorModel<
         });
     }
 
-    getIcon = (): ReactNode => {
+    getIconElement = (): SVGElement | undefined => {
         const s = this.state.get();
-        if (s.isTor) {
-            return createElement(TorIcon);
-        }
-        if (s.isIncognito) {
-            return createElement(IncognitoIcon);
-        }
-        return createElement(GlobeIcon, { color: this.resolvedColor });
+        if (s.isTor) return TorIcon.createElement?.();
+        if (s.isIncognito) return IncognitoIcon.createElement?.();
+        return GlobeIcon.createElement?.({ color: this.resolvedColor });
     };
 
     /** Resolved icon color: profile color for named profiles, default browser color otherwise. */

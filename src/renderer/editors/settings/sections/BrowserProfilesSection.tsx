@@ -3,7 +3,6 @@ import { fpBasename } from "../../../core/utils/file-path";
 import { useComponentModel } from "../../../core/state/model";
 import color from "../../../theme/color";
 import { DEFAULT_BROWSER_COLOR, TAG_COLORS } from "../../../theme/palette-colors";
-import { CloseIcon } from "../../../theme/icons";
 import { IncognitoIcon, TorIcon } from "../../../theme/language-icons";
 import { Button } from "../../../uikit/Button";
 import { Dot } from "../../../uikit/Dot";
@@ -21,6 +20,15 @@ const linkStyle: React.CSSProperties = { cursor: "pointer", overflow: "hidden", 
 const placeholderStyle: React.CSSProperties = { fontStyle: "italic", cursor: "pointer" };
 const defaultBadgeStyle: React.CSSProperties = { fontSize: 10, color: color.text.light, textTransform: "uppercase", letterSpacing: 0.5, padding: "1px 6px", border: `1px solid ${color.border.default}`, borderRadius: 3 };
 
+// Menu items retain their icon until the menu consumes them, so each construction must own a fresh node.
+function createTagColorIcon(tagColor: string): HTMLSpanElement {
+    const element = document.createElement("span");
+    element.dataset.type = "dot";
+    element.style.setProperty("--dot-size", "10px");
+    element.style.setProperty("--dot-color", tagColor);
+    return element;
+}
+
 function BookmarksFileLine({ filePath, onBrowse, onClear }: { filePath: string; onBrowse: () => void; onClear: () => void }) {
     const filename = filePath ? fpBasename(filePath) : "";
     return <Panel direction="row" align="center" gap="md" paddingTop="xs" paddingRight="md" paddingBottom="sm" paddingLeft="xxl">
@@ -28,7 +36,7 @@ function BookmarksFileLine({ filePath, onBrowse, onClear }: { filePath: string; 
         <span style={labelTextStyle}>📁</span>
         {filename ? <span style={{ ...labelTextStyle, ...linkStyle }} title={filePath} onClick={onBrowse}>{filename}</span>
             : <span style={{ ...labelTextStyle, ...placeholderStyle }} onClick={onBrowse}>No bookmarks file</span>}
-        {filename && <IconButton size="sm" icon={<CloseIcon />} title="Remove bookmarks file" onClick={onClear} />}
+        {filename && <IconButton size="sm" icon="close" title="Remove bookmarks file" onClick={onClear} />}
     </Panel>;
 }
 
@@ -41,7 +49,7 @@ function TorProfileRow({ model, torPortValue }: { model: BrowserProfilesSectionM
             <span style={fieldLabelStyle}>tor.exe:</span>
             {torExeFilename ? <span style={{ ...labelTextStyle, ...linkStyle }} title={model.props.torExePath} onClick={() => void model.handleBrowseTorExe()}>{torExeFilename}</span>
                 : <span style={{ ...labelTextStyle, ...placeholderStyle }} onClick={() => void model.handleBrowseTorExe()}>Not configured</span>}
-            {torExeFilename && <IconButton size="sm" icon={<CloseIcon />} title="Remove tor.exe path" onClick={model.handleClearTorExe} />}
+            {torExeFilename && <IconButton size="sm" icon="close" title="Remove tor.exe path" onClick={model.handleClearTorExe} />}
         </Panel>
         <Panel direction="row" align="center" gap="md" paddingTop="xs" paddingRight="md" paddingBottom="sm" paddingLeft="xxl">
             <span style={fieldLabelStyle}>Port:</span><Input size="sm" width={56} type="text" value={torPortValue ?? String(model.props.torSocksPort)} onChange={model.setTorPortValue} onBlur={model.handleTorPortBlur} onKeyDown={(event) => { if (event.key === "Enter") (event.target as HTMLInputElement).blur(); }} />
@@ -66,7 +74,7 @@ export function BrowserProfilesSection() {
         torPortValue: state.torPortValue,
     }));
     const getColorMenuItems = (profileName: string, currentColor: string): MenuItem[] => TAG_COLORS.map((tagColor) => ({
-        label: tagColor.name, icon: <Dot size={10} color={tagColor.hex} />, selected: currentColor === tagColor.hex,
+        label: tagColor.name, icon: createTagColorIcon(tagColor.hex), selected: currentColor === tagColor.hex,
         onClick: () => model.handleColorChange(profileName, tagColor.hex),
     }));
 
@@ -90,7 +98,7 @@ export function BrowserProfilesSection() {
                     {defaultProfile === profile.name ? <span style={defaultBadgeStyle}>default</span> : <Button variant="ghost" size="sm" background="light" onClick={() => model.handleSetDefault(profile.name)}>set default</Button>}
                     {clearedProfile === profile.name && <Text color="success" size="xs">Cleared</Text>}
                     <Button variant="ghost" size="sm" background="light" onClick={() => void model.handleClearData(profile.name)}>clear data</Button>
-                    <IconButton size="sm" icon={<CloseIcon />} title="Remove profile" onClick={() => void model.handleRemoveProfile(profile.name)} />
+                    <IconButton size="sm" icon="close" title="Remove profile" onClick={() => void model.handleRemoveProfile(profile.name)} />
                 </Panel>
                 <BookmarksFileLine filePath={profile.bookmarksFile || ""} onBrowse={() => void model.handleBrowseProfileBookmarks(profile.name)} onClear={() => model.handleClearProfileBookmarks(profile.name)} />
             </Panel>)}

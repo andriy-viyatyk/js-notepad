@@ -5,8 +5,8 @@ import { MermaidBodyView } from "./MermaidBodyView";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
 import { mountVanilla } from "../../uikit/shared/mount";
-import { CopyIcon, SunIcon, MoonIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon, DrawOrangeIcon } from "../../theme/language-icons";
+import { createIconComponentElement } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import {
     buildExcalidrawJsonWithImage,
@@ -74,7 +74,7 @@ function MermaidToolbarBits({ model, imageModel }: MermaidToolbarBitsProps) {
                 size="sm"
                 title={lightMode ? "Switch to Dark Theme" : "Switch to Light Theme"}
                 onClick={model.toggleLightMode}
-                icon={lightMode ? <MoonIcon /> : <SunIcon />}
+                icon={lightMode ? "moon" : "sun"}
             />
             <IconButton
                 name="mermaid-open-draw"
@@ -82,7 +82,7 @@ function MermaidToolbarBits({ model, imageModel }: MermaidToolbarBitsProps) {
                 title="Open in Drawing Editor"
                 disabled={!svgUrl}
                 onClick={onOpenDraw}
-                icon={<DrawIcon />}
+                icon={createIconComponentElement(DrawIcon)}
             />
             <IconButton
                 name="mermaid-convert-excalidraw"
@@ -90,7 +90,7 @@ function MermaidToolbarBits({ model, imageModel }: MermaidToolbarBitsProps) {
                 title="Convert to Excalidraw (editable shapes)"
                 disabled={!svgUrl}
                 onClick={onConvertToExcalidraw}
-                icon={<DrawOrangeIcon />}
+                icon={createIconComponentElement(DrawOrangeIcon)}
             />
             <IconButton
                 name="mermaid-save"
@@ -98,7 +98,7 @@ function MermaidToolbarBits({ model, imageModel }: MermaidToolbarBitsProps) {
                 title="Save as PNG"
                 onClick={() => savePngViaDialog(model)}
                 disabled={!svgUrl}
-                icon={<SaveIcon />}
+                icon="save"
             />
             <IconButton
                 name="mermaid-copy"
@@ -106,7 +106,7 @@ function MermaidToolbarBits({ model, imageModel }: MermaidToolbarBitsProps) {
                 title="Copy Image to Clipboard (Ctrl+C)"
                 onClick={() => imageModel.current?.copyToClipboard()}
                 disabled={!svgUrl}
-                icon={<CopyIcon />}
+                icon="copy"
             />
         </>
     );

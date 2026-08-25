@@ -1,10 +1,12 @@
-import { createElement, ReactNode } from "react";
+import type React from "react";
 import type { SvgIconProps } from "../../theme/icons";
 import { getIcon } from "../../theme/icon-registry";
 import type { IconName } from "../../theme/icon-registry";
 
-export type IconRef = IconName | ReactNode;
-export type SlotText = string | ReactNode;
+// A registry name or a freshly built DOM node. Admitting `Node` here lets callers hand over a
+// built SVG without an `as unknown as` cast at every site.
+export type IconRef = IconName | Node;
+export type SlotText = string | React.ReactNode;
 
 type ImportMetaWithEnv = ImportMeta & {
     env?: {
@@ -27,20 +29,6 @@ function createEmptyIconElement(viewBox = "0 0 24 24", props?: SvgIconProps): SV
 
 export function isIconName(value: string): value is IconName {
     return getIcon(value) !== undefined;
-}
-
-export function renderIcon(icon: IconRef, props?: SvgIconProps): ReactNode {
-    if (typeof icon !== "string") return icon;
-
-    const Icon = getIcon(icon);
-    if (!Icon) {
-        if (isDevelopment) {
-            console.warn(`[icon-registry] Unknown icon name "${icon}".`);
-        }
-        return null;
-    }
-
-    return createElement(Icon, props);
 }
 
 export function createIconElement(name: IconName, props?: SvgIconProps): SVGElement {

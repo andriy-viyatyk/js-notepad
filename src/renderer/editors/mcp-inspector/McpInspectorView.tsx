@@ -10,7 +10,6 @@ import { Select } from "../../uikit/Select";
 import { IListBoxItem } from "../../uikit/ListBox";
 import { Divider } from "../../uikit/Divider";
 import { SegmentedControl, ISegment } from "../../uikit/SegmentedControl";
-import { CloseIcon } from "../../theme/icons";
 import { EditorToolbar } from "../base/EditorToolbar";
 import {
     McpInspectorEditorModel,
@@ -282,7 +281,7 @@ function McpInspectorView({ model }: McpInspectorViewProps) {
                                             </Panel>
                                             <Tag size="sm" label={c.transport.toUpperCase()} />
                                             <IconButton
-                                                icon={<CloseIcon />}
+                                                icon="close"
                                                 size="sm"
                                                 title="Delete connection"
                                                 hideUntilParentHover

@@ -1,5 +1,3 @@
-import { createElement, type ReactNode } from "react";
-
 import type { EditorStateBase, RestoreData } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
@@ -71,8 +69,6 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
      *  panel is visible as soon as the diff opens). */
     readonly fileTree = new GitTreeModel();
 
-    /** Tab icon — reuse the compare glyph. */
-    getIcon = (): ReactNode => createElement(CompareIcon, { width: 16, height: 16 });
     getIconElement = (): SVGElement | undefined => CompareIcon.createElement?.({ width: 16, height: 16 });
 
     // ── Diff helpers (consumed by the body) ─────────────────────────────

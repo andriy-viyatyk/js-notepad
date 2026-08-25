@@ -1,6 +1,6 @@
 import React from "react";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
-import { createIconElement, isIconName, renderIcon } from "../shared/slots";
+import { createIconElement, isIconName } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
@@ -18,9 +18,9 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
     private readonly iconHost = document.createElement("span");
     private iconCleanup: (() => void) | undefined;
     /**
-     * The last icon *name* written to the host, or undefined when the current icon came from a
-     * React value. A composed parent pushes props on every update — `Select`'s chevron once per
-     * keystroke — and `createIconElement` would rebuild the `svg` each time.
+     * The last icon *name* written to the host. A composed parent pushes props on every update —
+     * `Select`'s chevron once per keystroke — and `createIconElement` would rebuild the `svg`
+     * each time.
      */
     private appliedIconName: string | undefined;
     private appliedIconNode: Node | undefined;
@@ -95,7 +95,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
      * pre-cleared, or the React root it caches per host is discarded and the
      * next call builds a second root on the same element.
      */
-    private updateIcon(icon: IconRef | Node): void {
+    private updateIcon(icon: IconRef): void {
         if (typeof icon === "string") {
             if (this.appliedIconName === icon) return;
             this.appliedIconName = icon;
@@ -113,11 +113,6 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
             this.iconCleanup = fillSlot(this.iconHost, icon);
             return;
         }
-        // A React value keeps the ungated path: `fillSlot` re-renders into the cached root, so an
-        // inline element (always a fresh object) costs a reconcile rather than a rebuilt subtree.
-        this.appliedIconName = undefined;
-        this.appliedIconNode = undefined;
-        this.iconCleanup = fillSlot(this.iconHost, renderIcon(icon));
     }
 
     private clearIcon(): void {

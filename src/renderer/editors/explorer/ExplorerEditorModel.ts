@@ -1,6 +1,4 @@
-import { createElement } from "react";
 import { TComponentState, TOneState } from "../../core/state/state";
-import { FolderIcon } from "../../components/icons/FileIcon";
 import {
     EditorModel,
     type EditorStateBase,
@@ -76,7 +74,6 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         // Folder glyph for the "Explorer" sidebar panel — the same icon the
         // explorer tree shows for folders. Explorer is sidebar-only, so this
         // essentially only ever appears on the panel header, not a page tab.
-        this.getIcon = () => createElement(FolderIcon);
         this.getIconElement = () => createFolderIconElement();
     }
 

@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { TComponentState } from "../../../core/state/state";
 import { tryParseJson } from "../../../core/utils/parse-utils";
 import { TModel } from "../../../core/state/model";
@@ -414,8 +413,6 @@ export class NoteItemEditModel {
     get noLanguage(): boolean {
         return false;
     }
-
-    getIcon: (() => ReactNode) | undefined = undefined;
 
     // Properties that editors might access but we don't need
     get filePath(): string | undefined {

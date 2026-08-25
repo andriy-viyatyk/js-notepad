@@ -30,24 +30,22 @@ function TagDemo({
 }: DemoProps) {
     const [lastAction, setLastAction] = useState<string>("(none)");
 
-    const icon = withIcon ? (
-        <span
-            style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                backgroundColor: color.misc.blue,
-                display: "inline-block",
-            }}
-        />
-    ) : undefined;
+    const createTagIcon = (): HTMLSpanElement => {
+        const element = document.createElement("span");
+        element.style.width = "8px";
+        element.style.height = "8px";
+        element.style.borderRadius = "50%";
+        element.style.backgroundColor = color.misc.blue;
+        element.style.display = "inline-block";
+        return element;
+    };
 
     return (
         <Panel direction="column" gap="md" width={360}>
             <Panel direction="row" wrap gap="sm" align="center">
                 <Tag
                     label={label}
-                    icon={icon}
+                    icon={withIcon ? createTagIcon() : undefined}
                     variant={variant}
                     size={size}
                     selected={selected}
@@ -58,7 +56,7 @@ function TagDemo({
                 />
                 <Tag
                     label="typescript"
-                    icon={icon}
+                    icon={withIcon ? createTagIcon() : undefined}
                     variant={variant}
                     size={size}
                     disabled={disabled}
@@ -68,7 +66,7 @@ function TagDemo({
                 />
                 <Tag
                     label="hobby:photography"
-                    icon={icon}
+                    icon={withIcon ? createTagIcon() : undefined}
                     variant={variant}
                     size={size}
                     disabled={disabled}

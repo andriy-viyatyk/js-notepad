@@ -5,8 +5,8 @@ import { TextChrome } from "../base/TextChrome";
 import { IconButton, WithMenu } from "../../uikit";
 import { mountVanilla } from "../../uikit/shared/mount";
 import type { MenuItem } from "../../uikit";
-import { CopyIcon, SaveIcon, MoreVertIcon, OpenFileIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
+import { createIconComponentElement } from "../../theme/icons";
 import { savePngViaDialog } from "../shared/image-export";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -24,9 +24,9 @@ function HtmlToolbarBits({ model }: { model: HtmlEditor }) {
     };
 
     const menuItems: MenuItem[] = [
-        { label: "Save as PNG", icon: <SaveIcon />, onClick: () => afterMenuClose(() => void savePngViaDialog(model)) },
-        { label: "Open in Image View", icon: <OpenFileIcon />, onClick: () => afterMenuClose(() => void model.openInImageView()) },
-        { label: "Edit Image", icon: <DrawIcon />, onClick: () => afterMenuClose(() => void model.editImage()) },
+        { label: "Save as PNG", icon: "save", onClick: () => afterMenuClose(() => void savePngViaDialog(model)) },
+        { label: "Open in Image View", icon: "open-file", onClick: () => afterMenuClose(() => void model.openInImageView()) },
+        { label: "Edit Image", icon: createIconComponentElement(DrawIcon), onClick: () => afterMenuClose(() => void model.editImage()) },
     ];
 
     return (
@@ -35,7 +35,7 @@ function HtmlToolbarBits({ model }: { model: HtmlEditor }) {
                 name="html-copy"
                 size="sm"
                 title="Copy image to clipboard"
-                icon={<CopyIcon />}
+                icon="copy"
                 disabled={capturing}
                 onClick={() => void model.copyImageToClipboard()}
             />
@@ -45,7 +45,7 @@ function HtmlToolbarBits({ model }: { model: HtmlEditor }) {
                         name="html-more"
                         size="sm"
                         title="More image actions"
-                        icon={<MoreVertIcon />}
+                        icon="more-vert"
                         disabled={capturing}
                         onClick={(e) => setOpen(e.currentTarget)}
                     />

@@ -10,8 +10,7 @@ import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { fpDirname, fpNormalizeForCompare } from "../../core/utils/file-path";
 import { IconButton, Panel, Tag } from "../../uikit";
 import type { MenuItem } from "../../uikit";
-import { Text } from "../../uikit/Text";
-import { PinIcon, PinFilledIcon } from "../../theme/icons";
+import { createTextElement } from "../../uikit/Text/text-style";
 import { BoardsTree } from "../../editors/board/BoardsTree";
 import { useBoardStandalone } from "../../editors/board/board-usage-cache";
 import { fillSlot } from "../../uikit/shared/fill-slot";
@@ -32,7 +31,7 @@ function BoardPinAction({ root, pinned, onToggle }: {
     return (
         <IconButton
             size="sm"
-            icon={pinned ? <PinFilledIcon /> : <PinIcon />}
+            icon={pinned ? "pin-filled" : "pin"}
             title={pinned ? "Unpin" : "Pin to menu"}
             onClick={(event) => {
                 event.stopPropagation();
@@ -125,7 +124,7 @@ function TrustedBoardsTreeSlot({ onClose }: TrustedBoardsListProps) {
                 pinnedRoots.has(root) || updates.has(fpNormalizeForCompare(root))
             }
             getBoardContextMenu={getBoardContextMenu}
-            emptyMessage={<Text size="sm" color="light">No trusted boards yet</Text>}
+            emptyMessage={createTextElement("No trusted boards yet", { size: "sm", color: "light" })}
         />
     );
 }

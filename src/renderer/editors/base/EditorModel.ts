@@ -1,4 +1,3 @@
-import type React from "react";
 import { TDialogModel } from "../../core/state/model";
 import type { IState } from "../../core/state/state";
 import { TraitSet } from "../../core/traits/traits";
@@ -22,7 +21,7 @@ export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "tit
     secondaryView?: string[];
     /** Optional cache-buster for `noLanguage` editors whose tab icon depends on
      *  internal state (not on `title`/`language`/`favicon`). The tab subscribes
-     *  to this, so mutating it re-invokes `getIcon()`. E.g. the Board editor sets
+     *  to this, so mutating it re-resolves the editor icon. E.g. the Board editor sets
      *  it to the selected board name so the tab shows that board's icon. */
     iconKey?: string;
 }
@@ -75,7 +74,6 @@ export abstract class EditorModel<
     /** Auxiliary in-memory data for scripting; not persisted. */
     scriptData: Record<string, unknown> = {};
 
-    getIcon?: () => React.ReactNode;
     getIconElement?: () => Element | undefined;
     noLanguage = false;
     skipSave = false;

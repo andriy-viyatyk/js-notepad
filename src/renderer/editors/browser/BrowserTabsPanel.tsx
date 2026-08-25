@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useFloating, offset as floatingOffset, autoUpdate } from "@floating-ui/react";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
-import { CloseIcon, GlobeIcon, PlusIcon, VolumeIcon, VolumeMutedIcon } from "../../theme/icons";
+import { GlobeIcon } from "../../theme/icons";
 import { BrowserEditorModel, BrowserTabData } from "./BrowserEditorModel";
 import { Panel, IconButton } from "../../uikit";
 import type { MenuItem } from "../../uikit";
@@ -130,7 +130,7 @@ function TabItem({
                 <IconButton
                     name="tab-mute"
                     size="sm"
-                    icon={tab.muted ? <VolumeMutedIcon /> : <VolumeIcon />}
+                    icon={tab.muted ? "volume-muted" : "volume"}
                     title={tab.muted ? "Unmute Tab" : "Mute Tab"}
                     onClick={(e) => onToggleMute(e, tab.id)}
                 />
@@ -140,7 +140,7 @@ function TabItem({
                     data-tab-close
                     name="tab-close"
                     size="sm"
-                    icon={<CloseIcon />}
+                    icon="close"
                     title="Close Tab"
                     onClick={(e) => onClose(e, tab.id)}
                 />
@@ -326,7 +326,7 @@ export function BrowserTabsPanel({
                     <IconButton
                         name="add-tab-button"
                         size="sm"
-                        icon={<PlusIcon />}
+                        icon="plus"
                         title="New Tab"
                         onClick={handleNewTab}
                     />
@@ -349,7 +349,7 @@ export function BrowserTabsPanel({
                         <IconButton
                             name="tab-extension-mute"
                             size="sm"
-                            icon={hoveredTab.muted ? <VolumeMutedIcon /> : <VolumeIcon />}
+                        icon={hoveredTab.muted ? "volume-muted" : "volume"}
                             title={hoveredTab.muted ? "Unmute Tab" : "Mute Tab"}
                             onClick={(e) => handleToggleMute(e, hoveredTabId)}
                         />
@@ -357,7 +357,7 @@ export function BrowserTabsPanel({
                     <IconButton
                         name="tab-extension-close"
                         size="sm"
-                        icon={<CloseIcon />}
+                        icon="close"
                         title="Close Tab"
                         onClick={(e) => handleExtensionClose(e, hoveredTabId)}
                     />

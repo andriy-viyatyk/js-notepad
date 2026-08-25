@@ -3,12 +3,6 @@ import { ListBox, IListBoxItem, ListItemRenderContext } from "./ListBox";
 import { ListItem } from "./ListItem";
 import { IconButton } from "../IconButton/IconButton";
 import { Panel } from "../Panel/Panel";
-import {
-    GlobeIcon,
-    CloseIcon,
-    CopyIcon,
-    RemoveIcon,
-} from "../../theme/icons";
 import { ContextMenuEvent } from "../../api/events/events";
 import type { MenuItem } from "../Menu";
 import { Story } from "../../editors/storybook/storyTypes";
@@ -19,7 +13,7 @@ const MAX_REGULAR_ITEMS = 10000;
 const REGULAR_ITEMS: IListBoxItem[] = Array.from({ length: MAX_REGULAR_ITEMS }, (_, i) => ({
     value: i,
     label: `Suggestion ${i} — apple banana cherry`,
-    icon: <GlobeIcon />,
+    icon: "globe",
 }));
 
 const SECTIONED_ITEMS: IListBoxItem[] = (() => {
@@ -34,7 +28,7 @@ const SECTIONED_ITEMS: IListBoxItem[] = (() => {
             out.push({
                 value: `g${g}-i${i}`,
                 label: `Item ${g + 1}.${i + 1} — orange grape`,
-                icon: <GlobeIcon />,
+                icon: "globe",
             });
         }
     }
@@ -94,7 +88,7 @@ function ListBoxDemo({
                 tooltip={tooltip ? `Tooltip: ${ctx.item.label}` : undefined}
                 trailing={
                     <IconButton
-                        icon={<CloseIcon />}
+                        icon="close"
                         size="sm"
                         aria-label="Remove"
                         onClick={(e) => {
@@ -120,12 +114,12 @@ function ListBoxDemo({
         ? (it: IListBoxItem): MenuItem[] => [
             {
                 label: typeof it.label === "string" ? `Copy "${it.label}"` : "Copy",
-                icon: <CopyIcon />,
+                icon: "copy",
                 onClick: () => {},
             },
             {
                 label: "Remove",
-                icon: <RemoveIcon />,
+                icon: "remove",
                 onClick: () => {},
             },
         ]

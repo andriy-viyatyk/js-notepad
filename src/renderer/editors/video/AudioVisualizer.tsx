@@ -21,41 +21,87 @@ function createEffect(type: EffectType): IVisualizerEffect | null {
 
 // ── Switcher icons (inline SVG, currentColor inherits from button) ─────────────
 
-const BarsIcon = () => (
-    <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" aria-hidden="true">
-        <rect x="0"  y="5" width="2" height="7" rx="0.5"/>
-        <rect x="3"  y="2" width="2" height="10" rx="0.5"/>
-        <rect x="6"  y="0" width="2" height="12" rx="0.5"/>
-        <rect x="9"  y="3" width="2" height="9"  rx="0.5"/>
-        <rect x="12" y="6" width="2" height="6"  rx="0.5"/>
-    </svg>
-);
+// These builders intentionally return a fresh node because the effect list is module-scoped,
+// while a DOM icon can only be appended to one host at a time.
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
-const CircularIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-        <circle cx="7" cy="7" r="2.5"/>
-        <line x1="7"   y1="4.5" x2="7"   y2="1"/>
-        <line x1="7"   y1="9.5" x2="7"   y2="13"/>
-        <line x1="4.5" y1="7"   x2="1"   y2="7"/>
-        <line x1="9.5" y1="7"   x2="13"  y2="7"/>
-        <line x1="5.3" y1="5.3" x2="2.9" y2="2.9"/>
-        <line x1="8.7" y1="8.7" x2="11.1" y2="11.1"/>
-        <line x1="8.7" y1="5.3" x2="11.1" y2="2.9"/>
-        <line x1="5.3" y1="8.7" x2="2.9"  y2="11.1"/>
-    </svg>
-);
+function createBarsIconElement(): SVGElement {
+    const element = document.createElementNS(SVG_NAMESPACE, "svg");
+    element.setAttribute("width", "14");
+    element.setAttribute("height", "12");
+    element.setAttribute("viewBox", "0 0 14 12");
+    element.setAttribute("fill", "currentColor");
+    element.setAttribute("aria-hidden", "true");
+    const bars = [
+        ["0", "5", "2", "7"], ["3", "2", "2", "10"], ["6", "0", "2", "12"],
+        ["9", "3", "2", "9"], ["12", "6", "2", "6"],
+    ];
+    for (const [x, y, width, height] of bars) {
+        const bar = document.createElementNS(SVG_NAMESPACE, "rect");
+        bar.setAttribute("x", x);
+        bar.setAttribute("y", y);
+        bar.setAttribute("width", width);
+        bar.setAttribute("height", height);
+        bar.setAttribute("rx", "0.5");
+        element.append(bar);
+    }
+    return element;
+}
 
-const NoneIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-        <circle cx="7" cy="7" r="5.5"/>
-        <line x1="3.1" y1="3.1" x2="10.9" y2="10.9"/>
-    </svg>
-);
+function createCircularIconElement(): SVGElement {
+    const element = document.createElementNS(SVG_NAMESPACE, "svg");
+    element.setAttribute("width", "14");
+    element.setAttribute("height", "14");
+    element.setAttribute("viewBox", "0 0 14 14");
+    element.setAttribute("fill", "none");
+    element.setAttribute("stroke", "currentColor");
+    element.setAttribute("stroke-width", "1.2");
+    element.setAttribute("aria-hidden", "true");
+    const shapes: [string, Record<string, string>][] = [
+        ["circle", { cx: "7", cy: "7", r: "2.5" }],
+        ["line", { x1: "7", y1: "4.5", x2: "7", y2: "1" }],
+        ["line", { x1: "7", y1: "9.5", x2: "7", y2: "13" }],
+        ["line", { x1: "4.5", y1: "7", x2: "1", y2: "7" }],
+        ["line", { x1: "9.5", y1: "7", x2: "13", y2: "7" }],
+        ["line", { x1: "5.3", y1: "5.3", x2: "2.9", y2: "2.9" }],
+        ["line", { x1: "8.7", y1: "8.7", x2: "11.1", y2: "11.1" }],
+        ["line", { x1: "8.7", y1: "5.3", x2: "11.1", y2: "2.9" }],
+        ["line", { x1: "5.3", y1: "8.7", x2: "2.9", y2: "11.1" }],
+    ];
+    for (const [tag, attributes] of shapes) {
+        const shape = document.createElementNS(SVG_NAMESPACE, tag);
+        for (const [name, value] of Object.entries(attributes)) shape.setAttribute(name, value);
+        element.append(shape);
+    }
+    return element;
+}
 
-const EFFECTS: { type: EffectType; icon: React.ReactNode; label: string }[] = [
-    { type: "bars",     icon: <BarsIcon />,     label: "Bars" },
-    { type: "circular", icon: <CircularIcon />, label: "Circular" },
-    { type: "none",     icon: <NoneIcon />,     label: "No effect" },
+function createNoneIconElement(): SVGElement {
+    const element = document.createElementNS(SVG_NAMESPACE, "svg");
+    element.setAttribute("width", "14");
+    element.setAttribute("height", "14");
+    element.setAttribute("viewBox", "0 0 14 14");
+    element.setAttribute("fill", "none");
+    element.setAttribute("stroke", "currentColor");
+    element.setAttribute("stroke-width", "1.2");
+    element.setAttribute("aria-hidden", "true");
+    const circle = document.createElementNS(SVG_NAMESPACE, "circle");
+    circle.setAttribute("cx", "7");
+    circle.setAttribute("cy", "7");
+    circle.setAttribute("r", "5.5");
+    const line = document.createElementNS(SVG_NAMESPACE, "line");
+    line.setAttribute("x1", "3.1");
+    line.setAttribute("y1", "3.1");
+    line.setAttribute("x2", "10.9");
+    line.setAttribute("y2", "10.9");
+    element.append(circle, line);
+    return element;
+}
+
+const EFFECTS: { type: EffectType; createIcon: () => SVGElement; label: string }[] = [
+    { type: "bars",     createIcon: createBarsIconElement,     label: "Bars" },
+    { type: "circular", createIcon: createCircularIconElement, label: "Circular" },
+    { type: "none",     createIcon: createNoneIconElement,     label: "No effect" },
 ];
 
 // ── Inline-style constants ───────────────────────────────────────────────────
@@ -267,7 +313,7 @@ export function AudioVisualizer({ mediaRef, playing, sourceUrl }: AudioVisualize
                 </div>
             )}
             <div style={effectSwitcherStyle} data-visibility="parent-hover">
-                {EFFECTS.map(({ type, icon, label }) => (
+                {EFFECTS.map(({ type, createIcon, label }) => (
                     <IconButton
                         key={type}
                         name={`visualizer-${type}`}
@@ -275,7 +321,7 @@ export function AudioVisualizer({ mediaRef, playing, sourceUrl }: AudioVisualize
                         size="sm"
                         active={selectedEffect === type}
                         title={label}
-                        icon={icon}
+                        icon={createIcon()}
                         onClick={(e) => { e.stopPropagation(); settings.set("visualizer-effect", type); }}
                     />
                 ))}

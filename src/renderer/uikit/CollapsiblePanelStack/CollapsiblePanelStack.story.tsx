@@ -6,7 +6,6 @@ import {
 import { Panel } from "../Panel/Panel";
 import { IconButton } from "../IconButton/IconButton";
 import { Text } from "../Text/Text";
-import { RefreshIcon } from "../../theme/icons";
 import { Story } from "../../editors/storybook/storyTypes";
 
 interface DemoProps {
@@ -52,7 +51,7 @@ function CollapsiblePanelStackDemo({
                         <IconButton
                             size="sm"
                             title="Refresh"
-                            icon={<RefreshIcon />}
+                            icon="refresh"
                             onClick={() => alert("refresh")}
                         />
                     }

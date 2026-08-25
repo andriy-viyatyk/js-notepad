@@ -1,6 +1,6 @@
 import React from "react";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
-import { createIconElement, isIconName, renderIcon } from "../shared/slots";
+import { createIconElement, isIconName } from "../shared/slots";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
@@ -28,6 +28,10 @@ function appendSimpleChildren(parent: ParentNode, value: React.ReactNode): void 
 export class ButtonView extends VanillaView<ButtonViewProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private contentCleanup: (() => void) | undefined;
+    private iconHost: HTMLSpanElement | undefined;
+    private iconCleanup: (() => void) | undefined;
+    private childrenHost: HTMLSpanElement | undefined;
+    private childrenCleanup: (() => void) | undefined;
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: (() => void) = () => undefined;
     private boundRef: React.Ref<HTMLButtonElement> | undefined;
@@ -96,24 +100,57 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
      * next call builds a second root on the same element.
      */
     private updateContent(icon: IconRef | undefined, children: React.ReactNode): void {
-        const simpleIcon = icon == null || typeof icon === "string";
+        const simpleIcon = icon == null || typeof icon === "string" || icon instanceof Node;
         if (simpleIcon && isSimpleChildren(children)) {
+            this.clearSplitContent();
             // A fragment keeps the icon and the label as direct children of the
             // button, so the flex `gap` between them still applies.
             const content = document.createDocumentFragment();
             if (typeof icon === "string") {
                 content.append(createIconElement(isIconName(icon) ? icon : icon as never));
+            } else if (icon instanceof Node) {
+                content.append(icon);
             }
             appendSimpleChildren(content, children);
             this.contentCleanup = fillSlot(this.root, content);
             return;
         }
 
-        const iconNode = icon == null ? null : renderIcon(icon);
-        this.contentCleanup = fillSlot(
-            this.root,
-            React.createElement(React.Fragment, null, iconNode, children),
-        );
+        if (icon != null) {
+            // Separate display-contents hosts keep a DOM icon outside React while the label may
+            // remain a React subtree. Both hosts stay layout-transparent, so the button's own
+            // flex `gap` still measures the icon and label as adjacent direct children.
+            this.contentCleanup?.();
+            this.contentCleanup = undefined;
+            const { iconHost, childrenHost } = this.ensureSplitHosts();
+            const iconContent = typeof icon === "string"
+                ? createIconElement(isIconName(icon) ? icon : icon as never)
+                : icon;
+            this.iconCleanup = fillSlot(iconHost, iconContent);
+            this.childrenCleanup = fillSlot(childrenHost, children);
+            return;
+        }
+
+        this.clearSplitContent();
+        this.contentCleanup = fillSlot(this.root, children);
+    }
+
+    private ensureSplitHosts(): { iconHost: HTMLSpanElement; childrenHost: HTMLSpanElement } {
+        if (!this.iconHost) {
+            this.iconHost = document.createElement("span");
+            this.iconHost.style.display = "contents";
+        }
+        if (!this.childrenHost) {
+            this.childrenHost = document.createElement("span");
+            this.childrenHost.style.display = "contents";
+        }
+        // Append only when not already parented. `append` on an attached node is a *move*, and the
+        // children host can own a live React root (fillSlot's React arm) plus focused content — so
+        // re-appending on every update would detach and reattach that subtree for no reason.
+        if (this.iconHost.parentNode !== this.root || this.childrenHost.parentNode !== this.root) {
+            this.root.append(this.iconHost, this.childrenHost);
+        }
+        return { iconHost: this.iconHost, childrenHost: this.childrenHost };
     }
 
     private setRef(ref: React.Ref<HTMLButtonElement> | undefined): void {
@@ -132,5 +169,17 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
     private clearContent(): void {
         this.contentCleanup?.();
         this.contentCleanup = undefined;
+        this.clearSplitContent();
+    }
+
+    private clearSplitContent(): void {
+        this.iconCleanup?.();
+        this.childrenCleanup?.();
+        this.iconCleanup = undefined;
+        this.childrenCleanup = undefined;
+        this.iconHost?.remove();
+        this.childrenHost?.remove();
+        this.iconHost = undefined;
+        this.childrenHost = undefined;
     }
 }

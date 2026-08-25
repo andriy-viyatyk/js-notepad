@@ -221,7 +221,7 @@ export interface TreeProps<T = ITreeItem>
     /** Replaces row rendering with a centered spinner. */
     loading?: boolean;
     /** Renders when the tree resolves to zero rows and not `loading`. */
-    emptyMessage?: SlotText;
+    emptyMessage?: SlotText | Node;
     /** When true, the Tree handles ArrowUp/Down/Left/Right/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
     /**

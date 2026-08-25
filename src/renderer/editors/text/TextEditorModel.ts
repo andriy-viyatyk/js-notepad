@@ -68,7 +68,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     /** When true, the page's `saveState` driver skips this host. */
     skipSave = false;
     /** Optional tab-icon contribution. */
-    getIcon?: () => React.ReactNode;
+    getIconElement?: () => Element | undefined;
     /** When true, the page UI hides the language dropdown. */
     noLanguage = false;
     /** In-memory data storage for scripts. Available on all page types. Does

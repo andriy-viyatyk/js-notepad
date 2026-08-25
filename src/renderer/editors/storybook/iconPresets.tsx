@@ -1,16 +1,15 @@
-import React from "react";
-import { FolderOpenIcon, PlusIcon, SaveIcon, SettingsIcon } from "../../theme/icons";
+import { createIconElement, type IconRef } from "../../uikit/shared/slots";
 import { IconPresetId } from "./storyTypes";
 
-export const ICON_PRESETS: { id: IconPresetId; label: string; render: () => React.ReactNode }[] = [
+export const ICON_PRESETS: { id: IconPresetId; label: string; render: () => IconRef | null }[] = [
     { id: "none",     label: "None",     render: () => null },
-    { id: "folder",   label: "Folder",   render: () => React.createElement(FolderOpenIcon) },
-    { id: "plus",     label: "Plus",     render: () => React.createElement(PlusIcon) },
-    { id: "save",     label: "Save",     render: () => React.createElement(SaveIcon) },
-    { id: "settings", label: "Settings", render: () => React.createElement(SettingsIcon) },
+    { id: "folder",   label: "Folder",   render: () => createIconElement("folder-open") },
+    { id: "plus",     label: "Plus",     render: () => createIconElement("plus") },
+    { id: "save",     label: "Save",     render: () => createIconElement("save") },
+    { id: "settings", label: "Settings", render: () => createIconElement("settings") },
 ];
 
-export function resolveIconPreset(id: IconPresetId | undefined): React.ReactNode {
+export function resolveIconPreset(id: IconPresetId | undefined): IconRef | null {
     if (!id || id === "none") return null;
     return ICON_PRESETS.find((p) => p.id === id)?.render() ?? null;
 }

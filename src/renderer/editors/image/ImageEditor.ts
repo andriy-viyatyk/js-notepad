@@ -1,4 +1,3 @@
-import { createElement, ReactNode } from "react";
 import { TComponentState } from "../../core/state/state";
 import {
     EditorModel,
@@ -6,7 +5,7 @@ import {
     type RestoreData,
 } from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence";
-import { FileIcon } from "../../components/icons/FileIcon";
+import { createFileIconElement } from "../../components/icons/icon-elements";
 import { fpBasename, fpExtname } from "../../core/utils/file-path";
 import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
@@ -297,13 +296,11 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
         pagesModel.addEditorPage("draw-view", "json", baseName + ".excalidraw", json);
     };
 
-    getIcon = (): ReactNode => {
-        return createElement(FileIcon, {
-            path: this.state.get().filePath || "image.png",
-            width: 12,
-            height: 12,
-        });
-    };
+    getIconElement = (): Element => createFileIconElement({
+        path: this.state.get().filePath || "image.png",
+        width: 12,
+        height: 12,
+    });
 
     /** Show in File Explorer / Copy File Path for the image's source path. */
     onGetMenuItems(): MenuItem[] {
