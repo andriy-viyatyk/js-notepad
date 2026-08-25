@@ -478,12 +478,23 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
     private setRows(rows: any[], columns: Column[]): void {
         this._rows = rows;
         const columnsChanged = columns !== this.state.get().columns;
+
+        // Rows reach av-grid directly; columns reach it through state, which `TOneState.update`
+        // dispatches SYNCHRONOUSLY into `GridBodyView.applyProjection` -> `DataGridView.setOptions`.
+        // So the two travel on different channels, and the push order is load-bearing: publishing
+        // columns first made av-grid validate the NEW columns against the rows it still held, and
+        // it rejects a column no row has ("Unknown column \"ID\". Available columns: 0, 1, 2..."
+        // when the CSV header toggle renames every column, or the mirror of it when the delimiter
+        // changes the column count). Handing over the rows first means the synchronous dispatch
+        // finds a grid whose rows already match the columns being published.
+        // `setRows` itself validates only that it received an array, so it is safe this early.
+        this._grid?.setRows(rows);
+
         this.state.update((s) => {
             s.rowCount = rows.length;
             if (columnsChanged) s.columns = columns;
         });
         if (columnsChanged) this._columnSettings = columns.map(toColumnSetting);
-        this._grid?.setRows(rows);
     }
 
     private initEmptyPage(): void {
