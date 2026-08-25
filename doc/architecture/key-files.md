@@ -92,7 +92,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | App shell native view (header, tabs, page host, sidebar, status and overlay composition) | `/src/renderer/ui/app/MainPageView.ts` |
 | Native page/editor views (page host, editor dispatch, async editor island, and page-content bridge) | `/src/renderer/ui/app/PagesView.ts`, `/src/renderer/ui/app/RenderEditorView.ts`, `/src/renderer/ui/app/AsyncEditorView.ts`, `/src/renderer/ui/app/PageContentView.ts` |
 | Native tab strip and tab view (keyed DOM reuse, drag behavior, and activation scroll projection) | `/src/renderer/ui/tabs/PageTabsView.ts`, `/src/renderer/ui/tabs/PageTabView.ts` |
-| Native dialog and popper hosts (view registry, slot ownership, and overlay composition) | `/src/renderer/ui/dialogs/DialogsView.ts`, `/src/renderer/ui/dialogs/poppers/PoppersView.ts` |
+| Dialog/popper view registry | `/src/renderer/ui/dialogs/dialog-view-registry.ts` |
+| Native dialog/popper hosts | `/src/renderer/ui/dialogs/DialogsView.ts`, `/src/renderer/ui/dialogs/poppers/PoppersView.ts` |
 | Editor error boundary (deliberate React class island around React editor content) | `/src/renderer/ui/app/EditorErrorBoundary.tsx` |
 | UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
 | Secondary view registry (single native `VanillaView` panel loader; exact and prefix resolution) | `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |

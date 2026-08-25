@@ -87,10 +87,9 @@ setPropsInternal(props) / _initInternal() / onUnmountInternal()
 
 `useComponentModel` is a twelve-line adapter that pumps that machine from React. In the vanilla
 world it becomes `view.update(props)` / `view.mount()` / `view.dispose()` and **the model layer
-does not change**. The same holds for the `Views` registry in
-[`core/state/view.tsx`](../src/renderer/core/state/view.tsx): a `viewId → view` map with the model
-passed in; the vanilla version registers a class and returns a DOM node instead of a
-`ReactElement`.
+does not change**. Dialogs and poppers follow the same shape through
+[`ui/dialogs/dialog-view-registry.ts`](../src/renderer/ui/dialogs/dialog-view-registry.ts): a
+`viewId → VanillaView` constructor map with the model passed in. The former React registry is gone.
 
 The migration moves *towards* this paradigm rather than away from it. A vanilla view is a class
 that builds its DOM once and keeps named fields for the elements it later updates — which restores
@@ -812,10 +811,10 @@ underneath it* — `renderIcon` is a contract, `fillSlot` is machinery that outl
 **reporting correction in the same family as E5-3's instrument fix**: 130 of the renderer's 262
 non-story `.tsx` files contain no JSX at all, and 28 never mention React, so the `.tsx` counts every
 epic has reported as a progress figure overstate the remaining React — a `mountVanilla` shim needs no
-JSX, so the extension measures "could hold JSX", not React. **E7's candidate is measured in advance**
-(E6-8): `core/state/view.tsx`'s dialog/popper view registry, dual-armed in exactly E5's shape at 14
-vanilla registrations to 4 React, whose conversion deletes the file entire and collects a residual
-Emotion importer. **Closed with its property met:** icon React roots measure **0** (from 44) on every
+JSX, so the extension measures "could hold JSX", not React. **E7's candidate was measured in advance**
+(E6-8): the dialog/popper registry was dual-armed at 14 vanilla registrations to 4 React, and its
+conversion could delete `core/state/view.tsx` and collect a residual Emotion importer.
+**Closed with its property met:** icon React roots measure **0** (from 44) on every
 page set tried, total live roots 72 -> 6, `renderIcon` is deleted and `IconRef` is `IconName | Node`.
 It also corrected *its own* closing property (E6-11): `SlotText` does not narrow, because the
 link-editor tooltip genuinely needs React — the same over-reach E6-1 was written to catch, this time
@@ -825,6 +824,16 @@ four times through four distinct mechanisms (a shared items array, a `useMemo`, 
 constant, a story sharing one node between a button and a menu row), and `tsc`, lint, the build and
 the root count were blind to every one. Its close also backfilled EPIC-063's missing
 `completed.md` summary, whose absence had left the roadmap's E5 links pointing at nothing.
+
+**E7 ([EPIC-065](epics/EPIC-065.md)) completed the dialog/popper registry conversion.** The four
+remaining React-registered dialogs and poppers are native `VanillaView`s, and
+`ui/dialogs/dialog-view-registry.ts` is now the only registry. Both hosts require a native
+constructor and name the missing `viewId` in their error; `core/state/view.tsx` and its Emotion
+import are gone. Opening the four surfaces now creates 0 React roots, down from 10 across the four;
+`theme/GlobalStyles.tsx` is the only non-story Emotion importer, and the renderer's non-story
+`.tsx` count moved from 234 to 229. The conversion also corrected the root-count instrument again:
+`data-react-root` is authoritative, while `data-part="react-slot"` can be present on native Dialog
+and Tag slots and therefore over-report.
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be

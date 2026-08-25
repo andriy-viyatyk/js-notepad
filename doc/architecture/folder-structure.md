@@ -59,7 +59,7 @@ persephone/
 │   ├── src/overlay.rs      # Fullscreen overlay windows, selection UI
 │   ├── build.rs
 │   └── Cargo.toml
-├── mneme/                  # Rust knowledge-base / vector-memory service (mneme.exe) — standalone, extraction-ready (EPIC-032)
+├── mneme/                  # Rust knowledge-base / vector-memory service (mneme.exe) — standalone, extraction-ready
 │   ├── src/main.rs         # CLI: serve / reindex / watch / status / model-update / embed / search
 │   ├── src/config.rs       # config: wiki roots, include/ignore globs, transport, model, gpu
 │   ├── src/store/          # Document Store over wiki roots (read/write/edit/glob/grep, {root}/{path})
@@ -145,7 +145,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── types.ts            # BoardVarsFile schema, DEFAULT_PROFILE
 │   │   └── index.ts            # Barrel
 │   │
-│   ├── tools/              # Agent Tools registry (EPIC-038) — deliberately NOT on app or any script .d.ts
+│   ├── tools/              # Agent Tools registry — deliberately NOT on app or any script .d.ts
 │   │   ├── tools-manifest.ts   # tools-manifest.json module — read/validate/write; isToolsetFolder; defaultToolsManifest
 │   │   ├── tools-trust.ts      # toolsTrust registry — registered toolset roots (trustedTools.txt), exact-match, reactive; registration ≡ trust
 │   │   ├── registered-tools.ts # registeredTools model — enumerate trusted roots → read manifests → flat tool list (id = <toolset>/<tool>); refresh(), reactive
@@ -233,7 +233,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │       ├── io.link-data.d.ts # ILinkData plus StoredLinkData — composable pipeline and persistence shapes
 │       └── io.tree.d.ts     # ITreeProvider, ILink (was ITreeProviderItem), ITreeStat, ITreeSearch*
 │
-├── content/                # Content delivery layer — providers, transformers, pipes (EPIC-012)
+├── content/                # Content delivery layer — providers, transformers, pipes
 │   ├── ContentPipe.ts      # IContentPipe implementation, createPipe() factory
 │   ├── PipePair.ts         # Paired TextFile source/cache pipe ownership and disposal
 │   ├── registry.ts         # Provider/transformer registries, createPipeFromDescriptor()
@@ -306,12 +306,13 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   ├── dialogs/            # Application dialogs
 │   │   ├── Dialogs.tsx             # React-facing dialog manager face
 │   │   ├── DialogsView.ts          # Native dialog host and slot ownership
+│   │   ├── dialog-view-registry.ts # Only dialog/popper view registry; maps view IDs to native constructors
 │   │   ├── Dialog.tsx              # Base dialog component
 │   │   ├── ConfirmationDialog.ts
 │   │   ├── InputDialog.ts
 │   │   ├── PasswordDialog.ts
 │   │   ├── TorInfoDialog.ts         # Tor connection info — exit IP, location, check.torproject.org verdict; Reconnect restarts tor.exe
-│   │   ├── RegisterToolsetDialog.ts # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate — EPIC-038)
+│   │   ├── RegisterToolsetDialog.ts # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate)
 │   │   ├── CreateBoardVarsStorageDialog.ts # First-use "Create environment variables storage" prompt (default path, editable) — shown by both persephone.var.* and app.boardVars.*
 │   │   ├── NamespaceCollisionDialog.ts # Non-blocking advisory at board registration when the new board's author/name namespace collides with an already-registered board
 │   │   ├── TextDialog.ts            # Multi-purpose text dialog (Monaco editor)
@@ -323,6 +324,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   │   └── Progress.tsx        # React component (two-zone overlay)
 │   │   ├── poppers/                # Floating menus
 │   │   │   ├── Poppers.tsx
+│   │   │   ├── PoppersView.ts      # Native popper host and slot ownership
 │   │   │   ├── showPopupMenu.ts
 │   │   │   └── types.ts
 │   │   └── index.ts
@@ -403,7 +405,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── BrowserView.css           # Scoped browser/webview presentation
 │   │   ├── BookmarksDrawer.tsx       # Bookmarks panel
 │   │   ├── DownloadButton.tsx        # Download indicator
-│   │   ├── BrowserDownloadsPopup.tsx # Download list popup
+│   │   ├── BrowserDownloadsPopup.ts  # Download list popup
 │   │   ├── UrlSuggestionsDropdown.tsx # URL autocomplete
 │   │   ├── TorStatusOverlay.tsx      # Tor connection status
 │   │   ├── BrowserBookmarks.ts       # Bookmarks data management (wraps TextFileModel + LinkEditor)
@@ -457,7 +459,8 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── LinkItemTiles.tsx         # Wrapper: wires LinksTiles to LinkEditor
 │   │   ├── LinkTooltip.tsx
 │   │   ├── PinnedLinksPanel.tsx
-│   │   ├── EditLinkDialog.tsx
+│   │   ├── EditLinkDialog.ts       # Edit-link dialog model and registration
+│   │   ├── EditLinkDialogView.ts   # Native edit-link dialog view
 │   │   └── index.tsx
 │   ├── svg/                # SVG preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── SvgEditor.ts              # EditorModel — SVG state
@@ -814,9 +817,8 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── model.ts        # TModel, TDialogModel, TComponentModel, createComponentModelDriver
 │   │   ├── ComponentQueue.ts # Model-to-view event and request/reply mailbox
 │   │   ├── events.ts       # Subscription event system
-│   │   ├── view.tsx        # View registry (dialogs/poppers)
 │   │   └── index.ts
-│   ├── traits/             # Trait system — drag-and-drop type negotiation (EPIC-026)
+│   ├── traits/             # Trait system — drag-and-drop type negotiation
 │   │   ├── traits.ts       # TraitKey<T>, TraitSet, Traited<V>, traited(), isTraited()
 │   │   ├── TraitRegistry.ts # TraitRegistry singleton + TraitTypeId enum
 │   │   ├── dnd.ts          # setTraitDragData, getTraitDragData, hasTraitDragData, resolveTraits

@@ -28,6 +28,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **App-menu glyph follows theme changes immediately** — The app-menu glyph now updates as soon as you switch themes, without needing another header rebuild.
 
+- **CSV grids reload correctly after changing options** — Enabling **First row is header** or changing the delimiter could leave the Grid editor showing an error instead of the data. The grid now rereads the file correctly after either change.
+
+- **Git change lists now fill and resize with the panel** — With many changed files, the **Unstaged** list could leave empty space below it, and the splitter between the **Unstaged** and **Staged** lists could move down but not back up. The lists now fill their panes, and dragging the splitter in either direction makes them grow or shrink with the available space. Content that exceeds a panel's bounds now stays inside the panel and scrolls instead of spilling outside.
+
 ---
 
 ## Version 4.0.22

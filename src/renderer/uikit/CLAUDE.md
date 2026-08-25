@@ -706,8 +706,9 @@ keep it from creeping:
   root before `mount()`, skips the redundant first `update`, and replaces the view only when the
   constructor identity changes. Do not define the host inside `mountVanilla` or use a changing key.
 - `PopoverView`'s `contentView?: (host) => IOwnedView` keeps the floating root's children native
-  DOM, and it has two properties the prop's type does not show. **It never appends what the factory
-  returns** — `PopoverFloatingView.onMount` only claims it with `child()` and mounts it, so the
+  DOM. A native content view must use this seam; the `children` arm is React compatibility and
+  mounts a nested React root. The seam has two properties the prop's type does not show. **It never
+  appends what the factory returns** — `PopoverFloatingView.onMount` only claims it with `child()` and mounts it, so the
   factory attaches its own DOM (`host.append(view.root)`) or the dropdown renders empty. And **it is
   not an update channel**: `PopoverFloatingView.onUpdate` forwards nothing to the content view, so
   the parent pushes the content's props itself, from its own single consequence, and keeps a *bare*

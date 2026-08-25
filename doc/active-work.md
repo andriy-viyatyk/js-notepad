@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
-  - [ ] US-1085: `createPanelElement`/`applyPanelAttributes` silently dropped the `overflow` shorthand and the shrink component of `flex` — `applyPanelAttributes` cleared each property *inside* the setting loop, and `STYLE_PROPERTIES` mixes shorthands with their own longhands, so the `overflow-x`/`overflow-y` removals erased the `overflow` written two iterations earlier, and `flex-shrink`'s removal stripped it from `flex`. Effect: **all 84 `overflow:` panel call sites had no overflow at all** (80 `hidden`, 4 `auto` — and `.scroll-container` supplies none in CSS either), and `flex: "0 0 auto"` behaved as shrink 1. Fixed by clearing in a separate pass first. Reported by the user as the Git panel's Unstaged list not filling its pane, the Staged splitter refusing to drag up, and the list not growing when dragged down — all three were this one cause, since without overflow containment the whole flex chain sized from content upward instead of from the pane down. Broad blast radius: watch for content that previously escaped a panel and now clips.
+  - [ ] US-1091: `data-part="react-slot"` is stamped unconditionally by `uikit/Dialog/DialogView.tsx:87` and `uikit/Tag/TagView.tsx:88`, before either view picks its native or React arm — so a host holding plain DOM carries the React marker and the De-React programme's Rule 4 instrument counts roots that do not exist. `fill-slot.ts` stamps it only on its real React container, so the defect is limited to those two views; `data-react-root` (set only by `mountReactHandle`, deleted on dispose) is the reliable marker. Measured in EPIC-065: `EditLinkDialog` open reported 1 root under the both-markers instrument and 0 under `data-react-root`. Fix: stamp the marker only on the React branch. Deferred out of EPIC-065 to avoid putting unreviewed `uikit/` changes inside a closed epic. Counterpart to EPIC-063 E5-3, which added the marker because a root was *invisible* — same lesson, opposite direction.
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
@@ -77,7 +77,26 @@ Overview of all active and planned epics and tasks.
   the same over-reach E6-1 was written to catch, this time in this epic's own document. Its most
   transferable finding: **when a contract changes from a value to a resource, every cache of that
   value becomes a bug** — the single-use DOM-node hazard hit four times through four mechanisms, and
-  no automated gate could see any of them. Next free epic number: **EPIC-065**.
+  no automated gate could see any of them. **E7 is complete as [EPIC-065](epics/completed.md)** — it takes the third contract E6-8 measured
+  in advance: `core/state/view.tsx`'s dialog/popper view registry, 14 vanilla registrations against 4
+  React. Its opening sweep re-verified the candidate rather than trusting the record, and rejected the
+  obvious rival on a number — `trailing?: React.ReactNode` has 5 call sites of which **0 pass JSX**, a
+  dead arm rather than a contract. Two findings already: the Rule 4 instrument had to change, because
+  these roots exist only while a dialog is open (10 across the four, never more than ~4 at once), so a
+  whole-app count would move by 2 and read as noise — **the metric has to match how the cost is
+  incurred**; and **line count inverts the real difficulty**, since the two largest files have zero
+  React hooks while the smallest carries the epic's only state-migration risk, which corrects E4-1's
+  fallback axis to *line count picks the surface, not the order of tasks within it*. It also verified
+  EPIC-064's closing property in the wild (0 icon arms on a real 6-page session, not the fixture) and
+  measured that it leaves `theme/GlobalStyles.tsx` as the **last non-story Emotion importer**. Next
+  free epic number: **EPIC-066**; next free task number: **US-1093**. **Closing property met:**
+  `core/state/view.tsx` is deleted, `ui/dialogs/dialog-view-registry.ts` is the only registry, and the
+  four surfaces open with **0** React roots (from 10). It leaves `theme/GlobalStyles.tsx` as the last
+  non-story Emotion importer. **No E8 candidate is named here on purpose** — E5-1 requires the next
+  epic to run its own contract search, and E7 is the third consecutive epic whose axis was found by
+  searching rather than inherited from the folder the previous one touched. What remains unscheduled:
+  `graph` (3,259), the browser editor (1,692), and the `editors/base` chrome with its 24 `<TextChrome>`
+  call sites, which stay last (E1-8).
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

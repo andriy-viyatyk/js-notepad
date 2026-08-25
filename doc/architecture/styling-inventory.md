@@ -4,8 +4,8 @@
 > inventory records the source-tree baseline; it is not a conversion plan.
 
 This is the durable source for the renderer's Emotion and literal inline-style inventories. The
-application shell now uses co-located static CSS and `VanillaView` DOM updates. React remains at a
-few named boundaries, so the counts below distinguish residual infrastructure from app-shell style
+application shell now uses co-located static CSS and `VanillaView` DOM updates. React remains at
+named boundaries, so the counts below distinguish residual infrastructure from app-shell style
 ownership.
 
 ## Reverification commands
@@ -27,44 +27,41 @@ The Emotion command includes story files. The inline-style command excludes stor
 
 ## Emotion inventory
 
-The current renderer has **3 Emotion importers**:
+The current renderer has **2 Emotion importers: 1 production file and 1 story**.
 
-| Area | Files | Owners |
-|---|---:|---|
-| `core/` | 1 | `core/state/view.tsx` React boundary helper |
-| `theme/` | 1 | `theme/GlobalStyles.tsx` global-style island |
-| `uikit/` | 1 | `Tree/Tree.story.tsx` story harness |
-| **Total** | **3** | No `ui/` or `components/` importers |
+| Scope | Files |
+|---|---:|
+| Production | 1 |
+| Story | 1 |
+| **Total** | **2** |
 
-The four files are:
+The files are:
 
-- `src/renderer/core/state/view.tsx`
 - `src/renderer/theme/GlobalStyles.tsx`
 - `src/renderer/uikit/Tree/Tree.story.tsx`
 
 The shell and coupled components do not import Emotion. Their converted styles are co-located
 static CSS in `ui/` and `components/`; `theme/root.css` owns the geometry of `#root` so first-paint
-layout does not depend on the asynchronous commit of the `GlobalStyles` React island. The remaining
-Emotion importers are named migration/removal boundaries, not a general app-shell styling pattern.
+layout does not depend on the asynchronous commit of the `GlobalStyles` React island.
+`GlobalStyles.tsx` is the renderer's only non-story Emotion importer and the final production
+Emotion boundary. The Tree story harness is not production UI.
 
 Runtime keyframes used by converted components now live in static CSS, including the dialog pulse,
-notification entry, spinner rotation, and progress-bar indeterminate animation. The remaining UIKit
-Emotion importer is the Tree story harness, not production UI.
+notification entry, spinner rotation, and progress-bar indeterminate animation.
 
 ## Inline-style inventory
 
-The current literal baseline is **70 JSX `style={{...}}` sites across 34 non-story `.tsx` files**.
+The current literal baseline is **50 JSX `style={{...}}` sites across 28 non-story `.tsx` files**.
 
-| Area | Files | Sites | Scope note |
-|---|---:|---:|---|
-| `editors/` | 26 | 62 | Editor-owned runtime/layout styles; migrate with each editor |
-| `uikit/` | 1 | 1 | React/vanilla mount host |
-| `ui/` | 1 | 1 | Lazy secondary-view error presentation |
-| `components/` | 5 | 5 | Coupled icon and Git badge presentation |
-| `theme/` | 1 | 1 | React icon sizing/color path |
-| **Total** | **34** | **70** | Non-story `.tsx` only |
+| Area | Files | Sites |
+|---|---:|---:|
+| `editors/` | 21 | 43 |
+| `uikit/` | 1 | 1 |
+| `components/` | 5 | 5 |
+| `theme/` | 1 | 1 |
+| **Total** | **28** | **50** |
 
-The exact current files are:
+The non-editor files are:
 
 **`components/`**
 
@@ -73,10 +70,6 @@ The exact current files are:
 - `src/renderer/components/icons/FileIcon.tsx`
 - `src/renderer/components/icons/LanguageIcon.tsx`
 - `src/renderer/components/icons/TreeProviderItemIcon.tsx`
-
-**`ui/`**
-
-- `src/renderer/ui/secondary-views/LazySecondaryView.tsx`
 
 **`theme/`**
 
@@ -88,7 +81,7 @@ The exact current files are:
 
 **`editors/`**
 
-The 34 editor-owned files remain intentionally editor-local and are listed by the verification
+The 21 editor-owned files remain intentionally editor-local and are listed by the verification
 command rather than duplicated here. Their inline styles include measured geometry, third-party
 handles, editor chrome, and content-specific presentation; they are not part of the shell baseline.
 

@@ -154,7 +154,7 @@ Persephone (formerly js-notepad) is a Windows Notepad replacement for developers
 - **Editor:** Monaco Editor
 - **State:** Custom reactive primitives (TOneState, TGlobalState, TComponentState, TModel)
 - **Build:** Vite 8 (rolldown) — `scripts/dev.mjs` (dev server + HMR), `scripts/build-prod.mjs` (production bundle), electron-builder (installer/packaging)
-- **Styling:** Static/co-located CSS for the native shell and converted components; three residual Emotion importers for named React boundaries; editor-local CSS for generated content and third-party/native hosts
+- **Styling:** Static/co-located CSS for the native shell and converted components; one non-story Emotion importer (`theme/GlobalStyles.tsx`); editor-local CSS for generated content and third-party/native hosts
 
 ## Commands
 
@@ -254,9 +254,10 @@ TextFileIOModel uses dual pipes: primary (source file) + cache (auto-save). Pipe
 
 ### 7. React-root measurement and conversion debugging
 
-`mountReactHandle` marks its host with `data-react-root`; `fillSlot` additionally marks its
-wrapper with `data-part="react-slot"`. Measurements of live React islands must query both
-markers because a direct `mountReactHandle` root is otherwise invisible to the slot query.
+`mountReactHandle` marks its host with `data-react-root`; this is the authoritative marker for a
+live React root. `fillSlot` additionally marks its wrapper with `data-part="react-slot"`, but some
+native Dialog and Tag slots also carry that marker, so it can over-report roots. Use
+`data-react-root` for root counts and `data-part="react-slot"` only to locate compatibility slots.
 When asserting rendered content, check visibility (for example, `offsetParent`) separately from
 `textContent`, which includes hidden subtrees. If a converted dynamic import reports
 `Failed to fetch dynamically imported module` after a `.tsx` → `.ts` rename, touch the

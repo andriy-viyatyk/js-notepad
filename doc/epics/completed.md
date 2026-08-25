@@ -4,6 +4,52 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-065 — [De-React Epic E7: the dialog/popper view registry](EPIC-065.md)
+
+The contract was `core/state/view.tsx`'s `Views.registerView(viewId, React.FC)` /
+`renderView(): ReactElement` — a dual-armed registry in exactly EPIC-063's shape, one layer down,
+where **14 registrations had already moved to the vanilla arm and 4 had not**. Converting those four
+deleted the file entire (`Views`, `View`, `DefaultView`, `IViewRegistration`) and collected a
+residual Emotion importer. Five tasks, all reviewed.
+
+**Rule 4: React roots per dialog 10 -> 0** across the four (`EditLinkDialog` 4, the three poppers 2
+each), verified live on a restarted app with 0 empty `<svg>`. `theme/GlobalStyles.tsx` is now the
+**only non-story Emotion importer in the renderer** — after this, "remove Emotion" is one file.
+Non-story `.tsx` 234 -> 229. The surviving types (`IViewData`, `IDialogViewData`, `ViewProps`) moved
+into `ui/dialogs/dialog-view-registry.ts`, whose folder already held every consumer, and a missing
+native constructor now throws naming the `viewId` instead of silently rendering nothing.
+
+- [x] US-1086: `BrowserDownloadsPopup` -> vanilla (the pilot)
+- [x] US-1087: `EditLinkDialog` -> vanilla (model/view split)
+- [x] US-1088: `ColumnsOptions` -> vanilla (hosts the data grid)
+- [x] US-1089: `CsvOptions` -> vanilla (the only real state migration)
+- [x] US-1090: Delete the React arm; relocate the surviving types
+
+Four things it produced that outlast it. **(1)** *A marker is evidence only if it is set exactly when
+the thing it marks exists.* The programme's own root-count instrument **over-reports**:
+`data-part="react-slot"` is stamped unconditionally by `DialogView` and `TagView` before either picks
+its native or React arm, so a host holding plain DOM carries the React marker. `data-react-root` is
+authoritative. EPIC-063 added the second marker because a root was *invisible*; this is the same
+lesson reversed, and the third instrument correction in the programme. **(2)** *Line count picks the
+surface, not the order of tasks within it* — the two largest files here had **zero** React hooks
+(all state already in their model, one `.use()` becoming one `bind()`), while the smallest, at a
+third the size, carried the epic's only state migration. **(3)** *Whether a cadence change is safe
+depends on a property of the value, not of the cadence*: the columns popover went from pushing rows
+every render to pushing only on `bind`, which is safe **only** because its accessor returns the
+grid's own array, making a re-push an identity no-op — copying it would have discarded in-place cell
+edits. **(4)** *A live verification run against a renderer that predates a `.tsx` -> `.ts` rename is
+not evidence about the code, and it can hang rather than error* — while `tsc`, lint and the dev
+server all stay green. That cost two renderer wedges and a well-argued but wrong defect hypothesis;
+a temporary counter in the bind that throws after N invocations and captures the first stacks settled
+it in one run.
+
+It also rejected its most plausible rival contract **on a number** rather than on taste:
+`trailing?: React.ReactNode` has 5 call sites of which **0 pass JSX** — a dead arm, not a contract —
+and recorded that `highlight()`'s React form cannot be collected until `graph` converts, whatever
+else happens.
+
+---
+
 ## EPIC-064 — [De-React Epic E6: delete the `ReactNode` arm from the uikit icon contract](EPIC-064.md)
 
 The contract was `IconRef = IconName | ReactNode` in `uikit/shared/slots.ts`, with `renderIcon()`

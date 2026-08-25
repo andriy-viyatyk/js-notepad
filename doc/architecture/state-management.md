@@ -100,6 +100,12 @@ needs before the write, or derive it from a stable model/key afterward; never re
 field or row record after a write that can notify the view. A React handler often captured a
 per-render constant, which hid this race; a `VanillaView` field does not have that snapshot behavior.
 
+Related values can also reach an imperative widget over different channels. Establish direct
+widget data before publishing state that synchronously projects companion options. In
+`GridEditor.setRows`, rows go directly to the grid while columns flow through `state.update()` into
+`GridBodyView.applyProjection()` and `DataGridView.setOptions()`. Publishing columns first makes the
+grid validate them against its previous rows; handing over the rows first is therefore load-bearing.
+
 Two related lifecycle details are easy to misread:
 
 - `VanillaView.update(props)` assigns `this.props` before calling `onUpdate(props)`. Inside that
