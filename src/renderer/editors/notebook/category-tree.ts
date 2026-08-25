@@ -1,6 +1,6 @@
-import React from "react";
 import type { ITreeItem } from "../../uikit/Tree";
-import color from "../../theme/color";
+import { createPanelElement } from "../../uikit/Panel/panel-style";
+import { createTextElement } from "../../uikit/Text/text-style";
 
 export interface CategoryItem extends ITreeItem {
     value: string;
@@ -12,19 +12,32 @@ type CategoriesMap = {
     [key: string]: { category: string; map?: CategoriesMap };
 };
 
-function renderLabel(name: string, size: number | undefined): React.ReactNode {
-    return (
-        <span style={{ display: "flex", alignItems: "center", width: "100%" }}>
-            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
-                {name}
-            </span>
-            {size !== undefined && (
-                <span style={{ marginLeft: 4, fontSize: 12, color: color.text.light }}>
-                    {size}
-                </span>
-            )}
-        </span>
-    );
+function createCategoryLabel(name: string, size: number | undefined): Node {
+    // `width: "100%"` and NOT `flex: true` + `width: 0`: the Tree's `.label` host is a plain
+    // block, so a flex-grow on this element is inert and an explicit `width: 0` wins outright —
+    // the name collapsed to zero width and only the shrink-proof count stayed visible. The React
+    // original wrapped its parts in a `display: flex; width: 100%; min-width: 0` span for exactly
+    // this reason; mirror it.
+    const label = createPanelElement({
+        name: "notebook-category-label",
+        direction: "row",
+        align: "center",
+        width: "100%",
+        minWidth: 0,
+        overflow: "hidden",
+        gap: "sm",
+    });
+    // The name takes the remaining width and ellipsizes; the count never shrinks.
+    const text = createTextElement(name, { truncate: true });
+    text.style.flex = "1 1 auto";
+    text.style.minWidth = "0";
+    label.append(text);
+    if (size !== undefined) {
+        const count = createTextElement(String(size), { color: "light", size: "sm" });
+        count.style.flexShrink = "0";
+        label.append(count);
+    }
+    return label;
 }
 
 function buildChildren(
@@ -37,7 +50,7 @@ function buildChildren(
         const item: CategoryItem = {
             value: entry.category,
             category: entry.category,
-            label: renderLabel(key, getSize(entry.category)),
+            label: createCategoryLabel(key, getSize(entry.category)),
         };
         if (entry.map) {
             item.items = buildChildren(entry.map, getSize);
@@ -74,7 +87,7 @@ export function buildCategoryTreeItems(
     const root: CategoryItem = {
         value: "",
         category: "",
-        label: renderLabel(rootLabel, getSize("")),
+        label: createCategoryLabel(rootLabel, getSize("")),
         items: buildChildren(map, getSize),
     };
 

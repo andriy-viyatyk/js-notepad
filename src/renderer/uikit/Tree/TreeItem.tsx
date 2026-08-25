@@ -25,7 +25,7 @@ export interface TreeItemProps
     /** Direct DOM icon used by framework-free owners; takes precedence over `icon`. */
     iconElement?: Node;
     /** Label content. Rich tree rows remain supported; string labels are highlighted. */
-    label: React.ReactNode;
+    label: React.ReactNode | Node;
     /** Highlight matches in string labels. */
     searchText?: string;
     /** True when this item is the current selection of its Tree. */
@@ -65,7 +65,7 @@ export interface TreeItemProps
      * right edge. The trailing content owns its own click handling — to avoid also
      * triggering the row's onClick, its handlers should `stopPropagation()`.
      */
-    trailing?: React.ReactNode;
+    trailing?: React.ReactNode | Node;
     /**
      * When the trailing content is shown. `"always"` (default) keeps it visible at all times —
      * the original behavior, so existing consumers are unchanged. `"hover"` hides it at rest and

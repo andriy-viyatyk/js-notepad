@@ -99,6 +99,11 @@ class RegisteredTools extends TModel<RegisteredToolsState> {
         return this.state.use((s) => s.toolsets);
     }
 
+    /** Framework-neutral subscription to the registered toolset collection. */
+    subscribeToolsets(listener: () => void): () => void {
+        return this.state.subscribe(listener, (s) => s.toolsets);
+    }
+
     /** Reactive flat tool list (re-renders on change). */
     useTools(): RegisteredTool[] {
         return this.state.use((s) => s.tools);

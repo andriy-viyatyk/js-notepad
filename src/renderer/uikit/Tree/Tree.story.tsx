@@ -13,6 +13,16 @@ import { FileTypeIcon } from "../../components/icons/LanguageIcon";
 import { ContextMenuEvent } from "../../api/events/events";
 import type { MenuItem } from "../Menu";
 import { Story } from "../../editors/storybook/storyTypes";
+
+/**
+ * The Tree `label` slot admits a DOM `Node` as well as a `ReactNode` (see `types.ts`) because
+ * `TreeItemView` routes a non-string label through `fillSlot`, which handles both arms. JSX
+ * children cannot hold a DOM node, so this React harness renders only the React arm — the
+ * story's own data supplies strings.
+ */
+function reactLabel(label: ITreeItem["label"]): React.ReactNode {
+    return label instanceof Node ? null : label;
+}
 import color from "../../theme/color";
 import { TraitSet } from "../../core/traits/traits";
 import { traitRegistry, TraitTypeId } from "../../core/traits/TraitRegistry";
@@ -290,7 +300,7 @@ function TreeDemo({
                     {ctx.hasChildren ? (ctx.expanded ? "▼" : "▶") : "·"}
                 </span>
                 <span style={{ opacity: 0.6, marginRight: 6 }}>L{ctx.level}</span>
-                {ctx.item.label}
+                {reactLabel(ctx.item.label)}
             </CustomRow>
         )
         : undefined;

@@ -38,7 +38,7 @@ import {
     type ItemMenuActions,
 } from "./item-menus";
 import { sameHref, sameHrefs } from "./href-utils";
-import type { SlotText } from "../../uikit";
+import type { SlotText } from "../../uikit/shared/slots";
 
 // =============================================================================
 // Types
@@ -79,11 +79,11 @@ export interface TreeProviderViewProps {
     initialState?: TreeProviderViewSavedState;
     onStateChange?: (state: TreeProviderViewSavedState) => void;
     refreshKey?: string | number;
-    /** Override label rendering. When omitted, default title + search highlight is used. */
-    getLabel?: (item: ILink, searchText: string) => SlotText;
     /** Optional per-row trailing content (right-aligned action slot). Receives the row's
      *  ITreeProviderItem; return null for rows without an action. */
-    renderTrailing?: (item: ITreeProviderItem) => React.ReactNode;
+    renderTrailing?: (item: ITreeProviderItem) => React.ReactNode | Node;
+    /** Optional per-row tooltip content. Falls back to the item's href. */
+    getTooltip?: (item: ITreeProviderItem) => SlotText;
     /** Override root node label. When omitted, uses provider.displayName. */
     rootLabel?: string;
     /** Allow Ctrl/Shift-click multi-selection and plural actions (EPIC-049).

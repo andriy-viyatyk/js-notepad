@@ -1,6 +1,5 @@
-import React from "react";
 import type { EditorModel } from "../../editors/base/EditorModel";
-import { EditorIcon } from "../../components/icons/EditorIcon";
+import { createEditorIconElement, subscribeFileIconElements } from "../../components/icons/icon-elements";
 import {
     CollapsiblePanelStackView,
 } from "../../uikit/CollapsiblePanelStack/CollapsiblePanelStackView";
@@ -13,11 +12,10 @@ import {
     createPanelElement,
     resolvePanelAttributes,
 } from "../../uikit/Panel/panel-style";
-import type { IconRef } from "../../uikit/shared/slots";
+import { createIconElement } from "../../uikit/shared/slots";
 import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { ISecondaryViewsState } from "./SecondaryViewsModel";
-import { LazySecondaryView } from "./LazySecondaryView";
 import { LazySecondaryViewView } from "./LazySecondaryViewView";
 import { isCompositePanelKey, panelKey } from "./panel-key";
 import { secondaryViewRegistry } from "./secondary-view-registry";
@@ -41,7 +39,7 @@ interface PanelRecord {
     key: string;
     model: EditorModel;
     panelId: string;
-    icon?: IconRef;
+    iconElement?: Node;
     headerElement: HTMLDivElement | null;
     lazyView?: LazySecondaryViewView;
     headerDirty: boolean;
@@ -55,6 +53,7 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
     private stack: CollapsiblePanelStackView | undefined;
     private splitter: SplitterView | undefined;
     private outerPanel: HTMLDivElement | undefined;
+    private iconUnsubscribe: (() => void) | undefined;
 
     public constructor(props: SecondaryViewsProps) {
         super(props, document.createElement("div"));
@@ -76,6 +75,11 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
         // Dispose host records before the stack invokes their callbacks, then
         // dispose the native children before the adapter removes this root.
         this.own(() => this.clearRecords());
+        this.iconUnsubscribe = subscribeFileIconElements(() => this.reconcile());
+        this.own(() => {
+            this.iconUnsubscribe?.();
+            this.iconUnsubscribe = undefined;
+        });
         this.own(() => stack.dispose());
         this.own(() => splitter.dispose());
 
@@ -115,10 +119,11 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             if (existing) {
                 existing.model = panel.model;
                 existing.panelId = panel.panelId;
-                existing.icon = this.resolveIcon(panel);
+                this.updateRecordIcon(existing, panel);
                 continue;
             }
-            this.records.set(panel.key, this.createRecord(panel));
+            const record = this.createRecord(panel);
+            this.records.set(panel.key, record);
         }
 
         const activeKey = this.resolveActiveKey(rendered);
@@ -168,7 +173,7 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             key: panel.key,
             model: panel.model,
             panelId: panel.panelId,
-            icon: this.resolveIcon(panel),
+            ...this.resolveIcons(panel),
             headerElement: null,
             headerDirty: false,
             alive: true,
@@ -195,23 +200,9 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             alwaysRenderContent: true,
             children: null,
         };
-        const definition = secondaryViewRegistry.get(record.panelId);
-        if (definition?.arm === "vanilla") {
-            const lazyView = record.lazyView ?? this.createLazyView(record, panel.key === activeKey);
-            lazyView.update(this.lazyViewProps(record, panel.key === activeKey));
-            return { ...descriptor, children: lazyView.root };
-        }
-
-        return {
-            ...descriptor,
-            children: React.createElement(LazySecondaryView, {
-                model: record.model as never,
-                panelId: record.panelId,
-                headerRef: record.headerElement,
-                icon: record.icon,
-                expanded: panel.key === activeKey,
-            }),
-        };
+        const lazyView = record.lazyView ?? this.createLazyView(record, panel.key === activeKey);
+        lazyView.update(this.lazyViewProps(record, panel.key === activeKey));
+        return { ...descriptor, children: lazyView.root };
     }
 
     private createLazyView(record: PanelRecord, expanded: boolean): LazySecondaryViewView {
@@ -226,14 +217,32 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             model: record.model,
             panelId: record.panelId,
             headerRef: record.headerElement,
-            icon: record.icon,
+            iconElement: record.iconElement,
             expanded,
         };
     }
 
-    private resolveIcon(panel: RenderedPanel): IconRef | undefined {
-        return secondaryViewRegistry.get(panel.panelId)?.icon ??
-            React.createElement(EditorIcon, { editor: panel.model });
+    private updateRecordIcon(record: PanelRecord, panel: RenderedPanel): void {
+        Object.assign(record, this.resolveIcons(panel));
+    }
+
+    private resolveIcons(panel: RenderedPanel): {
+        iconElement?: Node;
+    } {
+        const override = secondaryViewRegistry.get(panel.panelId)?.icon;
+        if (override !== undefined) {
+            return { iconElement: createIconElement(override) };
+        }
+
+        const editorIcon = createEditorIconElement({
+            noLanguage: panel.model.noLanguage,
+            getIcon: panel.model.getIcon,
+            getIconElement: panel.model.getIconElement,
+            language: panel.model.language,
+            title: panel.model.title,
+        });
+        const iconElement = editorIcon?.kind === "element" ? editorIcon.element : undefined;
+        return { iconElement };
     }
 
     private outerPanelProps(width: number) {

@@ -76,6 +76,7 @@ export abstract class EditorModel<
     scriptData: Record<string, unknown> = {};
 
     getIcon?: () => React.ReactNode;
+    getIconElement?: () => Element | undefined;
     noLanguage = false;
     skipSave = false;
 

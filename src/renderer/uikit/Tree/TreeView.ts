@@ -454,6 +454,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             tooltip: this.props.getTooltip?.(row.source, row.level),
             indentSize: this.props.indentSize ?? defaultIndentSize,
             hideChevron: this.props.getHideChevron?.(row.source, row.level),
+            trailingVisibility: this.props.getTrailingVisibility?.(row.source, row.level),
             trailing: this.props.renderTrailing?.(row.source, row.level),
             onContextMenu: this.props.onItemContextMenu
                 ? (event: React.MouseEvent<HTMLDivElement>) => {
@@ -600,6 +601,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             growToHeight: _growToHeight, whiteSpaceY: _whiteSpaceY, activeIndex: _activeIndex,
             getTooltip: _getTooltip, loading: _loading, emptyMessage: _emptyMessage,
             getIconElement: _getIconElement, getHideChevron: _getHideChevron,
+            getTrailingVisibility: _getTrailingVisibility,
             renderTrailing: _renderTrailing, onItemContextMenu: _onItemContextMenu,
             items: _items, value: _value, onChange: _onChange,
             onItemDoubleClick: _onItemDoubleClick, isSelected: _isSelected,

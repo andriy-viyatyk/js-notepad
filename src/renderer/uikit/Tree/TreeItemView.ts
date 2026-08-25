@@ -318,7 +318,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         this.iconCleanup = fillSlot(this.iconHost, icon);
     }
 
-    private setLabel(label: React.ReactNode, searchText: string | undefined): void {
+    private setLabel(label: React.ReactNode | Node, searchText: string | undefined): void {
         if (typeof label === "string") {
             if (this.labelOwner === "slot") {
                 // Release fillSlot's ownership of this host before writing to it directly.
@@ -334,7 +334,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     }
 
     /** React rendered `{trailing != null && <span className="tree-trailing">…}`. */
-    private setTrailing(trailing: React.ReactNode): void {
+    private setTrailing(trailing: React.ReactNode | Node): void {
         if (trailing == null) {
             if (this.trailingAttached) {
                 this.trailingCleanup?.();

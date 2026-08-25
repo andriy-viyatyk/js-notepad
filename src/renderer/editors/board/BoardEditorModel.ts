@@ -17,6 +17,7 @@ import { isBoardFolder, normalizeSecondaryViews, readBoardManifest, readBoardSec
 import { boardSecondaryPanelId } from "./board-secondary";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
+import { createBoardGlyphElement } from "./board-glyph-element";
 import { invalidateBoardIcon } from "./board-icon-cache";
 import { markBoardBusy } from "./busy-boards";
 
@@ -222,6 +223,8 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         }
         return createElement(BoardIcon);
     };
+
+    getIconElement = (): Element => createBoardGlyphElement(this.currentBoardRoot(), 16);
 
     // ── Busy retention (US-799) ──────────────────────────────────────────
 

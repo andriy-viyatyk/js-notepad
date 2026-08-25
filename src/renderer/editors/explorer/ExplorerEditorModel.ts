@@ -13,6 +13,7 @@ import type { FileSearchState } from "../../components/file-search";
 import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { fpDirname } from "../../core/utils/file-path";
+import { createFolderIconElement } from "../../components/icons/icon-elements";
 
 export interface ExplorerEditorState extends EditorStateBase {
     type: "fileExplorer";
@@ -49,7 +50,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     readonly editorId = "explorer";
 
     /** File tree data source. Created lazily by the view layer
-     *  (`ExplorerSecondaryView.tsx`); reads see whatever the view set.
+     *  (`ExplorerSecondaryView.ts`); reads see whatever the view set.
      *  EX-IMPL5 — public field, NOT a getter (Link uses a getter because its
      *  tree provider is constructible without view-supplied configuration;
      *  Explorer's `FileTreeProvider` needs the reactive rootPath). */
@@ -76,6 +77,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         // explorer tree shows for folders. Explorer is sidebar-only, so this
         // essentially only ever appears on the panel header, not a page tab.
         this.getIcon = () => createElement(FolderIcon);
+        this.getIconElement = () => createFolderIconElement();
     }
 
     get rootPath(): string {

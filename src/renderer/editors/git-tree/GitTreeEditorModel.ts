@@ -123,6 +123,7 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
 
     /** Tab icon — the git glyph (EPIC-030 / US-612). */
     getIcon = (): ReactNode => createElement(GitIcon, { width: 16, height: 16 });
+    getIconElement = (): SVGElement | undefined => GitIcon.createElement?.({ width: 16, height: 16 });
 
     /** Page-tab context-menu items specific to the Git Tree editor: reveal the
      *  repository root in the OS file manager, and copy the configured remote's

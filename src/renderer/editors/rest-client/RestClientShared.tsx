@@ -6,23 +6,18 @@ import {
     Splitter,
     Text,
     Textarea,
-    Tree,
-    TreeItem,
-    TREE_ITEM_KEY,
     WithMenu,
 } from "../../uikit";
-import type { MenuItem, TreeItemRenderContext } from "../../uikit";
+import type { MenuItem } from "../../uikit";
 import universalColors from "../../theme/universal-colors";
-import { CopyIcon, DeleteIcon, PlusIcon } from "../../theme/icons";
+import { CopyIcon, DeleteIcon } from "../../theme/icons";
 import { app } from "../../api/app";
 import { RequestBuilder } from "./RequestBuilder";
 import { ResponseViewer, getResponseSize } from "./ResponseViewer";
-import { METHOD_COLORS } from "./httpConstants";
-import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../core/traits";
-import { TraitSet, type Traited } from "../../core/traits/traits";
-import { LINK } from "../../core/traits";
-import { RestClientData, RestRequest } from "./restClientTypes";
+import { TraitSet } from "../../core/traits/traits";
+import { RestRequest } from "./restClientTypes";
 import type { RestClientSource, RestClientViewState } from "./restClientTypes";
+import { TREE_ITEM_KEY } from "../../uikit/Tree/types";
 
 export interface RequestTreeItem {
     id: string;
@@ -32,7 +27,6 @@ export interface RequestTreeItem {
     isCollection?: boolean;
     collectionName?: string;
 }
-
 export const EMPTY_LABEL = "(empty)";
 
 export const requestTreeItemTraits = new TraitSet().add(TREE_ITEM_KEY, {
@@ -74,12 +68,6 @@ export function getStatusColor(status: number): string {
     if (status < 400) return universalColors.http.redirect;
     if (status < 500) return universalColors.http.clientError;
     return universalColors.http.serverError;
-}
-
-/** Show context menu using showAppPopupMenu (lazy import to avoid circular deps). */
-async function showContextMenu(e: React.MouseEvent, items: MenuItem[]) {
-    const { showAppPopupMenu } = await import("../../ui/dialogs/poppers/showPopupMenu");
-    showAppPopupMenu(e.clientX, e.clientY, items);
 }
 
 // =============================================================================
@@ -334,274 +322,5 @@ export function SplitDetailPanel({ vm, request, state }: {
                 </Panel>
             </Panel>
         </Panel>
-    );
-}
-
-// =============================================================================
-// RequestTree
-// =============================================================================
-
-export function RequestTree({ vm, items, selectedId }: {
-    vm: RestClientSource;
-    items: Traited<unknown[]>;
-    selectedId: string;
-}) {
-    const isSelected = useCallback(
-        (item: RequestTreeItem) => item.id === selectedId,
-        [selectedId],
-    );
-
-    const onChange = useCallback(
-        (item: RequestTreeItem) => {
-            if (item.request) vm.selectRequest(item.id);
-        },
-        [vm],
-    );
-
-    const handleItemContextMenu = useCallback(
-        (item: RequestTreeItem, e: React.MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (item.request) vm.selectRequest(item.id);
-
-            if (item.isCollection) {
-                const colName = item.collectionName ?? "";
-                const menuItems: MenuItem[] = [
-                    {
-                        label: "Add Request",
-                        onClick: () => vm.addRequest(undefined, colName),
-                    },
-                    {
-                        label: "Open in New Editor",
-                        onClick: () => {
-                            const requests = vm.state.get().data.requests
-                                .filter((r) => r.collection === colName)
-                                .map((r) => ({ ...r }));
-                            const data: RestClientData = { type: "rest-client", requests };
-                            const title = colName || EMPTY_LABEL;
-                            app.pages.addEditorPage("rest-client", "json", `${title}.rest.json`, JSON.stringify(data, null, 4));
-                        },
-                    },
-                    {
-                        label: "Delete Collection",
-                        startGroup: true,
-                        onClick: async () => {
-                            const label = colName || EMPTY_LABEL;
-                            const result = await app.ui.confirm(`Delete all requests in "${label}"?`);
-                            if (result) vm.deleteCollection(colName);
-                        },
-                    },
-                ];
-                showContextMenu(e, menuItems);
-                return;
-            }
-
-            const req = item.request;
-            const menuItems: MenuItem[] = [
-                {
-                    label: "Duplicate",
-                    onClick: () => {
-                        const newReq = vm.addRequest(`${req.name} (copy)`, req.collection);
-                        vm.updateRequest(newReq.id, {
-                            method: req.method,
-                            url: req.url,
-                            headers: [...req.headers],
-                            body: req.body,
-                            bodyType: req.bodyType,
-                            bodyLanguage: req.bodyLanguage,
-                            formData: [...req.formData],
-                            binaryFilePath: req.binaryFilePath,
-                            formDataEntries: [...req.formDataEntries],
-                        });
-                    },
-                },
-                {
-                    label: "Open in New Editor",
-                    onClick: () => {
-                        const data: RestClientData = {
-                            type: "rest-client",
-                            requests: [{ ...req }],
-                        };
-                        app.pages.addEditorPage("rest-client", "json", `${req.name || "Request"}.rest.json`, JSON.stringify(data, null, 4));
-                    },
-                },
-                {
-                    label: "Delete",
-                    startGroup: true,
-                    onClick: async () => {
-                        const name = req.name || EMPTY_LABEL;
-                        const result = await app.ui.confirm(`Delete "${name}"?`);
-                        if (result) vm.deleteRequest(item.id);
-                    },
-                },
-            ];
-            showContextMenu(e, menuItems);
-        },
-        [vm],
-    );
-
-    const getDragData = useCallback(
-        (item: RequestTreeItem) => {
-            if (item.isRoot || item.isCollection) return null;
-            return { id: item.id };
-        },
-        [],
-    );
-
-    const canTraitDrop = useCallback(
-        (dropItem: RequestTreeItem, payload: TraitDragPayload) => {
-            if (dropItem.isRoot) return false;
-            if (payload.typeId === TraitTypeId.RestRequest) return true;
-            const traits = resolveTraits(payload.typeId);
-            return !!traits?.get(LINK);
-        },
-        [],
-    );
-
-    const onTraitDrop = useCallback(
-        (dropItem: RequestTreeItem, payload: TraitDragPayload) => {
-            if (dropItem.isRoot) return;
-
-            if (payload.typeId === TraitTypeId.RestRequest) {
-                const data = payload.data as { id: string };
-                if (dropItem.isCollection) {
-                    vm.moveRequest(data.id, dropItem.id, dropItem.collectionName ?? "");
-                } else {
-                    vm.moveRequest(data.id, dropItem.id, dropItem.request?.collection);
-                }
-                return;
-            }
-
-            const traits = resolveTraits(payload.typeId);
-            const linkTrait = traits?.get(LINK);
-            if (!linkTrait) return;
-            const dropped = linkTrait.getItems(payload.data);
-            const collection = dropItem.isCollection
-                ? (dropItem.collectionName ?? "")
-                : (dropItem.request?.collection ?? "");
-            for (const link of dropped) {
-                if (!link.href) continue;
-                const req = vm.addRequest(link.title || link.href, collection);
-                vm.updateRequest(req.id, { url: link.href });
-            }
-        },
-        [vm],
-    );
-
-    const renderItem = useCallback(
-        (ctx: TreeItemRenderContext<RequestTreeItem>) => {
-            const item = ctx.source;
-
-            if (item.isRoot) {
-                return (
-                    <TreeItem
-                        id={ctx.id}
-                        level={ctx.level}
-                        expanded={ctx.expanded}
-                        hasChildren={ctx.hasChildren}
-                        hideChevron
-                        selected={false}
-                        active={ctx.active}
-                        label={
-                            <Panel
-                                name="rest-tree-root-label"
-                                direction="row"
-                                align="center"
-                                flex={1}
-                                paddingLeft="sm"
-                                gap="xs"
-                            >
-                                <Text size="xs" variant="uppercased" color="light" bold>
-                                    Requests
-                                </Text>
-                                <Spacer />
-                                <IconButton
-                                    name="rest-tree-add"
-                                    size="sm"
-                                    icon={<PlusIcon />}
-                                    title="Add request"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        vm.addRequest();
-                                    }}
-                                />
-                            </Panel>
-                        }
-                    />
-                );
-            }
-
-            const labelNode = item.isCollection
-                ? (
-                    <Text
-                        size="md"
-                        bold={!!item.collectionName}
-                        italic={!item.collectionName}
-                        color={item.collectionName ? "default" : "light"}
-                    >
-                        {item.collectionName || EMPTY_LABEL}
-                    </Text>
-                )
-                : (() => {
-                    const req = item.request;
-                    const badgeColor = METHOD_COLORS[req.method];
-                    return (
-                        <Panel direction="row" align="center" gap="sm">
-                            <Panel minWidth={32} justify="center">
-                                <Text size="xs" bold color={badgeColor} align="center">
-                                    {req.method}
-                                </Text>
-                            </Panel>
-                            <Text
-                                size="md"
-                                truncate
-                                italic={!req.name}
-                                color={req.name ? "default" : "light"}
-                            >
-                                {req.name || EMPTY_LABEL}
-                            </Text>
-                        </Panel>
-                    );
-                })();
-
-            return (
-                <TreeItem
-                    id={ctx.id}
-                    level={ctx.level}
-                    expanded={ctx.expanded}
-                    hasChildren={ctx.hasChildren}
-                    label={labelNode}
-                    selected={ctx.selected}
-                    active={ctx.active}
-                    dragging={ctx.dragging}
-                    dropActive={ctx.dropActive}
-                    onChevronClick={(e) => {
-                        e.stopPropagation();
-                        ctx.toggleExpanded();
-                    }}
-                    onContextMenu={(e) => handleItemContextMenu(item, e)}
-                />
-            );
-        },
-        [vm, handleItemContextMenu],
-    );
-
-    return (
-        <Tree<RequestTreeItem>
-            name="rest-client-tree"
-            items={items}
-            getChildren={getRequestTreeChildren}
-            isSelected={isSelected}
-            onChange={onChange}
-            renderItem={renderItem}
-            traitTypeId={TraitTypeId.RestRequest}
-            getDragData={getDragData}
-            acceptsDrop
-            canTraitDrop={canTraitDrop}
-            onTraitDrop={onTraitDrop}
-            defaultExpandAll
-            focusSelection
-        />
     );
 }

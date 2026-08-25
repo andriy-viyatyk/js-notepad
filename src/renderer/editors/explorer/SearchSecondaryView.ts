@@ -8,7 +8,6 @@ import { FileSearchView } from "../../components/file-search/FileSearchView";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import {
     createSideBarPanelHeader,
-    resolveSideBarPanelHeaderIcon,
     type SideBarPanelHeaderHandle,
 } from "../../ui/secondary-views/SideBarPanelHeaderView";
 import { fpBasename } from "../../core/utils/file-path";
@@ -72,7 +71,7 @@ export default class SearchSecondaryView extends VanillaView<SecondaryViewProps>
         const title = searchTitle(model);
         this.header = createSideBarPanelHeader({
             headerRef: props.headerRef,
-            icon: resolveSideBarPanelHeaderIcon(props.icon, props.panelId),
+            icon: props.iconElement,
             title: title.text,
             titleAttribute: title.path,
             actions: this.closeButton.root,
@@ -128,7 +127,7 @@ export default class SearchSecondaryView extends VanillaView<SecondaryViewProps>
         const title = searchTitle(this.model);
         this.header.update({
             headerRef: props.headerRef,
-            icon: resolveSideBarPanelHeaderIcon(props.icon, props.panelId),
+            icon: props.iconElement,
             title: title.text,
             titleAttribute: title.path,
             actions: this.closeButton.root,

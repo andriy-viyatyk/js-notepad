@@ -73,6 +73,7 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
 
     /** Tab icon — reuse the compare glyph. */
     getIcon = (): ReactNode => createElement(CompareIcon, { width: 16, height: 16 });
+    getIconElement = (): SVGElement | undefined => CompareIcon.createElement?.({ width: 16, height: 16 });
 
     // ── Diff helpers (consumed by the body) ─────────────────────────────
 

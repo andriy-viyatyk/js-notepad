@@ -1,44 +1,19 @@
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
-import { createIconElement, isIconName } from "../../uikit/shared/slots";
-import type { IconRef } from "../../uikit/shared/slots";
-import type { IconName } from "../../theme/icon-registry";
-
-type ImportMetaWithEnv = ImportMeta & {
-    env?: {
-        DEV?: boolean;
-    };
-};
-
-const isDevelopment = (import.meta as ImportMetaWithEnv).env?.DEV === true;
-
-/** Narrow a registry-resolved icon to the DOM arm used by vanilla headers. */
-export function resolveSideBarPanelHeaderIcon(
-    icon: IconRef | undefined,
-    panelId: string,
-): IconName | undefined {
-    if (typeof icon === "string" && isIconName(icon)) return icon;
-    if (icon !== undefined && isDevelopment) {
-        console.error(
-            `[SideBarPanelHeaderView] Cannot render icon for vanilla secondary panel "${panelId}": `
-            + "SecondaryViewsView.resolveIcon returned a React EditorIcon fallback which the vanilla header cannot render.",
-        );
-    }
-    return undefined;
-}
-
-// onShowMain is deliberately unimplemented for this pilot. GitPanelSecondaryView,
-// MnemeTreeSecondaryView, and LinkCategorySecondaryView will need it in future vanilla
-// conversions. Preserve data-type="sidebar-show-main" (the exact value is in the
-// CollapsiblePanelStack.css pointer-events="auto" allowlist), data-active, stopPropagation
-// on click, and replace the React Tooltip with attachTooltip, as IconButtonView does.
+import { attachTooltip, type TooltipAttachment } from "../../uikit/Tooltip/attach-tooltip";
+import { createIconElement } from "../../uikit/shared/slots";
+import "./SideBarPanelHeader.css";
 
 export interface SideBarPanelHeaderDomProps {
     headerRef: HTMLDivElement | null;
-    icon?: IconName | Node;
-    title: string;
+    icon?: Node;
+    badge?: Node;
+    title: string | Node;
     titleAttribute?: string;
     actions?: Node;
+    onShowMain?: () => void;
+    showMainTitle?: string;
+    showMainActive?: boolean;
 }
 
 export interface SideBarPanelHeaderHandle {
@@ -51,9 +26,14 @@ class SideBarPanelHeaderDom implements SideBarPanelHeaderHandle {
     private readonly titleGroup: HTMLDivElement;
     private readonly actionsGroup: HTMLDivElement;
     private currentHeader: HTMLDivElement | null = null;
-    private currentIcon: IconName | Node | undefined;
+    private currentIcon: Node | undefined;
     private iconNode: Node | undefined;
+    private currentBadge: Node | undefined;
+    private currentTitleNode: Node | undefined;
     private currentActions: Node | undefined;
+    private readonly showMainButton: HTMLButtonElement;
+    private readonly showMainTooltip: TooltipAttachment;
+    private showMainAction: (() => void) | undefined;
     private disposed = false;
 
     public constructor(props: SideBarPanelHeaderDomProps) {
@@ -81,22 +61,50 @@ class SideBarPanelHeaderDom implements SideBarPanelHeaderHandle {
             gap: "xs",
             shrink: false,
         });
+        this.showMainButton = document.createElement("button");
+        this.showMainButton.type = "button";
+        this.showMainButton.dataset.type = "sidebar-show-main";
+        this.showMainButton.append(createIconElement("chevron-right"));
+        this.showMainButton.addEventListener("click", this.onShowMainClick);
+        this.showMainTooltip = attachTooltip(this.showMainButton, { content: null });
         this.update(props);
     }
 
     public update(props: SideBarPanelHeaderDomProps): void {
         if (this.disposed) return;
 
-        this.titleElement.textContent = props.title;
-        if (props.titleAttribute === undefined) this.titleElement.removeAttribute("title");
-        else this.titleElement.title = props.titleAttribute;
+        if (typeof props.title === "string") {
+            this.currentTitleNode?.parentNode?.removeChild(this.currentTitleNode);
+            this.currentTitleNode = undefined;
+            this.titleElement.textContent = props.title;
+        } else {
+            this.titleElement.textContent = "";
+            if (this.currentTitleNode !== props.title) {
+                this.currentTitleNode?.parentNode?.removeChild(this.currentTitleNode);
+                this.currentTitleNode = props.title;
+            }
+        }
+        const titleTarget = typeof props.title === "string"
+            ? this.titleElement
+            : props.title instanceof Element ? props.title : undefined;
+        if (titleTarget) {
+            if (props.titleAttribute === undefined) titleTarget.removeAttribute("title");
+            else titleTarget.setAttribute("title", props.titleAttribute);
+        }
+
+        if (this.currentBadge !== props.badge) {
+            this.currentBadge?.parentNode?.removeChild(this.currentBadge);
+            this.currentBadge = props.badge;
+        }
+        this.titleGroup.replaceChildren(
+            ...(this.currentBadge ? [this.currentBadge] : []),
+            this.currentTitleNode ?? this.titleElement,
+        );
 
         if (this.currentIcon !== props.icon) {
             if (this.iconNode) this.iconNode.parentNode?.removeChild(this.iconNode);
             this.currentIcon = props.icon;
-            this.iconNode = typeof props.icon === "string"
-                ? createIconElement(props.icon)
-                : props.icon;
+            this.iconNode = props.icon;
         }
 
         if (this.currentActions !== props.actions) {
@@ -104,6 +112,14 @@ class SideBarPanelHeaderDom implements SideBarPanelHeaderHandle {
             this.currentActions = props.actions;
             if (props.actions) this.actionsGroup.append(props.actions);
         }
+
+        this.showMainAction = props.onShowMain;
+        if (props.showMainActive) this.showMainButton.dataset.active = "";
+        else delete this.showMainButton.dataset.active;
+        if (!props.onShowMain) this.showMainButton.remove();
+        this.showMainTooltip.update({
+            content: props.onShowMain ? props.showMainTitle ?? "Show in main view" : null,
+        });
 
         if (this.currentHeader !== props.headerRef) {
             this.detachNodes();
@@ -118,8 +134,13 @@ class SideBarPanelHeaderDom implements SideBarPanelHeaderHandle {
         this.detachNodes();
         this.actionsGroup.replaceChildren();
         this.currentActions = undefined;
+        this.showMainAction = undefined;
+        this.showMainTooltip.dispose();
+        this.showMainButton.removeEventListener("click", this.onShowMainClick);
         this.iconNode = undefined;
         this.currentIcon = undefined;
+        this.currentBadge = undefined;
+        this.currentTitleNode = undefined;
     }
 
     private attachNodes(): void {
@@ -127,14 +148,22 @@ class SideBarPanelHeaderDom implements SideBarPanelHeaderHandle {
         if (this.iconNode) this.currentHeader.append(this.iconNode);
         this.currentHeader.append(this.titleGroup);
         if (this.currentActions) this.currentHeader.append(this.actionsGroup);
+        if (this.showMainAction) this.currentHeader.append(this.showMainButton);
     }
 
     private detachNodes(): void {
         if (this.iconNode) this.iconNode.parentNode?.removeChild(this.iconNode);
         this.titleGroup.remove();
         this.actionsGroup.remove();
+        this.showMainButton.remove();
         this.currentHeader = null;
     }
+
+    private readonly onShowMainClick = (event: MouseEvent): void => {
+        if (this.disposed || !this.showMainAction) return;
+        event.stopPropagation();
+        this.showMainAction();
+    };
 }
 
 export function createSideBarPanelHeader(

@@ -310,7 +310,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
                 if (hasSubDirectories === undefined && hasItems === undefined) return true;
                 return showLinks ? !!(hasSubDirectories || hasItems) : !!hasSubDirectories;
             },
-            getTooltip: (node) => node.data.href,
+            getTooltip: (node) => this.props.getTooltip?.(node.data) ?? node.data.href,
             getIconElement: this.getIconElement,
             getHideChevron: (_node, level) => level === 0,
             renderTrailing: (node) => this.props.renderTrailing?.(node.data),

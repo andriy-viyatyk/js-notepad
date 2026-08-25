@@ -148,6 +148,7 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
 
     /** Tab/panel icon — the Mneme (Memory) glyph. */
     getIcon = (): ReactNode => createElement(MemoryIcon, { color: MEMORY_ICON_COLOR });
+    getIconElement = (): SVGElement | undefined => MemoryIcon.createElement?.({ color: MEMORY_ICON_COLOR });
 
     /** Register the read-only "Wiki" tree panel when attached to a page
      *  (Pattern B — the editor is its own surviving secondary view). */

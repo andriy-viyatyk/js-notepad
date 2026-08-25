@@ -17,7 +17,7 @@ export interface ITreeItem {
     /** Stable identifier — what `value` / `onChange` refer to. Unique within the whole tree. */
     value: string | number;
     /** Display label. Tree providers and category trees may supply rich labels. */
-    label: React.ReactNode;
+    label: React.ReactNode | Node;
     /** Leading icon (rendered between the chevron and the label). */
     icon?: IconRef;
     /** Disables this item — no click, no selection styling, but children still render. */
@@ -168,8 +168,10 @@ export interface TreeProps<T = ITreeItem>
     getIconElement?: (item: T, level: number) => Node | undefined;
     /** Optional per-row chevron suppression. The default is the existing Tree behavior. */
     getHideChevron?: (item: T, level: number) => boolean;
+    /** Optional per-row trailing visibility for the default row renderer. */
+    getTrailingVisibility?: (item: T, level: number) => "always" | "hover";
     /** Optional right-side React compatibility slot for the default row renderer. */
-    renderTrailing?: (item: T, level: number) => React.ReactNode;
+    renderTrailing?: (item: T, level: number) => React.ReactNode | Node;
     /**
      * Per-row context-menu callback. It is bound on the row root, before the Tree's bubbling
      * container handler, so callers can stamp the native event before background handling runs.

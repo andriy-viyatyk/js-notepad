@@ -133,6 +133,11 @@ export function mountReactHandle(
     element: React.ReactElement,
 ): MountedReactRoot {
     const root = createRoot(host);
+    // Mark the host so every vanilla-to-React island is countable from the DOM. The De-React
+    // programme's Rule 4 measurements count React roots, and `fillSlot`'s own span carries
+    // `data-part="react-slot"` — without a marker here a `mountReactHandle` island is invisible
+    // to that query and a sidebar with a live React subtree measures zero (EPIC-063 E5-3).
+    host.dataset.reactRoot = "";
     root.render(element);
 
     let disposed = false;
@@ -148,6 +153,7 @@ export function mountReactHandle(
 
             disposed = true;
             root.unmount();
+            delete host.dataset.reactRoot;
         },
     };
 }

@@ -54,6 +54,7 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
     constructor(state: TComponentState<ArchiveEditorState>) {
         super(state);
         this.getIcon = () => createElement(ArchiveIcon, { width: 16, height: 16 });
+        this.getIconElement = () => ArchiveIcon.createElement?.({ width: 16, height: 16 });
     }
 
     /** Expose the archive path as `filePath` so host-less consumers read a single value:

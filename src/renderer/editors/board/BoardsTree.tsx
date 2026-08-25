@@ -1,9 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { Tree, TreeItem } from "../../uikit";
-import type { MenuItem, TreeItemRenderContext } from "../../uikit";
-import { FolderIcon } from "../../components/icons/FileIcon";
-import { BoardGlyph } from "./BoardGlyph";
-import { buildBoardsTree, type BoardTreeNode } from "./boards-tree-build";
+import type React from "react";
+import type { MenuItem } from "../../uikit/Menu";
+import { mountVanilla } from "../../uikit/shared/mount";
+import { BoardsTreeView } from "./BoardsTreeView";
 
 /**
  * The single reusable boards view (EPIC-036 / US-759). A presentational tree of boards built
@@ -12,8 +10,9 @@ import { buildBoardsTree, type BoardTreeNode } from "./boards-tree-build";
  *
  * Used in single-root mode (Explorer panel, in-board toolbar popover — pass `baseRoot`) and
  * multi-root mode (global Tools & Editors tab — omit `baseRoot`). Folder nodes show a
- * `FolderIcon` and toggle on the chevron; board nodes show their `BoardGlyph` and fire
- * `onOpenBoard` on click.
+ * `FolderIcon` and toggle on the chevron; board nodes show their board glyph and fire
+ * `onOpenBoard` on click. The implementation lives in `BoardsTreeView`; this file is the
+ * React compatibility shim used by surviving callers.
  */
 export interface BoardsTreeProps {
     /** Debug label → `data-name` (UIKit Rule 1). */
@@ -35,66 +34,6 @@ export interface BoardsTreeProps {
     emptyMessage?: React.ReactNode;
 }
 
-export function BoardsTree({
-    name,
-    boards,
-    baseRoot,
-    onOpenBoard,
-    renderTrailing,
-    trailingVisible,
-    getBoardContextMenu,
-    emptyMessage,
-}: BoardsTreeProps) {
-    const nodes = useMemo(() => buildBoardsTree(boards, baseRoot), [boards, baseRoot]);
-
-    // Transient hover highlight — Tree routes onItemMouseEnter → onActiveChange and styles the
-    // [data-active] row (lighter background), matching the file tree. Visual-only view-local state.
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-    const handleChange = (src: BoardTreeNode) => {
-        if (src.kind === "board" && src.root) onOpenBoard(src.root);
-    };
-
-    const getContextMenu = (src: BoardTreeNode): MenuItem[] | undefined =>
-        src.kind === "board" && src.root ? getBoardContextMenu?.(src.root) : undefined;
-
-    const renderItem = (ctx: TreeItemRenderContext<BoardTreeNode>) => {
-        const src = ctx.source;
-        const isBoard = src.kind === "board";
-        return (
-            <TreeItem
-                id={ctx.id}
-                level={ctx.level}
-                expanded={ctx.expanded}
-                hasChildren={ctx.hasChildren}
-                selected={ctx.selected}
-                active={ctx.active}
-                icon={isBoard ? <BoardGlyph boardRoot={src.root} /> : <FolderIcon />}
-                label={src.label}
-                trailing={isBoard ? renderTrailing?.(src.root) : undefined}
-                trailingVisibility={
-                    isBoard && trailingVisible && !trailingVisible(src.root) ? "hover" : "always"
-                }
-                onChevronClick={(e) => {
-                    e.stopPropagation();
-                    ctx.toggleExpanded();
-                }}
-            />
-        );
-    };
-
-    return (
-        <Tree<BoardTreeNode>
-            name={name}
-            items={nodes}
-            defaultExpandAll
-            rowHeight={28}
-            activeIndex={activeIndex}
-            onActiveChange={setActiveIndex}
-            onChange={handleChange}
-            getContextMenu={getContextMenu}
-            renderItem={renderItem}
-            emptyMessage={emptyMessage}
-        />
-    );
+export function BoardsTree(props: BoardsTreeProps): React.ReactElement {
+    return mountVanilla(BoardsTreeView, props);
 }

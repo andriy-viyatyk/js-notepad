@@ -27,7 +27,6 @@ secondaryViewRegistry.register({
     // Sidebar-only sub-panel of Explorer — give it the search glyph (the one on
     // the Explorer header's "open search" button) instead of Explorer's folder icon.
     icon: "search",
-    arm: "vanilla",
     loadComponent: () => import("./explorer/SearchSecondaryView"),
 });
 
@@ -101,7 +100,7 @@ secondaryViewRegistry.register({
 // `board-secondary:*` id family — a board declares zero-or-more views in its manifest
 // (or via `persephone.setSecondaryViews`), each mapped to a `board-secondary:<viewId>`
 // panel. BoardSecondaryView reads its `panelId` to render the matching view over the
-// board's model. No icon override → falls back to the board's own glyph (EditorIcon).
+// board's model. No icon override → falls back to the board's own glyph.
 secondaryViewRegistry.registerPrefix(BOARD_SECONDARY_PREFIX, {
     id: BOARD_SECONDARY_PREFIX,
     label: "Board View", // never shown — BoardSecondaryView renders its own header from the decl

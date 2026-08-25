@@ -39,6 +39,11 @@ export function useBusyBoardRoots(): string[] {
     return busyBoardsState.use((s) => s.roots);
 }
 
+/** Framework-neutral subscription to normalized busy board roots. */
+export function subscribeBusyBoardRoots(listener: () => void): () => void {
+    return busyBoardsState.subscribe(listener, (s) => s.roots);
+}
+
 /** Non-reactive check (e.g. menu builders). */
 export function isBoardRootBusy(boardRoot: string): boolean {
     const key = fpNormalizeForCompare(boardRoot);

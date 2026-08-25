@@ -1,6 +1,5 @@
-import type React from "react";
 import type { EditorOrHost } from "../../editors/base";
-import type { IconRef } from "../../uikit";
+import type { IconName } from "../../theme/icon-registry";
 import type { VanillaViewCtor } from "../../uikit/shared/mount";
 
 /** Props passed to secondary view sidebar components. */
@@ -10,11 +9,10 @@ export interface SecondaryViewProps {
      *  serving a prefix family (see `registerPrefix`) reads this to know WHICH view it
      *  is; single-id panels can ignore it. */
     panelId: string;
-    /** Portal target for the panel header. Render title, buttons, etc. into this element via createPortal. */
+    /** Header host element owned by the panel stack. */
     headerRef: HTMLDivElement | null;
-    /** Resolved leading header icon (registry per-panel override ?? the owning editor's
-     *  `EditorIcon`), supplied by the host. Forward to `SideBarPanelHeader`'s `icon` prop. */
-    icon?: IconRef;
+    /** Resolved leading header icon supplied by the host. */
+    iconElement?: Node;
     /** `true` when this panel is the currently-expanded one in the stack; `false`
      *  when collapsed to a header strip. Panels stay mounted while collapsed
      *  (`alwaysRenderContent`), so use this to drop header actions that only make
@@ -22,7 +20,7 @@ export interface SecondaryViewProps {
     expanded?: boolean;
 }
 
-type ReactSecondaryViewDefinition = {
+export type SecondaryViewDefinition = {
     /** Unique ID matching IEditorState.secondaryView values. */
     id: string;
     /** Display label for the panel header. */
@@ -31,21 +29,10 @@ type ReactSecondaryViewDefinition = {
      *  icon for this panel — used by sidebar-only sub-panels that want their own
      *  glyph (e.g. the Explorer "search" panel → the "search" registry name). Most panels omit this
      *  and fall back to the editor icon. */
-    icon?: IconRef;
+    icon?: IconName;
     /** Dynamic import of the sidebar component. */
-    loadComponent: () => Promise<{ default: React.ComponentType<SecondaryViewProps> }>;
-    arm?: "react";
-};
-
-type VanillaSecondaryViewDefinition = {
-    id: string;
-    label: string;
-    icon?: IconRef;
-    arm: "vanilla";
     loadComponent: () => Promise<{ default: VanillaViewCtor<SecondaryViewProps> }>;
 };
-
-export type SecondaryViewDefinition = ReactSecondaryViewDefinition | VanillaSecondaryViewDefinition;
 
 class SecondaryViewRegistry {
     private editors = new Map<string, SecondaryViewDefinition>();

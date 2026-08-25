@@ -126,9 +126,13 @@ export function createTreeProviderItemIconElement(item: ITreeProviderItem): Elem
 export function createEditorIconElement(source: {
     noLanguage?: boolean;
     getIcon?: () => IconRef;
+    getIconElement?: () => Element | undefined;
     language?: string;
     title?: string;
 }): EditorIconElement {
+    const iconElement = source.getIconElement?.();
+    if (iconElement) return { kind: "element", element: iconElement };
+
     if (!source.noLanguage) {
         return {
             kind: "element",

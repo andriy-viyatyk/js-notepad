@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from "react";
-import { Tree, TreeItem } from "../../uikit";
-import type { MenuItem, TreeItemRenderContext } from "../../uikit";
-import { FolderIcon } from "../../components/icons/FileIcon";
-import { ToolsIcon } from "../../theme/icons";
-import { buildToolsTree, type ToolTreeNode, type ToolsetTreeInput } from "./tools-tree-build";
+import type React from "react";
+import type { MenuItem } from "../../uikit/Menu";
+import { mountVanilla } from "../../uikit/shared/mount";
+import { ToolsTreeView } from "./ToolsTreeView";
+import type { ToolsetTreeInput } from "./tools-tree-build";
 
 /**
  * The single reusable registered-tools view (EPIC-038 / US-805). A presentational tree of
@@ -13,7 +12,8 @@ import { buildToolsTree, type ToolTreeNode, type ToolsetTreeInput } from "./tool
  *
  * Used in single-root mode (Explorer panel Tools mode — pass `baseRoot`) and multi-root mode
  * (global Tools & Editors "Tools" segment — omit `baseRoot`). Folder nodes show a `FolderIcon`;
- * toolset nodes show a `ToolsIcon` and fire `onOpenToolset` on click.
+ * toolset nodes show a `ToolsIcon` and fire `onOpenToolset` on click. The implementation lives in
+ * `ToolsTreeView`; this file is the React compatibility shim used by surviving callers.
  */
 export interface ToolsTreeProps {
     /** Debug label → `data-name` (UIKit Rule 1). */
@@ -32,60 +32,6 @@ export interface ToolsTreeProps {
     emptyMessage?: React.ReactNode;
 }
 
-export function ToolsTree({
-    name,
-    toolsets,
-    baseRoot,
-    onOpenToolset,
-    renderTrailing,
-    getContextMenu,
-    emptyMessage,
-}: ToolsTreeProps) {
-    const nodes = useMemo(() => buildToolsTree(toolsets, baseRoot), [toolsets, baseRoot]);
-
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-    const handleChange = (src: ToolTreeNode) => {
-        if (src.kind === "toolset" && src.root) onOpenToolset(src.root);
-    };
-
-    const getMenu = (src: ToolTreeNode): MenuItem[] | undefined =>
-        src.kind === "toolset" && src.root ? getContextMenu?.(src.root) : undefined;
-
-    const renderItem = (ctx: TreeItemRenderContext<ToolTreeNode>) => {
-        const src = ctx.source;
-        const isToolset = src.kind === "toolset";
-        return (
-            <TreeItem
-                id={ctx.id}
-                level={ctx.level}
-                expanded={ctx.expanded}
-                hasChildren={ctx.hasChildren}
-                selected={ctx.selected}
-                active={ctx.active}
-                icon={isToolset ? <ToolsIcon width={16} height={16} /> : <FolderIcon />}
-                label={src.label}
-                trailing={isToolset ? renderTrailing?.(src.root) : undefined}
-                onChevronClick={(e) => {
-                    e.stopPropagation();
-                    ctx.toggleExpanded();
-                }}
-            />
-        );
-    };
-
-    return (
-        <Tree<ToolTreeNode>
-            name={name}
-            items={nodes}
-            defaultExpandAll
-            rowHeight={28}
-            activeIndex={activeIndex}
-            onActiveChange={setActiveIndex}
-            onChange={handleChange}
-            getContextMenu={getMenu}
-            renderItem={renderItem}
-            emptyMessage={emptyMessage}
-        />
-    );
+export function ToolsTree(props: ToolsTreeProps): React.ReactElement {
+    return mountVanilla(ToolsTreeView, props);
 }
