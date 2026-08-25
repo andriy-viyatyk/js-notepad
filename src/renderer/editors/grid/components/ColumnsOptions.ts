@@ -1,22 +1,20 @@
-import { useMemo } from "react";
-
-import { DefaultView, ViewPropsRO, Views } from "../../../core/state/view";
-import {
-    DataGrid,
-    type CellEditEvent,
-    type Column,
-    type DataGridInstance,
-    type DataType,
-} from "../../../uikit/DataGrid";
-import { Popover } from "../../../uikit/Popover";
 import { TComponentState } from "../../../core/state/state";
+import type { CellEditEvent, Column, DataGridInstance, DataType } from "../../../uikit/DataGrid/types";
+import { DataGridView } from "../../../uikit/DataGrid/DataGridView";
+import { PopoverView } from "../../../uikit/Popover/PopoverView";
+import type { PopoverViewProps } from "../../../uikit/Popover/PopoverView";
+import { ButtonView } from "../../../uikit/Button/ButtonView";
+import "../../../uikit/Button/Button.css";
+import { SpacerView } from "../../../uikit/Spacer/SpacerView";
+import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../../uikit/Panel/panel-style";
+import { createTextElement } from "../../../uikit/Text/text-style";
+import { SubtreeSwap } from "../../../uikit/shared/subtree-swap";
+import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { TPopperModel } from "../../../ui/dialogs/poppers/types";
 import { parseBoolean, parseNumber, parseString } from "../../../core/utils/parse-utils";
 import { showPopper, visiblePoppers } from "../../../ui/dialogs/poppers/Poppers";
-import { Panel } from "../../../uikit/Panel";
-import { Button } from "../../../uikit/Button";
-import { Spacer } from "../../../uikit/Spacer";
-import { Text } from "../../../uikit/Text";
+import type { DialogViewProps } from "../../../ui/dialogs/dialog-view-registry";
+import { registerDialogView } from "../../../ui/dialogs/dialog-view-registry";
 
 const minWidth = 240;
 const minHeight = 160;
@@ -292,85 +290,163 @@ class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
 const defaultOffset = [0, 2] as [number, number];
 const showColumnsOptionsId = Symbol("ShowColumnsOptions");
 
-export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
-    const state = model.state.use();
-
-    const columns = useMemo(() => getColumns(model.isCsv), [model.isCsv]);
-
-    return (
-        <Popover
-            key="avgrid-columns-options"
-            elementRef={model.el}
-            offset={defaultOffset}
-            open
-            onClose={() => {
-                if (visiblePoppers().length === 1 && !state.changed) {
-                    model.close(undefined);
-                }
-            }}
-            placement="bottom-start"
-            resizable
-        >
-            <Panel
-                name="columns-options"
-                direction="column"
-                flex={1}
-                position="relative"
-                minWidth={model.width ?? minWidth}
-                minHeight={model.height ?? minHeight}
-            >
-                <Panel
-                    direction="row"
-                    background="dark"
-                    paddingX="sm"
-                    paddingY="xs"
-                    borderBottom
-                >
-                    <Text size="sm" color="light">Edit Columns</Text>
-                </Panel>
-                <DataGrid
-                    name="columns-options-grid"
-                    columns={columns}
-                    rows={model.rowsForGrid()}
-                    getRowKey={getRowKey}
-                    rowNoun="column"
-                    disableSorting
-                    editable
-                    canAddRows
-                    canDeleteRows
-                    newRow={model.newRow}
-                    onGrid={model.setGrid}
-                    onEdit={model.onEdit}
-                    onAddRows={model.onAddRows}
-                    onDeleteRows={model.onDeleteRows}
-                />
-                {state.changed && (
-                    <Panel
-                        direction="row"
-                        align="center"
-                        justify="end"
-                        gap="lg"
-                        paddingX="lg"
-                        paddingY="xs"
-                    >
-                        {Boolean(state.error) && (
-                            <Text color="error">{state.error}</Text>
-                        )}
-                        <Spacer />
-                        <Button name="columns-options-cancel" onClick={() => model.close(undefined)}>
-                            Cancel
-                        </Button>
-                        <Button name="columns-options-apply" variant="primary" onClick={() => model.applyChanges()}>
-                            Apply
-                        </Button>
-                    </Panel>
-                )}
-            </Panel>
-        </Popover>
-    );
+interface ColumnsOptionsFooterProps {
+    readonly model: ColumnsOptionsModel;
+    readonly error: string;
 }
 
-Views.registerView(showColumnsOptionsId, ColumnsOptions as DefaultView);
+class ColumnsOptionsFooterView extends VanillaView<ColumnsOptionsFooterProps> {
+    public constructor(props: ColumnsOptionsFooterProps) {
+        super(props, document.createElement("div"));
+    }
+
+    protected onMount(): void {
+        applyPanelAttributes(
+            this.root,
+            resolvePanelAttributes({
+                direction: "row",
+                align: "center",
+                justify: "end",
+                gap: "lg",
+                paddingX: "lg",
+                paddingY: "xs",
+            }),
+        );
+
+        const cancelButton = this.child(new ButtonView({
+            name: "columns-options-cancel",
+            onClick: () => this.props.model.close(undefined),
+            children: "Cancel",
+        }));
+        const applyButton = this.child(new ButtonView({
+            name: "columns-options-apply",
+            variant: "primary",
+            onClick: this.props.model.applyChanges,
+            children: "Apply",
+        }));
+        const spacer = this.child(new SpacerView({}));
+        const children: Node[] = [];
+        if (this.props.error) children.push(createTextElement(this.props.error, { color: "error" }));
+        children.push(spacer.root, cancelButton.root, applyButton.root);
+        this.root.append(...children);
+        spacer.mount();
+        cancelButton.mount();
+        applyButton.mount();
+    }
+}
+
+class ColumnsOptionsContentView extends VanillaView<undefined> {
+    private readonly model: ColumnsOptionsModel;
+    private readonly columns: Column[];
+    private gridView: DataGridView<EditColumnRow> | undefined;
+    private footerSwap: SubtreeSwap<string> | undefined;
+
+    public constructor(host: HTMLElement, model: ColumnsOptionsModel) {
+        // Adopt the popover host so the panel, grid and footer remain direct native children of
+        // the floating root. PopoverFloatingView owns the host's root attributes.
+        super(undefined, host);
+        this.model = model;
+        this.columns = getColumns(model.isCsv);
+    }
+
+    protected onMount(): void {
+        const outerPanel = createPanelElement({
+            name: "columns-options",
+            direction: "column",
+            flex: 1,
+            position: "relative",
+            minWidth: this.model.width ?? minWidth,
+            minHeight: this.model.height ?? minHeight,
+        });
+        const headerPanel = createPanelElement({
+            direction: "row",
+            background: "dark",
+            paddingX: "sm",
+            paddingY: "xs",
+            borderBottom: true,
+        }, [createTextElement("Edit Columns", { size: "sm", color: "light" })]);
+        outerPanel.append(headerPanel);
+
+        const gridView = this.child(new DataGridView<EditColumnRow>(this.gridProps()));
+        outerPanel.append(gridView.root);
+        this.root.append(outerPanel);
+        gridView.mount();
+        this.gridView = gridView;
+
+        const footerSwap = new SubtreeSwap<string>(outerPanel);
+        this.footerSwap = footerSwap;
+        this.own(() => footerSwap.dispose());
+
+        this.bind(
+            this.model.state,
+            (state) => state,
+            (state) => {
+                this.gridView?.update(this.gridProps());
+                this.syncFooter(state.changed ? state.error : null);
+            },
+        );
+    }
+
+    private gridProps(): Parameters<DataGridView<EditColumnRow>["update"]>[0] {
+        return {
+            name: "columns-options-grid",
+            columns: this.columns,
+            rows: this.model.rowsForGrid(),
+            getRowKey,
+            rowNoun: "column",
+            disableSorting: true,
+            editable: true,
+            canAddRows: true,
+            canDeleteRows: true,
+            newRow: this.model.newRow,
+            onGrid: this.model.setGrid,
+            onEdit: this.model.onEdit,
+            onAddRows: this.model.onAddRows,
+            onDeleteRows: this.model.onDeleteRows,
+        };
+    }
+
+    private syncFooter(error: string | null): void {
+        const footerSwap = this.footerSwap;
+        if (!footerSwap) return;
+
+        let created: ColumnsOptionsFooterView | undefined;
+        footerSwap.set(error, (footerError) => {
+            created = new ColumnsOptionsFooterView({ model: this.model, error: footerError });
+            return created;
+        });
+        created?.mount();
+    }
+}
+
+class ColumnsOptionsView extends VanillaView<DialogViewProps> {
+    private readonly model: ColumnsOptionsModel;
+
+    public constructor(props: DialogViewProps) {
+        super(props, document.createElement("div"));
+        this.root.style.display = "contents";
+        this.model = props.model as ColumnsOptionsModel;
+    }
+
+    protected onMount(): void {
+        const popoverView = this.child(new PopoverView({
+            elementRef: this.model.el,
+            offset: defaultOffset,
+            open: true,
+            placement: "bottom-start",
+            resizable: true,
+            onClose: () => {
+                if (visiblePoppers().length === 1 && !this.model.state.get().changed) {
+                    this.model.close(undefined);
+                }
+            },
+            contentView: (host) => new ColumnsOptionsContentView(host, this.model),
+        } satisfies PopoverViewProps));
+        popoverView.mount();
+    }
+}
+
+registerDialogView(showColumnsOptionsId, ColumnsOptionsView);
 
 export const showColumnsOptions = async (
     el: Element,

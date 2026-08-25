@@ -149,5 +149,5 @@ export {
     getGridDataWithColumns,
     nextColumnKeys,
 } from "./utils/grid-utils";
-export { ColumnsOptions, showColumnsOptions } from "./components/ColumnsOptions";
-export { CsvOptions, showCsvOptions } from "./components/CsvOptions";
+export { showColumnsOptions } from "./components/ColumnsOptions";
+export { showCsvOptions } from "./components/CsvOptions";

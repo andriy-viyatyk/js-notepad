@@ -1,7 +1,4 @@
-import type React from "react";
 import { TGlobalState } from "../../../core/state/state";
-import { Views } from "../../../core/state/view";
-import { fillSlot } from "../../../uikit/shared/fill-slot";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { getDialogView, type DialogViewCtor, type DialogViewProps } from "../dialog-view-registry";
 import type { IPopperViewData } from "./types";
@@ -10,9 +7,8 @@ const popperState = new TGlobalState<IPopperViewData[]>([]);
 
 interface PopperSlot {
     readonly root: HTMLElement;
-    readonly nativeView?: VanillaView<DialogViewProps>;
-    readonly nativeCtor?: DialogViewCtor;
-    reactCleanup?: () => void;
+    readonly nativeView: VanillaView<DialogViewProps>;
+    readonly nativeCtor: DialogViewCtor;
 }
 
 export class PoppersView extends VanillaView<undefined> {
@@ -74,17 +70,17 @@ export class PoppersView extends VanillaView<undefined> {
             model: popper.model,
             className: "dialog",
         };
-        const nativeView = nativeCtor ? new nativeCtor(props) : undefined;
-        const root = nativeView?.root ?? document.createElement("span");
-        if (!nativeView) root.style.display = "contents";
+        if (!nativeCtor) {
+            throw new Error(
+                `No native dialog view registered for "${popper.viewId.toString()}".`,
+            );
+        }
+        const nativeView = new nativeCtor(props);
+        const root = nativeView.root;
         this.root.append(root);
 
         const slot: PopperSlot = { root, nativeView, nativeCtor };
-        if (nativeView) {
-            nativeView.mount();
-        } else {
-            slot.reactCleanup = fillSlot(root, this.renderReact(popper));
-        }
+        nativeView.mount();
         return slot;
     }
 
@@ -93,11 +89,7 @@ export class PoppersView extends VanillaView<undefined> {
             model: popper.model,
             className: "dialog",
         };
-        if (slot.nativeView) {
-            slot.nativeView.update(props);
-        } else {
-            slot.reactCleanup = fillSlot(slot.root, this.renderReact(popper));
-        }
+        slot.nativeView.update(props);
     }
 
     private disposeSlots(slots: PopperSlot[]): void {
@@ -105,14 +97,8 @@ export class PoppersView extends VanillaView<undefined> {
         let hasError = false;
         for (const slot of slots) {
             try {
-                if (slot.nativeView) {
-                    slot.nativeView.dispose();
-                    slot.root.remove();
-                } else {
-                    // Detach first: fillSlot defers the nested React unmount to a microtask.
-                    slot.root.remove();
-                    slot.reactCleanup?.();
-                }
+                slot.nativeView.dispose();
+                slot.root.remove();
             } catch (error) {
                 if (!hasError) {
                     hasError = true;
@@ -132,12 +118,6 @@ export class PoppersView extends VanillaView<undefined> {
         });
     }
 
-    private renderReact(popper: IPopperViewData): React.ReactNode {
-        return Views.renderView(popper.viewId, {
-            model: popper.model,
-            className: "dialog",
-        });
-    }
 }
 
 export async function showPopper<R>(data: IPopperViewData): Promise<R> {

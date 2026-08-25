@@ -1,18 +1,19 @@
-import type React from "react";
 import { TGlobalState } from "../../core/state/state";
-import { IDialogViewData, Views } from "../../core/state/view";
-import { fillSlot } from "../../uikit/shared/fill-slot";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import { getDialogView, type DialogViewCtor, type DialogViewProps } from "./dialog-view-registry";
+import {
+    getDialogView,
+    type DialogViewCtor,
+    type DialogViewProps,
+    type IDialogViewData,
+} from "./dialog-view-registry";
 
 export const dialogsState = new TGlobalState<IDialogViewData[]>([]);
 
 interface DialogSlot {
     readonly key: string;
     readonly root: HTMLElement;
-    readonly nativeView?: VanillaView<DialogViewProps>;
-    readonly nativeCtor?: DialogViewCtor;
-    reactCleanup?: () => void;
+    readonly nativeView: VanillaView<DialogViewProps>;
+    readonly nativeCtor: DialogViewCtor;
 }
 
 export class DialogsView extends VanillaView<undefined> {
@@ -77,17 +78,17 @@ export class DialogsView extends VanillaView<undefined> {
             model: dialog.model,
             className: "dialog",
         };
-        const nativeView = nativeCtor ? new nativeCtor(props) : undefined;
-        const root = nativeView?.root ?? document.createElement("span");
-        if (!nativeView) root.style.display = "contents";
+        if (!nativeCtor) {
+            throw new Error(
+                `No native dialog view registered for "${dialog.viewId.toString()}".`,
+            );
+        }
+        const nativeView = new nativeCtor(props);
+        const root = nativeView.root;
         this.root.append(root);
 
         const slot: DialogSlot = { key, root, nativeView, nativeCtor };
-        if (nativeView) {
-            nativeView.mount();
-        } else {
-            slot.reactCleanup = fillSlot(root, this.renderReact(dialog));
-        }
+        nativeView.mount();
         return slot;
     }
 
@@ -96,11 +97,7 @@ export class DialogsView extends VanillaView<undefined> {
             model: dialog.model,
             className: "dialog",
         };
-        if (slot.nativeView) {
-            slot.nativeView.update(props);
-        } else {
-            slot.reactCleanup = fillSlot(slot.root, this.renderReact(dialog));
-        }
+        slot.nativeView.update(props);
     }
 
     private disposeSlots(slots: DialogSlot[]): void {
@@ -108,14 +105,8 @@ export class DialogsView extends VanillaView<undefined> {
         let hasError = false;
         for (const slot of slots) {
             try {
-                if (slot.nativeView) {
-                    slot.nativeView.dispose();
-                    slot.root.remove();
-                } else {
-                    // Detach first: fillSlot defers the nested React unmount to a microtask.
-                    slot.root.remove();
-                    slot.reactCleanup?.();
-                }
+                slot.nativeView.dispose();
+                slot.root.remove();
             } catch (error) {
                 if (!hasError) {
                     hasError = true;
@@ -132,13 +123,6 @@ export class DialogsView extends VanillaView<undefined> {
             if (!slot) return;
             const current = this.root.children[index];
             if (current !== slot.root) this.root.insertBefore(slot.root, current ?? null);
-        });
-    }
-
-    private renderReact(dialog: IDialogViewData): React.ReactNode {
-        return Views.renderView(dialog.viewId, {
-            model: dialog.model,
-            className: "dialog",
         });
     }
 

@@ -1,6 +1,6 @@
 import { TDialogModel } from "../../../core/state/model";
-import { IDialogViewData } from "../../../core/state/view";
 import { PopoverPosition } from "../../../uikit/Popover/Popover";
+import type { IDialogViewData } from "../dialog-view-registry";
 
 
 export class TPopperModel<T = unknown, R = unknown> extends TDialogModel<T, R> {
