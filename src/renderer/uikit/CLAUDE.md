@@ -215,7 +215,7 @@ import { TraitRegistry } from "../../core/traits/TraitRegistry";
 export interface IOption {
     label: string;
     value: string;
-    icon?: React.ReactNode;
+    icon?: IconRef;
 }
 
 const OPTION_KEY = TraitRegistry.register<TraitType<IOption>>("select-option");
@@ -671,14 +671,20 @@ instead of calling two setters.
 
 #### React-valued slots inside a virtualized row
 
-`ListBox` keeps a `renderItem` prop returning `ReactNode`, and `ListItem`'s `icon`, `label`,
-`trailing` and `tooltip` all accept React values — which the majority of real call sites use for the
-icon. That is allowed, and it is not a reopening of C3-1's rejected "React root per cell": the
+`ListBox` keeps a `renderItem` prop returning `ReactNode`, and `ListItem`'s `label`, `trailing` and
+`tooltip` accept React values. **`icon` no longer does** — EPIC-064 narrowed `IconRef` to
+`IconName | Node`, so an icon is a registry name or a DOM node and never a React element; no call
+site in the tree passes React for an icon. The remaining React-valued slots are allowed, and are not
+a reopening of C3-1's rejected "React root per cell": the
 engine's cell contract is still `HTMLElement` and `VirtualGrid` never sees React. Four guard rails
 keep it from creeping:
 
 - Decide **per slot**, not per row: an `IconName` becomes a DOM `svg` with no root; only a genuine
   React value goes through `fillSlot`. Never route strings through `fillSlot` for uniformity.
+- A DOM icon node is **single-use**: appending it to a second host *moves* it and blanks the first.
+  Build it at the point of use — never cache, memoise, hoist to module scope, or share one node.
+  `tsc`, lint and the build are all blind to this, and the symptom is an icon disappearing somewhere
+  *other* than the code being changed (EPIC-064 hit it four times, once per caching mechanism).
 - Roots are retained **per pooled element**, never per row. The pool's refusal to reset a released
   element is exactly what makes that work; a settled scroll must create zero roots.
 - Never run a slot cleanup on eviction — only at view disposal. Track created elements in a real

@@ -91,6 +91,18 @@ export class MyEditor extends EditorModel<MyEditorState> {
 }
 ```
 
+### Editor icons
+
+The only custom editor-icon contract is `getIconElement?: () => Element | undefined`. A
+`noLanguage` editor that owns a glyph should return a fresh DOM node, using
+`createIconElement("name", props)` for registry icons or
+`createIconComponentElement(icon, props)` for an icon component without a registry name. Do not
+return a React element or use the removed `getIcon` contract. The node is single-use: appending it
+to another host moves it, so build it at the point of use and never cache, memoise, hoist, or share
+one node across tabs, panels, buttons, or menus. For a registry name that is wrong,
+`createIconElement` produces an empty `<svg>`; inspect for that symptom when a migrated glyph is
+missing.
+
 ### Text-bearing editor (extends `TextHostEditorModel`)
 
 The base owns the entire host lifecycle (trait, `switchFrom`, `restore`, `adoptHost`,

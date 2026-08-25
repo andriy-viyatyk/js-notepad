@@ -9,6 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
+  - [ ] US-1085: `createPanelElement`/`applyPanelAttributes` silently dropped the `overflow` shorthand and the shrink component of `flex` — `applyPanelAttributes` cleared each property *inside* the setting loop, and `STYLE_PROPERTIES` mixes shorthands with their own longhands, so the `overflow-x`/`overflow-y` removals erased the `overflow` written two iterations earlier, and `flex-shrink`'s removal stripped it from `flex`. Effect: **all 84 `overflow:` panel call sites had no overflow at all** (80 `hidden`, 4 `auto` — and `.scroll-container` supplies none in CSS either), and `flex: "0 0 auto"` behaved as shrink 1. Fixed by clearing in a separate pass first. Reported by the user as the Git panel's Unstaged list not filling its pane, the Staged splitter refusing to drag up, and the list not growing when dragged down — all three were this one cause, since without overflow containment the whole flex chain sized from content upward instead of from the pane down. Broad blast radius: watch for content that previously escaped a panel and now clips.
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
@@ -56,11 +57,27 @@ Overview of all active and planned epics and tasks.
   `SideBarPanelHeader.tsx` and `EditorIcon.tsx` are deleted, neither contract file imports React, and
   the sidebar measures **0 React roots** (from 6). E5 also fixed the programme's Rule 4 *instrument*:
   `mountReactHandle` now marks its host `data-react-root`, because a root created outside `fillSlot`
-  was previously invisible to the count. **E6 is scoped by searching the import graph for a contract
-  first** (E5-8 names two candidates: `uikit/shared/slots.ts`'s `IconRef`/`SlotText` `ReactNode`
-  members, and the `editors/base` chrome that E1-8 fixed as deliberately last). Still unscheduled:
-  `graph` (3,259), the browser editor (1,692), and the 14 `<TextChrome>` call sites, which stay last.
-  Next free epic number: **EPIC-064**.
+  was previously invisible to the count. **E6 is complete as [EPIC-064](epics/EPIC-064.md)**, 2026-08-25 — the search
+  E5-1 requires was run, and candidate 1 is the contract: `uikit/shared/slots.ts`'s
+  `IconRef = IconName | ReactNode` and its `renderIcon()`, which returns a `ReactNode`. Measured live,
+  **44 of the app's 72 React roots (61%) exist only to render an SVG that already has a DOM builder** —
+  every icon in the app has one. E6 is therefore a call-site migration (205 sites) behind a type
+  narrowing, not a component conversion. It also **corrects E5-8's own consequence**: deleting the
+  member does *not* remove `createRoot` from `uikit/`, because `fillSlot` is fed separately by
+  `Button` children and `Input` slots from React callers — *deleting a contract removes the callers it
+  pins, not every caller of the machinery underneath it*. Second finding, a reporting correction:
+  **130 of the renderer's 262 non-story `.tsx` files contain no JSX at all** (28 never mention React),
+  so the `.tsx` counts every epic has reported overstate the remaining React. **E7's candidate is
+  already measured** (E6-8): `core/state/view.tsx`'s dialog/popper view registry — 14 vanilla arms to
+  4 React, whose conversion deletes the file and collects a residual Emotion importer. Still
+  unscheduled: `graph` (3,259), the browser editor (1,692), and the 24 `<TextChrome>` call sites,
+  which stay last. **Closing property met:** `IconRef` is `IconName | Node`, `renderIcon` is deleted, and icon React
+  roots measure **0** (from 44) on every page set tried. It corrected its own closing property at
+  close (E6-11): `SlotText` does *not* narrow, because the link-editor tooltip genuinely needs React —
+  the same over-reach E6-1 was written to catch, this time in this epic's own document. Its most
+  transferable finding: **when a contract changes from a value to a resource, every cache of that
+  value becomes a bug** — the single-use DOM-node hazard hit four times through four mechanisms, and
+  no automated gate could see any of them. Next free epic number: **EPIC-065**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

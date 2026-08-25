@@ -307,14 +307,14 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── Dialogs.tsx             # React-facing dialog manager face
 │   │   ├── DialogsView.ts          # Native dialog host and slot ownership
 │   │   ├── Dialog.tsx              # Base dialog component
-│   │   ├── ConfirmationDialog.tsx
-│   │   ├── InputDialog.tsx
-│   │   ├── PasswordDialog.tsx
-│   │   ├── TorInfoDialog.tsx       # Tor connection info — exit IP, location, check.torproject.org verdict; Reconnect restarts tor.exe
-│   │   ├── RegisterToolsetDialog.tsx # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate — EPIC-038)
-│   │   ├── CreateBoardVarsStorageDialog.tsx # First-use "Create environment variables storage" prompt (default path, editable) — shown by both persephone.var.* and app.boardVars.*
-│   │   ├── NamespaceCollisionDialog.tsx # Non-blocking advisory at board registration when the new board's author/name namespace collides with an already-registered board
-│   │   ├── TextDialog.tsx            # Multi-purpose text dialog (Monaco editor)
+│   │   ├── ConfirmationDialog.ts
+│   │   ├── InputDialog.ts
+│   │   ├── PasswordDialog.ts
+│   │   ├── TorInfoDialog.ts         # Tor connection info — exit IP, location, check.torproject.org verdict; Reconnect restarts tor.exe
+│   │   ├── RegisterToolsetDialog.ts # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate — EPIC-038)
+│   │   ├── CreateBoardVarsStorageDialog.ts # First-use "Create environment variables storage" prompt (default path, editable) — shown by both persephone.var.* and app.boardVars.*
+│   │   ├── NamespaceCollisionDialog.ts # Non-blocking advisory at board registration when the new board's author/name namespace collides with an already-registered board
+│   │   ├── TextDialog.ts            # Multi-purpose text dialog (Monaco editor)
 │   │   ├── alerts/                 # Notification bar
 │   │   │   ├── AlertsBar.tsx
 │   │   │   └── AlertItem.tsx
@@ -323,7 +323,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   │   └── Progress.tsx        # React component (two-zone overlay)
 │   │   ├── poppers/                # Floating menus
 │   │   │   ├── Poppers.tsx
-│   │   │   ├── showPopupMenu.tsx
+│   │   │   ├── showPopupMenu.ts
 │   │   │   └── types.ts
 │   │   └── index.ts
 │   └── secondary-views/    # SecondaryViews — native controlled panel host
@@ -506,7 +506,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
 │   │   ├── LogBodyView.ts             # Log viewer native view (VirtualFlexGridView + auto-scroll)
-│   │   ├── LogBody.tsx               # React-facing mount face
+│   │   ├── LogBody.ts                # React-facing mount face
 │   │   ├── LogEntryWrapper.ts        # Cell root — subscribes to entries[index]
 │   │   ├── LogEntryContent.ts        # Type router — dispatches to entry renderers
 │   │   ├── LogMessageView.ts          # Log message renderer
@@ -666,13 +666,13 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   ├── shared/             # Shared editor utilities and Monaco widget hosts
 │   │   ├── link-open-menu.ts
 │   │   ├── MonacoEditorHostView.ts   # VanillaView host for monaco.editor.create
-│   │   ├── MonacoEditorHost.tsx      # React mountVanilla face for the single-editor host
+│   │   ├── MonacoEditorHost.ts       # React mountVanilla face for the single-editor host
 │   │   ├── MonacoEditorHostView.css  # Single-editor host flex geometry
 │   │   ├── MonacoDiffEditorHostView.ts # VanillaView host for createDiffEditor
-│   │   ├── MonacoDiffEditorHost.tsx  # React mountVanilla face for the diff host
+│   │   ├── MonacoDiffEditorHost.ts   # React mountVanilla face for the diff host
 │   │   ├── MonacoDiffEditorHostView.css # Diff-host flex geometry
 │   │   ├── ColorizedCodeView.ts      # Native syntax-highlighted code via Monaco colorize()
-│   │   └── ColorizedCode.tsx         # React residual-props face
+│   │   └── ColorizedCode.ts          # React residual-props face
 │   │
 │   ├── register-editors.ts # Editor registration — table-driven (EDITORS rows + loop) + content-host module preload
 │   ├── types.ts            # View-module prop types (FileEditorComponent, EditorViewModule)
@@ -793,9 +793,9 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── CategoryViewImpl.ts # Native folder-content view and bounded editor island
 │   │   ├── CategoryViewModel.ts # Folder listing, selection, actions, and drops
 │   │   ├── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
-│   │   ├── plural-actions.tsx # Set-shaped actions shared by the tree + folder page: the multi-select gate, nested-item pruning, the plural menu, batch delete
+│   │   ├── plural-actions.ts # Set-shaped actions shared by the tree + folder page: the multi-select gate, nested-item pruning, the plural menu, batch delete
 │   │   ├── item-crud-actions.ts # Shared create/rename/delete/paste operations and refresh handling
-│   │   ├── item-menus.tsx # Shared single-item and background menu construction
+│   │   ├── item-menus.ts # Shared single-item and background menu construction
 │   │   ├── drop-dispatch.ts # Trait payload to provider-level move/import action resolution
 │   │   ├── href-utils.ts # Case-insensitive selection and normalized href helpers
 │   │   └── tree-drop-actions.ts # Move/import drop actions, taking a { path, title } target rather than a tree node so both views can call them

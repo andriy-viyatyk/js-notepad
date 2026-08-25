@@ -139,7 +139,7 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
 
     // Icon (see "Editor icons" below)
     noLanguage: boolean;                 // default false
-    getIcon?: () => React.ReactNode;     // self-supplied icon for noLanguage editors
+    getIconElement?: () => Element | undefined; // self-supplied DOM icon for noLanguage editors
 
     // Page-area presentation hint
     showBackgroundOrnament: boolean;     // default false; when true the page area
@@ -196,7 +196,7 @@ no fallback host on restore failure). Both keep their own host plumbing.
 
 The glyph that represents an editor — on its page tab, in the Tools & Editors list, and at the start of its sidebar panel headers — comes from one of two sources, decided per editor:
 
-- **`noLanguage` editors** (`noLanguage = true`) supply their own icon by assigning `getIcon` in the constructor — e.g. `this.getIcon = () => createElement(GitIcon)`. These are editors with no Monaco language (Git Tree, Archive, Explorer, Storybook, …). An editor that sets `noLanguage` but no `getIcon` shows no icon.
+- **`noLanguage` editors** (`noLanguage = true`) supply their own icon through `getIconElement` — e.g. `this.getIconElement = () => createIconComponentElement(GitIcon)`. These are editors with no Monaco language (Git Tree, Archive, Explorer, Storybook, …). An editor that sets `noLanguage` but no `getIconElement` shows no icon.
 - **Language editors** (`noLanguage = false`, the default) derive a file-type icon from their `language` + `title` via `LanguageIcon` (`components/icons/LanguageIcon.tsx`, which resolves the language map, compound-extension patterns like `*.note.json` → Notebook, the OS system icon, then a default).
 
 This decision is centralized in the shared **DOM-first editor-icon resolver** ([`components/icons/icon-elements.ts`](../../src/renderer/components/icons/icon-elements.ts)):
@@ -204,14 +204,15 @@ This decision is centralized in the shared **DOM-first editor-icon resolver** ([
 ```typescript
 createEditorIconElement({
     noLanguage: model.noLanguage,
-    getIcon: model.getIcon,
     getIconElement: model.getIconElement,
     language: model.language,
     title: model.title,
 });
 ```
 
-`createEditorIconElement` accepts a duck-typed source rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It prefers an editor's `getIconElement()` when available, then the language/file DOM resolver, and finally returns an explicit React fallback for remaining callers that have not converted their icon producer. Native sidebar headers consume only the DOM result. The resolver forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons follow the header state, while explicitly-colored icons keep their own hue.
+`createEditorIconElement` accepts a duck-typed source rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It prefers an editor's `getIconElement()` when available, then the language/file DOM resolver, and returns either `{ kind: "element", element }` or `null`; there is no React fallback arm. The resolver forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons follow the header state, while explicitly-colored icons keep their own hue.
+
+`getIconElement()` must return a fresh detached node for each call. A DOM node is single-use: passing the same node to a tab and a panel, or to two menu hosts, moves it to the later host and makes it disappear from the first. Build editor glyphs at the point of use rather than caching or sharing them.
 
 The Tools & Editors list keeps its **own** per-item icon in [`tools-editors-registry.ts`](../../src/renderer/ui/sidebar/tools-editors-registry.ts) (it lists editor *types*, not live models), so a new editor icon must be set there too if the editor appears in that list.
 

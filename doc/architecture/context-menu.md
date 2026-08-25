@@ -252,7 +252,7 @@ These are added **after** all handler items, so custom items always appear first
 interface MenuItem {
     label: string;              // Display text
     onClick?: () => void;       // Click handler
-    icon?: any;                 // ReactNode icon (left side)
+    icon?: any;                 // Icon registry name or freshly built DOM Node (left side)
     disabled?: boolean;         // Greyed out, not clickable
     invisible?: boolean;        // Hidden from menu
     startGroup?: boolean;       // Separator line above this item
@@ -317,5 +317,5 @@ interface MenuItem {
 | Native event augmentation | `/src/renderer/types/events.d.ts` |
 | Global event handler | `/src/renderer/api/internal/GlobalEventService.ts` |
 | Menu component | `/src/renderer/uikit/Menu/Menu.tsx` |
-| showAppPopupMenu | `/src/renderer/ui/dialogs/poppers/showPopupMenu.tsx` |
+| showAppPopupMenu | `/src/renderer/ui/dialogs/poppers/showPopupMenu.ts` |
 | MenuItem type | `/src/renderer/api/types/events.d.ts` |

@@ -29,7 +29,7 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
 - **Rule 9** — converted components may expose a framework-free `VanillaView`; follow the lifecycle, ownership, model-driver, and structural-helper contract in [`model-view-pattern.md`](./model-view-pattern.md).
 - **Primitive attribute contract** — never override a UIKit primitive's generated `data-type`; its CSS is keyed by that value. Use an additive class or a separate data attribute for app-specific state.
-- **Icon slots** — use `IconRef` for icon-bearing props. React faces resolve registry names with `renderIcon`; vanilla views narrow string values with `isIconName` and build SVG with `createIconElement`. A string is always a registry name, never literal fallback text. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
+- **Icon slots** — use `IconRef` for icon-bearing props. It is `IconName | Node`: pass a registry name string where possible, or a freshly built DOM node for an icon that is not in the registry. `IconRef` never accepts a React element. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
 
 Two conversion footguns are part of the contract: claiming a vanilla child does not mount it, so
 call `mount()` exactly once before inserting or returning its root; and a converted root whose CSS
@@ -37,13 +37,21 @@ sets `display` needs a same-layer `<root-selector>[hidden] { display: none; }` c
 `.hidden = ...` remains effective. The full lifecycle and styling details live in `uikit/CLAUDE.md`.
 
 The icon registry is the neutral boundary for reusable components. `IconName` is derived from the
-single registry record in `src/renderer/theme/icon-registry.ts`; `renderIcon(name, props?)`
-resolves a name and preserves SVG props when a caller needs them. A missing name renders nothing
-and warns in development, so misspellings cannot silently become toolbar text. Vanilla views use
-`createIconElement(name, props?)`, which returns a correctly sized empty SVG and warns when a
-builder is missing, keeping layout stable while making the failure visible. Resolver components
-such as `LanguageIcon` and `FileIcon`, and language-specific glyphs, remain React-node inputs rather
-than duplicate registry entries when their output is selected from data.
+single registry record in `src/renderer/theme/icon-registry.ts`. Use
+`createIconElement(name, props?)` for a registry icon. For an icon component that is not in the
+registry, use `createIconComponentElement(icon, props?)` from `theme/icons.tsx`; it throws an error
+naming the icon when the component has no DOM builder. Resolver components such as `LanguageIcon`
+and `FileIcon`, and language-specific glyphs, have DOM element builders rather than being passed as
+React-node icon values.
+
+DOM icon nodes are single-use resources: appending one to a second host moves it and leaves the
+first host without an icon. Build the node at the point of use; do not cache, memoise, hoist, or
+share one node between rows, menus, buttons, or views. If a registry name is wrong,
+`createIconElement` returns an empty `<svg>`; that empty SVG is the runtime symptom to investigate.
+
+`SlotText` remains `string | ReactNode`, and `fillSlot`/`SlotContent` remain able to host React
+content while those callers are still React-backed. Narrowing `IconRef` does not make UIKit or
+`mount.tsx` React-free.
 
 For text slots, prefer `string` whenever callers supply data text. `SlotText` documents an
 intentional rich-content exception; it is not a way to make every public prop React-shaped. An

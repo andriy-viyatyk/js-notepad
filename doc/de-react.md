@@ -748,7 +748,8 @@ error boundary, the root flip) rather than stateful.
 **E1 is complete as [EPIC-059](epics/EPIC-059.md), E2 as [EPIC-060](epics/EPIC-060.md), and E3 as
 [EPIC-061](epics/EPIC-061.md), all 2026-08-24. E4 is complete as
 [EPIC-062](epics/completed.md), 2026-08-25, and E5 as [EPIC-063](epics/EPIC-063.md), also
-2026-08-25.** The next free epic number is **EPIC-064**.
+2026-08-25.** **E6 is complete as [EPIC-064](epics/EPIC-064.md)**, 2026-08-25. The next
+free epic number is **EPIC-065**.
 
 **E3 took the second shared contract, `@monaco-editor/react`, and closed by uninstalling it.** With
 both editor-wide contracts now gone — `EditorModule.Body` in E2 and the Monaco wrapper in E3 — the
@@ -793,6 +794,37 @@ implementations — which satisfies Rule 2 more strongly than duplication, since
 then compile *and behave* unchanged. Two surfaces survive deliberately under Rule 1:
 `ui/secondary-views/SecondaryViews.tsx` (the host's own React face, owned by the browser editor) and
 `BoardWebview`'s island inside the board-secondary panel.
+
+**E6 ([EPIC-064](epics/EPIC-064.md), complete) ran the search E5-1 requires and candidate 1 is the contract:**
+`uikit/shared/slots.ts`'s `IconRef = IconName | ReactNode`, with `renderIcon()` returning a
+`ReactNode` — the same shape as `RenderCellFunc`, one type in a shared module pinning its callers to
+React regardless of their own content. Measured live with E5-3's corrected instrument, **44 of the
+app's 72 React roots (61%) exist for no reason but that return type**: inside each is a plain `<svg>`
+that React rendered into a `display: contents` span inside a host a `VanillaView` already owned. It
+is legacy rather than a capability gap — all 173 icon components have a DOM builder, `createIconElement`
+sits in the same file with 106 call sites — so E6 is a **205-site call-site migration behind a type
+narrowing, with no component converted**, which makes it the best Rule 4 payoff per unit of risk in
+the programme. Two findings it records for later epics. First, **it corrects E5-8's own consequence**:
+deleting the member does not remove `createRoot` from `uikit/`, because `fillSlot` is fed separately
+by `Button` children and `Input` slots from React callers (`TextChrome` among them, which stays last).
+Generalised: *deleting a contract removes the callers it pins, not every caller of the machinery
+underneath it* — `renderIcon` is a contract, `fillSlot` is machinery that outlives it. Second, a
+**reporting correction in the same family as E5-3's instrument fix**: 130 of the renderer's 262
+non-story `.tsx` files contain no JSX at all, and 28 never mention React, so the `.tsx` counts every
+epic has reported as a progress figure overstate the remaining React — a `mountVanilla` shim needs no
+JSX, so the extension measures "could hold JSX", not React. **E7's candidate is measured in advance**
+(E6-8): `core/state/view.tsx`'s dialog/popper view registry, dual-armed in exactly E5's shape at 14
+vanilla registrations to 4 React, whose conversion deletes the file entire and collects a residual
+Emotion importer. **Closed with its property met:** icon React roots measure **0** (from 44) on every
+page set tried, total live roots 72 -> 6, `renderIcon` is deleted and `IconRef` is `IconName | Node`.
+It also corrected *its own* closing property (E6-11): `SlotText` does not narrow, because the
+link-editor tooltip genuinely needs React — the same over-reach E6-1 was written to catch, this time
+in the correcting epic's own document. Its most transferable finding: **when a contract changes from a
+value to a resource, every cache of that value becomes a bug** — the single-use DOM-node hazard hit
+four times through four distinct mechanisms (a shared items array, a `useMemo`, a module-scope
+constant, a story sharing one node between a button and a menu row), and `tsc`, lint, the build and
+the root count were blind to every one. Its close also backfilled EPIC-063's missing
+`completed.md` summary, whose absence had left the roadmap's E5 links pointing at nothing.
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be

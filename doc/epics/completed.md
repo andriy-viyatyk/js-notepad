@@ -4,6 +4,69 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-064 — [De-React Epic E6: delete the `ReactNode` arm from the uikit icon contract](EPIC-064.md)
+
+The contract was `IconRef = IconName | ReactNode` in `uikit/shared/slots.ts`, with `renderIcon()`
+returning a `ReactNode`. Measured live, **44 of the app's 72 React roots (61%) existed only to render
+an SVG that already had a DOM builder** — every icon in the app has one. So this epic was a 205-site
+call-site migration behind a type narrowing, with **no component converted**: unusual for the
+programme, and the best Rule 4 payoff per unit of risk in it. Eight tasks, all reviewed.
+
+**Rule 4: icon React roots 44 -> 0**, verified live on both of the open-epic conditions (browser tab
+active and monaco active) and again with freshly opened rest-client, link-editor and graph pages.
+Total live roots 72 -> 6; the survivors are the ones the epic named in advance. `icon={<XIcon/>}`
+142 -> 0 and `React.createElement(XIcon)` 63 -> 0.
+
+- [x] US-1077: Rule 4 baseline and instrument
+- [x] US-1078: Extension hygiene — 26 `.tsx` -> `.ts` renames and 2 committed HMR shims deleted
+- [x] US-1079: The 63 `React.createElement(XIcon)` sites in already-vanilla files
+- [x] US-1080: uikit internals — the ungated `renderIcon` branches
+- [x] US-1081: `editors/` icon sites, part 1 — link-editor, rest-client, graph, git-tree
+- [x] US-1082: `editors/` icon sites, part 2 — browser, video, text, settings, html and the rest
+- [x] US-1083: `editors/base` chrome and `ui/sidebar` icon values
+- [x] US-1084: Narrow `IconRef` to `IconName | Node`; delete `renderIcon`
+
+Four things it produced that outlast it. **(1)** *When a contract changes from a value to a resource,
+every cache of that value becomes a bug* — the single-use `Node` hazard hit four times through four
+mechanisms (a shared items array, a `useMemo`, a module-scope constant, a story reusing one node),
+invisible to `tsc`, lint and the build every time, with the symptom being an icon vanishing *somewhere
+other than* the code being changed. **(2)** *A contract can be thinner than its type suggests*:
+`renderIcon` went dead without being replaced, because its only job was name -> React element and a
+`ReactNode` icon needs no conversion. **(3)** *A `.tsx` count measures "files that could hold JSX",
+not React* — 130 of 262 held none and 28 never mentioned React, so earlier epics' progress figures are
+overstated. **(4)** An empty `<svg>` on screen is the cheap runtime tell for a migrated site naming an
+icon that does not exist, since `createIconElement` falls back to one silently.
+
+It also corrected its own closing property at close (E6-11): `SlotText` does **not** narrow, because
+one caller genuinely needs React (the link-editor tooltip). That is the same over-reach E6-1 was
+written to catch — predicting a sibling endpoint from an upstream one — this time committed by this
+epic's own document. **E7's candidate is measured in advance** (E6-8): `core/state/view.tsx`'s
+dialog/popper view registry, dual-armed at 14 vanilla registrations to 4 React, whose conversion
+deletes the file entire and collects a residual Emotion importer.
+
+---
+
+## EPIC-063 — [De-React Epic E5: delete the React secondary-view contract](EPIC-063.md)
+
+`ReactSecondaryViewDefinition` in `ui/secondary-views/secondary-view-registry.ts` typed a sidebar
+panel as `React.ComponentType`, pinning 13 of the 14 registered panels to React through the registry
+rather than through their own content. The registry is now single-armed; `LazySecondaryView.tsx`,
+`SideBarPanelHeader.tsx` (with its `createPortal` seam) and `components/icons/EditorIcon.tsx` are
+deleted; neither contract file imports React. **Rule 4: sidebar React roots 6 -> 0.**
+
+Two things outlast it. It fixed the programme's Rule 4 *instrument* — a root created by a direct
+`mountReactHandle` call was invisible to the `[data-part="react-slot"]` query every earlier count had
+used, so a surface hosting a live React subtree could measure zero; `mountReactHandle` now marks its
+host `data-react-root`. And it established the standing answer to "convert a component that still has
+React callers": **one implementation with the React export reduced to a `mountVanilla` shim**, never
+two parallel implementations. Both of its post-close defects (a tree at 100px, labels at 0px) were
+inline-style translations that `tsc`, lint, the build and the root count were all blind to.
+
+*(This section was missing: the epic was marked complete and removed from the dashboard, but its
+summary was never added here, leaving the roadmap's `[EPIC-063](epics/completed.md)` links pointing at
+nothing. Added retrospectively by EPIC-064's close.)*
+
+---
 ## EPIC-062 — [De-React Epic E4: delete the React `RenderGrid` contract](EPIC-062.md)
 
 The third editor epic scoped by the contract it deletes. `uikit/RenderGrid/` is gone, and with it

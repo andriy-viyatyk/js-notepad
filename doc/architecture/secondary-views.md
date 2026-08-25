@@ -232,7 +232,7 @@ The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identi
 
 **Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor DOM icon otherwise** — by `createIconElement()` or `createEditorIconElement()`. Editor models that own a no-language glyph may expose `getIconElement()`; language editors use the shared file-icon resolver. The resulting `Node` is passed as `SecondaryViewProps.iconElement` to the native panel and then to `SideBarPanelHeaderView`.
 
-**Native headers — `SideBarPanelHeaderView`:** `CollapsiblePanel` publishes the header `<div>` through `headerRef`. Each secondary view creates a [`SideBarPanelHeaderView`](../../src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts), which adopts its caller-owned `Node` values into that host and lays them out as `[icon] [title group] [actions] [show-main zone]`. It accepts `title: string | Node`, a generic `badge?: Node`, and `actions?: Node`; callers own the lifetime of supplied nodes and may reuse/update them between calls:
+**Native headers — `SideBarPanelHeaderView`:** `CollapsiblePanel` publishes the header `<div>` through `headerRef`. Each secondary view creates a [`SideBarPanelHeaderView`](../../src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts), which adopts its caller-owned `Node` values into that host and lays them out as `[icon] [title group] [actions] [show-main zone]`. It accepts `title: string | Node`, a generic `badge?: Node`, and `actions?: Node`; callers own the lifetime of supplied nodes and must provide fresh nodes for each host/use. Appending a node to another host moves it, so do not cache, memoise, hoist, or share one between panels or other consumers:
 
 - the **icon** is rendered first and unwrapped so it stays a direct child of the header `<div>` — the stack's `[data-part="header"] > svg { width: 14; height: 14 }` rule sizes only direct-child SVGs;
 - the **title group** (`badge` + `title`) is a flex-grow `Panel` with `width={0}` + `overflow: hidden`, so the title (`<Text truncate size="md">`) and a `truncate` `Tag` badge ellipsize as the sidebar narrows;
@@ -343,7 +343,7 @@ A refs tree built by `git-refs-tree.ts` (`buildRefsTree`) from the `GitRefs` DTO
 
 The working-tree view: unstaged (top) + staged (bottom) `FileGrid`s split by a `Splitter`.
 
-- **Stage / unstage / commit.** A bar above the Staged grid carries a "Commit" button (left) + the stage/unstage arrows (right). Commit opens the modal `showCommitDialog` (`ui/dialogs/CommitDialog.tsx`) — an editable **required** branch field (red border when empty, via the UIKit `Input` `invalid` prop) + editable author Name/Email (prepopulated from git config) + message. The author identity is applied as a per-commit `-c` override (no config file is written); the `buttons` array is forward-compatible for a future "Commit and Push".
+- **Stage / unstage / commit.** A bar above the Staged grid carries a "Commit" button (left) + the stage/unstage arrows (right). Commit opens the modal `showCommitDialog` (`ui/dialogs/CommitDialog.ts`) — an editable **required** branch field (red border when empty, via the UIKit `Input` `invalid` prop) + editable author Name/Email (prepopulated from git config) + message. The author identity is applied as a per-commit `-c` override (no config file is written); the `buttons` array is forward-compatible for a future "Commit and Push".
 
   The dialog **drives the commit itself** and is git-agnostic: the caller injects an `onAction` callback (which calls `model.changes.commit(message, identity?, newBranch?)`), and the dialog gates closing on it via `TDialogModel.canClose` — staying open on failure (e.g. an invalid or duplicate branch name) for a fix-and-retry, closing only on success, with its action buttons disabled while in flight (`committing`). Keeping the prefilled current branch commits to it; editing the name — or a detached HEAD, whose field starts empty — creates **and checks out** a new branch first (`git switch -c`, which carries the staged index) so the commit lands on it. The dialog compares the edited value against the open-time branch (`originalBranch`) and relabels the action button **"Create Branch & Commit"** in that case (the button's action identity stays `"Commit"`). Requiring a branch even when detached is deliberate — it turns what would be a dangling commit into one kept on a real branch.
 - **Stage/unstage/reset** are also available via double-click and a right-click context menu on the file grid (`FileGrid`).
@@ -598,7 +598,7 @@ against the new listing, so an externally deleted file drops out instead of bein
 next batch action.
 
 The set-shaped actions themselves are shared with the Explorer tree rather than reimplemented —
-see [`plural-actions.tsx`](../../src/renderer/components/tree-provider/plural-actions.tsx) and
+see [`plural-actions.ts`](../../src/renderer/components/tree-provider/plural-actions.ts) and
 [`tree-drop-actions.ts`](../../src/renderer/components/tree-provider/tree-drop-actions.ts). Both
 are *target-shaped*: the drop helpers take a `DropTarget` of `{ path, title }`, not a tree node,
 which is the whole reason two very different views can call them.

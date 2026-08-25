@@ -26,6 +26,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Closing a grouped or compared tab no longer leaves it stuck** — Closing one half of a side-by-side tab pair could fail and leave that tab orphaned, so it could not be closed again. The tab now closes normally, and the remaining tab stays usable.
 
+- **App-menu glyph follows theme changes immediately** — The app-menu glyph now updates as soon as you switch themes, without needing another header rebuild.
+
 ---
 
 ## Version 4.0.22

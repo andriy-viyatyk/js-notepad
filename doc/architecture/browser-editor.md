@@ -290,7 +290,7 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 | `src/main/tor-service.ts` | Main | Tor process lifecycle: spawn/kill tor.exe, restart, per-partition SOCKS5 proxy (armed before the daemon starts so the partition fails closed), torrc generation, exit-IP lookup |
 | `src/main/tor-src-protocol.ts` | Main | `tor-src://` handler — fetches an `http(s)` URL through a Tor partition's session |
 | `src/renderer/editors/link-editor/tor-src.ts` | Renderer | Rewrites remote image `src` values to `tor-src://` for a Tor page's Link editor |
-| `src/renderer/ui/dialogs/TorInfoDialog.tsx` | Renderer | Tor connection info: exit IP, location, Reconnect |
+| `src/renderer/ui/dialogs/TorInfoDialog.ts` | Renderer | Tor connection info: exit IP, location, Reconnect |
 | `src/preload-webview.ts` | Guest | MutationObserver for title/favicon, image tracking on link clicks, cinema mode (expand `<video>` to full page), `window.chrome` compatibility shim |
 | `src/ipc/browser-ipc.ts` | Shared | IPC channel names and type definitions |
 | `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels + `TorStatus`/`TorIpInfo` types: arm, start, stop, log, check-ip, restart, status |
@@ -359,7 +359,10 @@ Favicons use a caching strategy to avoid showing the globe icon during same-orig
 2. On `did-navigate`, the cached favicon for the new URL's origin is applied immediately
 3. The preload script then fires with the actual favicon, updating if different
 
-The `getIcon()` method on `BrowserEditor` reads `this.state.get().favicon` synchronously. `PageTab` subscribes to favicon changes via `_iconHint` in its state selector to trigger re-renders.
+The `getIconElement()` method on `BrowserEditor` builds the current DOM glyph synchronously from the
+browser mode and profile color. `PageTab` subscribes to favicon changes via `_iconHint` in its state
+selector to trigger re-renders; the browser editor's own icon state is refreshed through its normal
+model update path.
 
 ## Build Configuration
 
@@ -426,7 +429,7 @@ Tor mode routes all webview traffic through the Tor network via a SOCKS5 proxy. 
 - `src/main/tor-service.ts` — manages `tor.exe` child process lifecycle, generates minimal torrc, sets `socks5://` proxy per partition via `session.fromPartition().setProxy()`
 - `src/ipc/tor-ipc.ts` — IPC channels: `tor:arm`, `tor:start`, `tor:stop`, `tor:log`, `tor:check-ip`, `tor:restart`, `tor:status`
 - `src/renderer/editors/browser/TorStatusOverlay.tsx` — overlay shown during connection with live log, spinner, and reconnect button
-- `src/renderer/ui/dialogs/TorInfoDialog.tsx` — connection info dialog (exit IP, location, Reconnect)
+- `src/renderer/ui/dialogs/TorInfoDialog.ts` — connection info dialog (exit IP, location, Reconnect)
 - `activePartitions: Set<string>` acts as consumer counter — Tor stops only when all partitions are released
 
 **Tor indicator in URL bar:** A clickable TorIcon with a small status dot (green=connected, red=error, yellow=disconnected). Clicking toggles the `TorStatusOverlay`.

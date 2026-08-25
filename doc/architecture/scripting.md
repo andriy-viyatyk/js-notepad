@@ -462,7 +462,7 @@ When no library is linked, actions that need the library (sidebar "Select Folder
 
 **Copy logic:** `copyExampleScripts(targetPath)` in `library-service.ts` — resolves asset path via `api.getAppRootPath()`, recursively copies files, never overwrites existing.
 
-- Implementation: `/src/renderer/ui/dialogs/LibrarySetupDialog.tsx`
+- Implementation: `/src/renderer/ui/dialogs/LibrarySetupDialog.ts`
 
 ## Editor Facades
 
