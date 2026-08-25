@@ -330,8 +330,15 @@ export function applyPanelAttributes(
     }
 
     element.className = attributes.className;
+    // Clear in a separate pass BEFORE setting anything. `STYLE_PROPERTIES` deliberately mixes
+    // shorthands with their own longhands (`flex` with `flex-shrink`; `overflow` with `overflow-x`
+    // and `overflow-y`), so clearing inside the setting loop removed components of a shorthand that
+    // an earlier iteration had just written: `overflow` was erased outright by the two `overflow-*`
+    // removals that follow it, and `flex: 0 0 auto` silently lost its shrink and behaved as
+    // `flex-shrink: 1`. Two passes keep both the reset and the shorthand-then-longhand override
+    // order that the list encodes.
+    for (const [, property] of STYLE_PROPERTIES) element.style.removeProperty(property);
     for (const [key, property] of STYLE_PROPERTIES) {
-        element.style.removeProperty(property);
         const value = attributes.inlineStyle[key];
         if (typeof value === "string" || typeof value === "number") {
             element.style.setProperty(property, styleValue(property, value));
