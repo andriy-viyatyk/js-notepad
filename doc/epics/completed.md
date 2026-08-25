@@ -4,6 +4,44 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-062 — [De-React Epic E4: delete the React `RenderGrid` contract](EPIC-062.md)
+
+The third editor epic scoped by the contract it deletes. `uikit/RenderGrid/` is gone, and with it
+the last React virtualization engine: `uikit/VirtualGrid/` (`VirtualGridView`,
+`VirtualFlexGridView`) is now the only one. Seven tasks, all reviewed.
+
+- [x] [US-1062: LinksList to VirtualGridView (pilot)](../tasks/US-1062-linkslist-virtualgrid/README.md)
+- [x] US-1063: `VirtualFlexGridView` — measured-height wrapper over `VirtualGridView`
+- [x] [US-1068: remove the React roots from `PathInputView`](../tasks/US-1068-pathinput-no-react-root/README.md)
+- [x] [US-1064: `NotebookBody` and its cell subtree to `VirtualFlexGrid` (carries Rule 4)](../tasks/US-1064-notebook-virtual-flex-grid/README.md)
+- [x] [US-1065: `LogBody` and its cell subtree to `VirtualFlexGrid`](../tasks/US-1065-logbody-virtual-flex-grid/README.md)
+- [x] [US-1066: `LinksTiles` to `VirtualGridView`](../tasks/US-1066-linkstiles-virtual-grid/README.md)
+- [x] [US-1067: delete `uikit/RenderGrid/` — the closing property](../tasks/US-1067-delete-rendergrid/README.md)
+
+**An unplanned second closing property.** `RenderGrid.tsx` imported `@emotion/styled` and was the
+fourth of the four residual Emotion importers `CLAUDE.md` documented. Three remain. This epic
+removed an Emotion importer as well as a grid contract.
+
+**What it cost, and the lesson worth carrying forward — E4-15.** The notebook conversion passed
+typecheck, lint, production build, and a scroll-and-geometry battery that found nothing, while the
+editor was substantially broken: six user-reported interaction bugs, five of them a behaviour React
+supplied implicitly that direct DOM does not and whose absence has **no declaration site**. A dead
+`#avg-container` id killed the mouse wheel; `onFocus`/`onBlur` translated to the non-bubbling
+`focus`/`blur` broke activation; a sandboxed iframe's focus transition is never announced; a React
+component that rendered no DOM became a layout box that collapsed the expanded overlay; and
+child-before-parent disposal turned a state capture into a throw that stranded the overlay. A green
+build says nothing about any of them. E4-15 is the resulting pre-conversion checklist, now
+generalised into `doc/standards/model-view-pattern.md`.
+
+**Two verification lessons, also recorded.** A fixture that cannot trigger the mechanism under test
+produces a green result that means nothing — the 17-link tile file fills 4x5 exactly, yields 20px
+of scroll, and swept clean while exercising no recycling at all. And an invariant that asserts over
+a property the *user* also manipulates will fight the user invisibly: the end-of-paint "the model
+wins" scroll rule was sound in argument, cancelled every native scrollbar drag, and no programmatic
+probe could ever have reproduced it (E4-13).
+
+---
+
 ## EPIC-061 — [De-React Epic E3 — Delete `@monaco-editor/react`](EPIC-061.md)
 
 The second editor epic scoped by the **contract it deletes**, and the first in the programme whose

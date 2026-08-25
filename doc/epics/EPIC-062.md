@@ -908,23 +908,29 @@ Run under `npm start` on a pushed fixture spanning every leaf kind.
 `TextInputDialogView`, `CheckboxesDialogView`, `RadioboxesDialogView`, `SelectDialogView`). They
 block until answered, so an automated probe cannot drive them without hanging.
 
-### US-1066 — NOT verified live
+### US-1066 — verified live, 2026-08-25
 
-Committed with tsc, lint and the production build passing, and statically checked: no React import
-/ `react-dom` / `mountReact` / `createPortal` in the tiles subtree; `display: contents` only on the
-view root; `minHeight: 0` on the tiles' own panels; the grid attached once in `onMount`; generation
-guards on both async favicon and image repaints; and `additionalIconHost.replaceChildren()`
-covering the absence case that US-1062 specifically proved.
+Initially committed unverified: the `link-editor-view-mode` control ignored a synthetic `click()`
+and a full pointer sequence alike, so an automated probe could not leave list mode. The user
+switched the mode by hand, after which everything else was drivable — and the blocker turned out to
+be avoidable entirely. **A generated fixture with `state.categoryViewMode: {"": "tiles-landscape"}`
+opens directly in tiles**, because the empty-string key is the no-category default. A view mode
+that cannot be reached through its control can still be reached through the state that control
+writes; worth remembering before declaring a path unverifiable.
 
-**The tile layout itself was never exercised.** The `link-editor-view-mode` control did not respond
-to a synthetic `click()` or to a full pointer sequence (`pointerdown`/`mousedown`/`pointerup`/
-`mouseup`/`click`), and no popover opened — so the editor stayed in list mode throughout. Tile
-geometry (four dimension presets, multi-column layout), tile recycling, and favicon repaint **in
-tile layout** rest on static reading plus a passing build. Verified only that the link editor still
-renders and the list view is unaffected: 1028x960, 17 cells, favicons resolving.
+| Check | Result |
+|---|---|
+| Preset applied | **Pass.** `tiles-landscape` = 252x192; measured cells 254x192, and the column count is exactly `floor(containerWidth / 252)` — 4 at 1028px, 5 at 1274px. |
+| Genuine multi-column | **Pass.** 4-5 distinct `left` values against 6 distinct `top` values, and the row-major mapping holds (`index = row * columns + col`, checked as r1c0 = link 5 at 5 columns). |
+| **Total writes across recycling (E4-7)** | **Pass, and stronger than the US-1062 list result.** 300 links through ~30 pooled cells over a 10580px sweep both ways: all **300** coordinates visited, **zero** coordinates ever showed two different contents, and every cell's text was asserted against its *expected* link rather than merely for self-consistency. |
+| **Pin overlay, presence and absence** | **Pass, and this is the decisive one.** A 300-link fixture with 3 pinned ids, swept 13460px in both directions: **1,960 cell checks, zero missing pins, zero leaked pins, zero wrong content.** The 3 pinned tiles appeared on 10 sampled frames, so the presence case genuinely fired rather than the absence case passing vacuously. |
+| Favicons in tile layout | **Pass.** Image totals identical across a 6000px round trip (4 to 4) with zero cells changing image count — no loss, no duplication. On the 17-link file, 3 pinned / 17 unpinned matched the file's pinned ids exactly. |
+| Geometry | **Pass.** Zero position resets, zero duplicate `data-row`/`data-col`, zero empty paints across every sweep. |
 
-This is the least-evidenced code in the epic and is named as such rather than rounded up. A manual
-check has been requested from the user.
+**Why the first fixture proved nothing, recorded as a method note:** the 17-link file fills 4x5
+exactly and yields **20px** of scroll. A sweep over it reported zero failures while exercising no
+recycling at all. A green result from a fixture that cannot trigger the mechanism under test is not
+evidence — the fixture has to overflow the pool before "no duplicate coordinate" means anything.
 
 ### US-1067 — verified live, 2026-08-25
 

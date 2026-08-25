@@ -8,14 +8,6 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-062** — [De-React Epic E4: delete the React `RenderGrid` contract](epics/EPIC-062.md)
-  - [ ] [US-1062: LinksList to VirtualGridView (pilot)](tasks/US-1062-linkslist-virtualgrid/README.md)
-  - [ ] US-1063: `VirtualFlexGridView` — measured-height wrapper over `VirtualGridView`
-  - [ ] [US-1068: remove the React roots from `PathInputView`](tasks/US-1068-pathinput-no-react-root/README.md)
-  - [ ] [US-1064: `NotebookBody` and its cell subtree to `VirtualFlexGrid` (carries Rule 4)](tasks/US-1064-notebook-virtual-flex-grid/README.md)
-  - [ ] [US-1065: `LogBody` and its cell subtree to `VirtualFlexGrid`](tasks/US-1065-logbody-virtual-flex-grid/README.md)
-  - [ ] [US-1066: `LinksTiles` to `VirtualGridView`](tasks/US-1066-linkstiles-virtual-grid/README.md)
-  - [ ] [US-1067: delete `uikit/RenderGrid/` — the closing property](tasks/US-1067-delete-rendergrid/README.md)
 - *(no epic)*
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
@@ -41,13 +33,15 @@ Overview of all active and planned epics and tasks.
   and `notebook` (2,001) — two of them also carrying removal-ledger entries (`RenderGrid`,
   `RenderFlexGrid`, `highlight`'s React form), so they are conversion *plus* collection work — and the
   14 `<TextChrome>` call sites, which convert for free once the last shell is vanilla and are therefore
-  deliberately **last** in Epic E (EPIC-059 E1-8). **E4 is scheduled as [EPIC-062](epics/EPIC-062.md)** and it
+  deliberately **last** in Epic E (EPIC-059 E1-8). **E4 was [EPIC-062](epics/completed.md), now complete** — `uikit/RenderGrid/` is deleted and `uikit/VirtualGrid/` is the only virtualization engine. It
   corrects the "line count from here on" note: a shared contract does exist, it is just owned by
   `uikit/` rather than `editors/` — `RenderGrid`'s cell contract returns a `ReactNode`, pinning all
-  12 of its importers to React. E4 deletes `uikit/RenderGrid/` outright, collecting two removal-ledger
-  entries, and takes the notebook Monaco-churn measurement E3 withdrew and handed forward (E3-6), whose
-  cause is `renderInfo.ts:314` keying virtualized cells by row index. Line count becomes the axis from
-  **E5** onward. Next free epic number: **EPIC-063**.
+  12 of its importers to React. E4 deleted `uikit/RenderGrid/` outright, collected two removal-ledger
+  entries plus an unplanned third (`RenderGrid.tsx` was the fourth Emotion importer), and took the
+  notebook Monaco-churn measurement E3 withdrew and handed forward (E3-6), whose cause was
+  `renderInfo.ts:314` keying virtualized cells by row index. **Line count is the axis from E5
+  onward** — no shared contract remains to scope by. E5 is not yet scheduled; the large editors
+  are `graph` (3,259) and `link-editor` (2,847), and the 14 `<TextChrome>` call sites stay last. Next free epic number: **EPIC-063**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 
