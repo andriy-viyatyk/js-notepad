@@ -1153,3 +1153,12 @@ Single-hierarchy editor rewrite via strangler-fig migration over 37 tasks. All 2
 
 ## EPIC-010 — [Rest Client](EPIC-010.md)
 
+- **EPIC-063** — [De-React Epic E5: delete the React secondary-view contract](EPIC-063.md) — completed 2026-08-25
+  - [x] US-1069: The icon DOM arm — `SecondaryViewsView.resolveIcon` returns a DOM node via `createEditorIconElement`, so a vanilla panel with no registry `icon` override keeps its glyph (E5-2)
+  - [x] US-1070: `link-editor`'s three secondary views (`link-category`, `link-tags`, `link-hostnames`) + their panels
+  - [x] US-1071: `notebook`'s two secondary views + `category-tree`, `TagsListView` — closes the notebook's last `.tsx`
+  - [x] US-1072: The three thin providers — `archive-tree`, `rest-panel`, `board-secondary:*`
+  - [x] US-1073: The git pair — `git-changes`, `git-diff-revisions` + the `components/git-tree` React leaves
+  - [x] US-1074: `mneme-tree`
+  - [x] US-1075: `explorer`'s two (`explorer`, `boards`) + `BoardsTree`, `ToolsTree`
+  - [x] US-1076: Delete the contract — registry single-armed, `LazySecondaryView.tsx` / `SideBarPanelHeader.tsx` / `SecondaryViews`' React child path / `EditorIcon.tsx` removed; re-measure E5-3

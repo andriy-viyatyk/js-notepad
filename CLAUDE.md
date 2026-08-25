@@ -252,6 +252,16 @@ TextFileIOModel uses dual pipes: primary (source file) + cache (auto-save). Pipe
 ### 6. Event Channels (LIFO)
 `EventChannel.sendAsync()` calls subscribers in LIFO order (newest first). This allows late subscribers (like the open handler) to intercept and handle events before earlier subscribers.
 
+### 7. React-root measurement and conversion debugging
+
+`mountReactHandle` marks its host with `data-react-root`; `fillSlot` additionally marks its
+wrapper with `data-part="react-slot"`. Measurements of live React islands must query both
+markers because a direct `mountReactHandle` root is otherwise invisible to the slot query.
+When asserting rendered content, check visibility (for example, `offsetParent`) separately from
+`textContent`, which includes hidden subtrees. If a converted dynamic import reports
+`Failed to fetch dynamically imported module` after a `.tsx` → `.ts` rename, touch the
+importer to invalidate Vite's stale specifier resolution; a renderer reload alone does not clear it.
+
 ## Coding Standards (Quick Reference)
 
 - **TypeScript** for all new code

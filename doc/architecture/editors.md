@@ -199,14 +199,19 @@ The glyph that represents an editor — on its page tab, in the Tools & Editors 
 - **`noLanguage` editors** (`noLanguage = true`) supply their own icon by assigning `getIcon` in the constructor — e.g. `this.getIcon = () => createElement(GitIcon)`. These are editors with no Monaco language (Git Tree, Archive, Explorer, Storybook, …). An editor that sets `noLanguage` but no `getIcon` shows no icon.
 - **Language editors** (`noLanguage = false`, the default) derive a file-type icon from their `language` + `title` via `LanguageIcon` (`components/icons/LanguageIcon.tsx`, which resolves the language map, compound-extension patterns like `*.note.json` → Notebook, the OS system icon, then a default).
 
-This decision is centralized in the shared **`EditorIcon`** resolver ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)):
+This decision is centralized in the shared **DOM-first editor-icon resolver** ([`components/icons/icon-elements.ts`](../../src/renderer/components/icons/icon-elements.ts)):
 
-```tsx
-<EditorIcon editor={model} />
-// noLanguage ? editor.getIcon?.() : <LanguageIcon language={editor.language} fileName={editor.title} />
+```typescript
+createEditorIconElement({
+    noLanguage: model.noLanguage,
+    getIcon: model.getIcon,
+    getIconElement: model.getIconElement,
+    language: model.language,
+    title: model.title,
+});
 ```
 
-`EditorIcon` accepts a duck-typed `EditorIconSource` (`{ noLanguage?, getIcon?, language?, title? }`) rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It is the single source of truth shared by the page tab (`PageTab.tsx`) and the sidebar panel headers (`SecondaryViews.tsx`), so the two never drift. It forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons (e.g. `GitIcon`) follow the header state (accent when a panel is active), while explicitly-colored icons (Link, the folder emoji, the Storybook brand mark) keep their own hue.
+`createEditorIconElement` accepts a duck-typed source rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It prefers an editor's `getIconElement()` when available, then the language/file DOM resolver, and finally returns an explicit React fallback for remaining callers that have not converted their icon producer. Native sidebar headers consume only the DOM result. The resolver forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons follow the header state, while explicitly-colored icons keep their own hue.
 
 The Tools & Editors list keeps its **own** per-item icon in [`tools-editors-registry.ts`](../../src/renderer/ui/sidebar/tools-editors-registry.ts) (it lists editor *types*, not live models), so a new editor icon must be set there too if the editor appears in that list.
 
@@ -498,7 +503,7 @@ A board is not limited to its main iframe — it can contribute one or more **se
 
 Each decl is `{ id, html?, title? }`. `html` defaults to the main entry (`index.html`), so a board can point every view at one file and branch on its role. View ids containing `::` (the composite-panel-key separator) are rejected/normalized at the manifest-read and `setSecondaryViews` boundaries. The manifest reader is **independent of `fileMasks` / `getBoardEditorAssociation`** — secondary views are general board functionality, not part of the custom-editor axis.
 
-**The panel family.** Each declared view maps to a stable panel id `board-secondary:<viewId>` (helpers in `editors/board/board-secondary.ts`). The base model seeds `state.secondaryViewDefs` from the manifest (persisted set wins on restore) and derives `state.secondaryView = defs.map(d => "board-secondary:" + d.id)` — the bare panel-id list the shell reads (see [secondary-views.md](secondary-views.md)). The `secondary-view-registry` resolves the whole `board-secondary:*` family to **one generic component**, `BoardSecondaryView` (`editors/board/BoardSecondaryView.tsx`), via prefix-aware `has()`/`get()` at all three consumers (`SecondaryViews.tsx`, `LazySecondaryView.tsx`). `SecondaryViewProps` gained a `panelId` field (backward-compatible) so the one component reads *which* view it is → strips the prefix → looks up the `secondaryViewDefs` entry → renders a `SideBarPanelHeader` (title/icon from the decl / board icon) over a `BoardWebview` pointed at that view's HTML. Every panel gets the **same `BoardEditorModel` instance**, preserving the single-model pattern.
+**The panel family.** Each declared view maps to a stable panel id `board-secondary:<viewId>` (helpers in `editors/board/board-secondary.ts`). The base model seeds `state.secondaryViewDefs` from the manifest (persisted set wins on restore) and derives `state.secondaryView = defs.map(d => "board-secondary:" + d.id)` — the bare panel-id list the shell reads (see [secondary-views.md](secondary-views.md)). The `secondary-view-registry` resolves the whole `board-secondary:*` family to **one generic provider**, `BoardSecondaryView` (`editors/board/BoardSecondaryView.ts`), via prefix-aware `has()`/`get()` at the native secondary-view host. `SecondaryViewProps` carries the `panelId` and DOM `iconElement`, so the one provider reads *which* view it is → strips the prefix → looks up the `secondaryViewDefs` entry → renders a native `SideBarPanelHeaderView` over a `BoardWebview` compatibility island pointed at that view's HTML. Every panel gets the **same `BoardEditorModel` instance**, preserving the single-model pattern.
 
 **Multi-frame safety — the `isMain` role.** `BoardWebview` gained an `entry` prop (default `index.html`) and an **`isMain` prop** (default `true`). All frames of a board share one `model.id`, so only the **main** frame may call `model.setIframe`/`clearIframe`, `registerBoardFrame`/`unregisterBoardFrame`, reset `ui.log`, and autofocus — a secondary frame calling them would clobber the shared automation target and CDP registration. Each frame still mints its **own** `MessagePort` (own `boardId`), so `execute`/`readFile`/etc. work in every frame; they share the one model, hence the one shared state and (content-host) the one content host. **Job reaping is per-sink:** a secondary frame's port disposal (`disposeBoardPort(boardId)`) reaps only its own sink; the whole owner (`model.id`) is reaped only from `BoardEditorModel.dispose()` (page close) — so closing a secondary panel never tree-kills the main frame's spawned processes.
 

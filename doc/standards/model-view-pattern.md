@@ -403,6 +403,18 @@ React root must be released during another React commit. Do not mutate a fill-sl
 the host's direct-child shape is part of the component contract. Use `mountReactHandle` directly
 only when the view owns a deliberate multi-node React bridge or needs to retain a render handle.
 
+Every React root created by `mountReactHandle` marks its host with
+`data-react-root`; disposal removes the marker. A root created directly by that helper is not
+inside the `[data-part="react-slot"]` host used by `fillSlot`, so DOM measurements of React
+islands must query both `[data-part="react-slot"]` and `[data-react-root]`.
+
+When checking a converted panel, assert visibility separately from content: `textContent`
+includes text in a `display: none` subtree. Use a layout signal such as `offsetParent` before
+claiming that text is visible. During development, renaming an imported converted module from
+`.tsx` to `.ts` can leave Vite resolving the old specifier; a renderer reload does not clear
+that stale dynamic-import resolution. Touch the importer to invalidate it before debugging the
+conversion itself.
+
 ## Before and after: the same model, two view runtimes
 
 ```typescript

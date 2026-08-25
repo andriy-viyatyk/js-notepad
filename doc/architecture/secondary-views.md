@@ -2,7 +2,7 @@
 
 How sidebar panels work in Persephone. Covers registration, lifecycle hooks, navigation survival, rendering, persistence, and how to add new secondary views.
 
-**Source code:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts), [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx)
+**Source code:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts), [`SecondaryViewsView.ts`](../../src/renderer/ui/secondary-views/SecondaryViewsView.ts), and the React-facing [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx) shim.
 
 ---
 
@@ -211,45 +211,41 @@ Editor ids are UUIDs and panel-type ids are kebab-case, so `"::"` is an unambigu
 
 ## 6. Rendering in SecondaryViews
 
-**Source:** [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx)
+**Source:** [`SecondaryViewsView.ts`](../../src/renderer/ui/secondary-views/SecondaryViewsView.ts) and the React-facing [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx) shim.
 
-The rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryView[]` panel IDs. Every `(model, panelId)` pair is rendered — there is **no** panel-id-uniqueness restriction (the page may render multiple panels of the same type — one per repo). The `CollapsiblePanel` `id` is the **composite** key (§5a); the registry lookup and the `LazySecondaryView panelId` prop stay **bare**:
+The native rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryView[]` panel IDs. Every `(model, panelId)` pair is rendered — there is **no** panel-id-uniqueness restriction (the page may render multiple panels of the same type — one per repo). The `CollapsiblePanel` `id` is the **composite** key (§5a); the registry lookup and the `LazySecondaryViewView panelId` prop stay **bare**:
 
-```tsx
-secondaryViews.flatMap((model) => {
-    const panelIds = model.secondaryView ?? [];
+```typescript
+this.props.views.flatMap((model) => {
+    const panelIds = model.state.get().secondaryView ?? [];
     return panelIds
         .filter((panelId) => secondaryViewRegistry.has(panelId))
-        .map((panelId) => {
-            const icon = secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />;
-            return (
-                <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelKey(model.id, panelId)}
-                    headerRef={setHeaderRef} alwaysRenderContent>
-                    <LazySecondaryView model={model} panelId={panelId} headerRef={...} icon={icon} />
-                </CollapsiblePanel>
-            );
-        });
-})
+        .map((panelId) => ({ model, panelId, key: panelKey(model.id, panelId) }));
+});
 ```
+
+Each descriptor is backed by a native `LazySecondaryViewView` and a native
+`CollapsiblePanelStackView`. The stack publishes `headerRef` after the panel is
+created; the provider passes that ref to `SideBarPanelHeaderView` on every update.
 
 The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 
-**Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor icon otherwise** — `secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />`. `EditorIcon` ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)) is the **shared resolver** that produces the same glyph an editor shows on its page tab (see [editors.md](editors.md#editor-icons)). The resolved node is **not** handed to `CollapsiblePanel`; it is passed down to the panel component as `SecondaryViewProps.icon` (via `LazySecondaryView`), and the panel forwards it to `SideBarPanelHeader`, which renders it as the leading glyph. Resolution stays here because this is the only layer with the registry + editor in scope.
+**Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor DOM icon otherwise** — by `createIconElement()` or `createEditorIconElement()`. Editor models that own a no-language glyph may expose `getIconElement()`; language editors use the shared file-icon resolver. The resulting `Node` is passed as `SecondaryViewProps.iconElement` to the native panel and then to `SideBarPanelHeaderView`.
 
-**Portal-based headers — `SideBarPanelHeader`:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. Each secondary view renders a [`SideBarPanelHeader`](../../src/renderer/ui/secondary-views/SideBarPanelHeader.tsx), which `createPortal`s its content into that `<div>`. The component takes `icon`, `badge` (optional, e.g. a repo-name `Tag`), `title`, and `actions` (the panel's buttons), and lays them out as `[icon] [title group] [actions] [show-main zone]`:
+**Native headers — `SideBarPanelHeaderView`:** `CollapsiblePanel` publishes the header `<div>` through `headerRef`. Each secondary view creates a [`SideBarPanelHeaderView`](../../src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts), which adopts its caller-owned `Node` values into that host and lays them out as `[icon] [title group] [actions] [show-main zone]`. It accepts `title: string | Node`, a generic `badge?: Node`, and `actions?: Node`; callers own the lifetime of supplied nodes and may reuse/update them between calls:
 
 - the **icon** is rendered first and unwrapped so it stays a direct child of the header `<div>` — the stack's `[data-part="header"] > svg { width: 14; height: 14 }` rule sizes only direct-child SVGs;
 - the **title group** (`badge` + `title`) is a flex-grow `Panel` with `width={0}` + `overflow: hidden`, so the title (`<Text truncate size="md">`) and a `truncate` `Tag` badge ellipsize as the sidebar narrows;
 - the **actions** region is a `Panel` with `shrink={false}`, so the buttons stay pinned and fully visible — the label group is what gives way, never the buttons;
 - the **show-main zone** is a standardized right-edge button (chevron-right icon, separated by a vertical divider) that appears when the `onShowMain` prop is provided. Clicking it promotes the editor to the page's main view (`stopPropagation` prevents panel toggle). Pass `showMainTitle` to override the tooltip (default: `"Show in main view"`) and `showMainActive={true}` to tint the chevron blue when this editor is already the main view. The zone is always visible — it does not hide when already main; the active tint is the indicator instead.
 
-This replaces per-panel hand-rolled `createPortal` + layout. Because portalled content lives in a separate React fiber tree, its clicks would bubble to the panel body rather than the header's toggle `onClick`; `CollapsiblePanelStack` makes non-interactive label primitives (`Text`, `Tag`, `Panel`) click-through (`pointer-events: none`) so a click on the title still toggles the panel, while interactive controls (`button`, `icon-button`, clickable `Tag`) re-assert pointer events. The show-main zone (`data-type="sidebar-show-main"`) is in the `pointer-events: auto` allowlist and guards the header's hover-lighten with `:not(:has([data-type="sidebar-show-main"]:hover))` so the header bar and the zone light up independently.
+This replaces per-panel hand-rolled `createPortal` + layout. Native children are directly owned by the header host, so no portal fiber or React header root is needed. The show-main zone (`data-type="sidebar-show-main"`) remains in the `pointer-events: auto` allowlist and guards the header's hover-lighten with `:not(:has([data-type="sidebar-show-main"]:hover))` so the header bar and the zone light up independently.
 
-**`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for portal components to render headers even when their panel is collapsed.
+**`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for native providers to keep their header handle and other owned resources synchronized while a panel is collapsed.
 
 **Reactivity:** `secondaryViews` is a plain array (EditorModel instances can't be in TOneState — Immer proxies would corrupt them). A `secondaryViewsVersion` counter (`TOneState<{ version }>`) is bumped on every add/remove. SecondaryViews subscribes via `.use()`.
 
-**Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel IDs to dynamically-loaded views. The default arm is React (`React.ComponentType<SecondaryViewProps>`); a native panel sets `arm: "vanilla"` and returns `VanillaViewCtor<SecondaryViewProps>`. The discriminator is required because the host selects the DOM slot before the asynchronous module load completes. React panels use `LazySecondaryView`; vanilla panels use `LazySecondaryViewView`, which owns a stable root and explicitly disposes/removes it when a panel record retires. `SearchSecondaryView` is the current vanilla panel and consumes `FileSearchView` directly.
+**Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel IDs to dynamically-loaded `VanillaViewCtor<SecondaryViewProps>` classes. There is one registration shape and no React/vanilla discriminator. [`LazySecondaryViewView`](../../src/renderer/ui/secondary-views/LazySecondaryViewView.ts) owns a stable host, cancels stale dynamic imports, and explicitly disposes/removes a panel record when it retires. All built-in secondary providers use this native contract; a board secondary panel retains one deliberate `mountReactHandle` island for its iframe because the board webview remains a React-owned boundary.
 
 Each registration still provides an `id`, `label`, `loadComponent()` factory, and optional `icon`. Alongside exact-id `register()`, `registerPrefix(prefix, definition)` serves a whole panel-id family; the `board-secondary:` family uses this so one generic `BoardSecondaryView` serves every board-declared secondary view.
 
@@ -321,7 +317,7 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 `GitTreeEditorModel` hosts **one** panel next to the commit graph — `"git-changes"` (label "Git") — composed over focused submodels (`changes`, `branches`, plus `gitTree` for the graph), mirroring how `BrowserEditor` composes submodels. All share the editor's repo root and refresh path. The panel body is split into three segments by an in-body `SegmentedControl` (`Changes` / `Branches` / `Tags`, default `Changes`); the active segment is persisted as `gitPanelTab` in the editor descriptor so it survives navigation + restart.
 
 The panel is assembled from a container plus three header-less segment bodies:
-- `GitPanelSecondaryView` — the registered panel: owns the shared `SideBarPanelHeader`, the segment `SegmentedControl`, and the segment-switch wiring.
+- `GitPanelSecondaryView` — the registered panel: owns the shared `SideBarPanelHeaderView`, the segment `SegmentedControl`, and the segment-switch wiring.
 - `GitChangesView` — the `Changes` segment (working-tree status).
 - `GitRefsView` — the `Branches` (`show="branches"`) and `Tags` (`show="tags"`) segments.
 
@@ -431,54 +427,55 @@ secondaryViewRegistry.register({
 });
 ```
 
-### Step 3: Create the React panel component
+### Step 3: Create the native panel provider
 
-Render a `SideBarPanelHeader` — it owns the portal and the layout (forward the `icon` from props; pass `title`, an optional `badge`, and the buttons as `actions`):
+Create a `VanillaView<SecondaryViewProps>` provider. Build a `SideBarPanelHeaderView` against `headerRef`; pass `iconElement`, a string or DOM `Node` title, an optional caller-owned `badge` node, and native action roots. Keep the panel body and all subscriptions under the view's lifecycle ownership:
 
-```tsx
-export default function MySecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
-    const myModel = model as MySecondaryModel;
+```typescript
+export default class MySecondaryView extends VanillaView<SecondaryViewProps> {
+    private readonly model: MySecondaryModel;
+    private readonly header: SideBarPanelHeaderHandle;
 
-    return (
-        <>
-            <SideBarPanelHeader
-                headerRef={headerRef}
-                icon={icon}
-                title="My Panel Title"
-                actions={
-                    <IconButton
-                        name="my-secondary-close"
-                        size="sm"
-                        title="Close Panel"
-                        icon={<CloseIcon />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            myModel.secondaryView = undefined; // or remove specific panel
-                        }}
-                    />
-                }
-            />
-            <MyPanelContent model={myModel} />
-        </>
-    );
+    public constructor(props: SecondaryViewProps) {
+        super(props, createPanelElement({ name: "my-secondary-view", flex: true }));
+        this.model = props.model as MySecondaryModel;
+        this.header = createSideBarPanelHeader({
+            headerRef: props.headerRef,
+            icon: props.iconElement,
+            title: "My Panel Title",
+        });
+    }
+
+    protected onMount(): void {
+        this.own(() => this.header.dispose());
+        this.root.append(createPanelElement({ name: "my-secondary-content" }));
+    }
+
+    protected onUpdate(props: SecondaryViewProps): void {
+        this.header.update({ headerRef: props.headerRef, icon: props.iconElement, title: "My Panel Title" });
+    }
+
+    protected onDispose(): void {
+        this.header.dispose();
+    }
 }
 ```
 
-A title-only panel is just `<SideBarPanelHeader headerRef={headerRef} icon={icon} title="My Panel" />`. Conditional buttons stay inside the `actions` node (`actions={cond && <IconButton.../>}`).
+A title-only panel supplies only `headerRef`, `iconElement`, and `title`. Conditional actions are native roots: mount or update the action view only while `expanded !== false`, and pass `actions: undefined` when the panel is collapsed.
 
-`SecondaryViewProps` also carries `expanded` — `true` when this panel is the one currently expanded in the stack, `false` when it is collapsed to a header strip. Panels stay mounted while collapsed (`alwaysRenderContent`), and the header is portalled in regardless, so an action that only makes sense while the body is visible should be gated on this flag (`actions={<>{expanded && <PrimaryButton/>}<CloseButton/></>}`). The Boards panel uses it to hide its "+ New board" button when collapsed, leaving just the title + close button on the header strip.
+`SecondaryViewProps` also carries `expanded` — `true` when this panel is the one currently expanded in the stack, `false` when it is collapsed to a header strip. Panels stay mounted while collapsed (`alwaysRenderContent`), and the native header remains synchronized, so actions that only make sense while the body is visible should be omitted when `expanded === false`.
 
 To add a standardized "show main view" button at the right edge, pass `onShowMain` (a callback that calls `page.promoteSecondaryToMain(model)` or an editor-specific equivalent) and optionally `showMainActive` (blue-tints the chevron when the editor is already main) and `showMainTitle` (tooltip override). The zone is always rendered when `onShowMain` is provided — never hidden, even when already main:
 
-```tsx
-<SideBarPanelHeader
-    headerRef={headerRef}
-    icon={icon}
-    title="My Panel Title"
-    onShowMain={() => model.page?.promoteSecondaryToMain(model)}
-    showMainActive={model.page?.mainEditor === model}
-    actions={/* ... */}
-/>
+```typescript
+this.header.update({
+    headerRef: props.headerRef,
+    icon: props.iconElement,
+    title: "My Panel Title",
+    onShowMain: props.expanded === false ? undefined : this.showMain,
+    showMainActive: this.model.page?.mainEditor === this.model,
+    showMainTitle: "Show in main view",
+});
 ```
 
 ### Step 4: Create or add to `secondaryViews[]`
@@ -620,7 +617,7 @@ PageModel
 
 ## 13. Tag-Based Navigation Panel
 
-**Source code:** [`LinkTagsSecondaryView.tsx`](../../src/renderer/editors/link-editor/panels/LinkTagsSecondaryView.tsx), [`LinkTreeProvider.ts`](../../src/renderer/editors/link-editor/LinkTreeProvider.ts)
+**Source code:** [`LinkTagsSecondaryView.ts`](../../src/renderer/editors/link-editor/panels/LinkTagsSecondaryView.ts), [`LinkTreeProvider.ts`](../../src/renderer/editors/link-editor/LinkTreeProvider.ts)
 
 When a `LinkEditor` (links, standalone) is opened as a secondary view with available tags, the Tags navigation panel (`"link-tags"`) renders two parts:
 

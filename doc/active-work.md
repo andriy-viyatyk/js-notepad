@@ -40,8 +40,27 @@ Overview of all active and planned epics and tasks.
   entries plus an unplanned third (`RenderGrid.tsx` was the fourth Emotion importer), and took the
   notebook Monaco-churn measurement E3 withdrew and handed forward (E3-6), whose cause was
   `renderInfo.ts:314` keying virtualized cells by row index. **Line count is the axis from E5
-  onward** — no shared contract remains to scope by. E5 is not yet scheduled; the large editors
-  are `graph` (3,259) and `link-editor` (2,847), and the 14 `<TextChrome>` call sites stay last. Next free epic number: **EPIC-063**.
+  onward** — no shared contract remains to scope by. **E5 is
+  [EPIC-063](epics/completed.md), complete 2026-08-25, and it corrected that claim for the second
+  consecutive epic**: the surviving contract is
+  `ReactSecondaryViewDefinition` in `ui/secondary-views/secondary-view-registry.ts`, which pins 13 of
+  the 14 registered sidebar panels to React through the registry rather than through their own
+  content. E4-1's generalisation is what catches it — *"no contract left" is a claim about the whole
+  import graph, not about one folder* — and the standing check is now that **the axis of the next
+  epic is not predicted from the folder the current one touched**. E5 also detonates a latent defect
+  the vanilla arm has carried since E1 (a `console.warn` for a React icon fallback the DOM header
+  cannot render), which is why its first task is the icon arm rather than a conversion. Deliberately
+  out of scope: `SecondaryViews.tsx`, the host's own React face, whose only consumer is the browser
+  editor (Rule 1) — that face survives, as does `BoardWebview`'s island inside the board panel.
+  **Closing property met:** the registry is single-armed, `LazySecondaryView.tsx`,
+  `SideBarPanelHeader.tsx` and `EditorIcon.tsx` are deleted, neither contract file imports React, and
+  the sidebar measures **0 React roots** (from 6). E5 also fixed the programme's Rule 4 *instrument*:
+  `mountReactHandle` now marks its host `data-react-root`, because a root created outside `fillSlot`
+  was previously invisible to the count. **E6 is scoped by searching the import graph for a contract
+  first** (E5-8 names two candidates: `uikit/shared/slots.ts`'s `IconRef`/`SlotText` `ReactNode`
+  members, and the `editors/base` chrome that E1-8 fixed as deliberately last). Still unscheduled:
+  `graph` (3,259), the browser editor (1,692), and the 14 `<TextChrome>` call sites, which stay last.
+  Next free epic number: **EPIC-064**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

@@ -746,8 +746,9 @@ error boundary, the root flip) rather than stateful.
 ### Epic E — Editors
 
 **E1 is complete as [EPIC-059](epics/EPIC-059.md), E2 as [EPIC-060](epics/EPIC-060.md), and E3 as
-[EPIC-061](epics/EPIC-061.md), all 2026-08-24. E4 is scoped as [EPIC-062](epics/EPIC-062.md).** The
-next free epic number is **EPIC-063**.
+[EPIC-061](epics/EPIC-061.md), all 2026-08-24. E4 is complete as
+[EPIC-062](epics/completed.md), 2026-08-25, and E5 as [EPIC-063](epics/EPIC-063.md), also
+2026-08-25.** The next free epic number is **EPIC-064**.
 
 **E3 took the second shared contract, `@monaco-editor/react`, and closed by uninstalling it.** With
 both editor-wide contracts now gone — `EditorModule.Body` in E2 and the Monaco wrapper in E3 — the
@@ -760,8 +761,38 @@ that that E4 onward would be scoped by line count.
 the primitive they rendered through, exactly as `EditorModule.Body` and the Monaco wrapper pinned
 theirs. E4 deleted that contract and collected its two removal-ledger entries; current consumers use
 the framework-free `VirtualGrid` contract, with `VirtualGridView` for fixed-height rows and
-`VirtualFlexGridView` for measured rows. Line count is the axis from **E5** onward. The generalisation:
+`VirtualFlexGridView` for measured rows. Its generalisation:
 "no contract left" is a claim about the whole import graph, not about one folder.
+
+**E5 ([EPIC-063](epics/EPIC-063.md)) applied that generalisation and found the prediction wrong a
+second time.** E4 had repeated E3's claim — line count from here on — and the surviving contract was
+simply in the third folder, `ui/`: `ReactSecondaryViewDefinition` in
+`ui/secondary-views/secondary-view-registry.ts` types a sidebar panel as
+`React.ComponentType<SecondaryViewProps>`, pinning **13 of the 14 registered panels** (1,633 lines
+across 9 editors) to React through the registry rather than through their own content. E1 built the
+vanilla arm beside it and converted one provider as the pilot; the React arm had stood untouched
+since. **The standing check, now recorded twice over:** predicting the next epic's scoping axis from
+the folder the current epic happened to touch has failed in both E3→E4 and E4→E5, so E6 is scoped by
+*searching* the import graph for a contract, starting from the two candidates E5-8 records —
+`uikit/shared/slots.ts`'s `IconRef`/`SlotText` `ReactNode` members, and the `editors/base` chrome
+that E1-8 fixed as deliberately last.
+
+**E5 closed 2026-08-25 with its property met**: the registry is single-armed,
+`LazySecondaryView.tsx`, `SideBarPanelHeader.tsx` (with its `createPortal` seam) and
+`components/icons/EditorIcon.tsx` are deleted, neither contract file imports React, and the sidebar
+measures **0 React roots**, from 6 at open. Two things it produced outlast the epic. First, it fixed
+the programme's **Rule 4 instrument**: a React root created by a direct `mountReactHandle` call was
+invisible to the `[data-part="react-slot"]` query that every root count in this programme has used, so
+a surface hosting a live React subtree could measure zero — `mountReactHandle` now marks its host
+`data-react-root`, and both selectors must be queried. That is the third Rule 4 methodology
+correction (after EPIC-060's page-manager mis-read and E3-6's Monaco-churn mis-attribution) and the
+first whose fix was to make the thing *measurable* rather than to re-read the source. Second, it
+established the standing answer to "convert a component that still has React callers": **one
+implementation with the React export reduced to a `mountVanilla` shim**, never two parallel
+implementations — which satisfies Rule 2 more strongly than duplication, since the surviving callers
+then compile *and behave* unchanged. Two surfaces survive deliberately under Rule 1:
+`ui/secondary-views/SecondaryViews.tsx` (the host's own React face, owned by the browser editor) and
+`BoardWebview`'s island inside the board-secondary panel.
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be

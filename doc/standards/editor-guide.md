@@ -352,12 +352,12 @@ class MyEditor extends EditorModel<MyEditorState> {
 }
 ```
 
-Register the panel in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`. React panels
-use the default arm and return `React.ComponentType<SecondaryViewProps>`; a framework-free panel
-sets `arm: "vanilla"` and returns `VanillaViewCtor<SecondaryViewProps>`. The discriminator is
-required because the host selects the DOM slot before the dynamic import resolves. A vanilla
-panel owns a stable root and is retired explicitly by the secondary-view host; do not register a
-replaced record view with `this.child()`.
+Register the panel in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`. A registration
+returns `VanillaViewCtor<SecondaryViewProps>`; the secondary-view host owns the asynchronous load,
+stable root, and retirement lifecycle. Build headers with `SideBarPanelHeaderView` against the
+provided `headerRef`, pass DOM `Node` slots where possible, and use `mountReactHandle` only for a
+deliberate React island that remains outside the converted surface. Do not register a replaced
+record view with `this.child()`.
 
 ## Testing Your Editor
 
