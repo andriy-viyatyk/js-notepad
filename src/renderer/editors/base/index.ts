@@ -37,4 +37,3 @@ export { CONTENT_HOST_TRAIT } from './editor-traits';
 export type { IContentHostTrait } from './editor-traits';
 export { editorRegistry } from './editorRegistry';
 export type { EditorDefinition, EditorModule, AcceptanceInput } from './editorRegistry';
-export { PageToolbar } from './PageToolbar';

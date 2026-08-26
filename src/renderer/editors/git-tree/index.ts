@@ -5,14 +5,10 @@ import { decodeGitTreeLink } from "../../content/git-tree-link";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function GitTreeEditorComponent({ model }: { model: EditorModel }) {
-    return <GitTreeEditorView model={model as GitTreeEditorModel} />;
-}
-
 export const gitTreeModule: EditorModule = {
     createEditor: () =>
         new GitTreeEditorModel(new TComponentState(getDefaultGitTreeEditorState())),
-    Component: GitTreeEditorComponent,
+    View: GitTreeEditorView,
     newEditorModel: async (filePath?: string) => {
         const model = new GitTreeEditorModel(
             new TComponentState(getDefaultGitTreeEditorState()),

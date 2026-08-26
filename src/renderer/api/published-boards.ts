@@ -81,12 +81,16 @@ class PublishedBoards {
 
     /** All catalog boards (reactive). */
     useCatalog(): PublishedBoardInfo[] {
-        return this.state.use((s) => s.catalog?.boards ?? []);
+        return this.state.use(this.selectCatalogBoards);
     }
 
     /** All catalog boards (sync, non-reactive). */
     getCatalog(): PublishedBoardInfo[] {
-        return this.state.get().catalog?.boards ?? [];
+        return this.selectCatalogBoards(this.state.get());
+    }
+
+    subscribeCatalog(listener: () => void): () => void {
+        return this.state.subscribe(listener, this.selectCatalogBoards);
     }
 
     /**
@@ -131,6 +135,10 @@ class PublishedBoards {
             if (!this.isCompatible(board.minAppVersion)) return false;
             return matchesCatalogMasks(board, fileName);
         });
+    }
+
+    private selectCatalogBoards(state: CatalogState): PublishedBoardInfo[] {
+        return state.catalog?.boards ?? [];
     }
 }
 

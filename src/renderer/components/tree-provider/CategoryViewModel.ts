@@ -100,7 +100,9 @@ export interface CategoryViewProps {
      *  page stays single-select. */
     multiSelect?: boolean;
     /** Editor-level renderer for the Link-style folder items. */
-    renderItems: (props: CategoryItemsRendererProps) => React.ReactNode;
+    renderItems: (props: CategoryItemsRendererProps) => Node;
+    /** Called before the current rendered item Node is removed from the bridge host. */
+    onItemsDisposed?: () => void;
 }
 
 export interface CategoryViewState {

@@ -4,18 +4,14 @@ import {
     getDefaultImageEditorState,
     type ImageEditorState,
 } from "./ImageEditor";
-import { ImageView } from "./ImageView";
+import { ImageEditorView } from "./ImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
-
-function ImageEditorComponent({ model }: { model: EditorModel }) {
-    return <ImageView model={model as ImageEditor} />;
-}
 
 export const imageModule: EditorModule = {
     createEditor: () =>
         new ImageEditor(new TComponentState(getDefaultImageEditorState())),
-    Component: ImageEditorComponent,
+    View: ImageEditorView,
     newEditorModel: async (filePath?: string) => {
         const state: ImageEditorState = {
             ...getDefaultImageEditorState(),

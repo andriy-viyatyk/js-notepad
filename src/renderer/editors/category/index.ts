@@ -3,18 +3,14 @@ import {
     CategoryEditorModel,
     getDefaultCategoryEditorModelState,
 } from "./CategoryEditorModel";
-import { CategoryEditor } from "./CategoryEditor";
+import { CategoryEditorView } from "./CategoryEditor";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
-
-function CategoryEditorComponent({ model }: { model: EditorModel }) {
-    return <CategoryEditor model={model as CategoryEditorModel} />;
-}
 
 export const categoryModule: EditorModule = {
     createEditor: () =>
         new CategoryEditorModel(new TComponentState(getDefaultCategoryEditorModelState())),
-    Component: CategoryEditorComponent,
+    View: CategoryEditorView,
     newEditorModel: async (filePath?: string) => {
         const { CategoryEditorModel } = await import("./CategoryEditorModel");
         const { decodeCategoryLink } = await import("../../content/tree-providers/tree-provider-link");

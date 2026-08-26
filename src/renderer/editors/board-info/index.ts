@@ -5,16 +5,11 @@ import {
 } from "./BoardInfoEditorModel";
 import { BoardInfoEditorView } from "./BoardInfoEditorView";
 import type { EditorModule } from "../base/editorRegistry";
-import type { EditorModel } from "../base/EditorModel";
-
-function BoardInfoEditorComponent({ model }: { model: EditorModel }) {
-    return <BoardInfoEditorView model={model as BoardInfoEditorModel} />;
-}
 
 export const boardInfoModule: EditorModule = {
     createEditor: () =>
         new BoardInfoEditorModel(new TComponentState(getDefaultBoardInfoEditorState())),
-    Component: BoardInfoEditorComponent,
+    View: BoardInfoEditorView,
 };
 
 export { BoardInfoEditorModel, getDefaultBoardInfoEditorState } from "./BoardInfoEditorModel";

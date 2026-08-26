@@ -1,4 +1,3 @@
-import React from "react";
 import { showAppPopupMenu } from "../../ui/dialogs";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import type { GridModelCapability } from "../../uikit/VirtualGrid";
@@ -6,7 +5,6 @@ import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { createIconElement } from "../../uikit/shared/slots";
-import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { IconName } from "../../theme/icon-registry";
@@ -69,7 +67,7 @@ interface StateSelection extends StateProjection {
     dropOverView: boolean;
 }
 
-/** Native shell for CategoryView. LinksList/LinksTiles remain one React island until Epic E. */
+/** Native shell for CategoryView and its editor-owned list/tile item view. */
 export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private readonly driver: CategoryModelDriver;
     private readonly content = document.createElement("div");
@@ -85,7 +83,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private clearButton: IconButtonView | undefined;
     private viewModeButton: IconButtonView | undefined;
     private spacerView: SpacerView | undefined;
-    private bridge: MountedReactRoot | undefined;
+    private bridge: Node | undefined;
     private gridModel: GridModelCapability | null = null;
     private pendingGridRepaint = false;
     private toolbarTarget: HTMLElement | null = null;
@@ -179,7 +177,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.root.tabIndex = -1;
 
         this.content.className = "cv-content";
-        this.bridgeHost.className = "cv-react-bridge";
+        this.bridgeHost.className = "cv-items-bridge";
         this.bridgeHost.style.display = "contents";
         this.tileScope.className = "panel-root cv-tile-focus-scope";
         this.tileScope.dataset.type = "category-tile-focus";
@@ -254,7 +252,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             return;
         }
 
-        this.reconcileReactArm(state);
+        this.reconcileItemsArm(state);
     }
 
     private createMessage(kind: "error" | "loading", text: string): HTMLDivElement {
@@ -275,7 +273,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         }
     }
 
-    private reconcileReactArm(state: CategoryViewState): void {
+    private reconcileItemsArm(state: CategoryViewState): void {
         const viewMode = this.props.viewMode ?? "list";
         const isTileMode = viewMode !== "list";
         const projectionChanged = !this.lastProjection
@@ -297,12 +295,18 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         }
 
         if (!this.bridge) {
-            this.bridge = mountReactHandle(this.bridgeHost, this.renderItems(state));
+            const rendered = this.renderItems(state);
+            this.bridgeHost.replaceChildren(rendered);
+            this.bridge = rendered;
             this.pendingGridRepaint = true;
             this.flushPendingGridRepaintSoon();
         } else if (projectionChanged || this.lastProjection?.filteredItems !== state.filteredItems) {
+            const rendered = this.renderItems(state);
+            if (rendered !== this.bridge) {
+                this.bridgeHost.replaceChildren(rendered);
+                this.bridge = rendered;
+            }
             this.pendingGridRepaint = true;
-            this.bridge.render(this.renderItems(state));
             this.flushPendingGridRepaintSoon();
         }
 
@@ -325,14 +329,14 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.lastViewMode = viewMode;
     }
 
-    private renderItems(state: CategoryViewState): React.ReactElement {
+    private renderItems(state: CategoryViewState): Node {
         const provider = this.props.provider;
         const selectedIds = this.props.multiSelect
             ? new Set(state.selectedHrefs)
             : undefined;
         const acceptsDrops = this.model.acceptsDrops;
         const allowsDrag = this.model.allowsDrag;
-        const rendered = this.props.renderItems({
+        return this.props.renderItems({
             items: state.filteredItems,
             viewMode: this.props.viewMode ?? "list",
             selectedId: this.props.selectedHref ?? undefined,
@@ -352,13 +356,14 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             dragSourceId: allowsDrag ? provider.sourceUrl : undefined,
             onDragStartOverride: allowsDrag ? this.onDragStartOverride : undefined,
         } satisfies CategoryItemsRendererProps);
-        return React.createElement(React.Fragment, null, rendered);
     }
 
     private disposeBridge(): void {
-        if (!this.bridge) return;
-        this.bridgeHost.remove();
-        this.bridge.dispose();
+        if (this.bridge) {
+            this.props.onItemsDisposed?.();
+            this.bridge = undefined;
+        }
+        this.bridgeHost.replaceChildren();
         this.bridge = undefined;
         this.gridModel = null;
         this.pendingGridRepaint = false;

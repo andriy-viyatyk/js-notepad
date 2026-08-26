@@ -4,14 +4,10 @@ import { ArchiveEditorView, makeArchiveEditor } from "./ArchiveEditorView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function ArchiveEditorComponent({ model }: { model: EditorModel }) {
-    return <ArchiveEditorView model={model as ArchiveEditor} />;
-}
-
 export const archiveModule: EditorModule = {
     createEditor: () =>
         new ArchiveEditor(new TComponentState(getDefaultArchiveEditorState())),
-    Component: ArchiveEditorComponent,
+    View: ArchiveEditorView,
     newEditorModel: async (filePath?: string) => {
         const model = makeArchiveEditor();
         if (filePath) await model.initFromArchive(filePath);

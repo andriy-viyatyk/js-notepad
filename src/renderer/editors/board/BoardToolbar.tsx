@@ -14,7 +14,8 @@ import { Text } from "../../uikit/Text";
 import { Popover } from "../../uikit/Popover";
 import { Dot } from "../../uikit/Dot";
 import { createIconElement } from "../../uikit/shared/slots";
-import { SwitchWidget } from "../base/PageToolbar";
+import { mountVanilla } from "../../uikit/shared/mount";
+import { SwitchWidgetView } from "../base/PageToolbarView";
 import { openBoardInfo } from "../board-info/open-board-info";
 import { BoardsTree } from "./BoardsTree";
 import type { BoardEditorModel } from "./BoardEditorModel";
@@ -156,8 +157,11 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
             {/* Editor-switch widget (EPIC-042) — shown only when this board is acting as a
                 file editor (findCompatibleEditors yields the built-in + this board). Reuses the
                 exact PageToolbar widget so a board↔Monaco switch looks identical to every other
-                editor switch. Renders nothing for a plainly-opened board (its own guard). */}
-            <SwitchWidget model={model} />
+                editor switch. Renders nothing for a plainly-opened board (its own guard).
+                Mounts `SwitchWidgetView` directly: EPIC-068 deleted the React `PageToolbar`
+                module, and this was its last caller — through the `SwitchWidget` export rather
+                than `PageToolbar` itself, which is why the removal ledger undercounted it. */}
+            {mountVanilla(SwitchWidgetView, { model })}
             {canSwitch && (
                 <Popover
                     name="board-toolbar-switcher"

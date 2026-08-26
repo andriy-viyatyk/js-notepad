@@ -1,18 +1,14 @@
 import { TComponentState } from "../../core/state/state";
 import { VideoEditor, getDefaultVideoEditorState } from "./VideoEditor";
-import { VideoView } from "./VideoView";
+import { VideoEditorView } from "./VideoView";
 import { detectVideoFormat } from "./video-types";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function VideoEditorComponent({ model }: { model: EditorModel }) {
-    return <VideoView model={model as VideoEditor} />;
-}
-
 export const videoModule: EditorModule = {
     createEditor: () =>
         new VideoEditor(new TComponentState(getDefaultVideoEditorState())),
-    Component: VideoEditorComponent,
+    View: VideoEditorView,
     newEditorModel: async (filePath?: string) => {
         const initialState = getDefaultVideoEditorState();
         if (filePath) {
