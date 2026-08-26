@@ -33,8 +33,9 @@ Editor views have three intentional shapes:
 Export a native main view as `EditorModule.View`, or an embeddable native body as `BodyView`;
 `AsyncEditorView` mounts a main `View` directly. A React body may remain inside a native
 `TextChromeView` slot when it needs React, but it must be wrapped in `EditorErrorBoundary`. The
-`PageToolbar`, `EditorToolbar`, and `ContentHostFooter` names remain React compatibility faces for
-callers outside the native view path.
+`EditorToolbar` and `ContentHostFooter` remain React compatibility faces for callers outside the
+native view path. A converted non-text editor uses `PageToolbarView` directly; there is no separate
+React page-toolbar face to preserve.
 
 The native main-view shape is used by the text-bearing editor set, including `svg`, `html`,
 `markdown`, `grid`, `mermaid`, `log-view`, and `notebook`. The remaining React-bodied editors keep
@@ -279,6 +280,11 @@ a replacement for all DOM work: structure, input/event feedback, root attributes
 layout-sensitive reads remain explicit view code. View fields hold DOM references; models receive
 view-owned refs through explicit commands or setters and never query the document.
 
+Use `bind()` only when the observed state source outlives the view. When the source object can
+change, keep the disposer in a replaceable field: unsubscribe the old source, subscribe to the new
+one, and immediately apply the new source's current value. Repeatedly calling `bind()` for a changing
+source stacks subscriptions because `own()` releases them only when the view is disposed.
+
 ```typescript
 protected onMount(): void {
     this.title = document.createElement("span");
@@ -346,7 +352,8 @@ conversion complete, inspect the original JSX and exercise each interaction path
   (for example, interaction with an embedded frame) through the existing interaction signal.
 - **Preserve layout-only components.** A component that contributes no DOM still affects layout in
   JSX. Use root adoption or `display: contents` where a wrapper would break a flex chain, and set
-  `min-height: 0` on nested flex panels that must shrink.
+  `min-height: 0` on nested flex panels that must shrink. A view that measures its own root must
+  retain a real box instead; `display: contents` has no box for `ResizeObserver` or geometry reads.
 - **Make teardown order explicit.** Capture state from an owner while child views are still ready;
   do not reach through a child during `onDispose`. Clear ownership/bookkeeping before teardown that
   may throw, and contain or report child failures so one cell cannot abort the enclosing paint.
@@ -411,6 +418,10 @@ host, reuses the nested React root when the slot remains React-backed, and defer
 React root must be released during another React commit. Do not mutate a fill-slot host directly;
 the host's direct-child shape is part of the component contract. Use `mountReactHandle` directly
 only when the view owns a deliberate multi-node React bridge or needs to retain a render handle.
+
+Never pass a `DocumentFragment` as a slot value: slot filling appends the supplied node, which
+consumes a fragment on the first fill and leaves later refills empty. Use a persistent element or a
+mounted view root for content that may be projected more than once.
 
 Every React root created by `mountReactHandle` marks its host with
 `data-react-root`; disposal removes the marker. A root created directly by that helper is not

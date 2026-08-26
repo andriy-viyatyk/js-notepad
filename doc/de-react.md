@@ -970,7 +970,84 @@ bridge could not. **Two deletions scheduled together are not one deadline.**
 **E10's candidate, measured but not chosen**: `ui/secondary-views/SecondaryViews.tsx` — 17 lines
 producing one React root per open page, the best remaining roots-per-line target in the tree. As
 always that is a candidate, not an axis: E5-1 requires E10 to run its own contract search, now six
-consecutive times vindicated. The next free epic number is **EPIC-068**.
+consecutive times vindicated. *(E10 ran that search and **rejected this candidate**: re-measured on a
+live session it accounts for 0 roots, not 4. See below.)*
+
+**E10 ([EPIC-068](epics/EPIC-068.md), scoped 2026-08-26) is the `PageToolbar` editor group, and its
+contract search is the first in this programme to come back negative.** Five epics running found the
+same shape — one React-typed member pinning callers that would otherwise be vanilla. Every candidate
+E10 tested fails that test, and each fails for a *different* reason, which is what makes the negative
+credible rather than a failure to look hard enough:
+
+| Candidate | Measured | Verdict |
+|---|---|---|
+| `EditorModule.Component: React.ComponentType` | 15 editors on the arm, 15 on `View` | **Load-bearing** — their bodies are genuinely React, so the arm pins nobody |
+| `PageToolbar`/`EditorToolbar`/`ContentHostFooter` props | 10 caller editors | **Nominal** — all three files are pure `mountVanilla` shims, and E8's own test says such a face binds no React implementation |
+| `SvgIconComponent` (`theme/icons.tsx:12`) | 713 lines, 45 importers, but **32** JSX usages | Live but thin; its shape is still inverted (a React component with an *optional* DOM builder, which is why `createIconComponentElement` throws) but fixing it frees nobody |
+| `applyRestProps` / `clearRestListeners` / `bindRef` | 40 / 39 / 18 importers; **20** `uikit/*View.tsx` files are `.tsx` for this alone | A real contract whose **precondition is unmet** — still waiting on the last JSX caller |
+| `Story.component: React.ComponentType` | 45 stories, one spread at `LivePreview.tsx:64` | A **genuine contract pinning a harness, not the app**; deferred with its measurement recorded |
+| `CategoryViewProps.renderItems` | **1** caller | One caller is not a contract — the third rejection on caller count |
+
+**What the negative means:** the remaining React is **terminal** — React because its own content is
+React, not because a type above it demands React. From here the axis is content. The cut is therefore
+*the connected component of the `PageToolbar` module graph* (E8's atomic unit): six editors,
+**2,895** of the **9,497** JSX lines left in `editors/`, chosen over "the small editors first" (2,497
+lines, and it collects **nothing** because it strands `git-tree` and `video` on `PageToolbar`).
+
+Three findings from the scoping worth carrying. First, the baseline was taken on the user's **real
+six-page session** rather than a fixture: **4** roots, of which 3 are one per open React-arm editor,
+all born at `ui/app/AsyncEditorView.ts:146`, and `[data-part="react-slot"]` reads **0** —
+independently confirming E9's closing claim on a live session rather than on the fixture E9 measured.
+That makes E10's instrument exact and free: roots = 1 per open React-arm editor + 1 for
+`GlobalStyles`, so one conversion moves the count by exactly 1. Second, **E9's own named E10
+candidate was rejected on re-measurement** — `SecondaryViews.tsx` was credited with 4 roots when that
+note was written and accounts for 0 now. Fifth instance of *a forward-looking note is a measurement
+with a date on it*, and the clearest vindication yet of E5-1's rule: re-verifying cost one query,
+inheriting would have cost an epic aimed at nothing. Third, **the removal ledger undercounts
+`PageToolbar` by one caller** — the row lists six callers of `PageToolbar`, but the module also
+exports `SwitchWidget`, which `editors/board/BoardToolbar.tsx:160` imports. *A ledger row names the
+callers someone counted, and a module can have callers of a different export: grep the module path,
+not the component name.* The next free epic number is **EPIC-069**.
+
+**E10 is complete as [EPIC-068](epics/completed.md) (2026-08-26)** — all seven tasks reviewed, and the
+close review's two real regressions **fixed** rather than deferred. `PageToolbar.ts` is deleted at 0
+callers; the `Component` arm goes 15 → **9**, the `View` arm 15 → **21**, `editors/` non-story `.tsx`
+94 → **76**, and each of the six editors contributes **0** React roots where it contributed 1.
+Whole-app roots read 3 at close (`GlobalStyles` + one per open board page), matching E10-2's
+arithmetic exactly. Five of the six were verified live with real content rendering; **`git-tree` is
+recorded as statically verified but live-unverified** — both programmatic open routes are closed and
+the user was working in the app — the same discipline E9 applied to `svg-view` rather than assuming.
+
+Three findings outlast the epic. **A `DocumentFragment` must never be passed to a slot**: slots are
+re-filled unconditionally (`PageToolbarView.onUpdate:420-427`) and `fill-slot.ts:137` appends, which
+empties a fragment — EPIC-064's *a cache of a resource is a bug* in its purest form, since a fragment
+is destroyed by being used. **`bind()` is only for state that outlives the view**: it registers its
+unsubscribe through `own()`, which has no early-release API, so re-binding a changing-source
+subscription both leaks and lets stale sources keep pushing values — §4's "forgotten unsubscribe",
+found in the wild. And a genuine cross-rule interaction: **a view that measures its own root cannot
+use a `display: contents` root**, because such an element has no box, so `ResizeObserver` never fires
+and `getBoundingClientRect()` reads zero, silently; where the two rules conflict the measurement
+wins. E10 also **retired one of its own concerns** rather than implementing it — the predicted
+post-paint sizing for `BoardScreenshot` was unnecessary, since that file measures nothing — a fifth
+instance of *a forward-looking note is a measurement with a date on it*, this time caught inside the
+epic that wrote it.
+
+Its most transferable process finding: the per-task briefs accumulated ten rules with a file:line
+each, and the first three tasks needed corrections while the last two needed **none**. *A correction
+applied once is a fix; a correction written into the next brief is a class removed.*
+
+**Its close review found two real regressions that no gate could see**, and the first names a defect
+class this conversion pattern manufactures: **a `useMemo` whose result feeds a callback becomes dead
+code if the port defines the recompute but never calls it.** `CommitDiffPanel`'s `changeMapFor()` was
+defined and never called, so commit status badges and an "Open in new Tab" action were silently
+missing while `tsc`, ESLint and `build-prod` all stayed green — an empty `Map` is still a `Map`, and
+the symptom is *absence*, which a root count cannot measure. Every remaining editor conversion should
+check each ported `useMemo`/`useCallback` for a live **caller**, not merely a definition. The second
+is the **persistent-child consequence**: React unmounting a subtree used to suppress side effects for
+free, so an inactive branch that a native parent now keeps mounted becomes live — here an inactive
+`<audio>` receiving the video source and emitting spurious loading/error states. Both are the same
+lesson as the epic's `DocumentFragment` finding, from a third direction: *what React did for free by
+destroying things must become explicit when nothing is destroyed.*
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
@@ -1093,7 +1170,7 @@ creates the duplicate, not in the epic that hopes to remove it.
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
 | `uikit/shared/highlight.ts` React form | Two editor consumers still use it: GraphBody and LinkCategoryPanel (EPIC-056 C3-7) | The remaining editor consumers use the DOM form; the React form can be removed when those two boundaries convert | C3 / EPIC-056 |
-| `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | **Split by E9 ([EPIC-067](epics/completed.md)), and `TextChrome` is now collected.** `TextChrome` was deleted there — its 14 call sites convert and the file is deleted. The other three are **not**: `PageToolbar` keeps 6 direct callers (`archive`, `board-info`, `category`, `git-tree`, `image`, `video`), `EditorToolbar` 3 (`browser`, `mcp-inspector`, `mneme-config`) and `ContentHostFooter` 1 (`board`), so each keeps a React face until its own editor converts. E1-8's "so the conversion is free" does not survive the measurement: the React faces feed native views through `fillSlot`, costing those 10 editors +1..2 roots each against −2 on each of the 14 | E1 / EPIC-059 |
+| `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | **Split by E9 ([EPIC-067](epics/completed.md)), and `TextChrome` is now collected.** `TextChrome` was deleted there — its 14 call sites convert and the file is deleted. The other three are **not**: **`PageToolbar` is now collected too, by E10 ([EPIC-068](epics/EPIC-068.md)).** It had 6 direct callers (`archive`, `board-info`, `category`, `git-tree`, `image`, `video`) — **plus a seventh caller of the same module through its `SwitchWidget` export, `editors/board/BoardToolbar.tsx:160`, which this row originally missed**; that site now calls `mountVanilla(SwitchWidgetView, { model })` directly, so the module was deleted at 0 callers without converting `board`. Two remain: `EditorToolbar` 3 (`browser`, `mcp-inspector`, `mneme-config`) and `ContentHostFooter` 1 (`board`), each keeping a React face until its own editor converts. E1-8's "so the conversion is free" still does not survive the measurement: the React faces feed native views through `fillSlot`, costing those 4 editors +1..2 roots each. E1-8's "so the conversion is free" does not survive the measurement: the React faces feed native views through `fillSlot`, costing those 10 editors +1..2 roots each against −2 on each of the 14 | E1 / EPIC-059 |
 | `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
 
 #### Collected or collectable after the editor-body conversion

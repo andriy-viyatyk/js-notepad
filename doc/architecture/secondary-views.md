@@ -498,11 +498,13 @@ this.secondaryView = ["my-panel"];
 
 ## 12. CategoryEditor — Provider-Agnostic Folder Viewer
 
-**Source code:** [`CategoryEditor.tsx`](../../src/renderer/editors/category/CategoryEditor.tsx), [`CategoryEditorModel.ts`](../../src/renderer/editors/category/CategoryEditorModel.ts)
+**Source code:** [`CategoryEditor.ts`](../../src/renderer/editors/category/CategoryEditor.ts), [`CategoryEditorModel.ts`](../../src/renderer/editors/category/CategoryEditorModel.ts)
 
-CategoryEditor is the main content area editor for `tree-category://` links. It renders CategoryView for any ITreeProvider — file system folders, archive subfolders, or future link categories.
+CategoryEditor is the main content area editor for `tree-category://` links. Its native
+`CategoryEditorView` renders CategoryView for any ITreeProvider — file system folders, archive
+subfolders, or future link categories.
 
-`CategoryView` owns provider-backed listing, selection, search, drag-and-drop, and file actions. It does not import the link editor's list/tile components. Instead, `CategoryEditor` supplies the `renderItems` callback, which adapts the model's `CategoryItemsRendererProps` to `LinksList` or `LinksTiles`. This keeps the reusable tree-provider layer below the editor layer while preserving the link-specific presentation and behavior.
+`CategoryView` owns provider-backed listing, selection, search, drag-and-drop, and file actions. It does not import the link editor's list/tile components. Instead, `CategoryEditor` supplies the `renderItems` callback, which adapts the model's `CategoryItemsRendererProps` to native `LinksListView` or `LinksTilesView` roots. The callback returns a `Node`, so the tree-provider layer stays framework-free while preserving the link-specific presentation and behavior.
 
 ### Provider Resolution
 

@@ -350,7 +350,6 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── editor-matchers.ts        # Acceptance / resolution priority helpers
 │   │   ├── editorRegistry.ts         # Native editor registry — resolve, register, switch options
 │   │   ├── editor-switch.ts          # switchMainEditor — switch-widget transition (host transfer / rebuild)
-│   │   ├── PageToolbar.ts            # React-facing compatibility face
 │   │   ├── PageToolbarView.ts        # Native page toolbar — NavPanel + switch widget auto-slots
 │   │   ├── TextChromeView.ts         # Native host-aware chrome (toolbar, script panel, footer)
 │   │   ├── EditorToolbar.ts          # React-facing compatibility face
@@ -544,8 +543,8 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.ts
 │   ├── image/              # Image viewer (non-text, no trait)
 │   │   ├── ImageEditor.ts            # EditorModel — pipe-backed image state
-│   │   ├── ImageView.tsx             # React component
-│   │   └── index.tsx
+│   │   ├── ImageView.ts              # Native page view
+│   │   └── index.ts
 │   ├── mcp-inspector/      # MCP Inspector (non-text, no trait)
 │   │   ├── McpInspectorEditorModel.ts # EditorModel — connection, tools, resources, prompts
 │   │   ├── McpInspectorView.tsx      # Main view — connection bar, panel routing
@@ -591,28 +590,29 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx
 │   ├── video/              # Audio/Video player (non-text, no trait)
 │   │   ├── VideoEditor.ts            # EditorModel — playback state, streaming integration
-│   │   ├── VideoView.tsx
-│   │   ├── VPlayer.tsx               # Video playback component (video.js + hls.js)
-│   │   ├── AudioPlayer.tsx           # Audio file playback with visualizer
-│   │   ├── AudioVisualizer.tsx       # Frequency visualization (switchable effects)
-│   │   ├── AudioControls.tsx
+│   │   ├── VideoView.ts              # Native editor view
+│   │   ├── VPlayer.ts                # Video playback view (video.js + hls.js)
+│   │   ├── AudioPlayer.ts             # Audio file playback with visualizer
+│   │   ├── AudioVisualizer.ts         # Frequency visualization (switchable effects)
+│   │   ├── AudioControls.ts
+│   │   ├── video-editor.css           # Static video-editor presentation styles
 │   │   ├── effects/                  # Audio visualizer effect implementations
 │   │   │   ├── types.ts
 │   │   │   ├── BarsEffect.ts
 │   │   │   └── CircularEffect.ts
 │   │   ├── NodeFetchHlsLoader.ts     # Custom hls.js loader via nodeFetch
 │   │   ├── video-types.ts
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── category/           # Category/folder view (non-text, no trait — provider-agnostic)
-│   │   ├── CategoryEditor.tsx        # EditorModel + React component (single file)
+│   │   ├── CategoryEditor.ts         # EditorModel + native view (single file)
 │   │   ├── CategoryEditorModel.ts    # Page model — decodes tree-category:// link
 │   │   ├── FolderViewModeService.ts  # Per-folder view mode persistence
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── archive/            # Archive editor (non-text, with sidebar panel)
 │   │   ├── ArchiveEditor.ts          # EditorModel — archive state, tree provider, navigation survival
-│   │   ├── ArchiveEditorView.tsx     # Main content view
-│   │   ├── ArchiveSecondaryView.tsx # Secondary panel — tree view with portaled header
-│   │   └── index.tsx
+│   │   ├── ArchiveEditorView.ts       # Main content view
+│   │   ├── ArchiveSecondaryView.ts    # Secondary panel — tree view with portaled header
+│   │   └── index.ts
 │   ├── explorer/           # File explorer (non-text, sidebar-only)
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── page-explorer.ts          # Explorer provisioning for a page — toggleNavigator, auto-init
@@ -655,11 +655,11 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   └── index.tsx                 # boardModule + legacy EditorModule factory
 │   ├── board-info/         # Board Info editor ("board-info") — install + properties over one host-capable holder
 │   │   ├── BoardInfoEditorModel.ts   # EditorModel — install/properties modes; adopts/yields CONTENT_HOST_TRAIT without rendering (lossless Text↔+↔board switch)
-│   │   ├── BoardInfoEditorView.tsx   # Download→Register install UI + properties/versions UI (UIKit only)
+│   │   ├── BoardInfoEditorView.ts     # Download→Register install UI + properties/versions UI (UIKit only)
 │   │   ├── BoardScreenshot.tsx       # Catalog screenshot at a fixed 16:10 footprint — remote <img>, placeholder on no-URL/404; also used by the hub's Search boards tab
-│   │   ├── board-info-id.ts          # BOARD_INFO_EDITOR_ID constant (avoids an import cycle with PageToolbar)
+│   │   ├── board-info-id.ts          # BOARD_INFO_EDITOR_ID constant (avoids an import cycle with PageToolbarView)
 │   │   ├── open-board-info.ts        # openBoardInfo(page,opts) replaces a page's editor; openBoardInfoPage(opts) opens a new page
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── tools-hub/          # Tools & Editors hub ("tools-hub-view") — full-page counterpart of the sidebar panel (singleton via fixed PageModel id)
 │   │   ├── ToolsHubEditor.ts         # EditorModel — HubTab state; Built-in / Registered boards / Search boards / Tools
 │   │   ├── ToolsHubView.tsx          # Tab strip + body + right Pinned rail (reuses the sidebar list components)

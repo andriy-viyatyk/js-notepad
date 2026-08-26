@@ -168,7 +168,8 @@ Choose the page chrome before writing the view:
   An embedded body must not add `PageToolbarView` or `TextChromeView`.
 - **`PageToolbarView`** — use for a non-text editor that needs the standard page toolbar but does not
   need text-host actions, script panel, footer, or editor overlay. The Image editor is the native
-  toolbar example. `PageToolbar` remains a thin React compatibility face for existing React callers.
+  toolbar example. The page toolbar's native view is the canonical implementation for converted
+  non-text editors.
 - **`TextChromeView`** — use for a text-host editor. It supplies the native host-aware toolbar,
   script panel, content-host footer, focus/key handling, and overlay slot. The editor's `View`
   composes it directly; a React body may remain a bounded island in its `children` slot.

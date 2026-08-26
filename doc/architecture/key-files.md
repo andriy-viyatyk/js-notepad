@@ -109,7 +109,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |
 | Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
 | Native text-host chrome (toolbar, focus/key handling, script panel, footer, overlay, and DOM/React slot projection) | `/src/renderer/editors/base/TextChromeView.ts` |
-| Page toolbar native view and React compatibility face (NavPanel, editor switch, and toolbar slots) | `/src/renderer/editors/base/PageToolbarView.ts`, `/src/renderer/editors/base/PageToolbar.ts` |
+| Page toolbar native view (NavPanel, editor switch, and toolbar slots) | `/src/renderer/editors/base/PageToolbarView.ts` |
 | Editor toolbar native view and React compatibility face | `/src/renderer/editors/base/EditorToolbarView.ts`, `/src/renderer/editors/base/EditorToolbar.ts` |
 | Shared text-host footer (`script` toggle · `footerContributions` slot · provider icon · encoding label; shared by built-in text editors and content-host boards via `BoardEditorView` — boards fill the contributions slot with a footer status label via `persephone.setStatusText`) | `/src/renderer/editors/base/ContentHostFooterView.ts`, `/src/renderer/editors/base/ContentHostFooter.ts` |
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |
@@ -134,7 +134,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Syntax-highlighted code (Monaco colorize with React residual-props shim) | `/src/renderer/editors/shared/ColorizedCodeView.ts`, `/src/renderer/editors/shared/ColorizedCode.ts` |
 | Find bar (native input/buttons with React compatibility face) | `/src/renderer/editors/shared/FindBarView.ts`, `/src/renderer/editors/shared/FindBar.ts` |
 | Converted compare editor (native diff host and compare model orchestration) | `/src/renderer/editors/compare/CompareEditor.ts` |
-| Converted image toolbar (native toolbar actions inside `PageToolbar`) | `/src/renderer/editors/image/ImageToolbarView.ts` |
+| Image editor view and toolbar (native page surface and toolbar actions) | `/src/renderer/editors/image/ImageView.ts`, `/src/renderer/editors/image/ImageToolbarView.ts` |
+| Archive editor view (native page toolbar and archive content surface) | `/src/renderer/editors/archive/ArchiveEditorView.ts` |
+| Category editor view (native page toolbar and provider-backed category surface) | `/src/renderer/editors/category/CategoryEditor.ts` |
+| Board Info editor view (native install/properties surface) | `/src/renderer/editors/board-info/BoardInfoEditorView.ts` |
 | Converted Mermaid body (native preview body inside `TextChromeView`) | `/src/renderer/editors/mermaid/MermaidBodyView.ts` |
 | Converted Toolset editor view (native standalone editor view) | `/src/renderer/editors/toolset/ToolsetEditorView.ts` |
 | Native Explorer Search panel (vanilla secondary view over `FileSearchView`) | `/src/renderer/editors/explorer/SearchSecondaryView.ts` |
@@ -203,11 +206,11 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | MCP HTTP transport (sessions, HTTP, lifecycle) | `/src/main/mcp-http-server.ts`  |
 | MCP server definition — instructions, guides, tools | `/src/main/mcp/`             |
 | MCP tool definitions (one module per group, tools as data) | `/src/main/mcp/tools/` |
-| Audio/Video player editor| `/src/renderer/editors/video/VideoPlayerEditor.tsx` |
-| Video playback component | `/src/renderer/editors/video/VPlayer.tsx`          |
-| Audio player component   | `/src/renderer/editors/video/AudioPlayer.tsx`      |
-| Audio controls bar       | `/src/renderer/editors/video/AudioControls.tsx`    |
-| Audio visualizer         | `/src/renderer/editors/video/AudioVisualizer.tsx`  |
+| Audio/Video player editor view | `/src/renderer/editors/video/VideoView.ts` |
+| Video playback view (video.js + hls.js and stable media nodes) | `/src/renderer/editors/video/VPlayer.ts` |
+| Audio player view | `/src/renderer/editors/video/AudioPlayer.ts` |
+| Audio controls view | `/src/renderer/editors/video/AudioControls.ts` |
+| Audio visualizer view | `/src/renderer/editors/video/AudioVisualizer.ts` |
 | Video streaming server   | `/src/main/video-stream-server.ts`                |
 | VLC launcher             | `/src/main/vlc-launcher.ts`                       |
 | Terminal launcher (main; `detectTerminal` via `where`, `openTerminalAt` via `cmd /c start` so a console shell gets a visible window; supports pwsh/powershell/cmd/wt) | `/src/main/terminal-launcher.ts` |
@@ -277,13 +280,13 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | L/R side-select toggle   | `/src/renderer/components/git-tree/SideSelectToggle.tsx` |
 | Swimlane lane layout     | `/src/renderer/components/git-tree/swimlane-layout.ts` |
 | Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
-| Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.tsx` |
+| Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.ts` |
 | Git "Git" panel — merged secondary view (container: "Git (N)" header, Refresh + "x" close + "Show Git Tree" zone, Changes/Branches/Tags SegmentedControl + body-toolbar AZ toggle for refs segments; persists `gitPanelTab`) | `/src/renderer/editors/git-tree/GitPanelSecondaryView.ts` |
 | Git "Changes" segment body (stage/unstage/reset + Commit button — buttons, double-click, context menu; header-less) | `/src/renderer/editors/git-tree/GitChangesView.tsx` |
 | Git "Branches"/"Tags" segment body (`show="branches"` → Branches + Remotes refs tree; `show="tags"` → flat tags; head-green active branch, AZ/historical order, click-to-reveal, Switch context menu; header-less) | `/src/renderer/editors/git-tree/GitRefsView.tsx` |
 | Commit dialog (message + author Name/Email + branch; "Commit" / "Commit & Push" actions; `showCommitDialog`) | `/src/renderer/ui/dialogs/CommitDialog.ts` |
-| Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.tsx` |
-| Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.tsx` |
+| Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.ts` |
+| Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.ts` |
 | File Diff editor (single shared `fileTree` model) | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |
 | Git Diff "File History" panel | `/src/renderer/editors/file-diff/GitDiffRevisionsSecondaryView.ts` |
 | Flat file list (icons + single-click; React-facing face over native view) | `/src/renderer/components/file-list/FileList.tsx`, `/src/renderer/components/file-list/FileListView.ts` |

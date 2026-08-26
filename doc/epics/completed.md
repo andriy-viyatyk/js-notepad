@@ -4,6 +4,95 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-068 — [De-React Epic E10: the `PageToolbar` editor group](EPIC-068.md)
+
+The first epic in this programme whose **contract search came back negative**. Five epics running had
+found one React-typed member pinning otherwise-vanilla callers; every candidate here failed that
+test, each for a different reason — `EditorModule.Component` is load-bearing (15 editors, but their
+bodies are genuinely React), the three surviving chrome props are *nominal* (all three files are pure
+`mountVanilla` shims, so by E8's own test they bind no implementation), `SvgIconComponent` is live but
+thin (45 importers, only 32 JSX usages), the `applyRestProps` bridge is a real contract whose
+precondition is unmet, `Story.component` is a genuine contract pinning a **harness** rather than the
+app, and `renderItems` had one caller. What the negative says: the remaining React is **terminal** —
+React because its own content is React, not because a type above it demands React. So the axis became
+content, cut along *the connected component of the `PageToolbar` module graph* (E8's atomic unit):
+six editors, 2,895 of the 9,497 JSX lines left in `editors/`. Seven tasks, all reviewed.
+
+| Measure | Start | End |
+|---|---|---|
+| `<PageToolbar` JSX call sites | 6 | **0** |
+| `PageToolbar.ts` callers (incl. `SwitchWidget`) | 7 | **0** — the file is deleted |
+| Editors on the React `Component` arm | 15 | **9** |
+| Editors registering `View` | 15 | **21** |
+| JSX lines in the six editors | 2,895 | **9** (a deliberate shim) |
+| `.tsx` in `editors/` (non-story) | 94 | **76** |
+| Renderer non-story `.tsx` | 205 | **187** |
+| React roots per converted editor | 1 each | **0 each** |
+
+**Rule 4, honestly.** Five of the six were verified live, each measuring 0 `[data-react-root]` and 0
+`[data-part="react-slot"]` with real content rendering. **`git-tree` is recorded as statically
+verified but live-unverified** — both programmatic open routes are closed (`addEditorPage` refuses it
+as "a standalone editor that requires a specialized model") and the user was working in the app, so
+it was not worth disturbing their session. Same discipline E9 applied to `svg-view`. Whole-app roots
+read 3 at close (`GlobalStyles` + one per open board page), matching the baseline arithmetic exactly.
+
+**Four findings outlast the epic**, and three are the same lesson from different directions —
+*what React did for free by destroying things must become explicit when nothing is destroyed*:
+
+- **Never pass a `DocumentFragment` to a slot.** Slots are re-filled unconditionally
+  (`PageToolbarView.onUpdate:420-427`) and `fill-slot.ts:137` appends, which *empties* a fragment — so
+  mount works and the first update deletes the content. EPIC-064's "a cache of a resource is a bug" in
+  its purest form: a fragment is destroyed by the act of being used.
+- **`bind()` is only for state that outlives the view.** It registers its unsubscribe through `own()`,
+  which has **no early-release API**, so re-binding a changing-source subscription both leaks and lets
+  stale sources keep pushing values — selection visibly fighting itself, not merely waste. §4's
+  "forgotten unsubscribe", found in the wild.
+- **A `useMemo` whose result feeds a callback becomes dead code if the port defines the recompute but
+  never calls it.** The close review's sharpest catch: `changeMapFor()` was defined and never called,
+  so commit badges and an "Open in new Tab" action were silently missing with every gate green. An
+  empty `Map` is still a `Map`, and the symptom is *absence* — which no root count can measure.
+- **A view that measures its own root cannot use a `display: contents` root** — no box, so
+  `ResizeObserver` never fires and `getBoundingClientRect()` reads zero, silently. Two of the epic's
+  own rules conflicted here; the measurement wins.
+
+**It retired one of its own concerns rather than implementing it.** E10-5 concern 7 predicted
+`BoardScreenshot.tsx` would need post-paint sizing with a bounded retry; it measures nothing at all,
+and the implementation brief was told explicitly *not* to add it — otherwise the epic document would
+have talked someone into writing dead complexity. Fifth instance of *a forward-looking note is a
+measurement with a date on it*, this time caught inside the epic that wrote it. It also **rejected
+E9's named E10 candidate on re-measurement**: `SecondaryViews.tsx` was credited with 4 roots when that
+note was written and accounts for 0 now.
+
+**E10-4's correction.** The removal ledger recorded six `PageToolbar` callers; the module had a
+**seventh** through its `SwitchWidget` export (`board/BoardToolbar.tsx:160`). That site now calls
+`mountVanilla(SwitchWidgetView, …)` directly, so the module deleted at 0 callers without converting
+`board`. *A ledger row names the callers someone counted, and a module can have callers of a
+different export — grep the module path, not the component name.*
+
+**Process finding.** The per-task briefs accumulated ten rules with a file:line each; the first three
+tasks needed corrections and the last two needed **none**. *A correction applied once is a fix; a
+correction written into the next brief is a class removed.* Every `.tsx` → `.ts` conversion also hit
+the dev-server **stale dynamic-import trap** — the editor silently fails to load until
+`register-editors.ts` is touched. `build-prod` is unaffected; it belongs in the routine, not the
+diagnosis.
+
+**Left deliberately.** `BoardScreenshot.tsx` survives as an 8-line `mountVanilla` shim
+(`tools-hub/SearchBoardsTab.tsx:158` still renders it). `EditorToolbar` (3 callers) and
+`ContentHostFooter` (1) keep their React faces and ledger clauses. `createContentsRoot()` is
+duplicated locally in eight files — extracting it was out of scope for a per-editor epic.
+
+| Task | Title |
+|---|---|
+| US-1112 | [`image` → `View` (the pilot)](../tasks/US-1112-image-editor-native/README.md) |
+| US-1113 | [`archive` → `View`](../tasks/US-1113-archive-editor-native/README.md) |
+| US-1114 | [`category` → `View`, plus the `renderItems` widen/migrate/narrow](../tasks/US-1114-category-editor-native/README.md) |
+| US-1115 | [`board-info` → `View`, plus `subscribeCatalog`](../tasks/US-1115-board-info-editor-native/README.md) |
+| US-1116 | [`git-tree` → `View`](../tasks/US-1116-git-tree-editor-native/README.md) |
+| US-1117 | [`video` → `View`](../tasks/US-1117-video-editor-native/README.md) |
+| US-1118 | `SwitchWidget` moved; `PageToolbar.ts` deleted at 0 callers |
+
+---
+
 ## EPIC-067 — [De-React Epic E9: the editor chrome contract](EPIC-067.md)
 
 The contract was `TextChromeProps`' four `ReactNode` members — `children`, `toolbarContributions`,

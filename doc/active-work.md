@@ -215,8 +215,53 @@ Overview of all active and planned epics and tasks.
   channel. Two pre-existing §6.1 bugs surfaced during verification and are tracked as US-1108 and
   US-1110. `svg-view`'s root count is recorded as **unmeasured** — `addEditorPage` does not force an
   editor id, so that row had measured `monaco` in both the baseline and the first closing draft, the
-  fourth Rule 4 instrument correction in the programme. Next free epic number: **EPIC-068**; next free
-  task number: **US-1112**.
+  fourth Rule 4 instrument correction in the programme.
+  **E10 is complete as [EPIC-068](epics/completed.md)** — and its contract search is the first in the
+  programme to come back **negative**. Five epics running found one React-typed member pinning
+  otherwise-vanilla callers; every candidate here fails that test, each for a different reason, which
+  is what makes the negative credible: `EditorModule.Component` is **load-bearing** (15 editors on the
+  arm, but their bodies are genuinely React); the three surviving chrome props are **nominal**, since
+  all three files are pure `mountVanilla` shims and E8's own test says such a face binds no React
+  implementation; `theme/icons.tsx`'s `SvgIconComponent` is live but thin (**45** importers, 713 lines,
+  yet only **32** JSX usages, 14 of them inside editors that convert anyway — its shape is still
+  inverted, a React component with an *optional* DOM builder, which is why
+  `createIconComponentElement` throws, but fixing it frees nobody); the `applyRestProps` bridge is a
+  real contract whose **precondition is unmet** (40/39/18 importers, and **20** `uikit/*View.tsx` files
+  are `.tsx` for it alone); `Story.component: React.ComponentType` is a **genuine contract pinning a
+  harness rather than the app** (45 stories, one spread at `LivePreview.tsx:64`), deferred with its
+  measurement recorded; and `CategoryViewProps.renderItems` has **1** caller — the third rejection on
+  caller count. What the negative says is that the remaining React is **terminal**: React because its
+  own content is React, not because a type above it demands React. So the axis is content, and the cut
+  is **the connected component of the `PageToolbar` module graph** (E8's atomic unit) — six editors,
+  **2,895** of the 9,497 JSX lines left in `editors/`, chosen over "the small editors first" (2,497
+  lines, collects **nothing**). Two findings already. The baseline was taken on the user's **real
+  six-page session**: **4** roots, of which 3 are one per open React-arm editor, all born at
+  `ui/app/AsyncEditorView.ts:146`, and `[data-part="react-slot"]` reads **0** — independently
+  confirming E9's closing claim on a live session rather than its fixture. And E9's named E10
+  candidate, `SecondaryViews.tsx`, was **re-verified and rejected**: credited with 4 roots when
+  written, it accounts for **0** now — the fifth instance of *a forward-looking note is a measurement
+  with a date on it*, and the reason E5-1's search rule keeps paying. Also corrected: the removal
+  ledger records six `PageToolbar` callers, but the module has a **seventh** through its `SwitchWidget`
+  export (`board/BoardToolbar.tsx:160`) — grep the module path, not the component name.
+  **Closed 2026-08-26 with its property met:** `PageToolbar.ts` deleted at 0 callers, the `Component`
+  arm 15 → **9**, the `View` arm 15 → **21**, `editors/` non-story `.tsx` 94 → **76**, and each of the
+  six editors contributing **0** React roots where it contributed 1. Five of six verified live with
+  real content; **`git-tree` is recorded as statically verified but live-unverified** — both
+  programmatic open routes are closed and the user was working in the app — the same discipline E9
+  applied to `svg-view`. Its close review found **two real regressions that every gate missed**, both
+  now fixed, and the first names a defect class this conversion pattern manufactures: *a `useMemo`
+  whose result feeds a callback becomes dead code if the port defines the recompute but never calls
+  it* — `changeMapFor()` was defined and never called, so commit badges and an "Open in new Tab"
+  action were silently missing while `tsc`, ESLint and `build-prod` stayed green. An empty `Map` is
+  still a `Map`, and the symptom is *absence*, which no root count can measure. The second is the
+  **persistent-child consequence**: an inactive `<audio>` a native parent now keeps mounted received
+  the video source and emitted spurious loading/error states, because React used to suppress that for
+  free by unmounting. Together with the epic's `DocumentFragment` finding these are one lesson from
+  three directions — *what React did for free by destroying things must become explicit when nothing
+  is destroyed*. It also **retired one of its own concerns** rather than implementing it (the
+  predicted post-paint sizing for `BoardScreenshot`, which measures nothing) and recorded a genuine
+  cross-rule interaction: *a view that measures its own root cannot use a `display: contents` root*.
+  Next free epic number: **EPIC-069**; next free task number: **US-1119**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

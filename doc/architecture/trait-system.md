@@ -2,7 +2,7 @@
 
 ## Overview
 
-The trait system is a universal mechanism for **capability declaration and drag-and-drop type negotiation**. It was introduced in EPIC-026 as a foundational architectural primitive — on par with the state system and event channels.
+The trait system is a universal mechanism for **capability declaration and drag-and-drop type negotiation**. It is a foundational architectural primitive — on par with the state system and event channels.
 
 ### Problems it solves
 
@@ -14,7 +14,7 @@ The trait system is a universal mechanism for **capability declaration and drag-
 
 ### What it does NOT do yet
 
-The `TraitKey`/`TraitSet`/`Traited` primitives were designed for **component data adaptation** (replacing accessor function props like `getLabel`, `getIcon`, etc.) but this usage is not yet implemented. EPIC-025 (Component Library) will build on these primitives. Currently only the drag-and-drop part of the system is actively used.
+The `TraitKey`/`TraitSet`/`Traited` primitives were designed for **component data adaptation** (replacing accessor function props like `getLabel`, `getIcon`, etc.) but this usage is not yet implemented. The component library can build on these primitives. Currently only the drag-and-drop part of the system is actively used.
 
 ---
 

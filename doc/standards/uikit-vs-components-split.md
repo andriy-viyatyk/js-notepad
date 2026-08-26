@@ -1,6 +1,6 @@
 # UIKit vs `components/` — the permanent split
 
-> Decided during [EPIC-025](../epics/EPIC-025.md) close. This is the permanent contract for where reusable UI code lives.
+> This is the permanent contract for where reusable UI code lives.
 
 ## The two folders
 
@@ -43,4 +43,3 @@ If a primitive *could* depend on `app.*` but the dependency can be injected as a
 - [`src/renderer/uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) — UIKit authoring rules (data-attributes, controlled components, traits, model-view, naming, file template).
 - [`/doc/standards/component-guide.md`](./component-guide.md) — decision tree for where a new component goes.
 - [`/doc/standards/coding-style.md`](./coding-style.md) — Emotion / `style=` / `className=` boundary (Rule 7).
-- [`/doc/epics/EPIC-025.md`](../epics/EPIC-025.md) — the migration that produced this split.

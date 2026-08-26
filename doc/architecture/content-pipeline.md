@@ -4,7 +4,7 @@
 
 The content delivery pipeline (`/src/renderer/content/`) is a unified I/O layer that decouples editors from data sources. Instead of editors reading files directly, all content flows through composable pipes that combine a data source (provider) with data effects (transformers). This makes it possible to open a file inside a ZIP archive, decrypt it on the fly, and save it back -- all transparent to the editor.
 
-The pipeline was introduced in EPIC-012 to replace scattered file I/O calls across the codebase. It handles encoding detection, file watching, caching, and serialization for session restore.
+The pipeline replaces scattered file I/O calls across the codebase. It handles encoding detection, file watching, caching, and serialization for session restore.
 
 ## 3-Layer Pipeline
 
