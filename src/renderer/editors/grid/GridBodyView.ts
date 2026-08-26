@@ -69,7 +69,13 @@ function gridProps(props: GridBodyViewProps, onGrid: DataGridProps["onGrid"]): D
         rows,
         getRowKey,
         rowNoun: "row",
-        searchString: state.search || undefined,
+        // `state.search` verbatim, NOT `|| undefined`: an empty box is the value "no search", not
+        // an absent option. `DataGridView.collectValues` drops `undefined` entries, and
+        // `updateDataGrid` calls `invalidatePushed()` first, so a cleared box would appear in
+        // neither the old baseline nor the new values — the delta would omit `searchString`
+        // entirely, `AVGrid.setOptions` would never see the key, and the grid would stay filtered
+        // on the last non-empty term. Typing hid it: a non-empty value is always present.
+        searchString: state.search,
         highlightString: editorConfig?.highlightText,
         filters: state.filters,
         filterBar: true,
@@ -154,7 +160,15 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> {
 
     protected onMount(): void {
         this.model = this.props.model;
-        const contentPanel = createPanelElement({ direction: "column", flex: true });
+        // `minHeight: 0` is load-bearing, not defensive. A flex item defaults to
+        // `min-height: auto`, so it cannot shrink below its content — and av-grid writes its own
+        // measured height into the subtree, which makes that content floor whatever the grid was
+        // last sized at. Opening the script panel then shrinks this panel's *container* while the
+        // panel itself stays at its old height, overflowing downward and painting over the script
+        // panel: the splitter ends up under the grid's scroll element and cannot be grabbed at all
+        // (`elementFromPoint` on it returns `render-grid-scroll`). Monaco and Markdown bodies have
+        // no such internal height, which is why the symptom was grid-only.
+        const contentPanel = createPanelElement({ direction: "column", flex: true, minHeight: 0 });
         const errorText = createTextElement("", { color: "warning", preWrap: true });
         const errorPanel = createPanelElement(
             { flex: true, justify: "center", align: "center", padding: "xxl" },
