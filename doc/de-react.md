@@ -560,13 +560,13 @@ Candidate tasks:
   `setPropsInternal` / `_initInternal` / `onUnmountInternal`; `ComponentQueue` gains a plain
   `subscribe` path in place of its hook.
 - **`mountVanilla` / `mountReact`** — the two-way adapter pair.
-- **Storybook harness** — the existing `editors/storybook/` preview exercises the vanilla
-  implementation through each converted component's unchanged React-facing shim. The original
-  plan considered a second `vanillaComponent` field and side-by-side panes, but the public React
-  face now calls `mountVanilla` itself, so a second pane would render the same implementation twice
-  and add no comparison signal. `Story` remains a small React-facing record with serializable
-  prop definitions; `previewChildren` remains the temporary React-only slot seam until later
-  conversions remove it.
+- **Storybook harness** — the existing `editors/storybook/` preview renders each story's
+  declared arm directly: converted demos use `Story<P>.view` and story-local `VanillaView` classes,
+  while `Panel` and `Text` retain the React `component` arm. The original plan considered a second
+  vanilla field and side-by-side panes, but the public React face still calls `mountVanilla` for
+  application callers, so a second pane would render the same implementation twice and add no
+  comparison signal. `story-props.ts` provides the single prop-preparation path, and
+  `previewChildren` follows the selected arm (`ReactNode` for React stories, `Node` for vanilla).
 - **Pilot** — one real component converted end to end to validate the contract before Epic C
   scales it to 44.
 - **Authoring rules** — update `uikit/CLAUDE.md` and `model-view-pattern.md` for vanilla views.
@@ -687,16 +687,18 @@ free**: av-grid reads the `--p-*` contract directly and Persephone already owns 
 root — with `injectStyles: false`, or a runtime-injected sheet would out-order the whole
 `@layer uikit` contract C3-8 established.
 
-**Verification runs through the Storybook harness** built in Epic B. Each converted component is
-exercised through its existing story; the public React shim mounts the vanilla implementation, and
-the `data-name` contract
+**Verification runs through the Storybook harness** built in Epic B. Each story's declared arm is
+exercised: converted demos mount their story-local vanilla view directly, while the `Panel` and
+`Text` compatibility stories use the React arm. The public React shims still mount the same vanilla
+implementations for application callers, and the `data-name` contract
 ([ui-element-contract.md](architecture/ui-element-contract.md)) makes the DOM before and after
 comparable — drivable from the `browser_*` tools. It is a visual harness, not an assertion suite;
 it shows a difference, it does not fail a build. Note that open decision #6's *side-by-side* form
 did not survive contact: EPIC-053 B5 was partially reversed by US-994, because a converted
-component's React face renders the vanilla view, so both panes would have shown the same DOM. Rule
-4's number is therefore taken at two points in time — **on the React implementation before the
-conversion, which is the one measurement that cannot be recovered afterwards** — not in two panes.
+component's React face and its vanilla story would exercise the same implementation, so both panes
+would have added no comparison signal. Rule 4's number is therefore taken at two points in time —
+**on the React implementation before the conversion, which is the one measurement that cannot be
+recovered afterwards** — not in two panes.
 
 Story coverage was 38 of the 44 components at the split. The six without a story were `AVGrid`
 (superseded by av-grid anyway), the former React virtualization component, `Minimap`, `ImageViewport`, `Progress` and
@@ -704,8 +706,10 @@ Story coverage was 38 of the 44 components at the split. The six without a story
 conversion is hardest. Writing those stories is cheap and belongs to whichever epic owns the
 component, before the component is converted rather than after. **C1 and C2 closed four of the six**
 (`SelectableRow`, then `Minimap`, `ImageViewport` and `Progress`), so coverage measured 42 of 44 when
-C3 opened: the virtualization story was C3's to write, `AVGrid` was C4's. Note two of C1's stories are vanilla-only
-`.story.ts` files (`Checkbox`, `Label`) — a `.tsx` glob misses them.
+C3 opened: the virtualization story was C3's to write, `AVGrid` was C4's. Note two of C1's stories are
+`.story.ts` files (`Checkbox`, `Label`) — a `.tsx` glob misses them. **They are not vanilla stories**,
+which this paragraph claimed until E11 checked: both import the React face and cast it into the
+contract (`component: Checkbox as any`), so they are React stories that happen to contain no JSX.
 
 **One extra task, cheap and unrelated to rendering:** close the four remaining `uikit/` → app-layer
 imports listed in §3.5 (`ListBoxModel`, `TreeModel`, `Menu/types`, and the former grid wrapper; the fifth dies
@@ -1007,7 +1011,7 @@ inheriting would have cost an epic aimed at nothing. Third, **the removal ledger
 `PageToolbar` by one caller** — the row lists six callers of `PageToolbar`, but the module also
 exports `SwitchWidget`, which `editors/board/BoardToolbar.tsx:160` imports. *A ledger row names the
 callers someone counted, and a module can have callers of a different export: grep the module path,
-not the component name.* The next free epic number is **EPIC-069**.
+not the component name.* The next free epic number is **EPIC-070**.
 
 **E10 is complete as [EPIC-068](epics/completed.md) (2026-08-26)** — all seven tasks reviewed, and the
 close review's two real regressions **fixed** rather than deferred. `PageToolbar.ts` is deleted at 0
@@ -1048,6 +1052,115 @@ free, so an inactive branch that a native parent now keeps mounted becomes live 
 `<audio>` receiving the video source and emitting spurious loading/error states. Both are the same
 lesson as the epic's `DocumentFragment` finding, from a third direction: *what React did for free by
 destroying things must become explicit when nothing is destroyed.*
+
+**E11 ([EPIC-069](epics/EPIC-069.md), scoped 2026-08-26) is the Storybook contract, and it is the
+first epic whose search reversed the *previous* epic's own verdict rather than a candidate the
+previous epic inherited.** E10 closed on a negative — "the remaining React is terminal" — having
+measured `Story.component: React.ComponentType` and set it aside as *"a genuine contract pinning a
+harness, not the app."* Re-measured, the phrase is the error: what it pins is `uikit/`. **21 of the 49
+non-story `.tsx` files in `uikit/` have zero non-story JSX users, and 15 of those are kept alive by
+exactly one caller — their own story.** So the removal ledger's `React faces on converted UIKit
+components` row has been stating the wrong unblock condition since C1 created it: **Epic E finishing
+does not free them**, because Epic E cannot remove a story. The row is corrected below. That is the
+ledger's own stated failure mode arriving on schedule — *"a component whose last consumer is gone
+still compiles, and nothing but this list notices"* — except the list was what was wrong.
+
+It is also the first single-armed contract in the programme. Every earlier one had a vanilla arm
+built beside it before the React arm died (`EditorModule.View`, the secondary-view registry's arm,
+`SlotContent`'s `Node` arm, `TreeItemProps.label`'s `| Node`); `Story` has none, so E11 builds the arm
+before anything can convert.
+
+**Two measurement corrections carried forward, both of the same shape — an extension is not a
+measurement.** First, this document's claim that *"two of C1's stories are vanilla-only `.story.ts`
+files (`Checkbox`, `Label`)"* is **wrong**: both import the React face and cast it in
+(`component: Checkbox as any`). They are React stories that happen to hold no JSX, so there was no
+vanilla precedent to copy — and the `as any` is the contract refusing a value that does not fit,
+silenced. Second, and larger: **64 of the 70 non-story `.tsx` files in `uikit/` contain no JSX at
+all.** Only `WithMenu`, `Panel`, `Text`, `shared/mount`, `Dialog/DialogView` and `Popover/PopoverView`
+do, five of them with a single tag. Every `.tsx`-count in this programme's history therefore
+overstates the JSX surface, in `uikit/` by an order of magnitude.
+
+**E11 also retires E10's roots arithmetic.** E10 closed reporting 3 roots and 0 slot markers, with the
+rule *"roots = 1 per open React-arm editor + 1 for `GlobalStyles`, so one conversion moves the count
+by exactly 1."* The same instrument on a live eight-page session reads **16 and 5**, and the DOM says
+why: six of the roots sit *inside* a React editor's own root, at `editor-toolbar`, `url-input` and
+`webview-area`. The mechanism is the two-way boundary composing in both directions at once — a React
+editor renders a converted uikit face, `mountVanilla` puts a native view inside the React tree, and
+that view's `fillSlot` React arm calls `mountReactHandle`, **nesting a React root inside a React
+root**. So an editor's cost is 1 + one per element-valued slot fill in its tree; the browser editor
+alone is four to seven. E10 measured 3 because its session had no browser page open.
+
+The consequence is a standing correction to Rule 4's instrument: **the root count is not
+monotonically decreasing in this programme.** Converting a `uikit/` component *raises* it for every
+un-converted editor that passes that component element children, and only the editor's own conversion
+brings it down. A rising count mid-programme is expected, not a regression — E9 saw the local form and
+recorded a 4–5 mid-epic peak; this is the same effect across the whole tree. And a roots figure
+without the open-page list is not a measurement: "3" and "16" are both true of the same build.
+Sixth instance of *a forward-looking note is a measurement with a date on it*, and the first where
+re-measuring **promoted** a deferred candidate instead of rejecting one. The next free epic number is
+**EPIC-070**.
+
+**E11 is complete as [EPIC-069](epics/completed.md) (2026-08-27)** — all ten tasks reviewed.
+`Story.component` goes from **44 callers to 2** (`Panel`, `Text`, permanently, since neither has a
+vanilla twin by C1's decision); `.story.tsx` 43 → **2**; the Storybook editor's six `.tsx` → **0**;
+`uikit/` non-story `.tsx` 70 → **51**; renderer non-story `.tsx` 187 → **162**; and all **45** stories
+render with zero failures, verified against a pre-conversion DOM baseline rather than on report.
+
+**Its headline prediction was wrong, and that is the finding.** It expected "≥15 `uikit/` React faces
+deleted" and deleted **2**, because a face file is *also* its props-type module — `Menu.tsx` has 28
+type importers, `Dialog.tsx` 16. So **20 of 49 React components were removed as dead code** while only
+2 files could go; 17 became type-only modules renamed `.ts`. **Deleting a React face is a
+type-relocation job, not a deletion**, and the removal ledger now carries the three-way split
+(3 free / 17 type-only / 29 still-live) with importer counts so Epic F inherits it.
+
+**Three measurement lessons, all one shape: the proxy is not the measurement.** The `.tsx` extension
+overstated the surface (**64 of 70** non-story `.tsx` in `uikit/` hold no JSX); the import list gave
+"45 stories" by counting the `Story` *type* import when the registry held **44**, plus an orphan
+(`SelectableRow.story.tsx`, written in C1 and never registered — so §Epic C's "42 of 44 have a story"
+was overstated by one); and the JSX tag count classified **35 demo-wrapper stories as mechanical**,
+because they render story-local React wrappers, several built with `React.createElement` and therefore
+tagless. That last one turned "point 35 stories at a view" into "rewrite 35 wrappers as
+`VanillaView`s" and forced a mid-epic re-cut by wrapper complexity.
+
+**Four findings outlast the epic.** First, **a DOM baseline is the only instrument that sees a silent
+conversion regression**: it caught three in the first batch — `spacer` rendering nothing visible at all
+— with `tsc`, ESLint and `build-prod` green, in the same task whose summary reported three *different*
+stories as blocked. Hence the standing rule: *a report of what could not be done is not evidence about
+what was done.* Second, **the verification path must be the real one** — duplicating `LivePreview`'s
+prop preparation to run the comparison produced a false regression report, fixed by exporting
+`prepareStoryProps()` so the harness and the editor share one definition. Third, **converting a
+harness has a payoff beyond the contract**: the stories became `uikit/`'s first non-React consumer and
+immediately surfaced **six under-declared public props** (`CollapsiblePanelStack.buttons`,
+`DialogContent.headerButtons`, `Tree`/`ListBox.renderItem`, `ListBox`/`Autocomplete.emptyMessage`), all
+consumed by `fillSlot` — which already accepted `Node` — yet declared `ReactNode` only. Fourth, and
+correcting E10: **touching the importer clears a stale `.tsx` → `.ts` rename only for a static
+import**; a module reached through a **dynamic** `import()` needs the dev server restarted, and a
+frozen `?t=` timestamp in the error is how to tell the two apart.
+
+**It also found three unreleased bugs, two of them live crashes**, and together they name a missing
+guard rather than a run of mistakes. `NotificationView`'s constructor touched a child field before
+`onMount()` created it, so **no toast or alert in the app could render** (EPIC-066); `BlockingBranchView`
+did the same, so **the blocking progress overlay could not render**, and `ProgressPillView` leaked a
+spinner created in its constructor (both EPIC-055, on the branch since 2026-08-21, surfaced by the
+close review). That is **four violations of one rule across three epics** — *the constructor must not
+create or touch child DOM* (`uikit/CLAUDE.md`) — and none was catchable: `private x: T | undefined`
+makes the constructor compile and the failure is a runtime `TypeError` on a path no gate or story
+exercises. **Guard it mechanically before the next conversion epic** (US-1131), because every epic
+remaining in this programme writes new `VanillaView` subclasses.
+
+**Two cuts were measured and rejected, and both are recorded so E12 does not re-derive them.** The
+*form-and-panel editors* — `settings` (820 lines, 248 JSX tags), `mcp-inspector` (1,642 / 171),
+`mneme-config` (586 / 97), `mneme-root` (284 / 26), `about` (240 / 31), `tools-hub` (269 / 37) — are
+the safest large group left in `editors/` (no webview, Monaco, canvas or floating-ui) and take the
+`Component` arm 9 → 3. They lost because they close by shrinking a number, and because the three
+uikit faces they appeared to strand (`DateInput`, `ProgressBar`, `TagsInput`) each keep one caller:
+their own story. **Chasing that discrepancy is what found E11's contract**, so the rejected cut earned
+its keep. The *last two `editors/base` chrome files* — `browser` + `mcp-inspector` + `mneme-config` +
+`board`, 4,597 lines, closing by deleting `EditorToolbar.ts` and `ContentHostFooter.ts` at zero
+callers — lost because E10 had already measured all three chrome files as **nominal** pure
+`mountVanilla` shims (re-verified by reading them), and because it concentrates every remaining hard
+hazard in one epic: two `<webview>` elements destroyed by reparenting, the last `@floating-ui/react`
+importer (`BrowserTabsPanel.tsx:2`), and the board trust flow.
 
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
@@ -1166,12 +1279,15 @@ creates the duplicate, not in the epic that hopes to remove it.
 | Survivor | Kept because | Collectable once | Created by |
 |---|---|---|---|
 | `uikit/Panel/` (the React `Panel.tsx` face) | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`. C1's "no vanilla twin" no longer holds: `Panel/panel-style.ts` exports `createPanelElement`, used at 84 sites after Epic D, so what survives is the React face, not the concept (EPIC-059 finding 6) | Epic E converts the remaining editor call sites; two shell header wrappers remain deliberately for pointer-event behavior | C1 / EPIC-054 |
-| React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
+| React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | **This row stated the wrong precondition from C1 until E11 measured it.** It read "Epic E finishes", which is false: **21 of the 49 faces already have zero non-story JSX users, and 15 of those are held by exactly one caller — their own `.story.tsx`**, which Epic E cannot touch. The real condition is *both* blockers falling: the application's JSX call sites (Epic E) **and** the `Story.component: React.ComponentType` contract (E11 / [EPIC-069](epics/EPIC-069.md)). E11 frees the harness half and deletes every face that reaches zero | C1 onward |
+| `Story.component: React.ComponentType` for `Panel` and `Text` | Both are real React implementations with **no vanilla twin, by C1's explicit decision** — vanilla views write plain elements with semantic classes instead — so their stories cannot point at a `VanillaViewCtor`. Inventing a `PanelView` to close E11 would be the "accidentally writing a worse React" failure Epic B warned about. Their stories are also the last regression net those two files have | `Panel.tsx` and `Text.tsx` die with the wrappers in Epic F; the arm and both stories go with them | E11 / EPIC-069 |
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
 | `uikit/shared/highlight.ts` React form | Two editor consumers still use it: GraphBody and LinkCategoryPanel (EPIC-056 C3-7) | The remaining editor consumers use the DOM form; the React form can be removed when those two boundaries convert | C3 / EPIC-056 |
 | `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | **Split by E9 ([EPIC-067](epics/completed.md)), and `TextChrome` is now collected.** `TextChrome` was deleted there — its 14 call sites convert and the file is deleted. The other three are **not**: **`PageToolbar` is now collected too, by E10 ([EPIC-068](epics/EPIC-068.md)).** It had 6 direct callers (`archive`, `board-info`, `category`, `git-tree`, `image`, `video`) — **plus a seventh caller of the same module through its `SwitchWidget` export, `editors/board/BoardToolbar.tsx:160`, which this row originally missed**; that site now calls `mountVanilla(SwitchWidgetView, { model })` directly, so the module was deleted at 0 callers without converting `board`. Two remain: `EditorToolbar` 3 (`browser`, `mcp-inspector`, `mneme-config`) and `ContentHostFooter` 1 (`board`), each keeping a React face until its own editor converts. E1-8's "so the conversion is free" still does not survive the measurement: the React faces feed native views through `fillSlot`, costing those 4 editors +1..2 roots each. E1-8's "so the conversion is free" does not survive the measurement: the React faces feed native views through `fillSlot`, costing those 10 editors +1..2 roots each against −2 on each of the 14 | E1 / EPIC-059 |
 | `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
+
+| **US-1128 correction: the collected React component half of converted UIKit faces** | E11 removed the Storybook contract blocker, but the face file usually remains the live props-type module. The measurement is **3 free face candidates / 17 dead-component-live-types / 29 still-live** among the 49 non-story, non-`*View` `.tsx` files. The 3 candidates are `MultiSelect`, `AlertsBar`, and `PathInput`; `AlertsBar.tsx` is retained because `src/renderer/index.tsx` imports its live `AlertsBarView` (and the module also owns `alertsBarModel`). | With both blockers gone — application JSX callers and `Story.component` — the React component is dead, but deleting its file is usually a **type-relocation** job. The 17 type-only faces and type-importer counts are: `Menu` (28), `Dialog` (16), `ImageViewport` (6), `CategoryList` (5), `MultiListBox` (4), `RadioGroup` (4), `Label` (3), `Minimap` (3), `Toolbar` (3), `AlertItem` (2), `DialogContent` (2), `Notification` (2), `SplitButton` (2), `ListBox/SectionItem` (2), `Tree/SectionItem` (2), `CollapsiblePanelStack` (1), and `ProgressOverlay` (1). | US-1128 / E11 |
 
 #### Collected or collectable after the editor-body conversion
 

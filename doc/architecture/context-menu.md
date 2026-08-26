@@ -268,11 +268,11 @@ interface MenuItem {
 }
 ```
 
-## Menu Component
+## Menu View
 
-`Menu` (`/src/renderer/uikit/Menu/Menu.tsx`) renders the actual menu:
+`MenuView` (`/src/renderer/uikit/Menu/MenuView.tsx`) renders the actual menu:
 
-- **Portal-based** — renders to `document.body` via React portal
+- **Portal-based** — attaches the native menu root to `document.body`
 - **Virtualized** — uses the `ListBox` primitive for performance with many items
 - **Search filtering** — shows search field when items > 20
 - **Submenu support** — items with `items[]` property render a submenu on hover
@@ -320,6 +320,6 @@ interface MenuItem {
 | Event type definitions | `/src/renderer/api/types/events.d.ts` |
 | Native event augmentation | `/src/renderer/types/events.d.ts` |
 | Global event handler | `/src/renderer/api/internal/GlobalEventService.ts` |
-| Menu component | `/src/renderer/uikit/Menu/Menu.tsx` |
+| Menu view | `/src/renderer/uikit/Menu/MenuView.tsx` |
 | showAppPopupMenu | `/src/renderer/ui/dialogs/poppers/showPopupMenu.ts` |
 | MenuItem type | `/src/renderer/api/types/events.d.ts` |

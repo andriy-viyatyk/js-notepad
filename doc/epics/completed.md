@@ -4,6 +4,81 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-069 — [De-React Epic E11: the Storybook contract](EPIC-069.md)
+
+**The first epic whose search reversed its predecessor's verdict rather than an inherited candidate.**
+E10 closed on a negative — "the remaining React is terminal" — having measured
+`Story.component: React.ComponentType` and set it aside as *"a genuine contract pinning a harness,
+not the app."* That phrase was the error: what it pinned was `uikit/`. 21 of the 49 face files had
+zero non-story JSX users and 15 were held by exactly one caller — their own story — so the removal
+ledger's "React faces … collectable once Epic E finishes" row had been stating the wrong unblock
+condition since C1, because Epic E cannot remove a story. It was also the programme's first
+**single-armed** contract: every earlier one had a vanilla arm built beside it, `Story` had none, so
+the arm had to be built before anything could convert.
+
+| Measure | Start | End |
+|---|---|---|
+| `.story.tsx` / `.story.ts` | 43 / 2 | **2 / 43** |
+| `Story.component` callers | 44 | **2** (`Panel`, `Text` — permanent, §E11-4) |
+| Storybook editor non-story `.tsx` | 6 (396 lines) | **0** |
+| Editors on the React `Component` arm | 9 | **8** |
+| `uikit/` non-story `.tsx` | 70 | **51** |
+| Renderer non-story `.tsx` | 187 | **162** |
+| Stories rendering | 44 of 45 | **45, zero failures** |
+| React roots, Storybook page, per vanilla story | 1 + slots | **1** — `uikit/Toolbar`'s, not this epic's |
+
+**Three measurement lessons, all the same shape.** The scoping used file extensions, an import list
+and JSX tag counts, and all three lied. `.tsx` overstated the surface — **64 of 70** non-story `.tsx`
+files in `uikit/` contain no JSX at all. The import list gave "45 stories" by counting the `Story`
+*type* import; the real registry held **44**, plus one orphan (`SelectableRow.story.tsx`, written in
+C1 and never registered, so the roadmap's "42 of 44 have a story" was overstated by one). And the tag
+count classified **35 demo-wrapper stories as mechanical** — they render a story-local React wrapper,
+several written with `React.createElement` and therefore tagless — which turned "point 35 stories at a
+view" into "rewrite 35 demo wrappers as `VanillaView`s" and forced the task list to be re-cut
+mid-epic by wrapper complexity.
+
+**The epic's own headline number was wrong, and usefully so.** It predicted "≥15 faces deleted" and
+delivered **2**, because each face file is *also* its props-type module (`Menu.tsx` has 28 type
+importers, `Dialog.tsx` 16). The accurate result: **20 of 49 React components removed as dead code**,
+2 files deleted, 17 reduced to type-only modules renamed `.ts`. Deleting a face is a
+**type-relocation** job — Epic F's shape — and the ledger now carries the three-way split
+(3 free / 17 type-only / 29 still-live) with importer counts.
+
+**Three unreleased bugs found, two of them live crashes**, none catchable by any gate:
+
+- `NotificationView`'s constructor touched a child field before `onMount()` created it, so every
+  construction threw — **no toast or alert in the app could render** (EPIC-066).
+- `BlockingBranchView` did the same — **the blocking progress overlay could not render** — and
+  `ProgressPillView` leaked a `SpinnerView` created in its constructor (EPIC-055, on the branch since
+  2026-08-21). Both surfaced by the close review.
+
+That is **four violations of one rule across three epics** — *the constructor must not create or touch
+child DOM* — and `private x: T | undefined` makes every one of them compile. Carried forward as
+**US-1131**: guard it mechanically before the next conversion epic, since every remaining epic writes
+new `VanillaView` subclasses.
+
+**What converting a harness bought beyond the contract.** The stories became `uikit/`'s **first
+non-React consumer**, and that immediately surfaced **six under-declared public props** —
+`CollapsiblePanelStack.buttons`, `DialogContent.headerButtons`, `Tree`/`ListBox.renderItem`,
+`ListBox`/`Autocomplete.emptyMessage` — all consumed by `fillSlot`, which already accepted `Node`, yet
+declared `ReactNode` only. Each fix was one word; in the first case the correct type was already on
+the adjacent line. That is a fair answer to §E11-5 concern 2's accepted loss of face coverage.
+
+**Two process findings.** A pre-conversion **DOM baseline** was the only instrument that caught
+anything: it found three silent regressions in the first batch — `spacer` rendering nothing visible at
+all — with `tsc`, ESLint and `build-prod` green, in the same task whose summary reported three *other*
+stories as blocked. Hence the rule the epic ran on afterwards: *a report of what could not be done is
+not evidence about what was done*, so every later task was gated on the DOM diff, never the summary.
+And the harness must render through the **real** preparation path — duplicating `LivePreview`'s
+prop preparation for verification produced a false regression report, fixed structurally by exporting
+`prepareStoryProps()`.
+
+Also narrower than EPIC-068 stated: touching the importer clears a stale `.tsx` → `.ts` rename for a
+**static** import, but a module reached through a **dynamic** `import()` needs the dev server
+restarted. A frozen `?t=` timestamp in the error distinguishes the two.
+
+---
+
 ## EPIC-068 — [De-React Epic E10: the `PageToolbar` editor group](EPIC-068.md)
 
 The first epic in this programme whose **contract search came back negative**. Five epics running had

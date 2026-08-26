@@ -578,16 +578,17 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   │   ├── ThemeSection.tsx
 │   │   │   └── SettingsSections.tsx  # Simple settings-bound sections
 │   │   └── index.tsx
-│   ├── storybook/          # Storybook editor (non-text, no trait)
+│   ├── storybook/          # Native Storybook editor with React story compatibility arm
 │   │   ├── StorybookEditorModel.ts   # EditorModel — component browser, live preview
-│   │   ├── StorybookEditorView.tsx
-│   │   ├── ComponentBrowser.tsx
-│   │   ├── LivePreview.tsx
-│   │   ├── PropertyEditor.tsx
-│   │   ├── iconPresets.tsx
+│   │   ├── StorybookEditorView.ts
+│   │   ├── ComponentBrowser.ts
+│   │   ├── LivePreview.ts
+│   │   ├── PropertyEditor.ts
+│   │   ├── iconPresets.ts
+│   │   ├── story-props.ts            # Shared story prop preparation
 │   │   ├── storyRegistry.ts
 │   │   ├── storyTypes.ts
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── video/              # Audio/Video player (non-text, no trait)
 │   │   ├── VideoEditor.ts            # EditorModel — playback state, streaming integration
 │   │   ├── VideoView.ts              # Native editor view

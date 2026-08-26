@@ -52,6 +52,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Clearer git error messages** — Error toasts from git actions (commit, push, pull, switch, create branch, stage/unstage, discard) no longer carry a redundant "Error: " prefix — a failed commit now reads "nothing to commit" instead of "Error: nothing to commit". A few error messages that previously rendered as the literal word "undefined" (when the underlying failure wasn't a standard `Error` object) now show the actual error text.
 
+- **Toast and alert notifications render reliably** — Fixed an issue on the upcoming branch that could prevent notifications from rendering at all. Alerts and toasts now display their message and icon as expected.
+
 ---
 
 ## Version 4.0.21

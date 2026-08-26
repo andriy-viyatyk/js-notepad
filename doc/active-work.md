@@ -9,6 +9,8 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
+  - [ ] US-1131: **guard the `VanillaView` constructor rule mechanically — schedule before the next conversion epic.** *The constructor must not create or touch child DOM* (`uikit/CLAUDE.md`) has now been broken **four times across three epics**: `MermaidBodyView` (EPIC-059, see US-1055), `NotificationView` (EPIC-066), and both `BlockingBranchView` and `ProgressPillView` (EPIC-055). **Two were live crashes.** None was caught by `tsc`, ESLint, `build-prod` or a story render — `private x: T | undefined` makes the constructor compile and the failure is a runtime `TypeError` on an unexercised path. Options: an ESLint rule forbidding `this.<field>` writes and `this.child(...)` in a `VanillaView` constructor, or a base-class assertion that fails loudly in development. Every remaining De-React epic writes new `VanillaView` subclasses, so the fifth instance is already being invited. Supersedes the "raise priority" note on US-1055.
+  - [ ] US-1132: three pre-existing `uikit/` lifecycle findings from EPIC-069's close review, none in code that epic added: `ListBoxView` retains obsolete entries in `rowViews` (added at `:329`/`:335`, removed only at `:424`); `DataGridView` omits `releaseChild()` on replaced branches; `ToolbarView` reuses a single-use DOM `IconRef` — worth investigating alongside the nested React root EPIC-069 measured in `ToolbarView`, which may share a cause.
   - [ ] US-1109: the interaction behind US-1108 is a general trap worth removing rather than
     documenting once. `DataGridView.invalidatePushed()` discards the baseline that makes "this option
     disappeared" detectable, and `collectValues` drops `undefined`, so **any** consumer that maps a
@@ -26,7 +28,7 @@ Overview of all active and planned epics and tasks.
     `coding-style.md` with the reason — the `writeFileSync`/`existsSync`/`mkdirSync` calls are
     synchronous inside user actions, so the async `app.fs` port is a behaviour change, not a rename.
   - [ ] US-1091: `data-part="react-slot"` is stamped unconditionally by `uikit/Dialog/DialogView.tsx:87` and `uikit/Tag/TagView.tsx:88`, before either view picks its native or React arm — so a host holding plain DOM carries the React marker and the De-React programme's Rule 4 instrument counts roots that do not exist. `fill-slot.ts` stamps it only on its real React container, so the defect is limited to those two views; `data-react-root` (set only by `mountReactHandle`, deleted on dispose) is the reliable marker. Measured in EPIC-065: `EditLinkDialog` open reported 1 root under the both-markers instrument and 0 under `data-react-root`. Fix: stamp the marker only on the React branch. Deferred out of EPIC-065 to avoid putting unreviewed `uikit/` changes inside a closed epic. Counterpart to EPIC-063 E5-3, which added the marker because a root was *invisible* — same lesson, opposite direction.
-  - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
+  - [ ] US-1055 **(the rule behind it is now tracked as US-1131 — four violations, two of them live crashes)**: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
   - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
@@ -261,7 +263,19 @@ Overview of all active and planned epics and tasks.
   is destroyed*. It also **retired one of its own concerns** rather than implementing it (the
   predicted post-paint sizing for `BoardScreenshot`, which measures nothing) and recorded a genuine
   cross-rule interaction: *a view that measures its own root cannot use a `display: contents` root*.
-  Next free epic number: **EPIC-069**; next free task number: **US-1119**.
+  **E11 is complete as [EPIC-069](epics/completed.md)** — the Storybook contract, and the first search
+  in this programme to *reverse its predecessor's verdict*: E10 had measured `Story.component` and
+  deferred it as "pinning a harness, not the app", but it pinned `uikit/`. `Story.component` goes 44
+  callers → **2** (`Panel`, `Text`, permanently), `.story.tsx` 43 → **2**, the Storybook editor's six
+  `.tsx` → **0**, `uikit/` non-story `.tsx` 70 → **51**, and all **45** stories render. Its own
+  headline was wrong in a useful way — it predicted "≥15 faces deleted" and deleted **2**, because a
+  face file is also its props-type module, so **20 of 49 React components were removed as dead code**
+  while deleting the *files* is a type-relocation job for Epic F. It also found **three unreleased
+  bugs, two of them live crashes** (no toast could render; the blocking progress overlay could not
+  render), which together make **four violations of one rule across three epics** — *the constructor
+  must not create or touch child DOM* — none of them catchable by any gate. Guarding that
+  mechanically (**US-1131**) is due before the next conversion epic.
+  Next free epic number: **EPIC-070**; next free task number: **US-1133**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

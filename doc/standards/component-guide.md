@@ -60,6 +60,40 @@ boundary as a mounted subtree, not as a framework-specific callback.
 
 **Persephone-coupled components** (the KEEP folders inside `components/`) may import `api/`, `core/`, and `theme/` directly — that's the criterion for living in `components/` at all. They should still use UIKit primitives (`Button`, `Tooltip`, `IconButton`, `Panel`, …) for primitive rendering rather than re-implementing them.
 
+### Storybook stories
+
+Storybook stories are records consumed by the in-app component gallery. Declare a story with
+`Story<P>`, where `P` is the props surface sent to the story's demo, and make the two rendering
+arms mutually exclusive:
+
+```ts
+const buttonStory: Story<ButtonDemoProps> = {
+    id: "button",
+    name: "Button",
+    section: "Bootstrap",
+    view: ButtonDemoView,
+    props: [/* PropDef names must be keys of ButtonDemoProps */],
+};
+```
+
+Use either `component: React.ComponentType<P>` or `view: VanillaViewCtor<P>`, never both. New or
+converted demos should normally use the `view` arm and a story-local `VanillaView` when the demo
+needs layout context, sample content, state, or event handlers. Its constructor creates only the
+stable root; create and mount child DOM and child views in `onMount()`, claim owned children with
+`child()`, and release structural replacements before rebuilding them. A story's `PropDef<P>` names
+are checked as `keyof P & string`, so the generic should describe the actual demo props, including
+demo-only controls.
+
+The heterogeneous story registry uses the intentionally erased `AnyStory` type; keep each story's
+concrete generic at its declaration and do not replace the registry's typed array with an ad hoc cast.
+
+`previewChildren` follows the selected arm: React stories return `ReactNode`, while vanilla stories
+return a native `Node`. A vanilla provider that supplies multiple siblings must return one persistent
+element (usually a `display: contents` wrapper), never a `DocumentFragment`. Use
+`editors/storybook/story-props.ts`'s `prepareStoryProps()` for verification or other rendering
+paths; it is the single preparation path for empty enum values, managed values, synthetic icon
+controls, and generated children.
+
 ## Naming conventions
 
 - Component name — PascalCase (`Button`, `MultiSelect`).

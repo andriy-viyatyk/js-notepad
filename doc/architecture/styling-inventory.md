@@ -1,6 +1,6 @@
 # Styling inventory
 
-> **Current snapshot — 2026-08-25.** Re-run the commands below after styling changes. This
+> **Current snapshot — 2026-08-27.** Re-run the commands below after styling changes. This
 > inventory records the source-tree baseline; it is not a conversion plan.
 
 This is the durable source for the renderer's Emotion and literal inline-style inventories. The
@@ -27,39 +27,38 @@ The Emotion command includes story files. The inline-style command excludes stor
 
 ## Emotion inventory
 
-The current renderer has **2 Emotion importers: 1 production file and 1 story**.
+The current renderer has **1 Emotion importer, all in production code**.
 
 | Scope | Files |
 |---|---:|
 | Production | 1 |
-| Story | 1 |
-| **Total** | **2** |
+| Story | 0 |
+| **Total** | **1** |
 
 The files are:
 
 - `src/renderer/theme/GlobalStyles.tsx`
-- `src/renderer/uikit/Tree/Tree.story.tsx`
 
 The shell and coupled components do not import Emotion. Their converted styles are co-located
 static CSS in `ui/` and `components/`; `theme/root.css` owns the geometry of `#root` so first-paint
 layout does not depend on the asynchronous commit of the `GlobalStyles` React island.
 `GlobalStyles.tsx` is the renderer's only non-story Emotion importer and the final production
-Emotion boundary. The Tree story harness is not production UI.
+Emotion boundary. Story files do not import Emotion.
 
 Runtime keyframes used by converted components now live in static CSS, including the dialog pulse,
 notification entry, spinner rotation, and progress-bar indeterminate animation.
 
 ## Inline-style inventory
 
-The current literal baseline is **50 JSX `style={{...}}` sites across 28 non-story `.tsx` files**.
+The current literal baseline is **46 JSX `style={{...}}` sites across 26 non-story `.tsx` files**.
 
 | Area | Files | Sites |
 |---|---:|---:|
-| `editors/` | 21 | 43 |
+| `editors/` | 19 | 39 |
 | `uikit/` | 1 | 1 |
 | `components/` | 5 | 5 |
 | `theme/` | 1 | 1 |
-| **Total** | **28** | **50** |
+| **Total** | **26** | **46** |
 
 The non-editor files are:
 
