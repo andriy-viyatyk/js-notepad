@@ -165,17 +165,29 @@ Choose the page chrome before writing the view:
 
 - **Chrome-free** — use a plain root for standalone content that needs no shared toolbar, or
   expose `BodyView` for an editor embedded inside another editor (for example notebook notes).
-  An embedded body must not add `PageToolbar` or `TextChrome`.
-- **`PageToolbar`** — use for a non-text editor that needs the standard page toolbar but does not
+  An embedded body must not add `PageToolbarView` or `TextChromeView`.
+- **`PageToolbarView`** — use for a non-text editor that needs the standard page toolbar but does not
   need text-host actions, script panel, footer, or editor overlay. The Image editor is the native
-  toolbar example.
-- **`TextChrome`** — use for a text-host editor. It supplies the host-aware toolbar, script panel,
-  content-host footer, focus/key handling, and overlay slot. The Mermaid editor keeps its native
-  body inside this React shell.
+  toolbar example. `PageToolbar` remains a thin React compatibility face for existing React callers.
+- **`TextChromeView`** — use for a text-host editor. It supplies the native host-aware toolbar,
+  script panel, content-host footer, focus/key handling, and overlay slot. The editor's `View`
+  composes it directly; a React body may remain a bounded island in its `children` slot.
 
-React remains valid for a view, but a converted or new DOM-heavy view may use `VanillaView` and
-export it as `View` (or `BodyView`) instead. Keep the root stable. A React chrome shell can host a
-vanilla body with `mountVanilla`; the body itself does not create a React root.
+React remains valid for a view, but a converted or new DOM-heavy view should use `VanillaView` and
+export it as `View` (or `BodyView`) when the main DOM can be owned natively. Keep the root stable.
+If a body still needs React, wrap it in `EditorErrorBoundary` and pass the resulting element as
+`TextChromeView.children`; the native chrome owns the slot and the body remains one bounded React
+island. `EditorToolbar` and `ContentHostFooter` are compatibility faces for React callers, not the
+native implementation path.
+
+### Size editor bodies to their container
+
+An editor body is often a flex child of the shared chrome. Set `minHeight: 0` on the flex panel
+that must shrink when the body or a nested widget writes measured height into its own subtree. This
+applies to av-grid/DataGrid hosts and to any other imperative or virtualized component that stores
+its measured height in the DOM. Without the override, the flex item's default content-based minimum
+can preserve the last measured size even after the container becomes smaller, causing the body to
+overflow and cover sibling controls such as the script-panel splitter.
 
 ### Using the shared Monaco hosts
 
@@ -239,19 +251,51 @@ For generated-content renderers or third-party/native hosts, import a stylesheet
 editor and scope its selectors below a semantic editor root. Do not add a general-purpose
 `className` or `style` escape hatch to UIKit to carry those rules.
 
-For text-bearing editors, compose the shared chrome:
+For a text-bearing native editor, compose the shared chrome directly:
 
 ```typescript
-import { TextChrome } from "../base/TextChrome";
+import { createElement } from "react";
+import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
+import { TextChromeView } from "../base/TextChromeView";
+import { VanillaView } from "../../uikit/shared/vanilla-view";
 
-export function MyEditorBody({ model }: Props) {
-    return (
-        <TextChrome model={model} host={model.contentHost!}>
-            {/* your editor-specific body */}
-        </TextChrome>
-    );
+export class MyEditorView extends VanillaView<{ model: EditorModel }> {
+    private readonly chrome: TextChromeView;
+
+    public constructor(props: { model: EditorModel }) {
+        const chrome = new TextChromeView({
+            model: props.model,
+            children: createElement(
+                EditorErrorBoundary,
+                null,
+                createElement(MyEditorBody, { model: props.model }),
+            ),
+        });
+        super(props, chrome.root);
+        this.chrome = this.child(chrome);
+    }
+
+    protected onMount(): void {
+        this.chrome.mount();
+    }
+
+    protected onUpdate(props: { model: EditorModel }): void {
+        this.chrome.update({
+            model: props.model,
+            children: createElement(
+                EditorErrorBoundary,
+                null,
+                createElement(MyEditorBody, { model: props.model }),
+            ),
+        });
+    }
 }
 ```
+
+When the body is native, construct it as a `VanillaView`, pass `body.root` as the
+`children` slot, register it with `child()`, and mount/update it alongside the chrome. The
+`TextChromeView` slot accepts either DOM nodes or React elements; only the latter create a React
+root.
 
 ## Step 4: Export the EditorModule
 
@@ -270,7 +314,7 @@ function MyEditorComponent({ model }: { model: EditorModel }) {
 export const myEditorModule: EditorModule = {
     createEditor: () =>
         new MyEditor(new TComponentState({ ...defaultMyEditorState })),
-    Component: MyEditorComponent,       // or View: MyEditorView for a vanilla main view
+    View: MyEditorView,                  // or Component: MyEditorComponent for a React main view
     // Only for standalone (no-host) editors that open FROM a file path
     // (link decode / path-derived state) — text-bearing editors never need it:
     // newEditorModel: async (filePath?: string) => { ... },
@@ -398,7 +442,7 @@ record view with `this.child()`.
 - **Simple viewer:** `/src/renderer/editors/image/` — read-only image viewer, no content host
 - **Text-bearing minimal:** `/src/renderer/editors/svg/` — read-only `VanillaView` preview over the host (`/src/renderer/editors/html/` adds an image-export capability)
 - **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with a native `DataGridView`, full edit/save flow, custom write-guard, and host-slot settings
-- **Markdown renderer:** `/src/renderer/editors/markdown/` — React `TextChrome` shell with a native body and hand-written HAST-to-DOM rendering
+- **Markdown renderer:** `/src/renderer/editors/markdown/` — native `TextChromeView` shell with a native body and hand-written HAST-to-DOM rendering
 - **Per-note embedding:** `/src/renderer/editors/notebook/note-editor/` — Notebook embeds text-bearing editors per-note via `NoteItemEditModel` (a non-file IContentHost)
 - **No-host with sidebar:** `/src/renderer/editors/explorer/` — Explorer sidebar editor with no main content area
 - **Multi-process editor:** `/src/renderer/editors/browser/` — webview-based browser spanning three processes ([architecture doc](../architecture/browser-editor.md))

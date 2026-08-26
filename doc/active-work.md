@@ -9,6 +9,22 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
+  - [ ] US-1109: the interaction behind US-1108 is a general trap worth removing rather than
+    documenting once. `DataGridView.invalidatePushed()` discards the baseline that makes "this option
+    disappeared" detectable, and `collectValues` drops `undefined`, so **any** consumer that maps a
+    cleared value to `undefined` silently loses the clear. Options: have `invalidatePushed` retain the
+    key set (not the values) so a disappearance is still representable, or stop dropping `undefined`
+    in `collectValues` and let the union diff carry it. The second is closer to the shim's stated
+    exclusion-not-allow-list design but changes what reaches `create()`, so it needs the story
+    harness run over all five `DataGrid` consumers. No other consumer has the `|| undefined`
+    coercion today, so this is latent rather than live.
+  - [ ] US-1111: `editors/text/ScriptPanel.ts:16` uses `const nodefs = require("fs")` directly,
+    against `CLAUDE.md`'s no-direct-`fs` rule — seven call sites, all reading and writing script
+    library files. Pre-existing (it was `ScriptPanel.tsx:23` before EPIC-067) and it lives in the
+    model rather than the converted view, so it was explicitly excluded from that epic's scope and
+    raised again by its close review. Move to `app.fs`, or add it to the documented exception list in
+    `coding-style.md` with the reason — the `writeFileSync`/`existsSync`/`mkdirSync` calls are
+    synchronous inside user actions, so the async `app.fs` port is a behaviour change, not a rename.
   - [ ] US-1091: `data-part="react-slot"` is stamped unconditionally by `uikit/Dialog/DialogView.tsx:87` and `uikit/Tag/TagView.tsx:88`, before either view picks its native or React arm — so a host holding plain DOM carries the React marker and the De-React programme's Rule 4 instrument counts roots that do not exist. `fill-slot.ts` stamps it only on its real React container, so the defect is limited to those two views; `data-react-root` (set only by `mountReactHandle`, deleted on dispose) is the reliable marker. Measured in EPIC-065: `EditLinkDialog` open reported 1 root under the both-markers instrument and 0 under `data-react-root`. Fix: stamp the marker only on the React branch. Deferred out of EPIC-065 to avoid putting unreviewed `uikit/` changes inside a closed epic. Counterpart to EPIC-063 E5-3, which added the marker because a root was *invisible* — same lesson, opposite direction.
   - [ ] US-1055: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
   - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
@@ -137,6 +153,70 @@ Overview of all active and planned epics and tasks.
   vindicated. What remains unscheduled: `graph` (8,100 lines across the folder), the browser editor
   (1,692), and the `editors/base` chrome with its 24 `<TextChrome>` call sites, which stay last
   (E1-8) — and which now share their fate with the `applyRestProps` bridge.
+  **E9 is complete as [EPIC-067](epics/completed.md)**, and it is the chrome — the item the previous
+  three epics all deferred. The search that found it (E5-1's rule, fifth consecutive time) measured
+  **107 of the renderer's 126 remaining JSX-bearing files in `editors/`**, so the folder was never in
+  doubt; the contract inside it is `TextChromeProps`' four `ReactNode` members, consumed by **14**
+  editors — the same one-type-pins-its-callers shape as `RenderCellFunc` (E4),
+  `ReactSecondaryViewDefinition` (E5), `IconRef` (E6) and `Views.registerView` (E7). The evidence that
+  the pin is the *type* and not the content: **7 of the 14 editors have an already-vanilla `BodyView`
+  and their only remaining `.tsx` file is the `index.tsx` that wraps it in `<TextChrome>`**.
+  Two figures are corrected here. First, the "24 call sites" above is wrong — measured now it is
+  **14**, in 14 files; a `<TextChrome` grep returns 16, of which one is the definition and one a
+  comment in `graph/GraphBody.tsx:302`. The removal ledger had it right and this entry restated it
+  wrongly. Second, **E1-8's "deliberately last" has expired**: its reasoning was that the slot
+  contents "are the same React trees either way", true on 2026-08-24 when every body was React and
+  false now that seven are vanilla. What survives of the objection is a bounded, disclosed
+  regression. **That bound was then measured and found wrong, in the epic's own favour-checking
+  direction:** `fillSlot` takes its React arm for any slot value that is not `null`/`false`/a
+  string/a `Node`, so the moment a chrome piece is native while its parent is still React that
+  parent's children become a root — which makes the cost the chrome's *internal* composition, not the
+  editor bodies. A chrome-pinned editor therefore goes **2 → 4–5 → 0**, and the peak is inherent to
+  the epic rather than to its ordering: bottom-up and top-down peak identically, and the only order
+  that avoids it converts a component and its parent in one change, which Rule 1 forbids. E1-8 was
+  right about both mechanism and magnitude and wrong only in treating a transient cost as a permanent
+  reason. The generalisation, the fourth of its kind: *a deferral is a measurement with
+  a date on it*, and this one read as a rule for two epics without being re-checked. Baseline measured
+  live before scoping: **11 React roots**, of which 4 are one per mounted editor, 4 are per-page
+  secondary-views hosts, **2 are `fillSlot` roots opened inside a native `IconButton` by the React
+  chrome** (`text-chrome-footer` → `text-toggle-script`, text hosts only), and 1 is `GlobalStyles`.
+  Deliberately out of scope: every editor *body* (the 7 React ones relocate their root rather than
+  lose it), `PageToolbar`/`EditorToolbar`/`ContentHostFooter`'s React faces (10 callers survive), and
+  the `applyRestProps` bridge — E8 deferred that "to the end, with `<TextChrome>`" and E9 splits the
+  pairing, because the survivors keep it fed. Rivals rejected: `uikit/Panel`'s face (380 tags, but
+  machinery not a contract, and it removes no roots), `SecondaryViews.tsx` (17 lines for 4 roots — the
+  best remaining roots-per-line and named the **E10 candidate**), and the large editors (`graph`,
+  `browser`, `mcp-inspector`, `rest-client`), which have no contract and are line-count work *after*
+  E9. **Re-cut to eight tasks after reading the three chrome files**: `PageToolbar` gets its own task
+  because `SwitchWidget` composes five reactive inputs and three custom React hooks, and the split
+  moves the epic's first measurable win forward — `ContentHostFooter`'s `ScriptToggleButton` is what
+  produces the measured slot root, so converting it takes 13 of the 14 editors from 2 roots to 1
+  before anything structural moves. The baseline is **already taken**: all 14 chrome callers measure
+  exactly **2** roots (1 editor + 1 `fillSlot` slot root) and every non-chrome editor measures **1**,
+  which makes the slot count an exact discriminator for "renders through `<TextChrome>`" and gives
+  the epic a mechanical per-task gate. Three further §6.1 masked defects were found and verified
+  while scoping — `ProviderIcon`'s self-documented forced re-render, `NavPanelButton`'s unsubscribed
+  visibility, and `ScriptPanel`'s result-less `libraryService.state.use()` — all recorded in the epic
+  so no task misfiles one as a rendering bug. **Re-cut a second time, to nine tasks**, when Codex's
+  first task document surfaced the consequence of an ordering error in the epic: `ScriptPanel` is a
+  child of `TextChrome` but it is *not* the chrome's leaf — `EditorToolbar` is — so converting
+  `ScriptPanel` first would have forced a `fillSlot` React root for its toolbar and **added** a root
+  in an epic measured in roots. Caught at plan review, before implementation. The generalisation is
+  E8's lesson pointed at a different graph: derive the order from the import graph, not from the
+  containment relationship you happen to be thinking about.
+  **Closed 2026-08-26 with its property met:** `TextChrome.tsx` deleted at 0 callers, all 14 editors
+  on the `View` arm, six opening with **0** React roots and the other seven relocating their root into
+  a still-React body; the documented 4–5 intermediate peak is gone. Four §6.1 masked defects were
+  given real channels, and two service subscriptions were added beside their hooks rather than reaching
+  past a façade. The close review caught the epic's **own** regression, which is its sharpest lesson:
+  *replacing a forced re-render with a channel is only complete when every **writer** of the value goes
+  through it* — `pipe` was a plain field that `PagesLifecycleModel` assigned directly, so the footer's
+  provider badge was missing on every normally opened file; fixed by making `pipe` an accessor over the
+  channel. Two pre-existing §6.1 bugs surfaced during verification and are tracked as US-1108 and
+  US-1110. `svg-view`'s root count is recorded as **unmeasured** — `addEditorPage` does not force an
+  editor id, so that row had measured `monaco` in both the baseline and the first closing draft, the
+  fourth Rule 4 instrument correction in the programme. Next free epic number: **EPIC-068**; next free
+  task number: **US-1112**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

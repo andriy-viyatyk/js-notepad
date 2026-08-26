@@ -108,7 +108,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Text-host editor base (the layer between `EditorModel` and every editor wrapping a `TextFileModel` — 14 editors extend it. Owns the host-adoption lifecycle: `CONTENT_HOST_TRAIT` registration, `switchFrom`/`restore`/`adoptHost`, identity persistence, release/save/dispose, plus the parts that are easy to get subtly wrong — the single host-subscription registry torn down on re-adopt/extract/dispose, the `writeToHost`/`subscribeHostContent` content echo guard, and the `mirrorHostSettings` seed+mirror for per-editor view settings riding `host.editorSettings`. Subclass hooks: `displayName`, `adoptHost` override, `onHostAttached` (initial load on the switch/restore/open paths — the open path reaches it via the public `bootstrapFromHost()` bridge), `onHostExtracted`, `untitledName`. Board editors deliberately excluded) | `/src/renderer/editors/base/TextHostEditorModel.ts` |
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |
 | Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
-| Shared text-host footer (`script` toggle · `footerContributions` slot · provider icon · encoding label; extracted from `TextChrome` so it's shared by built-in text editors and content-host boards via `BoardEditorView` — boards fill the contributions slot with a footer status label via `persephone.setStatusText`) | `/src/renderer/editors/base/ContentHostFooter.tsx` |
+| Native text-host chrome (toolbar, focus/key handling, script panel, footer, overlay, and DOM/React slot projection) | `/src/renderer/editors/base/TextChromeView.ts` |
+| Page toolbar native view and React compatibility face (NavPanel, editor switch, and toolbar slots) | `/src/renderer/editors/base/PageToolbarView.ts`, `/src/renderer/editors/base/PageToolbar.ts` |
+| Editor toolbar native view and React compatibility face | `/src/renderer/editors/base/EditorToolbarView.ts`, `/src/renderer/editors/base/EditorToolbar.ts` |
+| Shared text-host footer (`script` toggle · `footerContributions` slot · provider icon · encoding label; shared by built-in text editors and content-host boards via `BoardEditorView` — boards fill the contributions slot with a footer status label via `persephone.setStatusText`) | `/src/renderer/editors/base/ContentHostFooterView.ts`, `/src/renderer/editors/base/ContentHostFooter.ts` |
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
 | Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
@@ -118,9 +121,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Monaco widget React faces (thin `mountVanilla` adapters for the shared hosts) | `/src/renderer/editors/shared/MonacoEditorHost.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHost.ts` |
 | Monaco host geometry (separate root classes and flex-child width rules for single and diff widgets) | `/src/renderer/editors/shared/MonacoEditorHostView.css`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.css` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
+| Script panel model, React compatibility face, and native view | `/src/renderer/editors/text/ScriptPanel.ts`, `/src/renderer/editors/text/ScriptPanelView.ts` |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
-| Native grid body (embedded or inside the React `TextChrome` shell; mounts UIKit `DataGridView` directly) | `/src/renderer/editors/grid/GridBodyView.ts` |
+| Native grid body (embedded or inside the native `TextChromeView` shell; mounts UIKit `DataGridView` directly) | `/src/renderer/editors/grid/GridBodyView.ts` |
 | Native HTML preview body (sandboxed iframe, guarded `srcdoc`, host-content binding) | `/src/renderer/editors/html/HtmlBodyView.ts` |
 | Native SVG preview body (host-content binding and `ImageViewportView`) | `/src/renderer/editors/svg/SvgBodyView.ts` |
 | Native Markdown body (find bar, minimap, scroll projection, and MarkdownBlock lifecycle) | `/src/renderer/editors/markdown/MarkdownBodyView.ts` |
@@ -131,7 +135,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Find bar (native input/buttons with React compatibility face) | `/src/renderer/editors/shared/FindBarView.ts`, `/src/renderer/editors/shared/FindBar.ts` |
 | Converted compare editor (native diff host and compare model orchestration) | `/src/renderer/editors/compare/CompareEditor.ts` |
 | Converted image toolbar (native toolbar actions inside `PageToolbar`) | `/src/renderer/editors/image/ImageToolbarView.ts` |
-| Converted Mermaid body (native preview body inside `TextChrome`) | `/src/renderer/editors/mermaid/MermaidBodyView.ts` |
+| Converted Mermaid body (native preview body inside `TextChromeView`) | `/src/renderer/editors/mermaid/MermaidBodyView.ts` |
 | Converted Toolset editor view (native standalone editor view) | `/src/renderer/editors/toolset/ToolsetEditorView.ts` |
 | Native Explorer Search panel (vanilla secondary view over `FileSearchView`) | `/src/renderer/editors/explorer/SearchSecondaryView.ts` |
 | DOM-first editor icon resolver (tab + sidebar panel headers; `getIconElement`/file-icon fallback, returning `Element` or `null`) | `/src/renderer/components/icons/icon-elements.ts` |

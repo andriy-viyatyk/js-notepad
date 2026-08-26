@@ -24,20 +24,23 @@ Editor views have three intentional shapes:
 
 - **Chrome-free**: a standalone root with no shared shell, or a `BodyView` intended for
   embedding. This is the only shape suitable for notebook note dispatch.
-- **`PageToolbar`**: a non-text editor's page root plus the standard toolbar. Use it when the
+- **`PageToolbarView`**: a non-text editor's page root plus the standard toolbar. Use it when the
   editor needs toolbar actions but not text-host controls, script panel, footer, or overlay.
-- **`TextChrome`**: the host-aware shell for text editors. It owns the toolbar, focus/key handling,
-  script panel, content-host footer, and editor overlay; the editor-specific body sits inside it.
+- **`TextChromeView`**: the native host-aware shell for text editors. It owns the toolbar, focus/key
+  handling, script panel, content-host footer, and editor overlay; the editor-specific body sits in
+  its `SlotContent` children slot.
 
-The shell may remain React while its body or toolbar is a `VanillaView`. Export a native main view
-as `EditorModule.View`, or an embeddable native body as `BodyView`; `AsyncEditorView` mounts a main
-`View` directly, and React shells host a `BodyView` with `mountVanilla`.
+Export a native main view as `EditorModule.View`, or an embeddable native body as `BodyView`;
+`AsyncEditorView` mounts a main `View` directly. A React body may remain inside a native
+`TextChromeView` slot when it needs React, but it must be wrapped in `EditorErrorBoundary`. The
+`PageToolbar`, `EditorToolbar`, and `ContentHostFooter` names remain React compatibility faces for
+callers outside the native view path.
 
-This is the standard shape for the five embeddable editor bodies that currently use native views:
-`svg`, `html`, `markdown`, `grid`, and `mermaid`. Their `index.tsx` files deliberately remain React
-`TextChrome` shells, while the chrome-free body owns one stable vanilla root and creates no React
-root of its own. Notebook note dispatch mounts `BodyView` directly, so the same body works in the
-embedded path without page chrome.
+The native main-view shape is used by the text-bearing editor set, including `svg`, `html`,
+`markdown`, `grid`, `mermaid`, `log-view`, and `notebook`. The remaining React-bodied editors keep
+one bounded React body island inside `TextChromeView`; that body root is a deliberate implementation
+boundary, not a second page shell. The five embeddable bodies (`svg`, `html`, `markdown`, `grid`, and
+`mermaid`) also expose `BodyView`, so notebook note dispatch can mount them without page chrome.
 
 ## When to Use
 

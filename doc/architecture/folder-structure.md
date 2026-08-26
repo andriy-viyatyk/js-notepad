@@ -350,9 +350,14 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── editor-matchers.ts        # Acceptance / resolution priority helpers
 │   │   ├── editorRegistry.ts         # Native editor registry — resolve, register, switch options
 │   │   ├── editor-switch.ts          # switchMainEditor — switch-widget transition (host transfer / rebuild)
-│   │   ├── PageToolbar.tsx           # Shared toolbar shell — NavPanel + switch widget auto-slots
-│   │   ├── TextChrome.tsx            # Host-aware chrome wrapper (toolbar, script panel, footer)
-│   │   ├── EditorToolbar.tsx         # Toolbar root component used by individual editors
+│   │   ├── PageToolbar.ts            # React-facing compatibility face
+│   │   ├── PageToolbarView.ts        # Native page toolbar — NavPanel + switch widget auto-slots
+│   │   ├── TextChromeView.ts         # Native host-aware chrome (toolbar, script panel, footer)
+│   │   ├── EditorToolbar.ts          # React-facing compatibility face
+│   │   ├── EditorToolbarView.ts      # Native toolbar root used by individual editors
+│   │   ├── ContentHostFooter.ts      # React-facing compatibility face
+│   │   ├── ContentHostFooterView.ts  # Native text-host footer
+│   │   ├── ContentHostFooter.css     # Footer styles
 │   │   ├── EditorConfig.ts            # Editor configuration value and empty default
 │   │   ├── EditorError.tsx           # Error boundary
 │   │   └── index.ts
@@ -362,7 +367,8 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── TextFileIOModel.ts        # File I/O via content pipes (read/write/watch/cache)
 │   │   ├── TextFileActionsModel.ts   # Text actions (duplicate, transform)
 │   │   ├── TextFileEncryptionModel.ts # Encryption state machine
-│   │   ├── ScriptPanel.tsx           # Inline script runner panel
+│   │   ├── ScriptPanel.ts            # Script panel model + React-facing compatibility face
+│   │   ├── ScriptPanelView.ts        # Native inline script runner panel
 │   │   ├── paste-rich-text.ts        # Rich-text paste handler
 │   │   └── index.ts
 │   ├── monaco/             # Monaco text editor (text-bearing, IContentHost + TRAIT)
@@ -375,7 +381,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── components/               # Grid-specific components
 │   │   ├── utils/                    # Grid utilities
 │   │   ├── util.ts                   # Shared utility helpers
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── markdown/           # Markdown preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MarkdownEditor.ts         # EditorModel — search state, scroll, compact
 │   │   ├── MarkdownBodyView.ts        # Native body (search, minimap, scroll and host binding)
@@ -388,7 +394,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── rehypeHighlight.ts        # Search text highlighting
 │   │   ├── rehypeHeadingIds.ts       # Heading slug ids for #fragment links (+ slugifyHeading)
 │   │   ├── markdown-nav.ts           # isLocalMarkdownHref — local-.md link detection for in-page nav
-│   │   └── index.tsx
+│   │   └── index.ts
 │   │
 │   ├── browser/            # Built-in browser (non-text, no trait)
 │   │   ├── BrowserEditor.ts          # EditorModel subclass — registry entry point
@@ -435,7 +441,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── panels/                   # Secondary view panel components
 │   │   │   ├── NotebookCategoriesSecondaryView.tsx  # "notebook-categories" panel
 │   │   │   └── NotebookTagsSecondaryView.tsx        # "notebook-tags" panel
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
 │   │   ├── LinkBody.tsx              # React component
@@ -461,20 +467,20 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── PinnedLinksPanel.tsx
 │   │   ├── EditLinkDialog.ts       # Edit-link dialog model and registration
 │   │   ├── EditLinkDialogView.ts   # Native edit-link dialog view
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── svg/                # SVG preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── SvgEditor.ts              # EditorModel — SVG state
 │   │   ├── SvgBodyView.ts             # Native preview body
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── html/               # HTML preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── HtmlEditor.ts             # EditorModel — HTML state
 │   │   ├── HtmlBodyView.ts            # Native sandboxed preview body
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── mermaid/            # Mermaid diagram preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MermaidEditor.ts          # EditorModel — SVG URL, loading, error, light mode
 │   │   ├── MermaidBodyView.ts         # Native preview body
 │   │   ├── render-mermaid.ts         # Rendering utilities (shared with Markdown)
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── graph/              # Force graph viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── GraphEditor.ts            # EditorModel — JSON parsing, orchestration, sub-models
 │   │   ├── GraphBody.tsx             # Canvas-based graph component
@@ -499,13 +505,13 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── shapeGeometry.ts
 │   │   ├── types.ts
 │   │   ├── constants.ts
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── draw/               # Excalidraw drawing editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── DrawEditor.ts             # EditorModel — JSON parsing, fingerprint change detection
 │   │   ├── DrawBody.tsx              # Wraps <Excalidraw> component
 │   │   ├── drawExport.ts             # Export helpers
 │   │   ├── drawLibrary.ts            # Library persistence
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
 │   │   ├── LogBodyView.ts             # Log viewer native view (VirtualFlexGridView + auto-scroll)
@@ -517,7 +523,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── logTypes.ts               # LogEntry, StyledText, dialog/output types
 │   │   ├── logConstants.ts
 │   │   ├── items/                    # Dialog and output entry renderers (15 files)
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── rest-client/        # Rest Client editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── RestClientEditor.ts       # EditorModel — collections, requests, responses
 │   │   ├── RestClientBody.tsx        # React component
@@ -530,12 +536,12 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── open-in-rest-client.ts
 │   │   ├── panels/                   # Secondary view panel components
 │   │   │   └── RestPanelSecondaryView.tsx        # "rest" panel
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── env-vars/           # Board environment-variables editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── EnvVarsEditor.ts          # EditorModel — namespace/profile selection, CRUD over the namespace's profile data
 │   │   ├── EnvVarsBody.tsx           # React component
 │   │   ├── open-env-vars.ts          # openEnvVarsPage(namespace) — used by persephone.var.show() and app.boardVars.show(namespace)
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── image/              # Image viewer (non-text, no trait)
 │   │   ├── ImageEditor.ts            # EditorModel — pipe-backed image state
 │   │   ├── ImageView.tsx             # React component

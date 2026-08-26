@@ -442,7 +442,7 @@ The script panel toolbar includes a **script selector dropdown** (Select) and a 
 
 **State:** `ScriptPanelState` includes `selectedScript: string | null` (file path) and `dirty: boolean` (modification indicator). Both are persisted to cache and restored on app restart.
 
-- Implementation: `/src/renderer/editors/text/ScriptPanel.tsx` (ScriptPanelModel)
+- Implementation: `/src/renderer/editors/text/ScriptPanel.ts` (ScriptPanelModel and React compatibility face) and `ScriptPanelView.ts` (native view)
 
 ### Library Setup Wizard
 
@@ -700,7 +700,7 @@ When output is suppressed and the script throws an error, the error is displayed
 | F5 (script panel open) | `TextFileActionsModel` | Always `"typescript"` | Script panel content |
 | F5 (script panel closed, JS/TS file) | `TextFileActionsModel` | From page state | Page content (or selection) |
 | F5 (notebook JS/TS note) | `NoteItemEditModel` | From note language | Note content as script |
-| Run button (script panel) | `ScriptPanel.tsx` | Always `"typescript"` | Script panel content |
+| Run button (script panel) | `ScriptPanelView.ts` | Always `"typescript"` | Script panel content |
 | MCP `execute_script` | `mcp-handler.ts` | Caller-specified (optional) | Script from MCP tool call |
 | Autoload (window open) | `AutoloadRunner.ts` | Determined by file extension | Registration scripts from `library/autoload/` |
 

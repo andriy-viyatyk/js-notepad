@@ -4,6 +4,90 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-067 — [De-React Epic E9: the editor chrome contract](EPIC-067.md)
+
+The contract was `TextChromeProps`' four `ReactNode` members — `children`, `toolbarContributions`,
+`rightToolbarContributions`, `footerContributions` — consumed by **14 editors** and pinning every one
+of them to React regardless of its own content. The qualifying evidence: seven of the fourteen already
+had a vanilla `BodyView`, and their only remaining `.tsx` file was the `index.tsx` whose whole job was
+to wrap that vanilla body in `<TextChrome>`. Nine tasks, all reviewed.
+
+| Measure | Start | End |
+|---|---|---|
+| `<TextChrome>` call sites | 14 | **0** — the file is deleted |
+| `TextChromeProps`' `ReactNode` members | 4 | **0** |
+| Editors registering `EditorModule.View` | 1 | **15** |
+| Editors on the `Component` arm | 30 | 15 |
+| `.tsx` files in `editors/base` | 5 | **1** (`EditorError.tsx`) |
+| `.tsx` files in `editors/text` | 1 | **0** |
+| Renderer non-story `.tsx` | 225 | **205** |
+| JSX-bearing files, renderer-wide | 126 | **106** |
+| JSX-bearing files in `editors/` | 107 | **88** |
+| React roots on opening a chrome editor | 2 | **0** (6 editors) / 1–2 (7 with React bodies) |
+
+**Rule 4, honestly.** Six editors reach 0. Seven **relocate** the root into a still-React body, which
+the epic predicted and which is why its closing property never promised 0 across the board. The
+documented intermediate peak of 4–5 roots — inherent to the epic rather than to its ordering, since
+Rule 1 keeps parents React for at least one task — is gone. `svg-view` is recorded as **unmeasured**:
+`addEditorPage` does not force an editor id, so that row had measured `monaco` in both the baseline
+and the first closing draft. Fourth Rule 4 instrument correction in the programme, and the same shape
+as the third — make the instrument report what it actually measured.
+
+**Four §6.1 masked defects fixed**, each surviving only on an incidental React re-render:
+`RunButtons`' `hasTextSelection()`, `ContentHostFooter`'s self-documented forced re-render,
+`NavPanelButton`'s three unsubscribed reads, and `ScriptPanel`'s result-less
+`libraryService.state.use()`. For the first, the channel **already existed** — `MonacoEditor` has kept
+`hasSelection` in state for years and `hasTextSelection()` reads it; the only thing missing was a
+`bind`. Where a channel genuinely did not exist, one was added in the service that owns the private
+state (`subscribeCatalogBoardsForFile`, `subscribeInstalled`), each sharing one extracted projection
+with its existing hook so the two cannot drift.
+
+**Five lessons worth carrying:**
+
+- **Derive task order from the import graph, not from the containment relationship you are thinking
+  about.** `ScriptPanel` is a child of `TextChrome` but is not the chrome's leaf; converting it first
+  would have added a React root in an epic measured in roots. Caught at plan review.
+- **A cast at a `mountVanilla` face means the view's props and the face's props disagree — fix the
+  relationship, not the type.** A footer that *extends* a toolbar silently inherits its props type.
+- **The `SlotContent` widening rule** — native class takes `SlotContent`, React face keeps
+  `React.ReactNode`. E8's residue, surfacing from the other side, in three of nine tasks.
+- **A deferral is a measurement with a date on it.** E1-8 was right about the mechanism and the
+  magnitude and wrong only to treat a transient cost as a permanent reason. The epic's own first draft
+  then made the mirror-image error in the paragraph diagnosing it.
+- **Replacing a forced re-render with a channel is only complete when every *writer* goes through
+  it.** The close review caught the epic's own regression: `pipe` was a plain field and
+  `PagesLifecycleModel` assigned it directly, so the provider badge was missing on every normally
+  opened file and appeared only after a Save As. Fixed by making `pipe` an accessor over the channel,
+  which removes the class rather than the instance.
+
+**Two live bugs surfaced during verification that the epic exposed rather than caused**, both
+pre-existing and both §6.1: the grid's toolbar search not clearing (`|| undefined` erased the
+"cleared" signal that three cooperating layers needed) and the script panel's splitter being
+unreachable over a Grid editor (a flex item without `min-height: 0` could not shrink below av-grid's
+own measured height, so the grid overflowed 162px and buried it). Tracked as US-1108 and US-1110.
+
+**Left deliberately.** `PageToolbar`, `EditorToolbar` and `ContentHostFooter` keep React faces (6, 3
+and 1 callers outside the epic); `EditorError.tsx` keeps four; the registry's `View` → `Component`
+normalisation shim is still consumed by `ui/app/RenderEditorView.ts`; `applyRestProps`,
+`clearRestListeners`, `bindRef` and `fillSlot` all stay. One `as unknown as` survives, in
+`isTextFileHost` — a deliberate runtime duck-type probe, now a proper type predicate, whose comment
+records that US-559 once silently inverted it. E8 had scheduled the rest-props bridge "to the end,
+with `<TextChrome>`"; E9 shows those were never one deadline.
+
+| Task | Title |
+|---|---|
+| US-1099 | [`EditorToolbarView`; delete the dead `AsyncEditor.tsx`](../tasks/US-1099-editor-toolbar-native/README.md) |
+| US-1100 | [`ScriptPanelView`](../tasks/US-1100-script-panel-native/README.md) |
+| US-1101 | [`ContentHostFooterView`](../tasks/US-1101-content-host-footer-native/README.md) |
+| US-1102 | [`PageToolbarView` and `SwitchWidgetView`](../tasks/US-1102-page-toolbar-native/README.md) |
+| US-1103 | [`TextChromeView`](../tasks/US-1103-text-chrome-native/README.md) |
+| US-1104 | [`markdown`, `html`, `svg`, `log-view` → `View`](../tasks/US-1104-vanilla-body-editors-native/README.md) |
+| US-1105 | [`notebook`, `mermaid`, `grid` → `View`](../tasks/US-1105-toolbar-cluster-editors-native/README.md) |
+| US-1106 | [`env-vars`, `rest-client`, `monaco`, `file-diff` → `View`](../tasks/US-1106-react-body-editors-native/README.md) |
+| US-1107 | [`graph`, `link-editor`, `draw` → `View`; delete the contract](../tasks/US-1107-close-the-chrome-contract/README.md) |
+
+---
+
 ## EPIC-066 — [De-React Epic E8: delete the synthetic-event round trip](EPIC-066.md)
 
 The contract was found by search, not inherited: **65 already-vanilla `.ts` files still imported

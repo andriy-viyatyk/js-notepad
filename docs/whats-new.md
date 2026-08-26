@@ -30,6 +30,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **CSV grids reload correctly after changing options** — Enabling **First row is header** or changing the delimiter could leave the Grid editor showing an error instead of the data. The grid now rereads the file correctly after either change.
 
+- **Grid search now clears completely** — Emptying the toolbar search could leave the grid filtered by the last search term. Clearing it now restores all rows immediately.
+
+- **Script panels over Grid editors stay usable** — The script panel now appears the first time you open it, and dragging its splitter keeps both the panel and the grid visible and accessible as either side grows or shrinks.
+
 - **Git change lists now fill and resize with the panel** — With many changed files, the **Unstaged** list could leave empty space below it, and the splitter between the **Unstaged** and **Staged** lists could move down but not back up. The lists now fill their panes, and dragging the splitter in either direction makes them grow or shrink with the available space. Content that exceeds a panel's bounds now stays inside the panel and scrolls instead of spilling outside.
 
 ---

@@ -862,6 +862,116 @@ E8 also confirmed, deliberately, that **Rule 4 does not measure everything**: it
 move, because it removed event *translation* rather than roots. The root count measures the React that
 renders, not the React that types, and the remaining work is increasingly the latter.
 
+**E9 ([EPIC-067](epics/EPIC-067.md), scoped 2026-08-26) takes the `editors/base` chrome** — the item
+E1-8 fixed as deliberately last and the three epics since inherited without re-checking. The contract
+is `TextChromeProps`' four `ReactNode` members (`children`, `toolbarContributions`,
+`rightToolbarContributions`, `footerContributions`), consumed by **14** editors, and its qualifying
+evidence is that **7 of those editors already have a vanilla `BodyView` and their only remaining
+`.tsx` file is the `index.tsx` that wraps it in `<TextChrome>`** — the same
+one-type-pins-its-callers-regardless-of-their-own-content shape as E4's `RenderCellFunc`, E5's
+`ReactSecondaryViewDefinition`, E6's `IconRef` and E7's `Views.registerView`. The next free epic
+number is **EPIC-068**.
+
+Three things it records before implementing anything, each of which is a correction to this document
+rather than a new claim:
+
+- **The "24 `<TextChrome>` call sites" figure carried in the dashboard is wrong; it is 14.** The
+  removal ledger's own "14 `<TextChrome>` and 6 direct `<PageToolbar>`" was right. A `<TextChrome`
+  grep returns 16 hits — one definition, one comment at `graph/GraphBody.tsx:302`.
+- **E1-8's deferral has expired, and this is the fourth instance of its class.** Its reasoning was
+  that converting the chrome ahead of its callers buys nothing "since the slot contents are the same
+  React trees either way" — true when every body was React, false now that seven are vanilla and
+  their slot contents are `Button`/`IconButton` clusters that are themselves already vanilla. The
+  generalisation worth carrying: **a deferral is a measurement with a date on it.** E1-8's conclusion
+  was correct on its evidence and read as a rule for two epics without being re-measured, which is
+  the same failure mode as the inherited-figure corrections in E4, E5 and E6 — only applied to a
+  *decision* rather than a count.
+- **Rule 4's baseline includes a root the instrument had not been pointed at.** Measured live at
+  scoping: 11 roots, of which **2 are `fillSlot` roots opened *inside* a native `IconButton` by the
+  still-React chrome** (`text-chrome-footer` → `text-toggle-script`, on text-host editors only). So a
+  chrome-pinned editor costs 2 roots, not 1 — the React face of a container leaks roots into the
+  vanilla components it holds, which is the inverse of the direction this programme usually measures.
+
+E9 also splits a pairing E8 made: E8 deferred `applyRestProps`/`clearRestListeners`/`bindRef`/
+`fillSlot` "to the end, with `<TextChrome>`", but `<TextChrome>` can go now while the bridge cannot —
+`PageToolbar` (6 callers), `EditorToolbar` (3) and `ContentHostFooter` (1) keep React faces, and every
+remaining React editor body still feeds it. **Two deletions scheduled together are not one deadline.**
+The E10 candidate it names, with the measurement already taken, is
+`ui/secondary-views/SecondaryViews.tsx` — 17 lines producing **one React root per open page**, 4 of
+the 11 measured, and the best remaining roots-per-line target in the tree. As always that is a
+candidate, not an axis: E5-1 requires E10 to run its own search.
+
+**E9 ([EPIC-067](epics/completed.md)) deleted the editor chrome contract.** `editors/base/TextChrome.tsx`
+is gone, and with it the four `ReactNode` members of `TextChromeProps` that pinned **14** editors to
+React regardless of their own content — the same shape as E4's `RenderCellFunc`, E5's
+`ReactSecondaryViewDefinition`, E6's `IconRef` and E7's `Views.registerView`. All fourteen now register
+`EditorModule.View`; the `Component` arm went 30 → 15. `EditorToolbar`, `PageToolbar`,
+`ContentHostFooter` and `ScriptPanel` are native views. Renderer non-story `.tsx` went 225 → 205,
+JSX-bearing files 126 → 106, and `editors/` 107 → 88. Six of the fourteen editors now open with **0**
+React roots, from 2; the other seven relocate their root into a still-React body, which is what the
+epic predicted and why its closing property never promised 0 across the board.
+
+Five things E9 produced that outlast it:
+
+- **Derive task order from the import graph, not from the containment relationship you happen to be
+  thinking about.** The first cut put `ScriptPanel` first because it is a child of `TextChrome` — true,
+  but it is not the chrome's *leaf*, `EditorToolbar` is. Converting the child first would have forced a
+  `fillSlot` React root for its toolbar and **added** a root in an epic measured in roots. Caught at
+  plan review. E8's lesson was the same faculty pointed at a different graph.
+- **A cast at a `mountVanilla` face means the view's props and the face's props disagree — fix the
+  relationship, not the type.** `ContentHostFooterView` first *extended* `EditorToolbarView`, which
+  silently inherits its props type, and produced an `as unknown as` — a direct regression against E8's
+  closing property. A footer contains a toolbar; it is not one. Inheriting a view to inherit its root
+  element inherits its type parameter too, and composition costs one field.
+- **The `SlotContent` widening rule**: a converted view's *children* are still typed in React's
+  vocabulary, invisible while every caller is React and a hard error the moment one is not. Native
+  class takes `SlotContent`, React face keeps `React.ReactNode`. This is E8's residue surfacing from
+  the other side, and it recurred in three of E9's nine tasks.
+- **A deferral is a measurement with a date on it.** E1-8 fixed the chrome as "deliberately last" and
+  was right about both the mechanism and the magnitude — a chrome-pinned editor peaks at 4–5 roots
+  mid-conversion. What it got wrong was treating a transient cost as a permanent reason: the peak is a
+  property of the epic rather than of its ordering (bottom-up and top-down peak identically, and only
+  converting a component together with its parent avoids it, which Rule 1 forbids), it drains inside
+  the same epic, and its exit condition had become cheap. The epic's own first draft then made the
+  mirror-image error in the paragraph diagnosing it — re-measuring the editor *bodies*, which had
+  changed, and not the *slot mechanism*, which had not.
+- **A measurement that cannot name its own subject is not evidence.** The fourth Rule 4 instrument
+  correction, and the same shape as E5-3's: `app.pages.addEditorPage(editorId, …)` does not force the
+  editor, so the `svg-view` row in both the baseline and the closing table had actually measured
+  `monaco`. The fix was to make the instrument report the *resolved* editor id. Thirteen correct rows
+  were hiding one that had never measured the editor it was labelled with. `svg-view` is recorded as
+  **unmeasured** rather than assumed.
+
+**Four §6.1 masked defects were found and given real channels** — `RunButtons`' `hasTextSelection()`,
+`ContentHostFooter`'s self-documented forced re-render, `NavPanelButton`'s three unsubscribed reads,
+and `ScriptPanel`'s result-less `libraryService.state.use()`. The most instructive is the first: the
+channel **already existed** (`MonacoEditor` has kept `hasSelection` in state for years, and
+`hasTextSelection()` reads it) and the only thing missing was a `bind`. Where a channel genuinely did
+not exist, E9 added one rather than reaching past a façade: `subscribeCatalogBoardsForFile` and
+`subscribeInstalled` sit beside their existing hooks in the services that own the private state, each
+sharing one extracted projection with its hook so the two cannot drift.
+
+**Two live bugs surfaced during verification that E9 exposed rather than caused** — the grid's toolbar
+search not clearing, and the script panel's splitter being unreachable over a Grid editor. Both were
+pre-existing, both were `§6.1`, and both had been surviving on an incidental React re-render. The
+second is the better illustration: the grid's content panel lacked `min-height: 0`, so as a flex item
+it could not shrink below av-grid's own measured height, and the grid overflowed 162px downward and
+buried the splitter — `elementFromPoint` over it returned `render-grid-scroll`. "Switch editor away
+and back and it works" was the tell in both cases.
+
+**What survives deliberately**, so a later epic does not read it as an oversight: `PageToolbar`,
+`EditorToolbar` and `ContentHostFooter` keep React faces (6, 3 and 1 callers outside the epic);
+`EditorError.tsx` keeps four; the registry's `View` → `Component` normalisation shim is still consumed
+by `ui/app/RenderEditorView.ts`; and `applyRestProps` / `clearRestListeners` / `bindRef` / `fillSlot`
+all stay. That last point corrects an E8 assumption: E8 scheduled that bridge "to the end, with
+`<TextChrome>`", and E9 shows the two were never one deadline — `<TextChrome>` could go while the
+bridge could not. **Two deletions scheduled together are not one deadline.**
+
+**E10's candidate, measured but not chosen**: `ui/secondary-views/SecondaryViews.tsx` — 17 lines
+producing one React root per open page, the best remaining roots-per-line target in the tree. As
+always that is a candidate, not an axis: E5-1 requires E10 to run its own contract search, now six
+consecutive times vindicated. The next free epic number is **EPIC-068**.
+
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
 the former measured React grid wrapper unmounting off-screen rows — `renderInfo.ts:314` keys
@@ -983,7 +1093,7 @@ creates the duplicate, not in the epic that hopes to remove it.
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
 | `uikit/shared/highlight.ts` React form | Two editor consumers still use it: GraphBody and LinkCategoryPanel (EPIC-056 C3-7) | The remaining editor consumers use the DOM form; the React form can be removed when those two boundaries convert | C3 / EPIC-056 |
-| `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | The 14 `<TextChrome>` and 6 direct `<PageToolbar>` call sites are vanilla; the slots are then DOM nodes and `fill-slot`'s non-React arm handles them, so the conversion is free | E1 / EPIC-059 |
+| `editors/base` chrome (`TextChrome`, `PageToolbar`, `EditorToolbar`, `ContentHostFooter`) | Every one of them exists to be extended by the editor inside it, so all four carry React subtree slots (`TextChrome` has four). Converting them ahead of their call sites would create **up to six React roots per open editor against one today** — worse on Rule 4's own metric, for no gain, since the slot contents are the same React trees either way (EPIC-059 E1-8) | **Split by E9 ([EPIC-067](epics/completed.md)), and `TextChrome` is now collected.** `TextChrome` was deleted there — its 14 call sites convert and the file is deleted. The other three are **not**: `PageToolbar` keeps 6 direct callers (`archive`, `board-info`, `category`, `git-tree`, `image`, `video`), `EditorToolbar` 3 (`browser`, `mcp-inspector`, `mneme-config`) and `ContentHostFooter` 1 (`board`), so each keeps a React face until its own editor converts. E1-8's "so the conversion is free" does not survive the measurement: the React faces feed native views through `fillSlot`, costing those 10 editors +1..2 roots each against −2 on each of the 14 | E1 / EPIC-059 |
 | `EditorErrorBoundary` React class component | Descendant render failures in the still-React editor subtree require a React error boundary; `window.onerror` and a `try/catch` around `mountReact` are not equivalents | Epic E converts the last React editor subtree it protects | Epic D |
 
 #### Collected or collectable after the editor-body conversion
