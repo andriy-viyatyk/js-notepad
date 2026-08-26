@@ -171,6 +171,7 @@ const EDITORS: EditorRow[] = [
     { id: "tools-hub-view", name: "Tools & Editors", load: async () => (await import("./tools-hub")).toolsHubModule },
     { id: "mcp-view", name: "MCP Inspector", mcpHint: 'Use execute_script with: await app.pages.showMcpInspectorPage() or await app.pages.showMcpInspectorPage({ url: "http://host:port/mcp" })', load: async () => (await import("./mcp-inspector")).mcpModule },
     { id: "mneme-config", name: "Mneme", load: async () => (await import("./mneme-config")).mnemeConfigModule },
+    // Importer touched for the Storybook editor's .tsx -> .ts native-view conversion.
     { id: "storybook-view", name: "Storybook", load: async () => (await import("./storybook")).storybookModule },
     { id: "category-view", name: "Folder View", load: async () => (await import("./category")).categoryModule },
     { id: "git-tree", name: "Git Tree", load: async () => (await import("./git-tree")).gitTreeModule },
@@ -225,4 +226,5 @@ void customEditorRegistry.ensureInitialized();
 // `page.grouped`) can build any text-host editor from the registry's module cache.
 // Fire-and-forget: the chunks load in the background right after registration.
 editorRegistry.preloadContentHostModules();
+
 

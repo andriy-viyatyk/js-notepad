@@ -1,11 +1,12 @@
-import { Label } from "./Label";
-import { Story } from "../../editors/storybook/storyTypes";
+import type { LabelProps } from "./Label";
+import { LabelView } from "./LabelView";
+import type { Story } from "../../editors/storybook/storyTypes";
 
-export const labelStory: Story = {
+export const labelStory: Story<LabelProps> = {
     id: "label",
     name: "Label",
     section: "Bootstrap",
-    component: Label as any,
+    view: LabelView,
     props: [
         { name: "children", type: "string", default: "Field label" },
         { name: "variant", type: "enum", options: ["default", "uppercased"], default: "default" },

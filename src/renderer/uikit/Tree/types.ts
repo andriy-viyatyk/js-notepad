@@ -197,7 +197,7 @@ export interface TreeProps<T = ITreeItem>
     onContextMenu?: (event: MouseEvent) => void;
 
     /** Custom row renderer. Receives a context with the resolved item + flags. */
-    renderItem?: (ctx: TreeItemRenderContext<T>) => React.ReactNode;
+    renderItem?: (ctx: TreeItemRenderContext<T>) => React.ReactNode | Node;
 
     /**
      * Initial expansion state when the component mounts. Keys are source `value`s; values are

@@ -139,13 +139,13 @@ export interface ListBoxProps<T = IListBoxItem>
      */
     onContextMenu?: (event: MouseEvent) => void;
     /** Custom row renderer. Receives a context with the resolved item + flags. */
-    renderItem?: (ctx: ListItemRenderContext<T>) => React.ReactNode;
+    renderItem?: (ctx: ListItemRenderContext<T>) => React.ReactNode | Node;
     /** When true, the ListBox handles ArrowUp/ArrowDown/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
     /** Spinner state — replaces item rendering with a loading row. */
     loading?: boolean;
     /** Renders when `items` is empty and not `loading`. */
-    emptyMessage?: SlotText;
+    emptyMessage?: SlotText | Node;
     /** Pixel height of each row. Default: 24. */
     rowHeight?: number;
     /** When set, the list grows to fit content up to this max height. */

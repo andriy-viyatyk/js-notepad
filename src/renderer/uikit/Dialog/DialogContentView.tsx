@@ -201,7 +201,7 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.iconCleanup = fillSlot(this.iconHost, content);
     }
 
-    private syncHeaderButtons(buttons: React.ReactNode): void {
+    private syncHeaderButtons(buttons: React.ReactNode | Node): void {
         if (!hasSlot(buttons)) {
             this.headerButtonsCleanup?.();
             this.headerButtonsCleanup = undefined;

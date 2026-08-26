@@ -71,7 +71,11 @@ export class NotificationView extends VanillaView<NotificationProps> {
     public constructor(props: NotificationProps) {
         super(props, document.createElement("div"));
         this.root.classList.add("notification-root");
-        this.iconHost.dataset.part = "icon";
+        // `iconHost` is created in onMount(), so touching it here threw
+        // "Cannot read properties of undefined (reading 'dataset')" on every
+        // construction — which broke `AlertItemView` and therefore every toast.
+        // onMount() already sets this attribute; the constructor must not build
+        // or touch child DOM (uikit/CLAUDE.md).
     }
 
     protected onMount(): void {

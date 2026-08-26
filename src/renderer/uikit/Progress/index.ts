@@ -1,4 +1,3 @@
-export { ProgressOverlay } from "./ProgressOverlay";
 export {
     createProgress,
     showProgress,

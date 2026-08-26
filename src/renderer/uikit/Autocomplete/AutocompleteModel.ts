@@ -51,7 +51,7 @@ export interface AutocompleteProps
     headerAction?: SlotContent;
     /** Empty-state node when there are zero matching suggestions. When omitted, the
      *  popover closes instead of rendering an empty list. */
-    emptyMessage?: SlotText;
+    emptyMessage?: SlotText | Node;
 
     // Inner Input passthroughs
     placeholder?: string;

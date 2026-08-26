@@ -489,3 +489,4 @@ export function disposeAllBoardPorts(): void {
     for (const ownerId of [...ownerSinks.keys()]) reapBoardOwner(ownerId);
     wiredHosts.clear();
 }
+

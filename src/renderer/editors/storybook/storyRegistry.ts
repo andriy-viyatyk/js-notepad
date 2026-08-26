@@ -1,4 +1,11 @@
-import { Story } from "./storyTypes";
+import { AnyStory } from "./storyTypes";
+
+// Keep this importer touched when story files change extension so Vite drops stale specifiers.
+// US-1123 converted the composite/stateful demo wrappers; US-1124 converted the floating-layer
+// demo wrappers; US-1125 converted the virtualized data-view and dropdown wrappers; US-1126
+// converted DateInput. Keep this
+// importer touched when story files change extension so Vite drops stale
+// specifiers.
 
 // Layout
 import { collapsiblePanelStackStory } from "../../uikit/CollapsiblePanelStack/CollapsiblePanelStack.story";
@@ -43,6 +50,7 @@ import { minimapStory }           from "../../uikit/Minimap/Minimap.story";
 import { imageViewportStory }     from "../../uikit/ImageViewport/ImageViewport.story";
 
 // Lists
+import { selectableRowStory }     from "../../uikit/SelectableRow/SelectableRow.story";
 import { autocompleteStory }     from "../../uikit/Autocomplete/Autocomplete.story";
 import { categoryListStory }     from "../../uikit/CategoryList/CategoryList.story";
 import { listBoxStory }          from "../../uikit/ListBox/ListBox.story";
@@ -56,7 +64,7 @@ import { dataGridStory }         from "../../uikit/DataGrid/DataGrid.story";
 // Git
 import { gitTreeStory }          from "../../components/git-tree/GitTree.story";
 
-export const ALL_STORIES: Story[] = [
+export const ALL_STORIES: AnyStory[] = [
     collapsiblePanelStackStory, panelStory, spacerStory, splitterStory, toolbarStory,
     breadcrumbStory,
     buttonStory, iconButtonStory, splitButtonStory, inputStory, dateInputStory, labelStory, checkboxStory, dividerStory, dotStory, textStory,
@@ -65,17 +73,17 @@ export const ALL_STORIES: Story[] = [
     tagStory, tagsInputStory,
     popoverStory, tooltipStory, dialogStory, notificationStory, menuStory, progressStory,
     minimapStory, imageViewportStory,
-    autocompleteStory, categoryListStory, listBoxStory, multiListBoxStory, multiSelectStory, selectStory, treeStory,
+    selectableRowStory, autocompleteStory, categoryListStory, listBoxStory, multiListBoxStory, multiSelectStory, selectStory, treeStory,
     virtualGridStory, dataGridStory,
     gitTreeStory,
 ];
 
-export function findStory(id: string): Story | undefined {
+export function findStory(id: string): AnyStory | undefined {
     return ALL_STORIES.find((s) => s.id === id);
 }
 
-export function storiesBySection(): Map<string, Story[]> {
-    const out = new Map<string, Story[]>();
+export function storiesBySection(): Map<string, AnyStory[]> {
+    const out = new Map<string, AnyStory[]>();
     for (const s of ALL_STORIES) {
         const list = out.get(s.section) ?? [];
         list.push(s);

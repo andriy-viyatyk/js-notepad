@@ -76,7 +76,9 @@ class ProgressPillView extends VanillaView<{ label: string }> {
     public constructor(props: { label: string }) {
         super(props, document.createElement("div"));
         this.root.dataset.part = "progress-pill";
-        this.spinner = this.child(new SpinnerView({ size: 18 }));
+        // The spinner is created in onMount(); creating it here as well registered a
+        // second child that was owned but never mounted and immediately overwritten —
+        // a leak, and a constructor that builds child DOM (uikit/CLAUDE.md).
     }
 
     protected onMount(): void {
@@ -110,8 +112,11 @@ class BlockingBranchView extends VanillaView<BlockingState> {
     public constructor(props: BlockingState) {
         super(props, document.createElement("div"));
         this.root.dataset.part = "blocking";
-        this.header.dataset.part = "header";
-        this.content.dataset.part = "content";
+        // `header` and `content` are created in onMount(), so touching them here
+        // threw "Cannot read properties of undefined (reading 'dataset')" on every
+        // construction — which broke the application's blocking progress overlay.
+        // onMount() already sets both attributes; the constructor must not build or
+        // touch child DOM (uikit/CLAUDE.md). Same defect as NotificationView.
     }
 
     protected onMount(): void {
