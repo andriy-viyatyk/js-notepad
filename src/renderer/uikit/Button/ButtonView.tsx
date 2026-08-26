@@ -5,19 +5,26 @@ import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
+import type { SlotContent } from "../shared/fill-slot";
 import type { ButtonProps } from "./Button";
 
-export type ButtonViewProps = ButtonProps;
+export type ButtonViewProps = Omit<ButtonProps, "children"> & {
+    children?: SlotContent;
+};
 
-function isSimpleChildren(value: React.ReactNode): boolean {
+function isSimpleChildren(value: SlotContent): boolean {
     if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
         return true;
     }
     return Array.isArray(value) && value.every(isSimpleChildren);
 }
 
-function appendSimpleChildren(parent: ParentNode, value: React.ReactNode): void {
+function appendSimpleChildren(parent: ParentNode, value: SlotContent): void {
     if (value == null || typeof value === "boolean") return;
+    if (value instanceof Node) {
+        parent.append(value);
+        return;
+    }
     if (Array.isArray(value)) {
         value.forEach((child) => appendSimpleChildren(parent, child));
         return;
@@ -101,7 +108,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
      * pre-cleared, or the React root it caches per host is discarded and the
      * next call builds a second root on the same element.
      */
-    private updateContent(icon: IconRef | undefined, children: React.ReactNode): void {
+    private updateContent(icon: IconRef | undefined, children: SlotContent): void {
         const simpleIcon = icon == null || typeof icon === "string" || icon instanceof Node;
         if (simpleIcon && isSimpleChildren(children)) {
             this.clearSplitContent();

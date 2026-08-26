@@ -9,7 +9,7 @@ import type { TextFileModel } from "./TextEditorModel";
 export class TextFileActionsModel {
     constructor(private model: TextFileModel) {}
 
-    handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    handleKeyDown = (e: KeyboardEvent): void => {
         if (e.ctrlKey && e.code === "KeyS") {
             e.preventDefault();
             if (e.shiftKey) {

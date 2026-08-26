@@ -58,6 +58,7 @@ export class TextFileIOModel {
         this.watchSubscription?.unsubscribe();
         this.watchSubscription = null;
         this.pipes.setPrimary(pipe);
+        // Assigning `pipe` publishes on `pipeState` — it is an accessor over that channel.
         this.model.pipe = this.pipes.primary;
         this.setupWatch();
     }

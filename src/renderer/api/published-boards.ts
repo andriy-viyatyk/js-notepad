@@ -103,21 +103,33 @@ class PublishedBoards {
      *  Sync counterpart of `useCatalogBoardsForFile` for model code (e.g. the Board Info
      *  editor) that computes matches outside a React render. */
     catalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
-        return (this.state.get().catalog?.boards ?? []).filter((b) => {
-            if (!this.isCompatible(b.minAppVersion)) return false;
-            return matchesCatalogMasks(b, fileName);
-        });
+        return this.selectCatalogBoardsForFile(this.state.get(), fileName);
     }
 
     /** Compatible catalog boards whose masks match the given file (path preferred over a bare
      *  name — a folder-scoped catalog board can only be gated when a path is available). */
     useCatalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
-        return this.state.use((s) => {
-            const boards = s.catalog?.boards ?? [];
-            return boards.filter((b) => {
-                if (!this.isCompatible(b.minAppVersion)) return false;
-                return matchesCatalogMasks(b, fileName);
-            });
+        return this.state.use((state) => this.selectCatalogBoardsForFile(state, fileName));
+    }
+
+    subscribeCatalogBoardsForFile(
+        fileName: string,
+        listener: () => void,
+    ): () => void {
+        return this.state.subscribe(
+            listener,
+            (state) => this.selectCatalogBoardsForFile(state, fileName),
+        );
+    }
+
+    private selectCatalogBoardsForFile(
+        state: CatalogState,
+        fileName: string,
+    ): PublishedBoardInfo[] {
+        const boards = state.catalog?.boards ?? [];
+        return boards.filter((board) => {
+            if (!this.isCompatible(board.minAppVersion)) return false;
+            return matchesCatalogMasks(board, fileName);
         });
     }
 }

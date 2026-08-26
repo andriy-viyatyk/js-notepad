@@ -1,4 +1,4 @@
-import { TComponentState } from "../../core/state/state";
+import { TComponentState, TOneState } from "../../core/state/state";
 import { type EditorStateBase } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
@@ -96,6 +96,8 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
     readonly tooltipModel: GraphTooltipModel<GraphEditorState>;
     readonly groupActions: GraphGroupActionsModel;
     readonly mutationModel: GraphMutationModel;
+    /** Explicit channel for the native footer's getter-backed records label. */
+    readonly recordsCountState = new TOneState("0 nodes");
 
     // ── View-attached callbacks (GR3 — set by body on mount) ───────────
     /** Set by GraphBody to handle double-click on a node (expand detail panel). */
@@ -445,6 +447,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         this.visibilityModel.reset();
         const visibleGraph = this.visibilityModel.getVisibleGraph();
         this.renderer.updateVisibleData(visibleGraph);
+        this.refreshRecordsCount();
         this.recomputeSearch();
         this.tooltipModel.clear();
     }
@@ -458,6 +461,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
 
         const visibleGraph = this.visibilityModel.getVisibleGraph();
         this.renderer.updateVisibleData(visibleGraph, nodeId);
+        this.refreshRecordsCount();
         this.recomputeSearch();
         this.tooltipModel.clear();
     }
@@ -477,6 +481,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         if (!changed) return;
         const visibleGraph = this.visibilityModel.getVisibleGraph();
         this.renderer.updateVisibleData(visibleGraph, nodeId);
+        this.refreshRecordsCount();
         this.recomputeSearch();
         this.tooltipModel.clear();
     }
@@ -488,6 +493,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         if (!changed) return;
         const visibleGraph = this.visibilityModel.getVisibleGraph();
         this.renderer.updateVisibleData(visibleGraph);
+        this.refreshRecordsCount();
         this.recomputeSearch();
         this.tooltipModel.clear();
     }
@@ -499,6 +505,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         if (!changed) return;
         const visibleGraph = this.visibilityModel.getVisibleGraph();
         this.renderer.updateVisibleData(visibleGraph);
+        this.refreshRecordsCount();
         this.recomputeSearch();
         this.tooltipModel.clear();
     }
@@ -514,6 +521,11 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         if (!this.visibilityModel.active) return `${total} nodes`;
         const visible = this.renderer.getNodes().length;
         return `${visible} of ${total} nodes`;
+    }
+
+    private refreshRecordsCount(): void {
+        const next = this.recordsCount;
+        if (next !== this.recordsCountState.get()) this.recordsCountState.set(next);
     }
 
     /** True when the graph has no nodes (empty content or parsed with zero nodes). */
@@ -729,6 +741,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
             this.renderer.updateVisibleData(copy, anchorNodeId, newNodePositions);
         }
 
+        this.refreshRecordsCount();
         this.recomputeSearch();
         this.tooltipModel.clear();
     }
@@ -764,6 +777,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         if (!content.trim()) {
             this.dataModel.sourceData = null;
             this.originalJson = {};
+            this.refreshRecordsCount();
             this.state.update((s) => {
                 s.error = "";
                 s.loading = false;

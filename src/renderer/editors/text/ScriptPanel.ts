@@ -1,15 +1,8 @@
 import * as monaco from "monaco-editor";
-import { useEffect, useRef } from "react";
 
 import { TModel } from "../../core/state/model";
-import { TextFileModel } from "./TextEditorModel";
-import { Panel } from "../../uikit/Panel/Panel";
-import { Splitter } from "../../uikit/Splitter/Splitter";
-import { IconButton } from "../../uikit/IconButton/IconButton";
-import { Spacer } from "../../uikit/Spacer/Spacer";
-import { Select } from "../../uikit/Select/Select";
-import { IListBoxItem } from "../../uikit/ListBox";
-import { EditorToolbar } from "../base/EditorToolbar";
+import type { TextFileModel } from "./TextEditorModel";
+import type { IListBoxItem } from "../../uikit/ListBox";
 import { TComponentState } from "../../core/state/state";
 import { fs } from "../../api/fs";
 import { parseObject } from "../../core/utils/parse-utils";
@@ -17,8 +10,8 @@ import { debounce } from "../../../shared/utils";
 import { libraryService, ScriptPanelEntry } from "../../api/library-service";
 import { settings } from "../../api/settings";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
-import { MonacoEditorHost } from "../shared/MonacoEditorHost";
-import type { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
+import { mountVanilla } from "../../uikit/shared/mount";
+import { ScriptPanelView } from "./ScriptPanelView";
 
 const nodefs = require("fs") as typeof import("fs");
 import { fpJoin } from "../../core/utils/file-path";
@@ -53,8 +46,6 @@ export interface ScriptDropdownEntry extends IListBoxItem {
     /** The underlying ScriptPanelEntry, or null for "(unsaved script)". */
     entry: ScriptPanelEntry | null;
 }
-
-const UNSAVED_VALUE = "__unsaved__";
 
 export class ScriptPanelModel extends TModel<ScriptPanelState> {
     editorRef = null as monaco.editor.IStandaloneCodeEditor | null;
@@ -101,9 +92,19 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
 
     dispose = () => {
         this.unsubscribe?.();
+        this.cleanupEditor();
+        this.editorRef = null;
+    }
+
+    handleEditorWillUnmount = () => {
+        this.cleanupEditor();
+    };
+
+    private cleanupEditor = () => {
         this.selectionListenerDisposable?.dispose();
         this.selectionListenerDisposable = null;
-    }
+        this.editorRef = null;
+    };
 
     changeContent = (newContent: string) => {
         this.state.update((s) => {
@@ -128,7 +129,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         this.changeContent(value);
     };
 
-    handleKeyDown = (e: React.KeyboardEvent) => {
+    handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === "F5") {
             e.preventDefault();
             this.pageModel.runRelatedScript();
@@ -143,6 +144,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
     };
 
     setupSelectionListener = (editor: monaco.editor.IStandaloneCodeEditor) => {
+        this.selectionListenerDisposable?.dispose();
         this.selectionListenerDisposable = editor.onDidChangeCursorSelection((_e) => {
             const selection = editor.getSelection();
             const hasSelection = selection ? !selection.isEmpty() : false;
@@ -337,119 +339,6 @@ interface ScriptPanelProps {
     model: TextFileModel;
 }
 
-const UNSAVED_ENTRY: ScriptDropdownEntry = {
-    value: UNSAVED_VALUE,
-    label: "(unsaved script)",
-    entry: null,
-};
-
 export function ScriptPanel({ model }: ScriptPanelProps) {
-    const scriptModel = model.script;
-    const state = model.script.state.use();
-    const scriptHostRef = useRef<MonacoEditorHostView | null>(null);
-
-    useEffect(() => {
-        if (!state.open) {
-            scriptHostRef.current = null;
-            return;
-        }
-
-        scriptHostRef.current?.setValue(state.content);
-    }, [state.content, state.open]);
-
-    // Subscribe to library changes for dropdown refresh
-    libraryService.state.use();
-
-    if (!state.open) {
-        return null;
-    }
-
-    const availableScripts = scriptModel.getAvailableScripts();
-    const allEntries = [UNSAVED_ENTRY, ...availableScripts];
-    const selectedEntry = scriptModel.getSelectedDropdownEntry(availableScripts) ?? UNSAVED_ENTRY;
-
-    return (
-        <Panel
-            name="script-panel"
-            direction="column"
-            height={state.height}
-            overflow="hidden"
-            shrink={false}
-            onKeyDown={scriptModel.handleKeyDown}
-        >
-            <Splitter
-                name="script-panel-splitter"
-                orientation="horizontal"
-                value={state.height}
-                onChange={scriptModel.setHeight}
-                side="after"
-                min={60}
-            />
-            <EditorToolbar>
-                <IconButton
-                    name="script-run"
-                    title={state.hasSelection ? "Run Selected Script (F5)" : "Run Script (F5)"}
-                    size="sm"
-                    icon="run"
-                    onClick={() => model.runRelatedScript()}
-                />
-                {state.hasSelection && (
-                    <IconButton
-                        key="run-all_script"
-                        name="script-run-all"
-                        size="sm"
-                        title="Run All Script"
-                        icon="run-all"
-                        onClick={() => model.runRelatedScript(true)}
-                    />
-                )}
-                <Select<ScriptDropdownEntry>
-                    name="script-select"
-                    items={allEntries}
-                    value={selectedEntry}
-                    onChange={(item) => scriptModel.selectScript(item)}
-                    size="sm"
-                    minWidth={120}
-                    maxWidth={200}
-                />
-                <IconButton
-                    name="script-save"
-                    title="Save Script to Library"
-                    size="sm"
-                        icon="save"
-                    disabled={!state.dirty}
-                    onClick={scriptModel.saveToLibrary}
-                />
-                <IconButton
-                    name="script-open-tab"
-                    title="Open in New Tab"
-                    size="sm"
-                        icon="open-file"
-                    onClick={scriptModel.openInTab}
-                />
-                <Spacer />
-                <IconButton
-                    name="script-close"
-                    title="Close Script Editor"
-                    size="sm"
-                        icon="close"
-                    onClick={scriptModel.toggleOpen}
-                />
-            </EditorToolbar>
-            <Panel name="script-monaco-host" flex={1} minHeight={0}>
-                <MonacoEditorHost
-                    initialValue={state.content}
-                    language="typescript"
-                    onMount={(hostView) => {
-                        scriptHostRef.current = hostView;
-                        scriptModel.handleEditorDidMount(hostView.getEditor());
-                    }}
-                    onChange={scriptModel.handleEditorChange}
-                    options={{
-                        automaticLayout: true,
-                    }}
-                />
-            </Panel>
-        </Panel>
-    );
+    return mountVanilla(ScriptPanelView, { model });
 }

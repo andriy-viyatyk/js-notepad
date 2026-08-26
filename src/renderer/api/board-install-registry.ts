@@ -124,11 +124,19 @@ class BoardInstallRegistry {
     }
 
     listInstalled(): InstalledBoardEntry[] {
-        return this.state.get().entries;
+        return this.selectInstalledEntries(this.state.get());
     }
 
     useInstalled(): InstalledBoardEntry[] {
-        return this.state.use((s) => s.entries);
+        return this.state.use(this.selectInstalledEntries);
+    }
+
+    subscribeInstalled(listener: () => void): () => void {
+        return this.state.subscribe(listener, this.selectInstalledEntries);
+    }
+
+    private selectInstalledEntries(state: RegistryState): InstalledBoardEntry[] {
+        return state.entries;
     }
 }
 

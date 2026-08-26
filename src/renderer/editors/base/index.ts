@@ -38,4 +38,3 @@ export type { IContentHostTrait } from './editor-traits';
 export { editorRegistry } from './editorRegistry';
 export type { EditorDefinition, EditorModule, AcceptanceInput } from './editorRegistry';
 export { PageToolbar } from './PageToolbar';
-export { TextChrome } from './TextChrome';

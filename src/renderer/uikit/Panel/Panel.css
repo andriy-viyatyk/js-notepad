@@ -64,7 +64,8 @@
     .panel-root[data-dimmed] { opacity: 0.5; }
     .panel-root[data-clickable] { cursor: pointer; }
     .panel-root[data-clickable]:hover { background-color: var(--color-bg-light); }
-    .panel-root[data-hide-when-empty]:empty { display: none; }
+    .panel-root[data-hide-when-empty]:empty,
+    .panel-root[data-hide-when-empty]:has(> [data-part="react-slot"]:empty):not(:has(> :not([data-part="react-slot"]))) { display: none; }
 
     /* Descendants tagged with data-visibility="parent-hover" are hidden until the panel is
        hovered or contains keyboard focus. This also intentionally reaches into child widgets. */

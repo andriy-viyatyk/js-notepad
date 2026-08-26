@@ -1,4 +1,4 @@
-import { TComponentState } from "../../core/state/state";
+import { TComponentState, TOneState } from "../../core/state/state";
 import { TDialogModel } from "../../core/state/model";
 import { shell } from "../../api/shell";
 import { ui } from "../../api/ui";
@@ -79,9 +79,27 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
      *  `setPage` so the host can read sibling editors / navigator state. */
     page: IPageHost | null = null;
 
-    /** Content pipe (provider + transformers). Owned by the page, disposed on
-     *  close. Survives editor switches because the host outlives the editor. */
-    pipe: IContentPipe | null = null;
+    /** Live pipe channel for native views; deliberately not part of editor state. */
+    readonly pipeState = new TOneState<IContentPipe | null>(null);
+
+    /**
+     * Content pipe (provider + transformers). Owned by the page, disposed on
+     * close. Survives editor switches because the host outlives the editor.
+     *
+     * Backed by `pipeState` rather than by its own field, so the value and the channel cannot
+     * diverge. When this was a plain field kept in step by two explicit `pipeState.set` calls in
+     * `TextFileIOModel`, `PagesLifecycleModel` assigned `editor.pipe` directly on the ordinary
+     * file-open path and the channel was never told — so the footer's provider badge was missing
+     * on every normally opened file and appeared only after a Save As or rename. An accessor makes
+     * that whole class of miss impossible instead of fixing the one caller.
+     */
+    get pipe(): IContentPipe | null {
+        return this.pipeState.get();
+    }
+
+    set pipe(pipe: IContentPipe | null) {
+        this.pipeState.set(pipe);
+    }
 
     /** Replace the source pipe through the paired source/cache owner. */
     setPipe(pipe: IContentPipe | null): void {
@@ -433,7 +451,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     alertEncryptionError = (err: Error) => this.encryption.alertEncryptionError(err);
 
     // Actions delegates
-    handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => this.actions.handleKeyDown(e);
+    handleKeyDown = (e: KeyboardEvent) => this.actions.handleKeyDown(e);
     openSearchInNavPanel = () => this.actions.openSearchInNavPanel();
     runScript = (all?: boolean) => this.actions.runScript(all);
     runRelatedScript = (all?: boolean) => this.actions.runRelatedScript(all);

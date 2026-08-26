@@ -1,0 +1,28 @@
+@layer editor {
+    [data-type="panel"][data-name="text-chrome-footer"] [data-part="footer-content"],
+    [data-type="panel"][data-name="text-chrome-footer"] [data-part="footer-contributions"] {
+        display: contents;
+    }
+
+    [data-type="panel"][data-name="text-chrome-footer"] [data-part="script-label"] {
+        color: var(--color-text-light);
+        font-size: var(--font-md, 13px);
+    }
+
+    [data-type="panel"][data-name="text-chrome-footer"] [data-part="script-label"][data-state="open"] {
+        color: var(--color-text-default);
+    }
+
+    [data-type="panel"][data-name="text-chrome-footer"] [data-part="encoding-label"] {
+        color: var(--color-text-light);
+        padding: 0 var(--space-sm, 4px);
+        font-size: var(--font-md, 13px);
+    }
+
+    [data-type="panel"][data-name="text-chrome-footer"] [data-part="provider-badge"] {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--gap-xs, 2px);
+        padding: 0 var(--space-xs, 2px);
+    }
+}
