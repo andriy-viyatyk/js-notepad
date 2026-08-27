@@ -4,6 +4,57 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-070 — [De-React Epic E12: the shell's React-typed content](EPIC-070.md)
+
+**Completed 2026-08-27.** Three contracts outside `editors/` still declared **React** for content the
+producer already held as **DOM**, each with a DOM twin already built and already dominant: the per-page
+React island (`renderPage: (id) => ReactNode`), the icon component type (`SvgIconComponent`), and
+`FileList.getTrailing`. All three are gone.
+
+**Measured against the captured baseline on the same session shape** (7 pages open, 3 activated):
+**React roots 6 → 3**, the three survivors exactly as predicted — `GlobalStyles`, `MonacoBody`, and the
+board editor's `board-host`. **The Rule 4 instrument is honest for the first time in the programme**:
+`1 (GlobalStyles) + 1 per React-producing editor instance`, with **no term that scales with open
+tabs** — 4 of 7 open pages now cost nothing. `theme/icons.tsx` → `theme/icons.ts`, `SvgIconComponent`
+reduced to `{ createElement; viewBox? }` with **no call signature**, **116 icon React components → 1**
+generic face, 30 named icon JSX tags → **0**, 17 slot contracts widened to `SlotContent`, both
+DOM→React laundering sites deleted, 9 dead faces + 4 dead barrels + 2 stubs collected. Renderer
+non-story `.tsx` 162 → **136**; non-editor JSX markers 62 → **11**. `editors/` deliberately
+**unchanged at 1337 markers**, reported so the epic is not misread as progress against Epic E.
+
+**The closing property was checked file by file, not by a count.** Each of the eleven non-editor files
+still holding JSX was matched to what keeps it alive — the boundary itself, the Emotion root, the error
+boundary eight editor modules need, the two faces with no vanilla twin, the generic `Icon` face, and
+views held by the `tools-hub` and browser editors. Epic F inherits a list of which editor conversion
+frees which file.
+
+**Its largest finding is not about its own cut: the programme's headline metric was a proxy and it was
+wrong.** `EditorModule.Component` callers measures which arm a module *registers on*, not whether it
+produces React — `monaco` has counted as converted since E2 while mounting `MonacoBody` as a React
+element, and **twelve `View`-arm editors still produce React**, all live. What remains of Epic E is
+re-cut on the body count.
+
+**And a sharper variant of that lesson: a count off by one is not a rounding error, it is an
+unexamined case.** 115 of 116 icons matched the scoping regex and I read that as "all of them". The
+missing one — `PersephoneIcon`, the only JSX-bodied icon, the only theme-dependent one, and the only
+icon whose artwork existed *twice* — was the strongest case for the change.
+
+**Four carry-forward findings:** a `mountVanilla` face outlives its last caller silently, and a dead
+barrel is what hides it; a split leaves a stub, and a stub is a face (passing that finding into the
+next brief made that task find two of its own); a scope fence drawn to prevent a collision also hides
+what is behind it (`Ornament.tsx` survived inside one); and widening a type is a promise the
+implementation must keep or not make.
+
+**Its close review found three real defects**, the most instructive being a *silenced* violation
+rather than a bug: UIKit imported the new app-coupled `Icon` face under an
+`eslint-disable import/no-restricted-paths` — the only `uikit/ → components/` import in the codebase.
+**A suppression comment is the same tell as `as unknown as`, `icon as never` and `asReactNode`**, all
+three of which this epic deleted while adding a fourth of the same kind without noticing. Also fixed:
+`PageSlot.renderNative` had no mount-failure rollback, which would have left a page **permanently
+blank for the session**, and `PageSlot.dispose` could leak one arm.
+
+---
+
 ## EPIC-069 — [De-React Epic E11: the Storybook contract](EPIC-069.md)
 
 **The first epic whose search reversed its predecessor's verdict rather than an inherited candidate.**

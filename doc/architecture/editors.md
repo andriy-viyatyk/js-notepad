@@ -198,7 +198,10 @@ no fallback host on restore failure). Both keep their own host plumbing.
 The glyph that represents an editor — on its page tab, in the Tools & Editors list, and at the start of its sidebar panel headers — comes from one of two sources, decided per editor:
 
 - **`noLanguage` editors** (`noLanguage = true`) supply their own icon through `getIconElement` — e.g. `this.getIconElement = () => createIconComponentElement(GitIcon)`. These are editors with no Monaco language (Git Tree, Archive, Explorer, Storybook, …). An editor that sets `noLanguage` but no `getIconElement` shows no icon.
-- **Language editors** (`noLanguage = false`, the default) derive a file-type icon from their `language` + `title` via `LanguageIcon` (`components/icons/LanguageIcon.tsx`, which resolves the language map, compound-extension patterns like `*.note.json` → Notebook, the OS system icon, then a default).
+- **Language editors** (`noLanguage = false`, the default) derive a file-type icon from their
+  `language` + `title` via the native resolver in
+  `components/icons/language-icon-resolver.ts`, which resolves the language map, compound-extension
+  patterns like `*.note.json` → Notebook, the OS system icon, then a default.
 
 This decision is centralized in the shared **DOM-first editor-icon resolver** ([`components/icons/icon-elements.ts`](../../src/renderer/components/icons/icon-elements.ts)):
 
@@ -213,13 +216,13 @@ createEditorIconElement({
 
 `createEditorIconElement` accepts a duck-typed source rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It prefers an editor's `getIconElement()` when available, then the language/file DOM resolver, and returns either `{ kind: "element", element }` or `null`; there is no React fallback arm. The resolver forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons follow the header state, while explicitly-colored icons keep their own hue.
 
-`getIconElement()` must return a fresh detached node for each call. A DOM node is single-use: passing the same node to a tab and a panel, or to two menu hosts, moves it to the later host and makes it disappear from the first. Build editor glyphs at the point of use rather than caching or sharing them.
+`getIconElement()` must return a fresh detached node for each call. A DOM node is single-use: passing the same node to a tab and a panel, or to two menu hosts, moves it to the later host and makes it disappear from the first. Build editor glyphs at the point of use rather than caching or sharing them. The theme icon module (`theme/icons.ts`) is a builder contract, not a React component contract: `SvgIconComponent` exposes a required `createElement` function and optional `viewBox`; JSX callers use the single generic `uikit/Icon/Icon.tsx` face.
 
 The Tools & Editors list keeps its **own** per-item icon in [`tools-editors-registry.ts`](../../src/renderer/ui/sidebar/tools-editors-registry.ts) (it lists editor *types*, not live models), so a new editor icon must be set there too if the editor appears in that list.
 
 ## Page-tab context menu
 
-A page tab's right-click menu has two tiers. The **tab-level** items (Close, Close Others, Close to Right, Open in New Window, Duplicate, Pin/Unpin) are built in `PageTab.tsx` and are identical for every editor — they call only page/`PagesModel` operations. The **editor-specific** items come from the editor model itself, through a single hook:
+A page tab's right-click menu has two tiers. The **tab-level** items (Close, Close Others, Close to Right, Open in New Window, Duplicate, Pin/Unpin) are built with the shared helpers and constants in `PageTab.ts` and are identical for every editor — they call only page/`PagesModel` operations. The **editor-specific** items come from the editor model itself, through a single hook:
 
 ```ts
 onGetMenuItems(): MenuItem[] {           // EditorModel default
@@ -227,7 +230,7 @@ onGetMenuItems(): MenuItem[] {           // EditorModel default
 }
 ```
 
-`PageTab.handleContextMenu` appends `mainEditorInstance.onGetMenuItems()` after the tab-level items and stamps `startGroup: true` on the first contributed item, so the tab owns the divider between the two tiers.
+`PageTabView.handleContextMenu` appends `mainEditorInstance.onGetMenuItems()` after the tab-level items and stamps `startGroup: true` on the first contributed item, so the tab owns the divider between the two tiers.
 
 The default routes to the content host, which is the extensibility seam:
 

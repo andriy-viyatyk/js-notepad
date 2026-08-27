@@ -95,9 +95,11 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 
 The renderer has a framework-free application shell. `src/renderer.tsx` performs the asynchronous
 bootstrap and calls the `mount(container)` export from `src/renderer/index.tsx`. The shell and
-coupled components are `VanillaView` classes; their `.tsx` files remain thin React-facing mount
-faces where React callers still exist. React is retained only for editor islands and a small set of
-other compatibility boundaries. The sole startup React root is the `GlobalStyles` island.
+coupled components are `VanillaView` classes; thin React-facing mount faces remain only where a
+React caller still exists. React is retained only for editor islands and a small set of other
+compatibility boundaries. The sole startup React root is the `GlobalStyles` island; application
+pages enter the native page host directly, while the browser editor's internal tabs retain their
+React page-manager arm.
 
 ```
 /src/renderer/
@@ -119,7 +121,7 @@ other compatibility boundaries. The sole startup React root is the `GlobalStyles
 | Layer | Responsibility | Key files |
 |-------|---------------|-----------|
 | **api/** | Object Model interfaces + implementations | `app.ts`, `settings.ts`, `fs.ts`, `pages/`, `internal/`, `types/` |
-| **ui/** | Application shell, tabs, sidebar, dialogs; native views with React-facing faces | `MainPage.tsx` + `MainPageView.ts`, `PageTabs.tsx` + `PageTabsView.ts`, `MenuBar.tsx` + `MenuBarView.ts`, `Dialogs.tsx` + `DialogsView.ts` |
+| **ui/** | Application shell, tabs, sidebar, dialogs; native views with compatibility faces where required | `MainPageView.ts`, `PagesView.ts`, `PageTabsView.ts` + `PageTabView.ts`, `MenuBarView.ts`, `DialogsView.ts` |
 | **editors/** | File type handling, content editing | `registry.ts`, `text/`, `grid/`, `browser/`, etc. |
 | **content/** | Content I/O pipeline — providers, transformers, pipes | `ContentPipe.ts`, `parsers.ts`, `resolvers.ts`, `providers/`, `transformers/` |
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
@@ -133,7 +135,7 @@ other compatibility boundaries. The sole startup React root is the `GlobalStyles
 
 1. **`core/`** is the foundation — no imports from other renderer layers
 2. **`uikit/`** is the standalone library — imports only `core/` and `theme/`. No imports from `api/`, `ui/`, `editors/`, or app-specific code (the contract that lets `uikit/` be split into a separate package later)
-3. **`components/`** is persephone-coupled by definition — each remaining folder (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/`) uses `api/`, the page model, file system, or scripting. New pure primitives do NOT go here — they go in `uikit/`. **Sanctioned exception:** `components/icons/LanguageIcon.tsx` imports `custom-editor-registry` and `BoardGlyph` from `editors/board/` so a file claimed by a trusted custom-editor board shows that board's icon wherever files are listed. This is a deliberate, accepted upward import (no actual import cycle exists); the sibling DOM-first icon resolver in `icon-elements.ts` stays decoupled by duck-typing instead (see [editors.md](./editors.md#editor-icons))
+3. **`components/`** is persephone-coupled by definition — each remaining folder (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/`) uses `api/`, the page model, file system, or scripting. New pure primitives do NOT go here — they go in `uikit/`. Icon resolution is split between the builder-backed `theme/icons.ts`, the language resolver, and the DOM-first `components/icons/icon-elements.ts`; the latter stays decoupled from editors by duck-typing (see [editors.md](./editors.md#editor-icons))
 4. **`api/`** implements the Object Model — imports `core/`, uses IPC
 5. **`content/`** implements the I/O pipeline — imports `core/`, `api/types/`
 6. **`editors/`** implement page types — import `core/`, `uikit/`, `components/`, `api/`, `content/`

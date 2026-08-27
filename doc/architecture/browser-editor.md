@@ -692,7 +692,7 @@ When focus is inside a `<webview>`, keyboard events are consumed by the guest pa
 
 ### Layer 2: Global Key Event Bus (`globalKeyDown` Subscription)
 
-When focus is on any renderer element (toolbar, URL bar, tab panel, or no specific focus), the browser editor subscribes to a global keyboard event bus. `MainPage` broadcasts all `keydown` events via `globalKeyDown.send(e)` (defined in `events.ts`). `BrowserEditor` subscribes in its constructor and handles browser hotkeys only when it's the active page. This keeps browser-specific logic out of MainPage.
+When focus is on any renderer element (toolbar, URL bar, tab panel, or no specific focus), the browser editor subscribes to a global keyboard event bus. `MainPageView` broadcasts all `keydown` events via `globalKeyDown.send(e)` (defined in `events.ts`). `BrowserEditor` subscribes in its constructor and handles browser hotkeys only when it's the active page. This keeps browser-specific logic out of the shell composition view.
 
 ### Layer 3: Root div `onKeyDown` (`BrowserWebviewModel`)
 

@@ -132,9 +132,24 @@ back-navigation stack the page owns, mirrors into `navBackCount`, and persists.
 
 For multi-window transfer, `movePageOut()` calls `detachPage()` WITHOUT calling `dispose()`. Cache files survive for the target window.
 
-**Native placeholder rendering:** Pages are hosted by `AppPageManagerView` through the public `AppPageManager` mount face (`src/renderer/components/page-manager/`). The native view owns one stable placeholder per page and appends each newly-created placeholder directly to its manager root. Each activated placeholder owns one retained React island mounted with `mountReactHandle`; later updates render through that same handle. This prevents iframes, webviews, and canvas elements from reloading when pages are closed, reordered, grouped, or ungrouped. Placeholders are never reparented (moved between containers) — grouping is achieved purely via CSS absolute positioning among siblings in the same container. Closed placeholders detach before their nested React roots are disposed in a deferred, generation-guarded cleanup. See `GroupContainer` and `ImperativeSplitter` in the same folder.
+**Native placeholder rendering:** Pages are hosted by `AppPageManagerView` in
+`src/renderer/components/page-manager/`. The native view owns one stable `data-name="page-slot"`
+placeholder per page and appends each placeholder directly to its manager root. A page view is
+constructed only after its page becomes active (or has been active before), then its root is
+mounted directly in the placeholder. The shared `PageSlot` also retains a React arm for the
+browser editor's internal tabs; that arm uses a retained `mountReactHandle` and deferred,
+generation-guarded disposal. Native page views dispose synchronously after the placeholder is
+detached. This prevents iframes, webviews, and canvas elements from reloading when pages are
+closed, reordered, grouped, or ungrouped. Placeholders are never reparented (moved between
+containers) — grouping is achieved purely via CSS absolute positioning among siblings in the same
+container. See `GroupContainer` and `ImperativeSplitter` in the same folder.
 
-**Main editor view keyed by model id:** within a page, the main editor view is rendered as `<RenderEditor key={editor.id} model={editor} />` (`src/renderer/ui/app/Pages.tsx`). The `key` is the editor **model instance id**, so navigating within a page to another file of the *same* editor type (Monaco A→B, Git Diff A→B) **remounts** the view rather than reusing the component with a new `model` prop — the latter left the body model (`useComponentModel`) and Monaco/DiffEditor internal state (content, scroll) stale. An editor-type switch preserves the id (the component swap is handled by `AsyncEditor`'s module cache), so the key does not cause a spurious remount there. This is the original design; it regressed during a refactor and was restored.
+**Main editor view keyed by model id:** `PageContentView` owns a `RenderEditorView` for the
+current editor model (`src/renderer/ui/app/PageContentView.ts`). Its identity includes the model
+instance ID and whether the editor uses the background ornament. Navigating to another model
+disposes and recreates the editor view; updates for the same model are forwarded to
+`AsyncEditorView`, which handles the editor module's native or React arm. This keeps Monaco and
+other stateful editor bodies from being reused with the wrong model.
 
 ---
 
@@ -306,7 +321,7 @@ When a tab is dragged to another window:
 
 **Critical dependency:** The target window must have called `api.windowReady()` before the main process sends `eMovePageIn`. The main process holds a `whenReady` promise per window and awaits it before forwarding events.
 
-**Implementation:** [`/src/main/open-windows.ts`](../../src/main/open-windows.ts) (main process), [`/src/main/drag-model.ts`](../../src/main/drag-model.ts) (debouncing), [`PagesLifecycleModel.ts`](../../src/renderer/api/pages/PagesLifecycleModel.ts) (renderer), [`PageTab.tsx`](../../src/renderer/ui/tabs/PageTab.tsx) (drag handlers)
+**Implementation:** [`/src/main/open-windows.ts`](../../src/main/open-windows.ts) (main process), [`/src/main/drag-model.ts`](../../src/main/drag-model.ts) (debouncing), [`PagesLifecycleModel.ts`](../../src/renderer/api/pages/PagesLifecycleModel.ts) (renderer), [`PageTabView.ts`](../../src/renderer/ui/tabs/PageTabView.ts) (drag handlers)
 
 ## 8. Well-Known Pages
 

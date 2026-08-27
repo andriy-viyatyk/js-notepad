@@ -39,24 +39,38 @@ sets `display` needs a same-layer `<root-selector>[hidden] { display: none; }` c
 The icon registry is the neutral boundary for reusable components. `IconName` is derived from the
 single registry record in `src/renderer/theme/icon-registry.ts`. Use
 `createIconElement(name, props?)` for a registry icon. For an icon component that is not in the
-registry, use `createIconComponentElement(icon, props?)` from `theme/icons.tsx`; it throws an error
-naming the icon when the component has no DOM builder. Resolver components such as `LanguageIcon`
-and `FileIcon`, and language-specific glyphs, have DOM element builders rather than being passed as
-React-node icon values.
+registry, use `createIconComponentElement(icon, props?)` from `theme/icons.ts`; `SvgIconComponent`
+is a builder contract with a required `createElement` function and optional `viewBox`, not a
+callable React component. Language/file resolution lives in
+`components/icons/language-icon-resolver.ts` and `icon-elements.ts`; DOM builders are passed as
+native elements rather than as React-node icon values. JSX callers use the single generic
+`uikit/Icon/Icon.tsx` face.
 
 DOM icon nodes are single-use resources: appending one to a second host moves it and leaves the
 first host without an icon. Build the node at the point of use; do not cache, memoise, hoist, or
-share one node between rows, menus, buttons, or views. If a registry name is wrong,
-`createIconElement` returns an empty `<svg>`; that empty SVG is the runtime symptom to investigate.
+share one node between rows, menus, buttons, or views. If a statically supplied registry name is
+wrong, TypeScript rejects it and the runtime resolver throws if the type boundary has been bypassed.
+Runtime-sourced names must be validated at their boundary and use the visible icon placeholder; an
+empty `<svg>` is never a valid fallback.
 
-`SlotText` remains `string | ReactNode`, and `fillSlot`/`SlotContent` remain able to host React
-content while those callers are still React-backed. Narrowing `IconRef` does not make UIKit or
-`mount.tsx` React-free.
+`SlotContent` is the shared slot-content type (`string | Node | React.ReactNode`) for native-facing
+slot contracts throughout the renderer, including `components/` and `editors/`, not only inside
+`uikit/`. `SlotText` remains `string | ReactNode` for tooltip-like APIs that intentionally do not
+promise a DOM-node body. `fillSlot` remains able to host React content while those callers are
+still React-backed. Narrowing `IconRef` does not make UIKit or `mount.tsx` React-free.
 
 For text slots, prefer `string` whenever callers supply data text. `SlotText` documents an
 intentional rich-content exception; it is not a way to make every public prop React-shaped. An
 arbitrary subtree belongs in `children` or a named child slot and should cross a future view
 boundary as a mounted subtree, not as a framework-specific callback.
+
+### Dead faces and barrels
+
+A React mount face can become callerless when its native view is adopted by a shell or editor, while
+the same file may still contain live types, models, or constants. Split those symbols into a
+framework-free core before removing the face. Treat barrels separately: a live barrel can re-export
+dead faces, and a dead barrel can hide the last stale edge. Re-run symbol and importer searches when
+removing either; typechecking and production builds do not detect an unused face or barrel.
 
 **Persephone-coupled components** (the KEEP folders inside `components/`) may import `api/`, `core/`, and `theme/` directly — that's the criterion for living in `components/` at all. They should still use UIKit primitives (`Button`, `Tooltip`, `IconButton`, `Panel`, …) for primitive rendering rather than re-implementing them.
 

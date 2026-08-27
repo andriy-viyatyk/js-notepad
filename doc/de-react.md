@@ -1162,6 +1162,148 @@ callers — lost because E10 had already measured all three chrome files as **no
 hazard in one epic: two `<webview>` elements destroyed by reparenting, the last `@floating-ui/react`
 importer (`BrowserTabsPanel.tsx:2`), and the board trust flow.
 
+**E12 ([EPIC-070](epics/EPIC-070.md), scoped 2026-08-27) is the shell's React-typed content, and its
+search found something larger than its own cut.** The cut itself is the three contracts outside
+`editors/` that still declare **React** for content the producer already holds as **DOM**, each with a
+DOM twin already built and already dominant: `renderPage: (id) => ReactNode`
+(`PageManagerView.ts:11`, `AppPageManagerView.ts:18`, consumed by `PageSlot.render`), which costs
+**one React root per open page**; `SvgIconComponent = ((props) => ReactElement) & { createElement?: … }`
+(`theme/icons.tsx:12`), which makes **30 `.ts` files import a React component type** to reach an
+optional DOM builder; and `FileList.getTrailing?: (item) => ReactNode`, paid for by an
+`as unknown as` cast at `CommitDiffPanel.ts:325` and by `GraphLegendPanel.tsx:22`'s `asReactNode()` —
+a named helper whose whole purpose is laundering a DOM node into a React-typed prop, used six times.
+The closing property is a statement about what remains rather than a count: **nothing outside
+`editors/` produces a React element for its own sake** — only `mount.tsx` (the boundary),
+`GlobalStyles` (Emotion, Epic F), `EditorErrorBoundary` (required by the `Component` arm), one
+generic `Icon` face, and the `uikit/` faces unconverted editors call.
+
+**The larger finding is that this programme's headline metric is a proxy, and it is wrong.**
+`EditorModule.Component` callers — reported as "9 → 8" by E11 and as an arm count by every epic since
+E2 — measures *which arm a module registers on*, not whether the editor produces React. `monaco` is
+registered on the **`View` arm** and has counted as converted since E2, yet
+`MonacoEditorView`'s constructor hands `TextChromeView` a React element
+(`createElement(EditorErrorBoundary, null, createElement(MonacoBody, { model }))`) through a
+`children` slot that has accepted `Node` since Epic B. The live baseline proves the cost: two of seven
+roots on a three-page session sit at `react-slot → text-chrome-children → text-chrome-root →
+page-editor` with first child `DIV[monaco-body]`. And Monaco is not alone — **twelve `View`-arm
+editors still produce React elements**: `graph` (199 JSX markers, 8 `createElement`), `rest-client`
+(130 / 5), `link-editor` (40 / 34), `env-vars` (34 / 4), `file-diff` (8 / 13), `draw` (5 / 3),
+`monaco` (2 / 4), `notebook` (0 / 42 across 7 files), `log-view` (0 / 24 across 16), `markdown`
+(0 / 17), `grid` (0 / 5), `video` (0 / 5). Every one of the large bodies has a live importer; none is
+dead code. **So the arm count never measured Epic E's progress**, and what remains of Epic E has to be
+re-cut on the body count instead. Seventh instance of *the proxy is not the measurement*, and the
+first where the proxy was the programme's own headline figure rather than a convenience count. E12
+records it and does **not** act on it: converting those bodies deletes nothing, because
+`TextChromeViewProps.children` is already `SlotContent`, so an epic built on it would close by
+shrinking a number — the failure E2 named and E11 re-applied.
+
+**Two measurement corrections come with it, both of the same instrument.** E11 established that the
+`.tsx` extension overstates the JSX surface; the *opening-tag* count that replaced it fails in **both**
+directions. It over-counts string literals — `theme/icons.tsx` scores 335 tags and holds **21** JSX
+markers, the other 314 being `<path>`/`<g>`/`<rect>` inside 115 SVG **string** bodies — and it
+over-counts **generic type arguments**, because `React.Ref<HTMLButtonElement>` matches `<[A-Z]…>`;
+fifteen `uikit/*View.tsx` files were misread that way, `IconButtonView.tsx` scoring 3 tags while
+containing no JSX. What a type annotation cannot produce is a **closing** marker, so the instrument is
+`/>`, `</` and `<>` outside strings and comments. On that instrument: `editors/` **1337 markers across
+63 of 70** non-story `.tsx`, `theme/` 23, `components/` 17, `uikit/` **12 across 6 of 51**, `ui/`
+**10 across 3 of 23**. **The application shell is done**, and **75 of the 92 non-story non-editor
+`.tsx` files contain no JSX at all** — they are `.tsx` because they hold React *types*, which is E11's
+type-relocation finding one level out. E12 deliberately does not rename them: a rename that changes
+nothing is the number-shrinking failure again.
+
+**A third measured hole, and it has already cost a round.** All 116 icons carry a DOM builder and all
+116 are in the name registry, so `createElement?`'s optionality is vacuous — but it is not free.
+`createIconComponentElement` *throws* when the builder is missing, and `createIconElement` has two
+paths that warn in development and then return an **empty `<svg>`**: an unknown name, and a missing
+builder (`slots.ts:34-50`). E11 hit the first one, passing `icon: "folder"` where the registry name is
+`folder-open`, and spent a round chasing empty SVGs it had reported as conversion regressions. **An
+unresolvable icon renders blank instead of failing** — the masked-defect class of §6.1, in the one
+place every view in the app touches. The next free epic number is **EPIC-071**.
+
+**E12 is complete as [EPIC-070](epics/completed.md) (2026-08-27)** — all six re-cut tasks reviewed,
+all gates green, and the deferred interactive pass run by the user and passed. Measured against the
+captured baseline on the same session shape (7 pages open, 3 activated): **React roots 6 → 3**, and the
+three survivors are exactly the predicted ones — `GlobalStyles`, `MonacoBody`, and the board editor's
+`board-host`. **The Rule 4 instrument is honest for the first time in this programme**: roots are now
+`1 (GlobalStyles) + 1 per React-producing editor instance`, with **no term that scales with open
+tabs** — 4 of the 7 open pages cost nothing at all. `theme/icons.tsx` → `theme/icons.ts` with
+`SvgIconComponent` reduced to `{ createElement; viewBox? }` and **no call signature**; **116 icon
+React components → 1** generic face; 30 named icon JSX tags → **0**; 17 slot contracts widened from
+`ReactNode` to `SlotContent`; both DOM→React laundering sites deleted; renderer non-story `.tsx`
+162 → **136** and non-editor JSX markers 62 → **11**. `editors/` is deliberately **unchanged at 1337
+markers**, reported so the epic is not misread as progress against the programme's remaining bulk.
+
+**Its closing property was checked file by file rather than by a count**, which is the part worth
+copying. Eleven non-editor files still hold JSX and each was matched to the thing that keeps it
+alive — the boundary itself (`mount.tsx`), the Emotion root (Epic F), the error boundary eight editor
+modules need, the two faces with no vanilla twin, the generic `Icon` face, and views held by the
+`tools-hub` and browser editors. That turns "nothing exists for its own sake" from a slogan into a
+list, and it hands Epic F exactly which editor conversion frees which file.
+
+**The epic's largest finding is not about its own cut: this programme's headline metric was a proxy,
+and it was wrong.** `EditorModule.Component` callers — reported as an arm count since E2 — measures
+which arm a module *registers on*, not whether the editor produces React. `monaco` has counted as
+converted since E2 and mounts `MonacoBody` as a React element through a slot that has accepted `Node`
+since Epic B; the live baseline shows the root on every open Monaco page. **Twelve `View`-arm editors
+still produce React**, every one of them live, so what remains of Epic E has to be re-cut on the body
+count. Eighth instance of *the proxy is not the measurement*, and the first where the proxy was the
+programme's own headline figure.
+
+**A new variant of that lesson, and the sharper one: a count that is off by one is not a rounding
+error, it is an unexamined case.** The scoping measurement found 115 of 116 icons defined by
+`createIcon(...)`, and I read that as "all of them". The missing one — `PersephoneIcon`, the only
+JSX-bodied icon, the only theme-dependent one, and the only icon whose artwork existed **twice** — was
+the single strongest case for the change. Earlier instances of this rule were proxies that grossly
+over- or under-counted and so invited suspicion; this one *nearly matched*, which is why it survived.
+E11's rejected form-and-panel cut turned on the same shape ("chasing that discrepancy is what found
+E11's contract"), so it is now twice-confirmed.
+
+**Four findings about the shape of the work, all worth carrying into Epic F.** First, **a
+`mountVanilla` face outlives its last caller silently** — deleting the caller is what kills the face,
+and nothing re-checks it. E11 found 20 in `uikit/`; E12 found 9 more faces, **4 dead barrels** (a dead
+barrel is what hides a dead face) and 2 stubs. Whatever Epic F does about the removal ledger should
+include a mechanical zero-caller sweep, because every conversion epic manufactures more and none of
+them fails a gate. Second, **a split leaves a stub, and a stub is a face**: US-1136's split left a
+10-line zero-importer re-export shim, caught only by inspection — passing that into the next brief
+made *that* task find and delete two of its own. *A correction applied once is a fix; a correction
+written into the next brief is a class removed*, now holding for two consecutive epics. Third, **a
+scope boundary drawn to prevent a collision also hides whatever is behind it**: `theme/` was fenced
+off from the sweep to keep two concurrent tasks apart, and `Ornament.tsx`'s dead React face — one
+drawing, two renderers, exactly `PersephoneIcon`'s shape — survived inside the fence until the closing
+measurement enumerated every remaining file and asked what justified each one. Fourth, **widening a
+type is a promise**: the plan for `TruncatedText` proposed widening `children` to `SlotContent` and
+merely *recording* that a DOM node would get no overflow tooltip, which would have shipped a prop that
+silently degrades on a value it now advertises. Either keep the promise or do not widen.
+
+**Its close review found three real defects, and the most instructive one is a silenced violation
+rather than a bug.** `PageSlot.renderNative` had no mount-failure rollback, and because it returns
+early whenever a view is present, a throwing `mount()` would have left that page **permanently blank
+for the session** — the same unexercised-path class as the `VanillaView` constructor rule, arriving
+through a door US-1131's proposed guard would not cover. `PageSlot.dispose` could leak one arm. And
+**UIKit imported the new app-coupled `Icon` face under an `eslint-disable import/no-restricted-paths`**
+— the only `uikit/ → components/` import in the codebase, silenced instead of fixed. That last one
+generalises twice over: *a conversion that introduces a new shared primitive must ask which layer owns
+it rather than inheriting the old file's home*, and **a suppression comment is the same tell as
+`as unknown as`, `icon as never` and `asReactNode`** — all three of which this epic deleted, while
+adding a fourth of the same kind without noticing. The face moved to `uikit/Icon/Icon.tsx` and the
+suppression is gone. The next free epic number is **EPIC-071**.
+
+**E12 review follow-ups (unacted).** The implementation review left four concerns for a later fix:
+Its close review raised four concerns and **three were real and are fixed**. A native `view.mount()`
+failure left the partially mounted view retained, and because `renderNative` returns early whenever a
+view is present, that page would have stayed **permanently blank** for the session — the same
+unexercised-path defect class as the `VanillaView` constructor rule, arriving through a door
+US-1131's proposed guard would not have covered. `PageSlot.dispose` could leak one arm and now
+releases both independently. And **UIKit imported the app-coupled `Icon` face under an
+`eslint-disable import/no-restricted-paths` suppression** — the only `uikit/ → components/` import in
+the codebase, silenced rather than fixed; the face moved to `uikit/Icon/Icon.tsx` and the suppression
+is gone. That one generalises: *a conversion that introduces a new shared primitive must ask which
+layer owns it, rather than inheriting the old file's home* — and a suppression comment is the same
+tell as `as unknown as`, `icon as never` and `asReactNode`, all of which this epic deleted. The
+fourth concern (the generic face not rebuilding `PersephoneIcon` on theme change) was checked against
+source and does not exist: the builder reads `themeState.get().isDark` at call time. **The
+interactive E12 transition pass was not completed** and is listed in the epic.
+
 **E3 also withdrew its own Rule 4 number**, which is worth reading (EPIC-061 E3-6): a measured
 Monaco-churn figure in the notebook was attributed to a React `key` and turned out to be
 the former measured React grid wrapper unmounting off-screen rows — `renderInfo.ts:314` keys

@@ -50,29 +50,17 @@ notification entry, spinner rotation, and progress-bar indeterminate animation.
 
 ## Inline-style inventory
 
-The current literal baseline is **46 JSX `style={{...}}` sites across 26 non-story `.tsx` files**.
+The current literal baseline is **40 JSX `style={{...}}` sites across 20 non-story `.tsx` files**.
 
 | Area | Files | Sites |
 |---|---:|---:|
 | `editors/` | 19 | 39 |
 | `uikit/` | 1 | 1 |
-| `components/` | 5 | 5 |
-| `theme/` | 1 | 1 |
-| **Total** | **26** | **46** |
+| `components/` | 0 | 0 |
+| `theme/` | 0 | 0 |
+| **Total** | **20** | **40** |
 
 The non-editor files are:
-
-**`components/`**
-
-- `src/renderer/components/git-tree/GitStatusBadge.tsx`
-- `src/renderer/components/git-tree/RefBadge.tsx`
-- `src/renderer/components/icons/FileIcon.tsx`
-- `src/renderer/components/icons/LanguageIcon.tsx`
-- `src/renderer/components/icons/TreeProviderItemIcon.tsx`
-
-**`theme/`**
-
-- `src/renderer/theme/icons.tsx`
 
 **`uikit/`**
 
@@ -80,7 +68,7 @@ The non-editor files are:
 
 **`editors/`**
 
-The 21 editor-owned files remain intentionally editor-local and are listed by the verification
+The 19 editor-owned files remain intentionally editor-local and are listed by the verification
 command rather than duplicated here. Their inline styles include measured geometry, third-party
 handles, editor chrome, and content-specific presentation; they are not part of the shell baseline.
 

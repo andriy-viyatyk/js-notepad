@@ -94,10 +94,10 @@ persephone/
 
 The renderer entry is `src/renderer.tsx`: after asynchronous application bootstrap it calls
 `mount(container)` exported by `src/renderer/index.tsx`. The application shell and the coupled
-views under `ui/` and `components/` are framework-free `VanillaView` classes. Their `.tsx` files
-are thin React-facing mount faces retained for remaining React callers; the corresponding
-`*View.ts` files own DOM structure, bindings, and disposal. React roots are reserved for editor
-islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
+views under `ui/` and `components/` are framework-free `VanillaView` classes. React-facing mount
+faces remain only for remaining React callers; the corresponding `*View.ts` files own DOM
+structure, bindings, and disposal. React roots are reserved for editor islands and compatibility
+boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 
 ```
 /src/renderer/
@@ -267,28 +267,20 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │
 ├── ui/                     # Application Shell
 │   ├── app/                # Root shell
-│   │   ├── MainPage.tsx            # React-facing mount face
 │   │   ├── MainPageView.ts         # Native root layout (header, tabs, editors, sidebar)
-│   │   ├── Pages.tsx               # React-facing page host face
 │   │   ├── PagesView.ts            # Native page container/router
-│   │   ├── RenderEditor.tsx        # React-facing editor dispatcher face
 │   │   ├── RenderEditorView.ts      # Native editor dispatcher
 │   │   ├── AsyncEditorView.ts      # Native async editor loader and React editor island
-│   │   └── index.ts
+│   │   └── PageContentView.ts        # Native page content and editor lifecycle
 │   ├── tabs/               # Tab bar
-│   │   ├── PageTabs.tsx            # React-facing tab bar face
 │   │   ├── PageTabsView.ts         # Native tab strip and scroll projection
-│   │   ├── PageTab.tsx             # React-facing individual-tab face
+│   │   ├── PageTab.ts              # Tab props/constants and shared helpers
 │   │   ├── PageTabView.ts          # Native tab, drag, and activation behavior
-│   │   └── index.ts
+│   │   └── PageTabs.css
 │   ├── sidebar/            # Sidebar/menu panel
-│   │   ├── MenuBar.tsx             # React-facing menu-bar face
 │   │   ├── MenuBarView.ts          # Native top menu bar
-│   │   ├── OpenTabsList.tsx         # React-facing open-tabs face
 │   │   ├── OpenTabsListView.ts      # Native open-tabs list
-│   │   ├── RecentFileList.tsx       # React-facing recent-files face
 │   │   ├── RecentFileListView.ts    # Native recent-files panel
-│   │   ├── ToolsEditorsPanel.tsx    # React-facing Tools & Editors face
 │   │   ├── ToolsEditorsPanelView.ts # Native Tools & Editors panel
 │   │   ├── TrustedBoardsList.tsx    # "Boards" segment — trusted boards grouped by folder; open / pin / Remove (≡ untrust)
 │   │   ├── TrustedBoardsListView.tsx # Native list shell with editor-owned React tree arm
@@ -296,15 +288,12 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── TrustedToolsListView.tsx  # Native list shell with editor-owned React tree arm
 │   │   ├── pinned-items.ts          # Unified PinnedRef model over the pinned-editors setting (editors + "board:<root>" pins)
 │   │   ├── tools-editors-registry.ts # Creatable items registry (editors + tools)
-│   │   ├── ScriptLibraryPanel.tsx   # React-facing script-library face
 │   │   ├── ScriptLibraryPanelView.ts # Native script-library panel
-│   │   ├── FolderItem.tsx          # Folder tree item
 │   │   ├── FolderItemView.ts        # Native folder tree item
 │   │   ├── BuiltinEditorsListView.ts # Native built-in editor list
 │   │   ├── PinnedRailView.ts        # Native pinned rail
-│   │   └── index.ts
 │   ├── dialogs/            # Application dialogs
-│   │   ├── Dialogs.tsx             # React-facing dialog manager face
+│   │   ├── Dialogs.ts              # Dialog state/actions API
 │   │   ├── DialogsView.ts          # Native dialog host and slot ownership
 │   │   ├── dialog-view-registry.ts # Only dialog/popper view registry; maps view IDs to native constructors
 │   │   ├── Dialog.tsx              # Base dialog component
@@ -323,7 +312,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   │   ├── ProgressModel.ts    # State + API (showProgress, createProgress, notifyProgress, addScreenLock)
 │   │   │   └── Progress.tsx        # React component (two-zone overlay)
 │   │   ├── poppers/                # Floating menus
-│   │   │   ├── Poppers.tsx
+│   │   │   ├── Poppers.ts
 │   │   │   ├── PoppersView.ts      # Native popper host and slot ownership
 │   │   │   ├── showPopupMenu.ts
 │   │   │   └── types.ts
@@ -796,10 +785,8 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │                       # system, or scripting — that's the criterion. No new pure
 │   │                       # primitives go here.
 │   ├── tree-provider/      # TreeProviderView and CategoryView native views over any ITreeProvider
-│   │   ├── TreeProviderView.tsx # React-facing tree-view face
 │   │   ├── TreeProviderViewImpl.ts # Native tree chrome and UIKit Tree wiring
 │   │   ├── TreeProviderViewModel.ts # Tree loading, selection, actions, and drops
-│   │   ├── CategoryView.tsx # React-facing folder-content face
 │   │   ├── CategoryViewImpl.ts # Native folder-content view and bounded editor island
 │   │   ├── CategoryViewModel.ts # Folder listing, selection, actions, and drops
 │   │   ├── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
@@ -809,13 +796,13 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 │   │   ├── drop-dispatch.ts # Trait payload to provider-level move/import action resolution
 │   │   ├── href-utils.ts # Case-insensitive selection and normalized href helpers
 │   │   └── tree-drop-actions.ts # Move/import drop actions, taking a { path, title } target rather than a tree node so both views can call them
-│   ├── file-search/        # FileSearch native view and React-facing face; virtualized results
-│   │   ├── FileSearch.tsx  # React-facing mount face
+│   ├── file-search/        # FileSearch native view and prop/state types; virtualized results
+│   │   ├── FileSearch.ts  # File-search prop/state types
 │   │   └── FileSearchView.ts # Native search view and VirtualGrid renderer
-│   ├── file-list/          # FileList.tsx face + FileListView.ts native flat list
-│   ├── file-grid/          # FileGrid.tsx face + FileGridView.ts native DataGrid/av-grid list
-│   ├── icons/              # React-facing icon faces plus icon-elements.ts DOM resolvers
-│   ├── page-manager/       # Native append-only page/tab hosts with retained React islands
+│   ├── file-list/          # FileList.ts core/model + FileListView.ts native flat list
+│   ├── file-grid/          # FileGrid.ts types + FileGridView.ts native DataGrid/av-grid list
+│   ├── icons/              # Builder-backed Icon face and DOM icon resolvers
+│   ├── page-manager/       # Native app-page host plus retained React internal-tab host
 │   └── git-tree/           # GitTree.tsx face + GitTreeView.ts native history view and git submodels
 │
 ├── core/                   # Core Infrastructure
@@ -854,7 +841,7 @@ islands and compatibility boundaries, with `theme/GlobalStyles.tsx` as the only 
 ├── theme/                  # Styling
 │   ├── color.ts            # Color tokens (CSS custom properties)
 │   ├── GlobalStyles.tsx    # React global-style island (the sole startup React root)
-│   ├── icons.tsx           # SVG icon components
+│   ├── icons.ts             # SVG icon DOM builders and builder contract
 │   ├── icon-registry.ts    # Single-source-of-truth names for registered SVG icons
 │   ├── language-icons.ts   # Language-specific DOM-built icons
 │   ├── palette-colors.ts   # Color palette definitions

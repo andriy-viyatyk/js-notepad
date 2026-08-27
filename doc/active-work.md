@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
-  - [ ] US-1131: **guard the `VanillaView` constructor rule mechanically — schedule before the next conversion epic.** *The constructor must not create or touch child DOM* (`uikit/CLAUDE.md`) has now been broken **four times across three epics**: `MermaidBodyView` (EPIC-059, see US-1055), `NotificationView` (EPIC-066), and both `BlockingBranchView` and `ProgressPillView` (EPIC-055). **Two were live crashes.** None was caught by `tsc`, ESLint, `build-prod` or a story render — `private x: T | undefined` makes the constructor compile and the failure is a runtime `TypeError` on an unexercised path. Options: an ESLint rule forbidding `this.<field>` writes and `this.child(...)` in a `VanillaView` constructor, or a base-class assertion that fails loudly in development. Every remaining De-React epic writes new `VanillaView` subclasses, so the fifth instance is already being invited. Supersedes the "raise priority" note on US-1055.
+  - [ ] US-1131: **guard the `VanillaView` constructor rule mechanically — schedule before the next conversion epic.** *The constructor must not create or touch child DOM* (`uikit/CLAUDE.md`) has now been broken **four times across three epics**: `MermaidBodyView` (EPIC-059, see US-1055), `NotificationView` (EPIC-066), and both `BlockingBranchView` and `ProgressPillView` (EPIC-055). **Two were live crashes.** None was caught by `tsc`, ESLint, `build-prod` or a story render — `private x: T | undefined` makes the constructor compile and the failure is a runtime `TypeError` on an unexercised path. Options: an ESLint rule forbidding `this.<field>` writes and `this.child(...)` in a `VanillaView` constructor, or a base-class assertion that fails loudly in development. Every remaining De-React epic writes new `VanillaView` subclasses, so the fifth instance is already being invited. Supersedes the "raise priority" note on US-1055. **EPIC-070 adds a design constraint:** its close review found `PageSlot.renderNative` missing a mount-failure rollback, which would have left a page permanently blank for the session. That is the same *class* — a failure on a path no gate exercises — but not a constructor violation, so the guard as sketched would not have caught it. Whatever is built should cover mount/construction failure handling too, or the ticket should say explicitly that it does not.
   - [ ] US-1132: three pre-existing `uikit/` lifecycle findings from EPIC-069's close review, none in code that epic added: `ListBoxView` retains obsolete entries in `rowViews` (added at `:329`/`:335`, removed only at `:424`); `DataGridView` omits `releaseChild()` on replaced branches; `ToolbarView` reuses a single-use DOM `IconRef` — worth investigating alongside the nested React root EPIC-069 measured in `ToolbarView`, which may share a cause.
   - [ ] US-1109: the interaction behind US-1108 is a general trap worth removing rather than
     documenting once. `DataGridView.invalidatePushed()` discards the baseline that makes "this option
@@ -275,7 +275,25 @@ Overview of all active and planned epics and tasks.
   render), which together make **four violations of one rule across three epics** — *the constructor
   must not create or touch child DOM* — none of them catchable by any gate. Guarding that
   mechanically (**US-1131**) is due before the next conversion epic.
-  Next free epic number: **EPIC-070**; next free task number: **US-1133**.
+  **E12 is scoped as [EPIC-070](epics/EPIC-070.md)** — the shell's React-typed content: the three
+  remaining contracts outside `editors/` that declare React for content the producer already has as
+  DOM (the per-page React island, the icon component type, and `FileList.getTrailing`). Its search
+  found something larger than its own cut and recorded it rather than acting on it: **the programme's
+  headline metric is a proxy and it is wrong.** `EditorModule.Component` callers "9 → 8" measures
+  which arm a module registers on, not whether the editor produces React — `monaco` is registered on
+  the `View` arm and mounts `MonacoBody` as a React element through a slot that already accepts
+  `Node`, and the live baseline shows a React root on every open Monaco page. **Twelve `View`-arm
+  editors still produce React** (`graph` 199 JSX markers, `rest-client` 130, `link-editor` 40 + 34
+  `createElement`, `notebook` 42, `log-view` 24), every one of them live. That re-cuts what remains of
+  Epic E, and it is the **seventh instance** of *the proxy is not the measurement* — the first where
+  the proxy was the programme's own headline count.
+  **E12 is complete as [EPIC-070](epics/completed.md) (2026-08-27)** — roots **6 → 3** on the baseline
+session, and the Rule 4 instrument is honest for the first time: `1 (GlobalStyles) + 1 per
+React-producing editor instance`, with no per-open-tab term. 116 icon React components → **1**, 17
+slot contracts widened to `SlotContent`, both laundering sites and 15 dead faces/barrels/stubs gone;
+`editors/` deliberately unchanged. Its close review found three real defects including a
+`uikit/ → components/` import **silenced with an eslint suppression** — the same tell as the casts the
+epic deleted. Next free epic number: **EPIC-071**; next free task number: **US-1142**.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

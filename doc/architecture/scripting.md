@@ -747,7 +747,7 @@ AutoloadRunner (scripting/)
 
 **Error handling:** All-or-nothing. If any `register()` throws, all subscriptions from all scripts are unsubscribed, error notification shown.
 
-**State:** `AutoloadRunner.state` is a `TOneState<{ isLoaded, needsReload }>`. The `AutoloadReloadButton` in `MainPage.tsx` subscribes to this state.
+**State:** `AutoloadRunner.state` is a `TOneState<{ isLoaded, needsReload }>`. The `AutoloadReloadButton` in `MainPageView.ts` subscribes to this state.
 
 ## Type Definitions
 
