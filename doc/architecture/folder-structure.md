@@ -282,8 +282,8 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── OpenTabsListView.ts      # Native open-tabs list
 │   │   ├── RecentFileListView.ts    # Native recent-files panel
 │   │   ├── ToolsEditorsPanelView.ts # Native Tools & Editors panel
-│   │   ├── TrustedBoardsListView.tsx # Native list shell with editor-owned React tree arm
-│   │   ├── TrustedToolsListView.tsx  # Native list shell with editor-owned React tree arm
+│   │   ├── TrustedBoardsListView.ts   # Native trusted-board list and owned trailing controls
+│   │   ├── TrustedToolsListView.ts    # Native trusted-toolset list and owned trailing controls
 │   │   ├── pinned-items.ts          # Unified PinnedRef model over the pinned-editors setting (editors + "board:<root>" pins)
 │   │   ├── tools-editors-registry.ts # Creatable items registry (editors + tools)
 │   │   ├── ScriptLibraryPanelView.ts # Native script-library panel
@@ -325,7 +325,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │       ├── SideBarPanelHeaderView.ts # React-free DOM header factory
 │       ├── SideBarPanelHeader.css   # Static panel-header styles
 │       ├── panel-key.ts             # Composite panel keys (`${editorId}::${panelId}`)
-│       └── secondary-view-registry.ts # Registry: panel ID → discriminated React/vanilla loader
+│       └── secondary-view-registry.ts # Registry: panel ID → native view loader
 │
 ├── editors/                # Editor Implementations — each editor is an EditorModel subclass
 │   ├── base/               # Shared editor infrastructure
@@ -387,27 +387,27 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── BrowserEditorModel.ts     # Browser state types, defaults, and partition helper
 │   │   ├── BrowserTabsModel.ts       # Internal tabs, URL/favicon caches, bookmarks resource
 │   │   ├── BrowserTorModel.ts         # Tor partition and daemon lifecycle
-│   │   ├── BrowserView.tsx           # Browser UI
+│   │   ├── BrowserView.ts             # Native browser UI and per-tab webview host
 │   │   ├── BrowserWebviewModel.ts    # Webview management
 │   │   ├── webview-context-menu.ts    # Webview context-menu construction
 │   │   ├── BrowserUrlBarModel.ts     # URL bar state
 │   │   ├── BrowserTargetModel.ts     # Automation adapter (implements IBrowserTarget)
-│   │   ├── BrowserTabsPanel.tsx      # Browser tab bar
+│   │   ├── BrowserTabsPanel.ts        # Native browser tab bar and compact hover preview
 │   │   ├── BrowserTabsPanel.css      # Scoped browser-tab presentation
 │   │   ├── BrowserView.css           # Scoped browser/webview presentation
-│   │   ├── BookmarksDrawer.tsx       # Bookmarks panel
-│   │   ├── DownloadButton.tsx        # Download indicator
+│   │   ├── BookmarksDrawer.ts         # Native bookmarks panel
+│   │   ├── DownloadButton.ts          # Download indicator
 │   │   ├── BrowserDownloadsPopup.ts  # Download list popup
-│   │   ├── UrlSuggestionsDropdown.tsx # URL autocomplete
-│   │   ├── TorStatusOverlay.tsx      # Tor connection status
+│   │   ├── UrlSuggestionsDropdown.ts  # URL autocomplete
+│   │   ├── TorStatusOverlay.ts        # Tor connection status
 │   │   ├── BrowserBookmarks.ts       # Bookmarks data management (wraps TextFileModel + LinkEditor)
 │   │   ├── BrowserBookmarksUIModel.ts # Bookmarks UI state
 │   │   ├── BrowserPanelHost.ts       # IPageHost impl for browser's bookmarks sidebar
-│   │   ├── BrowserSecondaryViews.tsx # SecondaryViews mount for browser empty page and BookmarksDrawer
+│   │   ├── BrowserSecondaryViews.ts   # Native secondary views for blank page and BookmarksDrawer
 │   │   ├── browser-search-history.ts # Search history
 │   │   ├── network-log-links.ts      # Network log → ILink[] conversion
 │   │   ├── browser-pages.ts          # showBrowserPage / openUrlInBrowserTab — page opening; keeps the browser chunk out of startup
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── notebook/           # Notebook editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── NotebookEditor.ts         # EditorModel — page-level notes, categories, tags
 │   │   ├── NotebookBody.tsx          # React-facing mount face
@@ -623,12 +623,11 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.tsx
 │   ├── board/              # Board editor (non-text, Pattern B survive-navigation)
 │   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, live iframe ref, icon; opens any board root; busy keep-alive (survives navigation as an invisible ownership handle while its processes run)
-│   │   ├── BoardEditorView.tsx       # React component (view only)
-│   │   ├── BoardToolbar.tsx          # In-board toolbar — Reload / Show-log / board path + switcher popover / File Explorer button
-│   │   ├── BoardWebview.tsx          # Locked-down cross-origin <iframe src="board://<host>/index.html"> (no sandbox attr); brokers the MessagePort bridge handshake + ui.log reset
-│   │   ├── BoardsTree.tsx            # Reusable boards tree (single-root + multi-root; folder-compacted; click / trailing / context-menu slots)
+│   │   ├── BoardEditorView.ts        # Native four-way board branch host
+│   │   ├── BoardToolbar.ts           # In-board toolbar — Reload / Show-log / board path + switcher popover / File Explorer button
+│   │   ├── BoardWebview.ts            # Locked-down cross-origin <iframe src="board://<host>/index.html"> (no sandbox attr); brokers the MessagePort bridge handshake + ui.log reset
+│   │   ├── BoardsTreeView.ts         # Reusable native boards tree (single-root + multi-root; folder-compacted; click / trailing / context-menu slots)
 │   │   ├── boards-tree-build.ts      # Pure builder: board path list → compacted folder/board node tree
-│   │   ├── BoardGlyph.tsx            # Default board glyph icon
 │   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
 │   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one; Custom Editor fields (fileMasks/folderMasks/editorPriority/editorName) + matcher/accessor helpers
 │   │   ├── custom-editor-registry.ts # Reactive mask → trusted-board map; board-editor:<root> virtual ids; resolveEditorIdForFile (merges built-in + board at file-open); isBoardEditorId
@@ -638,9 +637,9 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)
 │   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder (writes board-manifest.json)
 │   │   ├── board-api.d.ts            # Author-facing window.persephone contract (the canonical board API .d.ts)
-│   │   ├── UntrustedBoardView.tsx    # Shown in place of the board iframe when the board is untrusted (Trust board button)
-│   │   ├── BoardNotFoundView.tsx     # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
-│   │   └── index.tsx                 # boardModule + legacy EditorModule factory
+│   │   ├── UntrustedBoardView.ts      # Shown in place of the board iframe when the board is untrusted (Trust board button)
+│   │   ├── BoardNotFoundView.ts       # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
+│   │   └── index.ts                   # boardModule + native EditorModule factory
 │   ├── board-info/         # Board Info editor ("board-info") — install + properties over one host-capable holder
 │   │   ├── BoardInfoEditorModel.ts   # EditorModel — install/properties modes; adopts/yields CONTENT_HOST_TRAIT without rendering (lossless Text↔+↔board switch)
 │   │   ├── BoardInfoEditorView.ts     # Download→Register install UI + properties/versions UI (UIKit only)
@@ -658,7 +657,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── ToolsetEditorView.ts       # Native read-only view — manifest info + tool cards
 │   │   └── index.ts                   # toolsetModule + EditorModule factory (decodes the link)
 │   ├── tools/              # Shared registered-toolsets tree (used by the sidebar Tools panels)
-│   │   ├── ToolsTree.tsx             # Presentational Tree of toolsets (folder-compacted; open / trailing / context-menu slots)
+│   │   ├── ToolsTreeView.ts          # Native Tree of toolsets (folder-compacted; open / trailing / context-menu slots)
 │   │   └── tools-tree-build.ts       # Pure builder: toolset path list → compacted folder/toolset node tree (leaf label = manifest name)
 │   ├── shared/             # Shared editor utilities and Monaco widget hosts
 │   │   ├── link-open-menu.ts
@@ -672,7 +671,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── ColorizedCode.ts          # React residual-props face
 │   │
 │   ├── register-editors.ts # Editor registration — table-driven (EDITORS rows + loop) + content-host module preload
-│   ├── types.ts            # View-module prop types (FileEditorComponent, EditorViewModule)
+│   ├── types.ts            # View-module prop types (required native EditorModule.View)
 │   └── index.ts
 │
 ├── scripting/              # Script Execution
@@ -800,7 +799,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── file-list/          # FileList.ts core/model + FileListView.ts native flat list
 │   ├── file-grid/          # FileGrid.ts types + FileGridView.ts native DataGrid/av-grid list
 │   ├── icons/              # Builder-backed Icon face and DOM icon resolvers
-│   ├── page-manager/       # Native app-page host plus retained React internal-tab host
+│   ├── page-manager/       # Native app-page and browser internal-tab hosts
 │   └── git-tree/           # GitTree.tsx face + GitTreeView.ts native history view and git submodels
 │
 ├── core/                   # Core Infrastructure

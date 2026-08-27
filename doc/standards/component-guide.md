@@ -59,6 +59,11 @@ slot contracts throughout the renderer, including `components/` and `editors/`, 
 promise a DOM-node body. `fillSlot` remains able to host React content while those callers are
 still React-backed. Narrowing `IconRef` does not make UIKit or `mount.tsx` React-free.
 
+For a `Tree` row's right-side content, use `renderTrailing` for a slot value that may be rebuilt,
+and `trailingElement` for a stable, caller-owned DOM node. The direct-node form is identity-aware:
+the row can short-circuit when the same node remains assigned, avoiding needless slot teardown and
+reattachment. Keep the node owned by the caller and do not share one node between rows.
+
 For text slots, prefer `string` whenever callers supply data text. `SlotText` documents an
 intentional rich-content exception; it is not a way to make every public prop React-shaped. An
 arbitrary subtree belongs in `children` or a named child slot and should cross a future view
@@ -109,6 +114,8 @@ paths; it is the single preparation path for empty enum values, managed values, 
 controls, and generated children.
 
 ## Naming conventions
+
+React faces use `.tsx`; framework-free `VanillaView` implementations use a `View.ts` suffix.
 
 - Component name — PascalCase (`Button`, `MultiSelect`).
 - File name — `<ComponentName>.tsx` inside the component's own subfolder.

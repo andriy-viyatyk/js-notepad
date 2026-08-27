@@ -8,9 +8,20 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+
 - *(no epic)*
   - [ ] US-1131 **(largely DELIVERED in EPIC-071 as US-1142 — this entry now tracks only the two residual gaps)**: the `VanillaView` lifecycle guard exists. `eslint.config.mjs` carries a local plugin enforcing four clauses — no listeners/subscriptions, no timers, no layout measurement in a constructor (all three measured at a **zero** baseline before enabling), plus Class A: no synchronous constructor dereference of a field whose only assignment is in `onMount`/`onUpdate` — and one narrow Class B rule (a field claimed from `this.child(...)` must be assigned in exactly one method). `VanillaView.mount()` now disposes and rethrows on a failed `onMount()`, skipping `onDispose()` on the half-built view, and `PageSlot.renderNative` performs construction inside its rollback scope — which covers EPIC-070's mount-failure constraint. EPIC-071 also established that the premise was wrong: the "four violations of one rule" were **three** violations of **two** rules, and `MermaidBodyView` (US-1055) is **not a defect** — the rule sentence was stricter than the codebase's own deliberate create → claim → mount pattern, which 157 constructor `this.child(...)` calls follow. The rule text in `uikit/CLAUDE.md` was narrowed to match. **Two gaps remain.** (1) The clauses cover a *constructor* only: `this.listen()` inside a method called repeatedly is the same no-early-release defect through another door, and EPIC-071's close review found it three times in new code (fixed there by delegation). Measure a "no `this.listen()` outside `onMount()` or the constructor" rule before the next conversion epic. (2) The rules match `extends VanillaView` **directly**; there are no indirect subclasses today, so coverage is complete by accident of the current tree, and the first `class X extends SomeOtherView` silently leaves the guard's scope. EPIC-067 already met that shape (`ContentHostFooterView extends EditorToolbarView`, removed because *a footer contains a toolbar; it is not one*). The cheap closure is a fifth rule forbidding any class from extending a `VanillaView` subclass — zero baseline today, and it makes the direct match complete by construction.
   - [ ] US-1153: two EPIC-071 surfaces that closed **unverified**, carried forward so they are not lost with the epic. (a) **`mneme-root` was never rendered** — its route (`explorer-open-mneme`) works, but exercising it displays the user's live customer notes, and EPIC-071's rule was that no verification step may cause customer work data to be read or recorded. It has green `tsc`/ESLint/`build-prod` and a converted body with zero React imports, and **no runtime evidence at all** — the only surface in that epic's cut in that state. (b) **`link-editor`'s tiles view mode** and its list↔tiles teardown were never exercised: the list mode verifies at 0 React roots on a populated file, but the switch did not respond to synthetic input, so neither the tiles body nor the branch disposal has runtime evidence. The teardown is the part that matters — it is EPIC-068's persistent-child hazard, and the one branch in that epic whose disposal was not observed (contrast `tools-hub`, where visiting four tabs in sequence proved teardown for free). Both need a short interactive pass; neither is known to be broken.
+  - [ ] US-1163: opening an editor whose module fails to load is a **silent no-op**. Found by a
+    deliberate-throw probe in EPIC-072/US-1160: `PagesLifecycleModel.showEditorPage:574` →
+    `editorRegistry.createEditor:155` → `loadModule:210` rejects, the exception propagates to the
+    caller, and the user gets **no page, no message, and nothing reported** — clicking the entry
+    simply does nothing. Pre-existing, and *not* the path US-1160 fixed: `createEditor` needs the
+    module to build the editor model, so it loads and fails before `AsyncEditorView` is ever reached
+    (which is why US-1160's added `.catch()` is defence-in-depth rather than a live-bug fix). The app
+    stays usable, so this is milder than a stuck spinner, but a failed open should say so. Fix at the
+    `showEditorPage`/`createEditor` layer — a `guard()`-style report is probably enough; note
+    `RenderEditorView.ts:29` already uses `guard("Failed to dispose editor", …)` as precedent.
   - [ ] US-1152: two pre-existing secondary-view rebinding defects, surfaced by EPIC-071's close review but **not caused by it** — both files are untouched by that epic, and `LinkCategoryPanel.ts`'s only change there was swapping a React tooltip for the native builder. (a) `link-editor/panels/LinkCategoryPanel.ts:47-60` and `LinkCategorySecondaryView.ts:51-64` bind to the current editor/page/host state but never replace those subscriptions when `onUpdate()` retargets the panel to a different `LinkEditor` — so selection changes in the new editor do not refresh the category tree, the header does not refresh on page/host change, and the old editor's sources keep invoking callbacks against the new view's state. It also never re-checks a provider that becomes available after an initial `null`. (b) `mneme-root/MnemeTreeSecondaryView.ts:77-82,94-127` re-calls `bindModelState()`/`bindPageState()` when `mnemeModel` changes, but `bind()` stores each unsubscribe only in the view's final disposer list, so every previous model and page stays subscribed for the view's lifetime; identity guards suppress most stale DOM writes but the callbacks still run. (c) `link-editor/panels/LinkTagsSecondaryView.ts:61-78`, `LinkTagsPanel.ts:27-40` and `LinkHostnamesNavigationPanel.ts:51-73` have the identical defect — they bind to the initial editor's `state` and their `onUpdate()` refreshes child props and snapshots without replacing those subscriptions, so a reused panel shows a correct one-time snapshot and then stops tracking, while the old editor's callbacks keep firing. **That makes five files in one class**, all pre-existing and all in secondary views, which is why it should be fixed as a pattern rather than five times: the shape is *a view that accepts a replaceable model but binds as if the model were fixed.* All are the same class as **US-1132** and share its cause — *`bind()` is only for state that outlives the view* (EPIC-068), and `own()` has no early-release API. Fix by retaining explicit unsubscribe handles and replacing them on identity change. Worth doing together with US-1132 and the `releaseChild` audit.
   - [ ] US-1132: three pre-existing `uikit/` lifecycle findings from EPIC-069's close review, none in code that epic added: `ListBoxView` retains obsolete entries in `rowViews` (added at `:329`/`:335`, removed only at `:424`); `DataGridView` omits `releaseChild()` on replaced branches; `ToolbarView` reuses a single-use DOM `IconRef` — worth investigating alongside the nested React root EPIC-069 measured in `ToolbarView`, which may share a cause.
   - [ ] US-1109: the interaction behind US-1108 is a general trap worth removing rather than
@@ -310,19 +321,27 @@ concentration in the app is **not an editor** but `tools-hub`'s Registered-board
 roots are one per visible row in shell code E12 named as a survivor without weighing it. Closed with two
 surfaces unverified by decision (**US-1153**). Next free epic number: **EPIC-072**; next free task
 number: **US-1154**.
-  **E13 is scoped as [EPIC-071](epics/EPIC-071.md)** — the editor bodies that still build React.
-Its contract search is negative for the third consecutive time, so this is the first epic in the
-programme scoped purely by body: eight editors (`settings`, `mcp-inspector`, `mneme-config`,
-`tools-hub`, `mneme-root`, `about`, `link-editor`, `monaco`), 795 of the 1,337 remaining JSX markers.
-It closes on three collections rather than a count — the `Component` arm reduced to exactly the two
-`<webview>` editors, **six** `uikit/` React faces deleted plus the **fifteen** already zero-caller,
-and **one React root on the everyday text path** (3 of the 4 live roots are `MonacoBody`, a 239-line
-file). It also corrects E12's own corrective table: its `createElement` column counted
-`document.createElement` and E12's new icon builders, so **five editors it listed as unconverted
-produce no React at all** (`notebook`, `log-view`, `markdown`, `grid`, `video`) — the ninth instance
-of *the proxy is not the measurement*, and the first where the contaminated instrument was the
-corrective one. **US-1131 is absorbed as its first task**, since E13 writes ~30 new `VanillaView`
-subclasses.
+  **E14 is complete as [EPIC-072](epics/completed.md) (2026-08-27)** — the `Component` arm is gone; see the close record in the roadmap. It was scoped as follows: It is scoped
+against a fresh measurement rather than against E13's handoff, which is what that handoff instructed,
+and the measurement **splits Epic E's remainder in two**: `board` + `browser` are one *atomic* unit
+(157 markers, 15 files — the arm cannot be deleted while either survives, and they are the only two
+editors hosting a foreign document), while `graph`, `rest-client`, `env-vars`, `file-diff` and `draw`
+are five independent bodies (383 markers) that can never block anything. Combining them would produce
+an epic that cannot close if either host conversion stalls, so **E14 takes the atomic unit and E15
+becomes Epic E's genuine last epic** — the risky bounded work first, while there is still slack to
+reorder around it. It closes on the arm not existing, plus `ui/sidebar`'s per-row React roots (E13's
+relocated headline target — 6 markers, 2 files, and the largest concentration in the app) and the
+`@floating-ui/react` uninstall, which turns out to be gated on **one** importer rather than the whole
+face sweep. It corrects four claims in E13's close record, including that `board` hosts a `<webview>`
+— it hosts a cross-origin `iframe`, and the filename is the trap — and that the arm survived *because*
+of webview hosting: both `Component` implementations are three-line JSX wrappers, so the arm falls out
+of the two conversions rather than needing its own argument. Its own scoping session produced **three
+more instrument failures before any number was published**, one of them in E13's headline instrument:
+a JSX-text apostrophe (*"this file isn't in a git repository"*) opened a phantom string literal and
+swallowed the rest of the file, so `file-diff` measured zero markers while holding a full React body.
+Corrected, `editors/` is **542**, not 535 — and the new rule is that **when two cheap instruments
+disagree, at least one is wrong, which is a better validator than making one instrument careful,
+because it needs no ground truth prepared in advance.** Next free epic number: **EPIC-073**; next free task number: **US-1164**. **E15 is Epic E's last epic.**
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

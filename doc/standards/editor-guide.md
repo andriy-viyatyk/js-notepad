@@ -174,8 +174,8 @@ Choose the page chrome before writing the view:
   script panel, content-host footer, focus/key handling, and overlay slot. The editor's `View`
   composes it directly; a React body may remain a bounded island in its `children` slot.
 
-React remains valid for a view, but a converted or new DOM-heavy view should use `VanillaView` and
-export it as `View` (or `BodyView`) when the main DOM can be owned natively. Keep the root stable.
+Every editor module now requires a native `View` arm. A converted or new DOM-heavy view should use
+`VanillaView` and export it as `View` (or `BodyView` when embeddable). Keep the root stable.
 If a body still needs React, wrap it in `EditorErrorBoundary` and pass the resulting element as
 `TextChromeView.children`; the native chrome owns the slot and the body remains one bounded React
 island. `EditorToolbar` and `ContentHostFooter` are compatibility faces for React callers, not the
@@ -301,21 +301,17 @@ root.
 ## Step 4: Export the EditorModule
 
 ```typescript
-// index.ts (or index.tsx when the module has a React face)
+// index.ts (or index.tsx when the module contains React body code)
 import { TComponentState } from "../../core/state/state";
 import { MyEditor, defaultMyEditorState } from "./MyEditor";
 import { MyEditorView } from "./MyEditorView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function MyEditorComponent({ model }: { model: EditorModel }) {
-    return <MyEditorView model={model as MyEditor} />;
-}
-
 export const myEditorModule: EditorModule = {
     createEditor: () =>
         new MyEditor(new TComponentState({ ...defaultMyEditorState })),
-    View: MyEditorView,                  // or Component: MyEditorComponent for a React main view
+    View: MyEditorView,
     // Only for standalone (no-host) editors that open FROM a file path
     // (link decode / path-derived state) — text-bearing editors never need it:
     // newEditorModel: async (filePath?: string) => { ... },
@@ -432,10 +428,10 @@ record view with `this.child()`.
 - [ ] `getRestoreData()` returns persisted state (stripped of runtime-only fields) — text-bearing editors inherit the identity-only base and extend it only for extra durable fields
 - [ ] `dispose()` calls `super.dispose()` and cleans up domain-only resources (host subscriptions registered via `registerHostSubscription` are torn down by the base)
 - [ ] For text-bearing editors: `displayName` set; host content writes go through `writeToHost`; view settings ride `mirrorHostSettings`
-- [ ] `EditorModule` exports `createEditor` + `Component` or `View` (plus `newEditorModel` for standalone file-open editors, `BodyView` for embeddable ones)
+- [ ] `EditorModule` exports `createEditor` + required native `View` (plus `newEditorModel` for standalone file-open editors, `BodyView` for embeddable ones)
 - [ ] Row added to the `EDITORS` table in `register-editors.ts`; matcher added to `EDITOR_MATCHERS` in `editor-matchers.ts` if the editor matches files/languages
 - [ ] The row's `load` keeps a literal `import("./…")` — preserves code splitting
-- [ ] Error states and loading states are handled in the view (React component or `VanillaView`)
+- [ ] Error states and loading states are handled in the native `View` (`AsyncEditorView` supplies the shared loading and native error host)
 - [ ] (Optional) Scripting facade added with type declaration
 
 ## Examples

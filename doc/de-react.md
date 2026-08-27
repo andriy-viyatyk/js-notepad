@@ -1549,6 +1549,179 @@ re-measure every blocker listed here rather than inherit this paragraph**, and i
 instruments before quoting them. The next free epic number is **EPIC-072**.
 
 
+#### E14 is scoped as [EPIC-072](epics/EPIC-072.md) — the `Component` arm dies *(2026-08-27)*
+
+**E13 handed its successor a list and an instruction: re-measure every blocker rather than inherit the
+paragraph. Doing so split the list.** E13's close record named E14 as *the last epic in Epic E* and
+gave it seven editors plus `EditorError.tsx`. Measured, those seven are two jobs with different shapes:
+
+- **`board` + `browser` are one atomic unit** — 157 markers, 15 files. `EditorModule.Component`
+  cannot be deleted while *either* survives: one remaining caller keeps the two-arm registry, the
+  `mountVanilla` normalisation shim and the `React.ComponentType` import alive. They are also the only
+  two editors that host a foreign document.
+- **`graph`, `rest-client`, `env-vars`, `file-diff`, `draw` are five independent bodies** — 383
+  markers, 16 files, no shared contract, no ordering constraint, nothing gated on them. E13's shape
+  exactly, decomposable to any granularity, incapable of blocking anything.
+
+Combining them yields an epic that **cannot close if either host conversion stalls**, with 383 markers
+of unrelated work stranded inside it. So E14 takes the atomic unit and **E15 becomes Epic E's genuine
+last epic**. The order is the point: *the risky bounded unit goes first, while there is still slack to
+reorder around it.* The five bodies can be done at any time; the two hosts are the only thing that can
+stop Epic E closing at all, and discovering that now is worth more than discovering it last.
+
+**Four corrections to the handoff, each of which would have misdirected a plan.** (1) `board` does not
+host a `<webview>` — it hosts a cross-origin `<iframe src="board://<host>/index.html">`, whose
+isolation is the origin plus `nodeIntegrationInSubFrames:false` plus the served CSP, and whose
+privileged bridge is a `MessagePort` re-handshaked on every `load`. The filename `BoardWebview.tsx` is
+the trap; the file's own doc comment says *"iframe in EPIC-037"*. (2) The arm did **not** survive
+because of webview hosting: both `Component` implementations are three-line JSX wrappers around a
+React view, so the arm falls out of the two conversions and needs no argument of its own. (3) The
+`@floating-ui/react` uninstall is gated on **one** importer (`browser/BrowserTabsPanel.tsx`), not on
+the eighteen-face sweep it was listed beside — `@floating-ui/dom` is separate and stays. (4) The
+marker figure is **542**, not 535.
+
+**Its largest finding is the fourth item's cause, and it lands on E13's own headline instrument.**
+Scoping E14 produced *three* instrument failures before a single number was published — the first
+time in this programme that validation ran early enough to catch them all:
+
+| Instrument | Read as | Actually | Cause |
+|---|---:|---:|---|
+| `! -name "*.stories.tsx"` | 87 non-story `.tsx` | **85** | the repo's convention is `*.story.tsx`, singular — the exclusion matched nothing |
+| face → caller scan | **0** callers, every face | 4 for `WithMenu` alone | the import gate tested the *stripped* source, and stripping empties string literals, so every module path became `""` |
+| E13's JSX marker stripper | `FileDiffBody.tsx` = **0** | **5** | the JSX text *"this file isn't in a git repository"* — the apostrophe opened a phantom string literal that swallowed the rest of the file |
+
+The third is the one that matters: it is the instrument E13 published `1,337 → 535` with, it
+under-reports every file whose JSX prose contains a contraction, and one file measured zero while
+holding a fully React body. Inherited, `file-diff` would have been filed as already converted.
+
+All three failed on **entirely ordinary content** — a naming convention the repo uses everywhere, a
+module path in quotes, an English contraction. That sharpens the rule: *an instrument that only
+survives unusual input is not a strict instrument; it is one that has not met its own codebase yet.*
+And it adds the cheapest validator this programme has found: **when two cheap instruments disagree, at
+least one is wrong, and finding out which needs no ground truth prepared in advance.** Both defects
+above were caught that way — the marker scan said `FileDiffBody.tsx` held no JSX while the caller
+scan said it used three faces. A corollary for the published record: the face scanner's *type-only*
+column is word-presence, not an import test, and over-reports badly (`Text` matched 106 files,
+including `content/encoding.ts`); every type-only face count this programme has published is an upper
+bound.
+
+**A second structural finding: the `.tsx` extension now measures almost nothing.** 42 of the 85
+non-story `.tsx` files hold **zero** JSX, in two clean groups — **15 are native `VanillaView`
+classes sitting in a `.tsx` file** (eight of which reference React not at all; the rest only for prop
+types, which `.ts` imports fine), and **19 are `mountVanilla` face shims**, three-line React entry
+points rather than React implementations. Only the second group measures remaining React surface. E14
+retires the first as behaviour-neutral extension debt and touches none of the second: *a face dies
+when its last value caller dies, and no task should ever delete one on purpose.*
+
+**It also inherits E13's relocated headline target, and it is small.**
+`ui/sidebar/TrustedBoardsListView.tsx` is *already* a `VanillaView` — both call sites use `new` —
+that calls `fillSlot` to mount a React root for each row's trailing `IconButton` + `Tag`. Six markers,
+two files, and the largest React concentration measured anywhere in the app. Both native replacements
+already exist and both are already zero-JSX. E12 named these two files as deliberate survivors on the
+basis of *who held them*, never weighing what they cost: **a survivor list of files is not a survivor
+list of roots.**
+
+**The risk is one paragraph in one file.** `BoardWebview.tsx`'s doc comment states its own contract:
+*"Lifecycle is view-driven: the parent keys this component by `selectedBoard__reloadToken`, so
+switching/reloading a board unmounts (→ unregister + dispose) and remounts."* A `VanillaView` has no
+`key`, so that contract — unregister the board, dispose the `MessagePort`, tear down the iframe,
+rebuild — must become an explicit dispose-and-recreate across eight `useEffect` blocks and a port
+handshake. That is EPIC-068's persistent-child hazard in its most demanding form. The browser has
+already been bitten by the same class and carries the scar in code: `BrowserView.tsx:62-72` warns on a
+*"duplicate webview mount for tab … previous webview is still connected (US-806)"*, a leaked guest
+renderer with no visible symptom — the worst failure mode for this programme's verification style,
+and also the best available assertion that the conversion held.
+
+#### E14 is complete as [EPIC-072](epics/completed.md) — the `Component` arm is gone *(2026-08-27)*
+
+**`EditorModule` has one view arm.** No `Component` field, no `React.ComponentType`, no `mountVanilla`
+normalisation shim, and no React import in `editorRegistry.ts`. `board` and `browser` are native — and
+because `PageSlot` and `PageManagerView` went native with them, **every editor in the application now
+mounts through a native per-page path**, which is a larger structural result than the arm itself.
+`@floating-ui/react` is uninstalled. JSX markers **566 → 403** (`editors/` 542 → 385), non-story `.tsx`
+**85 → 50**, `editors/` non-story `.tsx` 36 → 19. A live session with a board, a browser and a markdown
+editor measures **1** React root — `GlobalStyles`, which Epic F removes — down from 9 at baseline, where
+7 of those 9 were the browser (five of them **one per open tab**).
+
+**The headline finding is about ownership, and it cost a user-visible bug.** `BoardWebview` called
+`port.close()` on a port whose `boardId` did not match. `api.onBoardPort` is a **global** subscription,
+so that port belonged to another live board frame; closing it killed that frame's bridge, and the user
+opened a board with no data and no chart. The close review then found **four more instances of the same
+shape** — the browser's `webviewRefs` delete, its `webviewReady` delete, its main-process IPC
+registration/unregistration, and the board's CDP frame unregister, the last two keyed in main by a bare
+string so a stale view could unregister a live one.
+
+The rule, and it is a **counterweight to this programme's central conversion instruction**, not a
+footnote to it: *when something arrives on a shared broadcast, map, or registry key, the entry you did
+not create belongs to somebody else — ignoring and disposing are not interchangeable.* Every epic since
+E10 has said *make implicit teardown explicit*, and that pressure makes **more disposal feel safer than
+less**. It is not. The React originals were correct here precisely because they did less, and a
+conversion that "tidies up" a filter's non-matching branch converts a no-op into a defect.
+
+**Worse, the class is invisible to every instrument this programme has built.** While the board's bridge
+was dead, the React root count, the iframe count and the connected-webview count were all *correct*. The
+only signal was a line in the board's own log; the only reason it was found is that a human opened a
+second board. Two of the remaining four instances need a duplicate-mount ordering the codebase itself
+records as *"observed once, trigger unknown"* — reachable, unreproducible on demand, silent. **Rule 4
+cannot see this, and no measurement in the roadmap can.** Reading every `if (notMine)` branch a
+conversion adds is currently the only defence.
+
+**The second finding indicts the verification style directly.** US-1155's live pass was declined as
+unreachable and replaced with a structural proof: no value on the path into the trusted-boards subtree
+can create a React root, therefore Rule 4 holds there. The argument was sound and the conclusion true.
+It was also **vacuous** — the review found `trailingElement` was being dropped before the row renderer,
+so the subtree was empty. The pin buttons and Update tags were constructed, claimed, mounted, and never
+inserted into the DOM.
+
+The cause was an error in the **plan review**, the step this workflow deliberately spends its most
+expensive budget on: the correction asserted the trailing slot was `ListItemView.setTrailing()` and
+cited real `ListBox` evidence, but `TreeView` renders `TreeItemView` — an independent class with its own
+`setTrailing()`. The implementation faithfully forwarded the prop into something that never read it.
+Three rules follow:
+
+1. **Verify which class a call site instantiates before reasoning about that class's contract.** Two
+   views sharing a method name and prop vocabulary are not the same view, and a symbol search finds both.
+2. **A proof of absence is not a proof of presence.** Absence-of-React and presence-of-feature are
+   independent claims, and a conversion can satisfy the first by breaking the second. A live pass that
+   cannot be reached should be recorded as *unverified*, never replaced by a measurement of a different
+   property.
+3. **Every closing statement in this programme is phrased as a removal, so every one of them is
+   satisfiable by deletion.** Pair each "it no longer does X" with an "it still does Y". E14's board and
+   browser statements survived only because their live passes happened to also assert that an iframe and
+   a `<webview>` were *present*.
+
+**Instruments failed four more times, and the fourth is a new recurring shape.** Three failed before any
+number was published — a `*.stories.tsx` glob that matched nothing (the convention is `*.story.tsx`), an
+import gate tested against *stripped* source where every module path had become `""`, and E13's own JSX
+stripper treating an apostrophe in JSX prose (*"this file isn't in a git repository"*) as a string
+opener, which made `file-diff` measure **zero** while holding a full React body. Corrected, `editors/`
+was 542, not the 535 E13 published. The fourth recurred **three separate times**: **querying the first
+matching element instead of the visible one**. It reported identical element counts for two different
+editors, and it made a *working* board reload look broken, because the first of four
+`board-webview-wrap` elements belonged to an inactive page. On a surface where inactive pages stay in the
+DOM, *"the element" and "the visible element" are different queries*, and the wrong one fails in both
+directions — it can hide a defect and it can invent one.
+
+**One more, from US-1160: the layer that owns a failure is not always the layer that looks like it
+should.** That task traced five layers correctly and still put its fix one below the real failure point.
+A module-load rejection surfaces at `showEditorPage` → `createEditor` → `loadModule`, because
+`createEditor` needs the module to build the editor *model* and therefore loads it first;
+`AsyncEditorView` is never reached. The added `.catch()` is **defence-in-depth**, and the reachable
+failure is a **silent no-op** — no page, no message, nothing reported (**US-1163**). A single probe found
+in one run what five files of reading had not. Verified positively: constructor and `onMount()` throws
+both produce a native "Editor crashed" panel with message and stack, so a crash no longer reintroduces
+React.
+
+**E15 is Epic E's last epic** and inherits only work that can be decomposed freely, with nothing gating
+anything else: `graph` (199 markers / 3,278 lines, the largest body left and the last consumer of
+`highlight.ts`'s React form), `rest-client` (130), `env-vars` (36), `file-diff` (13), `draw` (5);
+`uikit/`'s own React internals (`Popover`, `Dialog`, `WithMenu`, `Panel`, `Text`, `Icon`); the
+`SlotText` → `SlotContent` sweep (15 declarations, blocker expired in E13); `EditorError.tsx` and
+`EditorErrorBoundary.tsx`, whose eight consumers are all in that list; and the 19 `mountVanilla` face
+shims, which die with their last callers rather than by deliberate deletion. **Per E14's own findings it
+must re-measure every figure in this paragraph rather than inherit it, and it must pair each removal
+statement with a presence statement.** The next free epic number is **EPIC-073**.
+
 ### Epic F — Removal
 
 Delete `react-dom`, then `react`, `@types/react*`, `@emotion/*`, `@monaco-editor/react`,

@@ -36,7 +36,7 @@ facade and IPC contracts.
 
 ### Tab Reordering
 
-Internal browser tabs support drag-and-drop reordering via `react-dnd`. Each tab in `BrowserTabsPanel` uses `useDrag`/`useDrop` hooks (drag type: `BROWSER_TAB_DRAG`). On drop, `BrowserTabsModel.moveTab(fromId, toId)` splices the tab from its source position and inserts it at the target position. Since webviews are rendered through `PageManager` with stable DOM placeholders, reordering the `state.tabs` array doesn't cause webview reloads. If a tab is dragged into a different group (see Tab Grouping below), it receives a new group ID.
+Internal browser tabs support drag-and-drop reordering through native HTML5 drag events and the shared trait system. Each tab in `BrowserTabsPanelView` carries the `BrowserTab` trait; on drop, `BrowserTabsModel.moveTab(fromId, toId)` splices the tab from its source position and inserts it at the target position. Since webviews are rendered through `PageManagerView` with stable native DOM placeholders, reordering the `state.tabs` array doesn't cause webview reloads. If a tab is dragged into a different group (see Tab Grouping below), it receives a new group ID.
 
 ### Tab Grouping
 
@@ -45,9 +45,15 @@ Each `BrowserTabData` has a `groupId` field (e.g. `bg-1`, `bg-2`). Tabs opened f
 - **Manual actions** (plus button, bookmark click, typed URL) create a new group.
 - **Link-opened tabs** (`target="_blank"`, "Open Link in New Tab" context menu) inherit the parent tab's `groupId` and are inserted after the active tab.
 
-`BrowserTabsPanel` visualizes groups with a 2px left border (via `::before` pseudo-element, separated from the tab's own selection border). Groups alternate between two brightness levels based on the sequential order of first appearance in the tab list (`groupColorMap` computed via `useMemo`). The group color is passed to each `TabItem` via a CSS custom property (`--group-color`).
+`BrowserTabsPanelView` visualizes groups with a 2px left border (via `::before`, separated from the
+tab's own selection border). Groups alternate between two brightness levels based on the sequential
+order of first appearance in the tab list (`groupColors`).
 
 Group IDs are persisted in `getRestoreData()`. `applyRestoreData()` assigns fresh group IDs to restored tabs that lack one (backward compatibility).
+
+The compact tab hover preview uses the native `PopoverView` and `@floating-ui/dom`. The former
+React-only `@floating-ui/react` dependency is not part of the browser editor; `@floating-ui/dom`
+remains the shared positioning dependency for eight UIKit consumers.
 
 ### Tab Activation History
 
@@ -80,11 +86,11 @@ A notification bar appears below the loading indicator showing the blocked count
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Guest Page (webview)          │  Renderer Process    │  Main Process│
-│  (isolated Chromium context)   │  (React UI)          │  (Node.js)   │
+│  (isolated Chromium context)   │  (native UI)         │  (Node.js)   │
 ├────────────────────────────────┼──────────────────────┼──────────────┤
-│  preload-webview.ts            │  BrowserEditorView.tsx │  browser-    │
+│  preload-webview.ts            │  BrowserEditorView.ts   │  browser-    │
 │  - MutationObserver on <head>  │  BrowserEditor.ts      │  service.ts  │
-│  - Detects title/favicon       │  BrowserTabsPanel.tsx│  - Attaches  │
+│  - Detects title/favicon       │  BrowserTabsPanel.ts │  - Attaches  │
 │  - sendToHost() messages       │  - Toolbar, URL bar  │    to real   │
 │                                │  - Multi-webview     │    webContents│
 │                                │  - Tabs panel        │  - Relays    │
@@ -96,23 +102,23 @@ A notification bar appears below the loading indicator showing the blocked count
 
 Each internal tab has its own `<webview>` element. All webviews are rendered in the DOM simultaneously, but only the active tab's webview is visible (`display` vs `display: none`). This preserves each tab's state (scroll position, form data, session) without re-navigation on tab switch.
 
-### PageManager (Native Placeholder DOM Stability)
+### PageManagerView (Native Placeholder DOM Stability)
 
-Webview elements are hosted by the public `PageManager` mount face and its native `PageManagerView` (`src/renderer/components/page-manager/`). The view owns imperatively-created placeholder divs, appends new placeholders with `appendChild`, and mounts one retained React island per tab through `mountReactHandle`. This prevents `<webview>` elements from being destroyed and recreated when the tab array changes (tabs closed, reordered).
+Webview elements are hosted by `PageManagerView` (`src/renderer/components/page-manager/`). The view owns imperatively-created placeholder divs, appends new placeholders with `appendChild`, and mounts one native `BrowserTabPageView` per tab. Each page view owns its `BrowserWebviewItemView` and its blank-page overlay, so no React island is needed for internal tabs. This prevents `<webview>` elements from being destroyed and recreated when the tab array changes (tabs closed, reordered).
 
 Without PageManager, React's list reconciliation would detach and reinsert DOM nodes when array positions shift — even with stable keys. Reinserted `<webview>` elements are treated as new by the browser and reload, losing user data.
 
 **How it works:**
 1. For each tab ID, a stable placeholder `<div>` is created via `document.createElement()` and newly-created placeholders are appended to the manager root
-2. React content (the `BrowserWebviewItem`) is rendered into each placeholder through its retained `mountReactHandle` island
+2. A native `BrowserTabPageView` is mounted into each placeholder and owns the connected `BrowserWebviewItemView`
 3. When a tab is closed, only its placeholder is removed with `removeChild()` — siblings are untouched
 4. Visibility is controlled via `display: none` on inactive placeholders
 
-The `BlankPageLinks` component (bookmarks on empty tabs) is also rendered inside the per-tab React island, so its scroll position is preserved across tab switches. Existing placeholders are never re-appended during tab reordering, so the `<webview>` element identity remains stable.
+The `BlankPageLinksView` overlay (bookmarks on empty tabs) is also owned by the per-tab native view, so its lifecycle is tied to that tab. Existing placeholders are never re-appended during tab reordering, so the `<webview>` element identity remains stable.
 
-### Webview Subtree Memoization
+### Webview View Identity
 
-`BrowserWebviewItem` is wrapped in `React.memo` with a custom comparator (`model`, `partition`, `isActive`, `tab.id`, URL blankness). The component reads `tab` only for its id and whether the URL is blank (background color + blank overlay); navigation and per-event updates flow imperatively through the model (`webview.loadURL()` from the navigation effect, IPC events into `BrowserWebviewModel`). Without the memo, every browser state update — and each navigation produces 6-10 of them (`did-start-loading`, `did-navigate`, title, favicon, `did-stop-loading`, …) — would reconcile the whole webview subtree, since `BrowserEditorView` subscribes to a wide state selector and `updateTab` replaces tab object identities. `BlankPageLinks` is memoized for the same reason (its `bookmarks` model prop is stable; all children subscribe to their own state).
+`BrowserWebviewItemView` is a retained native child of `BrowserTabPageView`. The page view updates its tab projection imperatively while the `<webview>` element remains stable; navigation and per-event updates flow through `BrowserWebviewModel`. The blank-page overlay is an owned conditional child, released when the tab is no longer blank. This native identity boundary prevents browser state updates and tab-array reorderings from recreating guest renderer processes.
 
 If you add a `tab` field that `BrowserWebviewItem` renders from, extend the memo comparator accordingly — otherwise the view goes stale.
 
@@ -247,7 +253,9 @@ The budget is per call site: a context-menu item that merely appears or disappea
 
 ## Browser Panel Host
 
-The browser editor mounts a `SecondaryViews` component inside both `BlankPageLinks` (empty-page bookmarks overlay) and `BookmarksDrawer`. To do this without a `PageModel`, `BrowserPanelHost` implements the `IPageHost` interface that `SecondaryViews` requires.
+The browser editor mounts a native `SecondaryViewsView` inside both `BlankPageLinksView`
+(empty-page bookmarks overlay) and `BookmarksDrawerView`. To do this without a `PageModel`,
+`BrowserPanelHost` implements the `IPageHost` interface that `SecondaryViewsView` requires.
 
 **Key design points:**
 - `BrowserPanelHost` is **not** a `PageModel` — it has no tab identity or page lifecycle. It lives only for the lifetime of the browser editor that created it.
@@ -257,27 +265,29 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 - Sidebar width is persisted in the browser's own state by subscribing to `onWidthChange` — not in `openFiles0.json`.
 - The host lives in `editors/browser/` (not `api/pages/`) to avoid an import cycle via `LinkEditor`.
 
-`BrowserSecondaryViews.tsx` wires the `<SecondaryViews>` controlled component to a `BrowserPanelHost`, passing `views`, `state`, and `setState`. It is mounted in both `BlankPageLinks` and `BookmarksDrawer`.
+`BrowserSecondaryViewsView` wires the native `SecondaryViewsView` to a `BrowserPanelHost`, passing
+`views`, `state`, and `setState`. It is mounted in both `BlankPageLinksView` and
+`BookmarksDrawerView`.
 
 ## Key Files
 
 | File | Process | Purpose |
 |------|---------|---------|
-| `src/renderer/editors/browser/BrowserView.tsx` | Renderer | UI components (`BrowserEditorView`, memoized `BrowserWebviewItem`, `BlankPageLinks`): toolbar, URL bar, multi-webview hosting |
+| `src/renderer/editors/browser/BrowserView.ts` | Renderer | Native browser view composition: toolbar, URL bar, multi-webview hosting, and overlays |
 | `src/renderer/editors/browser/BrowserEditor.ts` | Renderer | Editor coordinator: restore/persistence, navigation normalization, profile presentation, keyboard shortcuts, and composed sub-model lifecycle |
 | `src/renderer/editors/browser/BrowserTabsModel.ts` | Renderer | Internal-tab lifecycle, current URL and favicon caches, mute/panel operations, and bookmark resource ownership |
 | `src/renderer/editors/browser/BrowserTorModel.ts` | Renderer | Per-page Tor partition IDs, proxy arming, daemon listeners/reconnect, and cleanup |
 | `src/renderer/editors/browser/BrowserWebviewModel.ts` | Renderer | Webview refs, `browser:event` IPC handling, navigation updates, find-in-page, keyboard shortcuts |
 | `src/renderer/editors/browser/webview-context-menu.ts` | Renderer | Browser webview context-menu construction and bounded DOM/SVG/resource probes |
 | `src/renderer/editors/browser/BrowserTargetModel.ts` | Renderer | Automation adapter sub-model — implements `IBrowserTarget` for MCP tools |
-| `src/renderer/editors/browser/BrowserTabsPanel.tsx` | Renderer | Left-side internal tabs panel with compact extension popup, drag-to-reorder |
+| `src/renderer/editors/browser/BrowserTabsPanel.ts` | Renderer | Native left-side internal tabs panel with compact floating preview and drag-to-reorder |
 | `src/renderer/editors/browser/BrowserBookmarks.ts` | Renderer | Wraps TextFileModel + LinkEditor for bookmark file I/O |
-| `src/renderer/editors/browser/BookmarksDrawer.tsx` | Renderer | Sliding overlay drawer rendering the Link Editor for bookmarks |
+| `src/renderer/editors/browser/BookmarksDrawer.ts` | Renderer | Native sliding overlay drawer rendering the Link Editor for bookmarks |
 | `src/renderer/editors/browser/BrowserPanelHost.ts` | Renderer | `IPageHost` implementation for the browser's bookmarks sidebar (non-page host) |
-| `src/renderer/editors/browser/BrowserSecondaryViews.tsx` | Renderer | `SecondaryViews` wiring for browser empty page and BookmarksDrawer |
-| `src/renderer/editors/browser/UrlSuggestionsDropdown.tsx` | Renderer | URL bar dropdown with search history and navigation history |
+| `src/renderer/editors/browser/BrowserSecondaryViews.ts` | Renderer | Native `SecondaryViewsView` wiring for blank page and BookmarksDrawer |
+| `src/renderer/editors/browser/UrlSuggestionsDropdown.ts` | Renderer | Native URL bar dropdown with search history and navigation history |
 | `src/renderer/editors/browser/browser-search-history.ts` | Renderer | Per-profile persistent search history storage (file-based) |
-| `src/renderer/editors/browser/TorStatusOverlay.tsx` | Renderer | Tor connection overlay with spinner, log, reconnect button |
+| `src/renderer/editors/browser/TorStatusOverlay.ts` | Renderer | Native Tor connection overlay with spinner, log, reconnect button |
 | `src/renderer/editors/browser/network-log-links.ts` | Renderer | Network log → ILink[] conversion for Show Resources |
 | `src/renderer/automation/commands.ts` | Renderer | Playwright-compatible browser_* MCP command handlers |
 | `src/renderer/automation/snapshot.ts` | Renderer | Accessibility tree → YAML formatter for browser_snapshot |
@@ -428,7 +438,7 @@ Tor mode routes all webview traffic through the Tor network via a SOCKS5 proxy. 
 **Architecture:**
 - `src/main/tor-service.ts` — manages `tor.exe` child process lifecycle, generates minimal torrc, sets `socks5://` proxy per partition via `session.fromPartition().setProxy()`
 - `src/ipc/tor-ipc.ts` — IPC channels: `tor:arm`, `tor:start`, `tor:stop`, `tor:log`, `tor:check-ip`, `tor:restart`, `tor:status`
-- `src/renderer/editors/browser/TorStatusOverlay.tsx` — overlay shown during connection with live log, spinner, and reconnect button
+- `src/renderer/editors/browser/TorStatusOverlay.ts` — native overlay shown during connection with live log, spinner, and reconnect button
 - `src/renderer/ui/dialogs/TorInfoDialog.ts` — connection info dialog (exit IP, location, Reconnect)
 - `activePartitions: Set<string>` acts as consumer counter — Tor stops only when all partitions are released
 
@@ -648,9 +658,9 @@ After initialization, `BrowserTabsModel` sets two callbacks on `linkModel`:
 
 ### Three Entry Points
 
-- **Blank page overlay** — when a tab shows `about:blank` and bookmarks are loaded (not encrypted), the `BlankPageLinks` component renders the Link Editor over the empty webview. Has its own toolbar (with breadcrumb, view mode, search). Disappears when user navigates to a URL.
+- **Blank page overlay** — when a tab shows `about:blank` and bookmarks are loaded (not encrypted), the `BlankPageLinksView` renders the Link Editor over the empty webview. Has its own toolbar (with breadcrumb, view mode, search). Disappears when user navigates to a URL.
 - **Star button (☆)** in the URL bar — quick bookmark add/edit. Empty star when URL not bookmarked, filled star when bookmarked. Opens Edit Link Dialog with URL/title prefilled and discovered images. Everything the handler does before the dialog is async (bookmark-file setup, favicon caching, the page image probe), so it is guarded by a `starClickBusy` flag: without it, a user clicking again because nothing has appeared yet gets one dialog per click, all opening together once the awaits settle.
-- **"Open Links" button** on the toolbar — opens the `BookmarksDrawer`, a right-anchored overlay with the full Link Editor. Link clicks navigate to the URL (in current tab if `about:blank`, otherwise new internal tab) and close the drawer.
+- **"Open Links" button** on the toolbar — opens the `BookmarksDrawerView`, a right-anchored overlay with the full Link Editor. Link clicks navigate to the URL (in current tab if `about:blank`, otherwise new internal tab) and close the drawer.
 
 ### Image Discovery
 
@@ -667,16 +677,18 @@ Only source 1 reads the live page, and it is the one that can be slow. The URL, 
 
 ### BookmarksDrawer
 
-A right-anchored overlay that renders the Link Editor with a `swapLayout` prop (Categories/Tags panel on the right). Key behaviors:
+A right-anchored native overlay that renders the Link Editor with Categories/Tags panel on the right. Key behaviors:
 
 - Initial width = 60% of browser page, max 90%, resizable via Splitter
 - Width persisted in component state
 - Portal refs passed via `LinkEditorProps` (`toolbarRefFirst`, `toolbarRefLast`, `footerRefLast`) — each consumer provides its own portal targets so multiple LinkEditor instances don't conflict
 - Closes on Escape, backdrop click, or link click navigation
 
-### Portal Refs Pattern
+### Embedded Link Editor Composition
 
-The Link Editor uses React portals for toolbar and footer content. To support multiple simultaneous instances (blank page overlay + BookmarksDrawer), portal target refs are passed via `LinkEditorProps` instead of being stored on the shared TextFileModel. When props are omitted, the editor falls back to model refs (backward compatible with standalone link editor pages). Each consumer (BlankPageLinks, BookmarksDrawer) creates its own placeholder divs and passes them as props.
+The browser embeds native Link Editor views for toolbar, body, secondary views, and footer content.
+To support multiple simultaneous instances (blank page overlay + BookmarksDrawer), each native
+composition owns its own DOM hosts while the shared `TextFileModel` remains the data source.
 
 ### Encrypted Bookmarks
 

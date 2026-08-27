@@ -1,6 +1,7 @@
 # EPIC-071 — De-React E13: the editor bodies that still build React
 
-**Status:** Implemented; review complete — awaiting the deferred interactive pass (§E13-13), then close
+**Status:** Complete
+**Completed:** 2026-08-27
 **Created:** 2026-08-27
 **Roadmap:** [de-react.md](../de-react.md) — Epic E, thirteenth epic
 **Predecessor:** [EPIC-070](EPIC-070.md) (E12 — the shell's React-typed content)

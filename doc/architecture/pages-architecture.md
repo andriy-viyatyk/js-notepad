@@ -136,13 +136,13 @@ For multi-window transfer, `movePageOut()` calls `detachPage()` WITHOUT calling 
 `src/renderer/components/page-manager/`. The native view owns one stable `data-name="page-slot"`
 placeholder per page and appends each placeholder directly to its manager root. A page view is
 constructed only after its page becomes active (or has been active before), then its root is
-mounted directly in the placeholder. The shared `PageSlot` also retains a React arm for the
-browser editor's internal tabs; that arm uses a retained `mountReactHandle` and deferred,
-generation-guarded disposal. Native page views dispose synchronously after the placeholder is
-detached. This prevents iframes, webviews, and canvas elements from reloading when pages are
-closed, reordered, grouped, or ungrouped. Placeholders are never reparented (moved between
-containers) — grouping is achieved purely via CSS absolute positioning among siblings in the same
-container. See `GroupContainer` and `ImperativeSplitter` in the same folder.
+mounted directly in the placeholder. `PageSlot` has one native arm, and `PageManagerView` uses the
+same native slot contract for browser internal tabs; there is no page-manager React arm. Native
+page views dispose synchronously after the placeholder is detached. This prevents iframes,
+webviews, and canvas elements from reloading when pages are closed, reordered, grouped, or
+ungrouped. Placeholders are never reparented (moved between containers) — grouping is achieved
+purely via CSS absolute positioning among siblings in the same container. See `GroupContainer` and
+`ImperativeSplitter` in the same folder.
 `PageSlot` treats page-view construction and mounting as one rollback scope: if `onMount()`
 fails, the partially built view and its registered resources are rolled back before the error is
 re-thrown.
@@ -151,8 +151,8 @@ re-thrown.
 current editor model (`src/renderer/ui/app/PageContentView.ts`). Its identity includes the model
 instance ID and whether the editor uses the background ornament. Navigating to another model
 disposes and recreates the editor view; updates for the same model are forwarded to
-`AsyncEditorView`, which handles the editor module's native or React arm. This keeps Monaco and
-other stateful editor bodies from being reused with the wrong model.
+`AsyncEditorView`, which loads and mounts the editor module's required native `View`. This keeps
+Monaco and other stateful editor bodies from being reused with the wrong model.
 
 ---
 

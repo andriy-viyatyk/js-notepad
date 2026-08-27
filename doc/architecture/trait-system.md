@@ -272,24 +272,23 @@ const handleDrop = useCallback((e: React.DragEvent) => {
 
 Some drags reorder items within a single component (tab reorder, grid column reorder, pinned editors). These don't need cross-type drops or trait resolution — the `TraitTypeId` is used only to confirm the drag originated from the right component. No `TraitSet` is registered.
 
-Example from `BrowserTabsPanel.tsx`:
+Example from the native `BrowserTabsPanel.ts`:
 
 ```typescript
 // Drag source
-const handleDragStart = useCallback((e: React.DragEvent) => {
-    e.stopPropagation();
-    setTraitDragData(e.dataTransfer, TraitTypeId.BrowserTab, { tabId: tab.id });
-    setIsDragging(true);
-}, [tab.id]);
+const onDragStart = (event: DragEvent): void => {
+    event.stopPropagation();
+    setTraitDragData(event.dataTransfer, TraitTypeId.BrowserTab, { tabId: tab.id });
+};
 
 // Drop target
-const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const payload = getTraitDragData(e.dataTransfer);
+const onDrop = (event: DragEvent): void => {
+    event.preventDefault();
+    const payload = getTraitDragData(event.dataTransfer);
     if (!payload || payload.typeId !== TraitTypeId.BrowserTab) return;
     const data = payload.data as { tabId: string };
     model.moveTab(data.tabId, tab.id);
-}, [model, tab.id]);
+};
 ```
 
 ---
