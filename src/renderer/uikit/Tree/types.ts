@@ -176,6 +176,8 @@ export interface TreeProps<T = ITreeItem>
     getTrailingVisibility?: (item: T, level: number) => "always" | "hover";
     /** Optional right-side React compatibility slot for the default row renderer. */
     renderTrailing?: (item: T, level: number) => SlotContent;
+    /** Optional direct DOM trailing content for the default row renderer. */
+    trailingElement?: (item: T, level: number) => Node | undefined;
     /**
      * Per-row context-menu callback. It is bound on the row root, before the Tree's bubbling
      * container handler, so callers can stamp the native event before background handling runs.

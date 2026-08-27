@@ -1,15 +1,23 @@
 import type { MenuItem } from "../../uikit/Menu";
 import type { SlotContent } from "../../uikit/shared/fill-slot";
+import type { SlotText } from "../../uikit/shared/slots";
 import { TreeView } from "../../uikit/Tree/TreeView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createFolderIconElement } from "../../components/icons/icon-elements";
 import { subscribeBoardIconChanges } from "./board-icon-cache";
 import { createBoardGlyphElement } from "./board-glyph-element";
 import { buildBoardsTree, type BoardTreeNode } from "./boards-tree-build";
-import type { BoardsTreeProps } from "./BoardsTree";
 
-export interface BoardsTreeViewProps extends Omit<BoardsTreeProps, "renderTrailing"> {
+export interface BoardsTreeViewProps {
+    name?: string;
+    boards: string[];
+    baseRoot?: string;
+    onOpenBoard: (root: string) => void;
+    trailingVisible?: (root: string) => boolean;
+    getBoardContextMenu?: (root: string) => MenuItem[] | undefined;
+    emptyMessage?: SlotText | Node;
     renderTrailing?: (root: string) => SlotContent;
+    trailingElement?: (root: string) => Node | undefined;
 }
 
 export class BoardsTreeView extends VanillaView<BoardsTreeViewProps> {
@@ -38,6 +46,10 @@ export class BoardsTreeView extends VanillaView<BoardsTreeViewProps> {
     private readonly renderTrailing = (node: BoardTreeNode): SlotContent | undefined =>
         node.kind === "board" && node.root
             ? this.props.renderTrailing?.(node.root)
+            : undefined;
+    private readonly trailingElement = (node: BoardTreeNode): Node | undefined =>
+        node.kind === "board" && node.root
+            ? this.props.trailingElement?.(node.root)
             : undefined;
     private readonly getTrailingVisibility = (node: BoardTreeNode): "always" | "hover" =>
         node.kind === "board" && node.root && this.props.trailingVisible
@@ -89,6 +101,7 @@ export class BoardsTreeView extends VanillaView<BoardsTreeViewProps> {
             getContextMenu: this.getContextMenu,
             getIconElement: this.getIconElement,
             renderTrailing: this.renderTrailing,
+            trailingElement: this.trailingElement,
             getTrailingVisibility: this.getTrailingVisibility,
             emptyMessage: this.props.emptyMessage,
         };

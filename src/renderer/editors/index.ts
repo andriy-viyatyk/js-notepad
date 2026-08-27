@@ -1,5 +1,4 @@
 export type {
-    FileEditorComponent,
     EditorViewModule,
 } from './types';
 

@@ -8,14 +8,10 @@ import { BoardEditorView } from "./BoardEditorView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-function BoardEditorComponent({ model }: { model: EditorModel }) {
-    return <BoardEditorView model={model as BoardEditorModel} />;
-}
-
 export const boardModule: EditorModule = {
     createEditor: () =>
         new BoardEditorModel(new TComponentState(getDefaultBoardEditorState())),
-    Component: BoardEditorComponent,
+    View: BoardEditorView,
     newEditorModel: async (filePath?: string) => {
         const model = new BoardEditorModel(new TComponentState(getDefaultBoardEditorState()));
         if (filePath) {

@@ -1,8 +1,7 @@
-import type React from "react";
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
 import type { EditorConfig } from "./EditorConfig";
-import { mountVanilla, type VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/mount";
 
 export interface AcceptanceInput {
     fileName?: string;
@@ -33,16 +32,9 @@ type EditorModuleCommon = {
     BodyView?: VanillaViewCtor<{ model: EditorModel; editorConfig?: EditorConfig }>;
 };
 
-export type EditorModule = EditorModuleCommon & (
-    | {
-        Component: React.ComponentType<{ model: EditorModel }>;
-        View?: VanillaViewCtor<{ model: EditorModel }>;
-    }
-    | {
-        Component?: React.ComponentType<{ model: EditorModel }>;
-        View: VanillaViewCtor<{ model: EditorModel }>;
-    }
-);
+export type EditorModule = EditorModuleCommon & {
+    View: VanillaViewCtor<{ model: EditorModel }>;
+};
 
 export interface EditorMatcher {
     /** File-open resolution priority for this file name (highest wins;
@@ -305,17 +297,6 @@ class EditorRegistry {
         const def = this.definitions.get(id);
         if (!def) throw new Error(`No editor registered for id: ${id}`);
         module = await def.loadModule();
-        if (!module.Component && module.View) {
-            const Ctor = module.View;
-            module = {
-                ...module,
-                Component: (props: { model: EditorModel }): React.ReactElement =>
-                    mountVanilla(Ctor, props),
-            };
-        }
-        if (!module.Component && !module.View) {
-            throw new Error(`Editor "${id}" has neither a React Component nor a vanilla View.`);
-        }
         this.modules.set(id, module);
         return module;
     }

@@ -248,7 +248,7 @@ export type Api = {
     // board frame — disambiguating multiple tabs of the same board + the pre-reload
     // frame after a remount (US-796).
     [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string, frameNonce?: string, tab?: string) => Promise<void>;
-    [Endpoint.unregisterBoardFrame]: (boardId: string, tab?: string) => Promise<void>;
+    [Endpoint.unregisterBoardFrame]: (boardId: string, tab?: string, frameNonce?: string) => Promise<void>;
     [Endpoint.getPublishedBoards]: (force?: boolean) => Promise<PublishedBoardsResult>;
     [Endpoint.getBoardVersions]: (id: string) => Promise<PublishedBoardVersions | null>;
     [Endpoint.downloadBoardArchive]: (req: BoardArchiveDownloadRequest) => Promise<string>;

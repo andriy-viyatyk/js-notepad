@@ -1,6 +1,6 @@
-import { editorRegistry, type EditorOrHost } from "../../editors/base";
+import { editorRegistry } from "../../editors/base";
 import type { EditorModel } from "../../editors/base/EditorModel";
-import type { EditorViewModule, FileEditorComponent, FileEditorView } from "../../editors/types";
+import type { EditorViewModule } from "../../editors/types";
 import { parseBoardEditorId } from "../../editors/board/custom-editor-registry";
 import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -41,7 +41,7 @@ export class RenderEditorView extends VanillaView<RenderEditorViewProps> {
         const editorId = model.editorId;
         return {
             getEditorModule: getEditorModule(editorId),
-            model: model as unknown as EditorOrHost,
+            model,
             cacheKey: editorId,
         };
     }
@@ -52,8 +52,5 @@ const getEditorModule = (editorId: string) => async (): Promise<EditorViewModule
     const def = editorRegistry.getById(defId);
     if (!def) throw new Error(`No editor registered for id: ${editorId}`);
     const module = await editorRegistry.getModule(defId);
-    return {
-        Editor: module.Component as unknown as FileEditorComponent,
-        View: module.View as unknown as FileEditorView | undefined,
-    };
+    return { View: module.View };
 };

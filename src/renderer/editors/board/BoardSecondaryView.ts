@@ -1,8 +1,6 @@
-import React from "react";
 import { boardTrust } from "../../api/board-trust";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
-import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import {
     createSideBarPanelHeader,
@@ -11,15 +9,16 @@ import {
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import { parseBoardSecondaryPanelId } from "./board-secondary";
 import { BoardWebview } from "./BoardWebview";
-import { BoardEditorModel } from "./BoardEditorModel";
+import { BoardEditorModel, type BoardEditorState } from "./BoardEditorModel";
 
 export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> {
     private boardModel: BoardEditorModel | undefined;
     private header: SideBarPanelHeaderHandle | undefined;
     private contentHost: HTMLDivElement | undefined;
-    private boardReact: MountedReactRoot | undefined;
+    private boardWebview: BoardWebview | undefined;
     private frameIdentity: string | undefined;
     private viewId: string | null | undefined;
+    private stateUnsubscribe: (() => void) | undefined;
 
     public constructor(props: SecondaryViewProps) {
         super(props, createPanelElement({
@@ -52,27 +51,29 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
             title: "View",
         });
 
-        this.bind(
-            boardModel.state,
-            (state) => ({
-                boardRoot: state.boardRoot,
-                selectedBoard: state.selectedBoard,
-                reloadToken: state.reloadToken,
-                secondaryViewDefs: state.secondaryViewDefs,
-            }),
-            () => this.renderState(),
-        );
+        this.bindBoardState(boardModel);
         const unsubscribeTrust = boardTrust.subscribePaths(this.renderState);
         this.own(unsubscribeTrust);
-        this.own(() => this.disposeBoardReact());
         this.own(() => this.header?.dispose());
         this.renderState();
+    }
+
+    private bindBoardState(boardModel: BoardEditorModel): void {
+        this.stateUnsubscribe?.();
+        const selector = (state: BoardEditorState) => ({
+            boardRoot: state.boardRoot,
+            selectedBoard: state.selectedBoard,
+            reloadToken: state.reloadToken,
+            secondaryViewDefs: state.secondaryViewDefs,
+        });
+        this.renderState();
+        this.stateUnsubscribe = boardModel.state.subscribe(() => this.renderState(), selector);
     }
 
     protected onUpdate(props: SecondaryViewProps): void {
         const nextViewId = parseBoardSecondaryPanelId(props.panelId);
         if (nextViewId !== this.viewId) {
-            this.disposeBoardReact();
+            this.disposeBoardWebview();
             this.frameIdentity = undefined;
             this.viewId = nextViewId;
         }
@@ -80,14 +81,17 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
         const nextModel = this.getBoardModel(props);
         if (nextModel && nextModel !== this.boardModel) {
             this.boardModel = nextModel;
-            this.disposeBoardReact();
+            this.disposeBoardWebview();
             this.frameIdentity = undefined;
+            this.bindBoardState(nextModel);
         }
         this.renderState();
     }
 
     protected onDispose(): void {
-        this.disposeBoardReact();
+        this.stateUnsubscribe?.();
+        this.stateUnsubscribe = undefined;
+        this.disposeBoardWebview();
         this.contentHost?.remove();
         this.contentHost = undefined;
         this.header = undefined;
@@ -116,7 +120,7 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
         });
 
         if (!selectedRoot || !declaration || !trusted) {
-            this.disposeBoardReact();
+            this.disposeBoardWebview();
             host.replaceChildren(this.placeholder(
                 !selectedRoot
                     ? "Board not available"
@@ -127,21 +131,21 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
             return;
         }
 
-        const frameIdentity = `${viewId}__${state.reloadToken}`;
-        const element = React.createElement(BoardWebview, {
-            model,
-            boardRoot: selectedRoot,
-            entry: declaration.html ?? "index.html",
-            view: declaration.id,
-            isMain: false,
-        });
-        if (!this.boardReact || this.frameIdentity !== frameIdentity) {
-            this.disposeBoardReact();
+        const frameIdentity = `${selectedRoot}__${viewId}__${state.reloadToken}`;
+        if (!this.boardWebview || this.frameIdentity !== frameIdentity) {
+            this.disposeBoardWebview();
             host.replaceChildren();
-            this.boardReact = mountReactHandle(host, element);
+            const boardWebview = this.child(new BoardWebview({
+                model,
+                boardRoot: selectedRoot,
+                entry: declaration.html ?? "index.html",
+                view: declaration.id,
+                isMain: false,
+            }));
+            this.boardWebview = boardWebview;
+            host.append(boardWebview.root);
+            boardWebview.mount();
             this.frameIdentity = frameIdentity;
-        } else {
-            this.boardReact.render(element);
         }
     };
 
@@ -152,9 +156,9 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
         );
     }
 
-    private disposeBoardReact(): void {
-        this.boardReact?.dispose();
-        this.boardReact = undefined;
+    private disposeBoardWebview(): void {
+        if (this.boardWebview) this.releaseChild(this.boardWebview);
+        this.boardWebview = undefined;
         this.frameIdentity = undefined;
     }
 }

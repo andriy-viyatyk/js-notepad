@@ -433,8 +433,8 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.registerBoardFrame, boardId, boardHost, frameNonce, tab);
     };
 
-    unregisterBoardFrame = async (boardId: string, tab?: string) => {
-        return executeOnce<void>(Endpoint.unregisterBoardFrame, boardId, tab);
+    unregisterBoardFrame = async (boardId: string, tab?: string, frameNonce?: string) => {
+        return executeOnce<void>(Endpoint.unregisterBoardFrame, boardId, tab, frameNonce);
     };
 
     getPublishedBoards = async (force?: boolean) => {

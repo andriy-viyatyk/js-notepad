@@ -460,6 +460,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             hideChevron: this.props.getHideChevron?.(row.source, row.level),
             trailingVisibility: this.props.getTrailingVisibility?.(row.source, row.level),
             trailing: this.props.renderTrailing?.(row.source, row.level),
+            trailingElement: this.props.trailingElement?.(row.source, row.level),
             onContextMenu: this.props.onItemContextMenu
                 ? (event: MouseEvent) => {
                     this.props.onItemContextMenu?.(row.source, row.level, event);
@@ -606,7 +607,8 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             getTooltip: _getTooltip, loading: _loading, emptyMessage: _emptyMessage,
             getIconElement: _getIconElement, getHideChevron: _getHideChevron,
             getTrailingVisibility: _getTrailingVisibility,
-            renderTrailing: _renderTrailing, onItemContextMenu: _onItemContextMenu,
+            renderTrailing: _renderTrailing, trailingElement: _trailingElement,
+            onItemContextMenu: _onItemContextMenu,
             items: _items, value: _value, onChange: _onChange,
             onItemDoubleClick: _onItemDoubleClick, isSelected: _isSelected,
             onSelectionChange: _onSelectionChange, onActiveChange: _onActiveChange,

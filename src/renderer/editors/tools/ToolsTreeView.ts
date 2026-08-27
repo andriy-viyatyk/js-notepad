@@ -1,5 +1,6 @@
 import type { MenuItem } from "../../uikit/Menu";
 import type { SlotContent } from "../../uikit/shared/fill-slot";
+import type { SlotText } from "../../uikit/shared/slots";
 import { TreeView } from "../../uikit/Tree/TreeView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createFolderIconElement } from "../../components/icons/icon-elements";
@@ -9,9 +10,14 @@ import {
     type ToolTreeNode,
     type ToolsetTreeInput,
 } from "./tools-tree-build";
-import type { ToolsTreeProps } from "./ToolsTree";
 
-export interface ToolsTreeViewProps extends Omit<ToolsTreeProps, "renderTrailing"> {
+export interface ToolsTreeViewProps {
+    name?: string;
+    toolsets: ToolsetTreeInput[];
+    baseRoot?: string;
+    onOpenToolset: (root: string) => void;
+    getContextMenu?: (root: string) => MenuItem[] | undefined;
+    emptyMessage?: SlotText | Node;
     renderTrailing?: (root: string) => SlotContent;
 }
 

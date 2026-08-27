@@ -1,17 +1,14 @@
-import React, { type ReactNode } from "react";
-import { mountReactHandle, type MountedReactRoot, type VanillaViewCtor } from "../../uikit/shared/mount";
+import { type VanillaViewCtor } from "../../uikit/shared/mount";
 import type { VanillaView } from "../../uikit/shared/vanilla-view";
 
 export type PageSlotStyle = (element: HTMLDivElement) => void;
 export interface PageSlotViewProps { pageId: string; }
 
-/** Owns one stable page placeholder and either a retained React or native page. */
+/** Owns one stable page placeholder and one retained native page. */
 export class PageSlot {
     readonly element: HTMLDivElement;
 
-    private reactHandle: MountedReactRoot | undefined;
     private nativeView: VanillaView<PageSlotViewProps> | undefined;
-    private generation = 0;
     private disposed = false;
 
     public constructor(
@@ -30,22 +27,6 @@ export class PageSlot {
         }
 
         root.appendChild(this.element);
-    }
-
-    /** Render into one retained root, attaching before its first mount. */
-    render(root: HTMLElement, content: ReactNode): void {
-        if (this.disposed) {
-            return;
-        }
-
-        const element = React.createElement(React.Fragment, null, content);
-        if (this.reactHandle) {
-            this.reactHandle.render(element);
-            return;
-        }
-
-        this.attach(root);
-        this.reactHandle = mountReactHandle(this.element, element);
     }
 
     /** Attach and mount one native page view, retaining it for the slot lifetime. */
@@ -86,30 +67,13 @@ export class PageSlot {
         }
 
         this.disposed = true;
-        const generation = ++this.generation;
-        const reactHandle = this.reactHandle;
-        this.reactHandle = undefined;
         const nativeView = this.nativeView;
         this.nativeView = undefined;
         this.element.remove();
 
-        // The two arms are mutually exclusive in practice — a slot belongs to one manager, and
-        // each manager uses one arm — but dispose must not assume it, or a slot that somehow held
-        // both would leak whichever arm the early return skipped. Release each independently, and
-        // let a throwing native teardown still leave the React root scheduled for disposal.
-        try {
-            if (nativeView) {
-                nativeView.dispose();
-            }
-        } finally {
-            if (reactHandle) {
-                queueMicrotask(() => {
-                    if (this.generation !== generation) {
-                        return;
-                    }
-                    reactHandle.dispose();
-                });
-            }
-        }
+        // Remove the placeholder before disposing the native view. This is deliberate for
+        // foreign-document views: the webview/iframe is detached before its resources are torn
+        // down, so disposal cannot leave a live foreign document in the page tree.
+        if (nativeView) nativeView.dispose();
     }
 }

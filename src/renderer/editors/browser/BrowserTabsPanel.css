@@ -14,6 +14,6 @@
 .browser-tabs-root [data-tab-favicon] svg { width: 14px; height: 14px; color: var(--color-icon-default); }
 .browser-tabs-root [data-tab-favicon] svg[data-hidden] { display: none; }
 .browser-tabs-root [data-tab-favicon] img { display: block; width: 14px; height: 14px; object-fit: contain; filter: drop-shadow(0 0 1.5px var(--color-text-strong)); }
-.browser-tabs-root [data-tab-title], .browser-tabs-root [data-tab-extension] [data-part="title"] { flex: 1 1 auto; overflow: hidden; color: var(--color-text-default); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.browser-tabs-root [data-tab-extension] { display: flex; align-items: center; box-sizing: border-box; width: 140px; height: 28px; gap: 6px; padding: 0 4px 0 6px; border: 1px solid var(--color-border-default); border-left: none; border-radius: 0 4px 4px 0; background-color: var(--color-bg-light); }
-.browser-tabs-root [data-tab-extension][data-active] { border-color: var(--color-border-active); border-left: none; background-color: var(--color-bg-dark); }
+.browser-tabs-root [data-tab-title], [data-tab-extension] [data-part="title"] { flex: 1 1 auto; overflow: hidden; color: var(--color-text-default); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+[data-tab-extension] { display: flex; align-items: center; box-sizing: border-box; width: 140px; height: 28px; gap: 6px; padding: 0 4px 0 6px; border: 1px solid var(--color-border-default); border-left: none; border-radius: 0 4px 4px 0; background-color: var(--color-bg-light); }
+[data-tab-extension][data-active] { border-color: var(--color-border-active); border-left: none; background-color: var(--color-bg-dark); }

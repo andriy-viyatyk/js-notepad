@@ -54,7 +54,9 @@ export function registerBoardFrame(key: string, host: WebContents, boardHost: st
     boardRegistrations.set(key, { host, boardHost, frameNonce });
 }
 
-export function unregisterBoardFrame(key: string): void {
+export function unregisterBoardFrame(key: string, frameNonce?: string): void {
+    const registration = boardRegistrations.get(key);
+    if (frameNonce !== undefined && registration?.frameNonce !== frameNonce) return;
     boardRegistrations.delete(key);
 }
 

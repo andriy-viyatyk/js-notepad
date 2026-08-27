@@ -55,7 +55,6 @@
     "@excalidraw/excalidraw": "^0.18.1",
     "@excalidraw/mermaid-to-excalidraw": "^2.2.2",
     "@floating-ui/dom": "^1.8.0",
-    "@floating-ui/react": "^0.27.20",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "av-grid": "2.2.4",
     "cheerio": "^1.2.0",

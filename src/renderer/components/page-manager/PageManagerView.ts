@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { VanillaViewCtor } from "../../uikit/shared/mount";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import { PageSlot } from "./PageSlot";
+import { PageSlot, type PageSlotViewProps } from "./PageSlot";
 
 export interface PageManagerProps {
     /** Unique IDs for each page/tab — must be stable across renders. */
@@ -8,7 +8,7 @@ export interface PageManagerProps {
     /** ID of the currently active (visible) page. */
     activeId: string;
     /** Render function — receives page ID, returns a React node. */
-    renderPage: (id: string) => ReactNode;
+    renderPage: (id: string) => VanillaViewCtor<PageSlotViewProps>;
     /** Optional CSS class for the container div. */
     className?: string;
 }
@@ -69,7 +69,7 @@ export class PageManagerView extends VanillaView<PageManagerProps> {
                 slot = new PageSlot(id, applyPageManagerStyle);
                 this.slots.set(id, slot);
             }
-            slot.render(this.root, renderPage(id));
+            slot.renderNative(this.root, renderPage(id));
         }
 
         for (const [id, slot] of this.slots) {

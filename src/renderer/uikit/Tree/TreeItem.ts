@@ -69,6 +69,18 @@ export interface TreeItemProps
      */
     trailing?: SlotContent;
     /**
+     * Trailing content supplied as a **stable DOM node the caller owns**, rather than as slot
+     * content rebuilt per render. Takes precedence over `trailing`.
+     *
+     * It exists because `trailing` goes through `fillSlot`, which replaces the host's children
+     * unconditionally — so passing the same node every render detaches and re-appends it, losing
+     * focus and hover state on anything interactive. This arm short-circuits on node identity, so
+     * a caller that owns an `IconButtonView`/`TagView` per row (see
+     * `ui/sidebar/TrustedBoardsListView.ts`) can hand over its root and keep it mounted across
+     * refreshes and virtual-scroll recycling.
+     */
+    trailingElement?: Node;
+    /**
      * When the trailing content is shown. `"always"` (default) keeps it visible at all times —
      * the original behavior, so existing consumers are unchanged. `"hover"` hides it at rest and
      * reveals it on row hover or keyboard focus-within (e.g. a per-row action that should not

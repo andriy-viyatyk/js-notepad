@@ -1,4 +1,3 @@
-import React from "react";
 import { app } from "../../api/app";
 import { settings } from "../../api/settings";
 import { createLinkData } from "../../../shared/link-data";
@@ -10,7 +9,8 @@ import { fillSlot } from "../../uikit/shared/fill-slot";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
-import { BoardGlyph } from "../../editors/board/BoardGlyph";
+import { createBoardGlyphElement } from "../../editors/board/board-glyph-element";
+import { subscribeBoardIconChanges } from "../../editors/board/board-icon-cache";
 import { getCreatableItems, type CreatableItem } from "./tools-editors-registry";
 import {
     decodePin,
@@ -40,6 +40,7 @@ interface RowRecord {
     rowData: PinnedRow;
     iconCleanup: () => void;
     button: IconButtonView;
+    listenersCleanup: () => void;
 }
 
 export class PinnedRailView extends VanillaView<PinnedRailProps> {
@@ -68,6 +69,7 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
             remove: (element) => this.removeRow(element),
         });
         this.own(() => this.list?.dispose());
+        this.own(subscribeBoardIconChanges(() => this.refresh()));
         this.own(() => {
             draggingPinnedIndex = -1;
             this.scroll.querySelectorAll<HTMLElement>("[data-dragging], [data-drag-over]").forEach((row) => {
@@ -134,15 +136,22 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
             rowData,
             iconCleanup: () => undefined,
             button,
+            listenersCleanup: () => undefined,
         };
         this.rows.set(row, record);
-        this.listen(row, "click", () => this.activate(record.rowData.ref));
-        this.listen(row, "dragstart", (event) => this.onDragStart(row, event));
-        this.listen(row, "dragend", () => this.onDragEnd());
-        this.listen(row, "dragenter", (event) => this.onDragEnter(row, event));
-        this.listen(row, "dragover", (event) => this.onDragOver(row, event));
-        this.listen(row, "dragleave", () => this.setDragOver(row, false));
-        this.listen(row, "drop", (event) => this.onDrop(event));
+        const listeners: Array<() => void> = [];
+        const listen = <K extends keyof HTMLElementEventMap>(type: K, listener: (event: HTMLElementEventMap[K]) => void): void => {
+            row.addEventListener(type, listener as EventListener);
+            listeners.push(() => row.removeEventListener(type, listener as EventListener));
+        };
+        listen("click", () => this.activate(record.rowData.ref));
+        listen("dragstart", (event) => this.onDragStart(row, event));
+        listen("dragend", () => this.onDragEnd());
+        listen("dragenter", (event) => this.onDragEnter(row, event));
+        listen("dragover", (event) => this.onDragOver(row, event));
+        listen("dragleave", () => this.setDragOver(row, false));
+        listen("drop", (event) => this.onDrop(event));
+        record.listenersCleanup = () => listeners.forEach((remove) => remove());
         return row;
     }
 
@@ -160,7 +169,7 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
             row.querySelector<HTMLElement>(".item-label")!.textContent = fpBasename(rowData.ref.root);
             record.iconCleanup = fillSlot(
                 row.querySelector<HTMLElement>(".item-icon")!,
-                React.createElement(BoardGlyph, { boardRoot: rowData.ref.root }),
+                createBoardGlyphElement(rowData.ref.root),
             );
         } else if (editor) {
             row.querySelector<HTMLElement>(".item-label")!.textContent = editor.label;
@@ -176,6 +185,7 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
     private removeRow(row: HTMLDivElement): void {
         const record = this.rows.get(row);
         if (!record) return;
+        record.listenersCleanup();
         record.iconCleanup();
         record.button.dispose();
         record.button.root.remove();

@@ -4,7 +4,8 @@
 }
 
 .browser-root { display: flex; flex: 1 1 auto; flex-direction: column; overflow: hidden; background-color: var(--color-bg-default); }
-.browser-root [data-browser-loading-bar] { height: 2px; background-color: var(--color-border-active); animation: browser-loading-pulse 1.5s ease-in-out infinite; }
+.browser-root [data-browser-loading-bar] { height: 2px; }
+.browser-root [data-browser-loading-bar][data-loading] { background-color: var(--color-border-active); animation: browser-loading-pulse 1.5s ease-in-out infinite; }
 .browser-root [data-search-engine-chip] { cursor: pointer; font-size: 11px; color: var(--color-text-light); padding: 0 4px; border-radius: 3px; white-space: nowrap; user-select: none; line-height: 20px; background: transparent; border: none; }
 .browser-root [data-search-engine-chip]:hover { color: var(--color-text-default); background-color: var(--color-bg-light); }
 .browser-root [data-tor-indicator] { cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0 2px; position: relative; }

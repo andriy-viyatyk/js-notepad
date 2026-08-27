@@ -71,6 +71,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     private labelOwner: "slot" | "text" = "text";
     private iconAttached = false;
     private trailingAttached = false;
+    private appliedTrailingElement: Node | undefined;
 
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: () => void = () => undefined;
@@ -153,6 +154,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onContextMenu: _onContextMenu,
             trailing,
+            trailingElement,
             trailingVisibility = "always",
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             ref: _ref,
@@ -188,7 +190,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         this.setChevron(props);
         this.setIcon(icon, iconElement);
         this.setLabel(label, searchText);
-        this.setTrailing(trailing);
+        this.setTrailing(trailing, trailingElement);
 
         // Residual props come last, matching the JSX order: a caller-supplied role or aria-* wins.
         applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
@@ -331,7 +333,22 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     }
 
     /** React rendered `{trailing != null && <span className="tree-trailing">…}`. */
-    private setTrailing(trailing: SlotContent): void {
+    private setTrailing(trailing: SlotContent, trailingElement?: Node): void {
+        // A caller-owned DOM node takes the identity-checked arm. `fillSlot` replaces the host's
+        // children unconditionally, so re-filling with the same node detaches and re-appends it —
+        // which drops focus and hover on an interactive control and churns the DOM on every
+        // virtual-scroll render. Comparing identity first keeps the node mounted.
+        if (trailingElement !== undefined) {
+            if (!this.trailingAttached) {
+                this.root.append(this.trailingHost);
+                this.trailingAttached = true;
+            }
+            if (this.appliedTrailingElement === trailingElement) return;
+            this.appliedTrailingElement = trailingElement;
+            this.trailingCleanup = fillSlot(this.trailingHost, trailingElement);
+            return;
+        }
+        this.appliedTrailingElement = undefined;
         if (trailing == null) {
             if (this.trailingAttached) {
                 this.trailingCleanup?.();

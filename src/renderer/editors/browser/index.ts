@@ -3,16 +3,11 @@ import { BrowserEditor } from "./BrowserEditor";
 import { getDefaultBrowserPageState } from "./BrowserEditorModel";
 import { BrowserEditorView } from "./BrowserView";
 import type { EditorModule } from "../base/editorRegistry";
-import type { EditorModel } from "../base/EditorModel";
-
-function BrowserEditorComponent({ model }: { model: EditorModel }) {
-    return <BrowserEditorView model={model as BrowserEditor} />;
-}
 
 export const browserModule: EditorModule = {
     createEditor: () =>
         new BrowserEditor(new TComponentState(getDefaultBrowserPageState())),
-    Component: BrowserEditorComponent,
+    View: BrowserEditorView,
 };
 
 export { BrowserEditor };
