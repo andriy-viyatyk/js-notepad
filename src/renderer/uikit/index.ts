@@ -20,7 +20,6 @@ export type { ToolbarProps } from "./Toolbar";
 // Bootstrap components
 export { Autocomplete } from "./Autocomplete";
 export type { AutocompleteProps } from "./Autocomplete";
-export { Breadcrumb } from "./Breadcrumb";
 export type { BreadcrumbProps } from "./Breadcrumb";
 export { Button } from "./Button";
 export type { ButtonProps } from "./Button";
@@ -33,12 +32,10 @@ export type { IconRef, SlotText } from "./shared/slots";
 export type { SplitButtonProps } from "./SplitButton";
 export { Input } from "./Input";
 export type { InputProps } from "./Input";
-export { DateInput } from "./DateInput";
 export type { DateInputProps } from "./DateInput";
 export type { LabelProps } from "./Label";
 export { Checkbox } from "./Checkbox";
 export type { CheckboxProps } from "./Checkbox";
-export { Divider } from "./Divider";
 export type { DividerProps } from "./Divider";
 export { Dot } from "./Dot";
 export type { DotProps, DotColor } from "./Dot";
@@ -50,7 +47,6 @@ export { RADIO_KEY } from "./RadioGroup";
 export type { RadioGroupProps, IRadio } from "./RadioGroup";
 export { Slider } from "./Slider";
 export type { SliderProps } from "./Slider";
-export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 export { Spinner } from "./Spinner";
 export type { SpinnerProps } from "./Spinner";
@@ -59,20 +55,18 @@ export type { TextareaProps } from "./Textarea";
 export type { PathInputProps } from "./PathInput/PathInputModel";
 export { Tag } from "./Tag";
 export type { TagProps } from "./Tag";
-export { TagsInput } from "./TagsInput";
 export type { TagsInputProps } from "./TagsInput";
 
 // Overlay
 export { overlayRegistry } from "./shared/overlayRegistry";
 export { Popover } from "./Popover";
 export type { PopoverProps, PopoverPosition } from "./Popover";
-export { Tooltip } from "./Tooltip";
-export { attachTooltip } from "./Tooltip";
-export type { TooltipProps, TooltipOptions, TooltipAttachment } from "./Tooltip";
+export { attachTooltip } from "./Tooltip/attach-tooltip";
+export type { TooltipOptions, TooltipAttachment } from "./Tooltip/attach-tooltip";
 // Dialog and DialogContent are native-only; their public props remain type exports.
 export type { DialogProps, DialogPosition } from "./Dialog";
 export type { DialogContentProps } from "./Dialog/DialogContent";
-export { AlertsBar, alertsBarModel } from "./Notification";
+export { alertsBarModel } from "./Notification";
 export type { NotificationProps, NotificationSeverity, AlertData } from "./Notification";
 export { createProgress, showProgress, notifyProgress, addScreenLock, removeScreenLock } from "./Progress";
 export type { ProgressHandle } from "./Progress";
@@ -87,19 +81,18 @@ export { SelectableRow } from "./SelectableRow";
 export type { SelectableRowProps } from "./SelectableRow";
 export { ListBox, LIST_ITEM_KEY } from "./ListBox";
 export type { ListBoxProps, IListBoxItem, ListItemRenderContext } from "./ListBox";
-export { ListItem } from "./ListBox";
 export type { ListItemProps, SectionItemProps } from "./ListBox";
 export type { MultiListBoxProps } from "./MultiListBox";
 export type { MultiSelectProps } from "./MultiSelect/MultiSelectModel";
 export { Select } from "./Select";
 export type { SelectProps, ItemsSource, SelectItemsResult } from "./Select";
-export { Tree, TREE_ITEM_KEY } from "./Tree";
+export { TREE_ITEM_KEY } from "./Tree/types";
 export type {
     TreeProps,
     ITreeItem,
     TreeItemRenderContext,
     TreeRow,
-} from "./Tree";
+} from "./Tree/types";
 export { TreeItem } from "./Tree";
 export type { TreeItemProps, TreeSectionItemProps } from "./Tree";
 
@@ -122,5 +115,4 @@ export type {
 } from "./VirtualGrid";
 
 // Truncated text (overflow-ellipsis with hover title)
-export { TruncatedText } from "./TruncatedText";
 export type { TruncatedTextProps } from "./TruncatedText";

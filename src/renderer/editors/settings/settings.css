@@ -1,0 +1,124 @@
+@layer app {
+    [data-type="settings-view"] h1 {
+        margin: 0;
+        margin-bottom: var(--space-xl, 24px);
+        color: var(--color-text-default);
+        font-size: var(--font-xxl, 24px);
+        font-weight: 600;
+    }
+
+    [data-type="settings-theme-preview"] {
+        width: 80px;
+        height: 48px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-sm, 3px);
+    }
+
+    [data-type="settings-theme-preview"] [data-part="header"] {
+        height: 12px;
+        flex-shrink: 0;
+    }
+
+    [data-type="settings-theme-preview"] [data-part="body"] {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap-xs, 2px);
+        padding: var(--space-xs, 4px) var(--space-sm, 6px);
+    }
+
+    [data-type="settings-theme-preview"] [data-part="line"] {
+        height: 3px;
+        flex-shrink: 0;
+        border-radius: var(--radius-xs, 1px);
+        opacity: 0.6;
+    }
+
+    [data-type="settings-theme-preview"] [data-part="line"][data-kind="line-accent"] { width: 60%; }
+    [data-type="settings-theme-preview"] [data-part="line"][data-kind="line-long"] { width: 80%; }
+    [data-type="settings-theme-preview"] [data-part="line"][data-kind="line-short"] { width: 45%; }
+
+    [data-type="settings-theme-option"] {
+        cursor: pointer;
+    }
+
+    [data-type="settings-path"] {
+        font-size: var(--font-sm, 12px);
+        font-family: monospace;
+        color: var(--color-text-default);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    [data-type="settings-label"] {
+        font-size: var(--font-xs, 12px);
+        color: var(--color-text-light);
+    }
+
+    [data-type="settings-field-label"] {
+        flex-shrink: 0;
+        min-width: 42px;
+        font-size: var(--font-xs, 12px);
+        color: var(--color-text-dark);
+    }
+
+    [data-type="settings-link"] {
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    [data-type="settings-placeholder"] {
+        cursor: pointer;
+        font-style: italic;
+    }
+
+    [data-type="settings-badge"] {
+        padding: 1px 6px;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-sm, 3px);
+        color: var(--color-text-light);
+        font-size: var(--font-xs, 12px);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    [data-type="settings-code"] {
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        padding: 8px 12px;
+        overflow: auto;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-sm, 3px);
+        background-color: var(--color-bg-dark);
+        color: var(--color-text-default);
+        font-family: monospace;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
+    [data-type="settings-url"] {
+        padding: 4px 8px;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-sm, 3px);
+        background-color: var(--color-bg-dark);
+        color: var(--color-text-default);
+        font-family: monospace;
+        font-size: var(--font-sm, 12px);
+        user-select: all;
+    }
+
+    [data-type="settings-section"] {
+        display: contents;
+    }
+
+    [data-type="settings-section"][hidden] {
+        display: none;
+    }
+}

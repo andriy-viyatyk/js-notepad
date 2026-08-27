@@ -1,22 +1,16 @@
-import { createElement, Fragment, useCallback, type MouseEvent as ReactMouseEvent } from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
 import { TComponentState } from "../../core/state/state";
-import { Breadcrumb } from "../../uikit/Breadcrumb";
 import type { BreadcrumbProps } from "../../uikit/Breadcrumb";
 import { BreadcrumbView } from "../../uikit/Breadcrumb/BreadcrumbView";
 import { ButtonView, type ButtonViewProps } from "../../uikit/Button/ButtonView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
-import { Input } from "../../uikit/Input";
 import { InputView } from "../../uikit/Input/InputView";
 import type { InputProps } from "../../uikit/Input";
 import { openMenu, type MenuHandle, type MenuItem } from "../../uikit/Menu";
-import { Button, IconButton } from "../../uikit";
-import { showAppPopupMenu } from "../../ui/dialogs";
 import type { IconName } from "../../theme/icon-registry";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { TextChromeView } from "../base/TextChromeView";
 import { LinkEditor, defaultLinkEditorState, type LinkEditorState } from "./LinkEditor";
-import { LinkBody } from "./LinkBody";
+import { LinkBodyView } from "./LinkBody";
 import type { LinkViewMode } from "./linkTypes";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -45,115 +39,6 @@ const VIEW_MODE_ORDER: LinkViewMode[] = [
     "tiles-portrait-big",
 ];
 
-export function LinkBreadcrumbBits({ model: editor }: { model: LinkEditor }) {
-    const { expandedPanel, selectedCategory, selectedTag, selectedHostname } =
-        editor.state.use((state) => ({
-            expandedPanel: state.expandedPanel,
-            selectedCategory: state.selectedCategory,
-            selectedTag: state.selectedTag,
-            selectedHostname: state.selectedHostname,
-        }));
-
-    if (expandedPanel === "tags") {
-        return createElement(Breadcrumb, {
-            name: "link-editor-breadcrumb-tags",
-            rootLabel: "Tags",
-            value: selectedTag,
-            onChange: editor.setSelectedTag,
-            separators: ":",
-            trailingParentSeparator: true,
-        });
-    }
-    if (expandedPanel === "hostnames") {
-        return createElement(Breadcrumb, {
-            name: "link-editor-breadcrumb-hostnames",
-            rootLabel: "Hostnames",
-            value: selectedHostname,
-            onChange: editor.setSelectedHostname,
-        });
-    }
-    return createElement(Breadcrumb, {
-        name: "link-editor-breadcrumb-categories",
-        rootLabel: "Collections",
-        value: selectedCategory,
-        onChange: editor.setSelectedCategory,
-    });
-}
-
-export function LinkActionBits({ model: editor }: { model: LinkEditor }) {
-    const { searchText, viewMode } = editor.state.use((state) => ({
-        searchText: state.searchText,
-        viewMode: editor.getViewMode(state),
-    }));
-    const showViewModeMenu = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        showAppPopupMenu(
-            rect.left,
-            rect.bottom + 2,
-            VIEW_MODE_ORDER.map((mode) => ({
-                label: VIEW_MODE_LABELS[mode],
-                icon: VIEW_MODE_ICONS[mode],
-                selected: mode === viewMode,
-                onClick: () => editor.setViewMode(mode),
-            })),
-        );
-    }, [editor, viewMode]);
-
-    return createElement(
-        Fragment,
-        null,
-        createElement(Button, {
-            name: "link-editor-add",
-            size: "sm",
-            variant: "link",
-            title: "Add Link",
-            icon: "plus",
-            onClick: () => { void editor.showLinkDialog(); },
-            children: "Add Link",
-        }),
-        createElement(Button, {
-            name: "link-editor-view-mode",
-            size: "sm",
-            variant: "ghost",
-            title: "View Mode",
-            icon: VIEW_MODE_ICONS[viewMode],
-            onClick: showViewModeMenu,
-            children: VIEW_MODE_LABELS[viewMode],
-        }),
-        createElement(Input, {
-            name: "link-editor-search",
-            tone: "accent",
-            width: 180,
-            value: searchText,
-            onChange: editor.setSearchText,
-            placeholder: "Search...",
-            endSlot: searchText
-                ? createElement(IconButton, {
-                    name: "link-editor-search-clear",
-                    size: "sm",
-                    title: "Clear search",
-                    icon: "close",
-                    onClick: editor.clearSearch,
-                })
-                : undefined,
-        }),
-    );
-}
-
-export function LinkFooterBits({ model: editor }: { model: LinkEditor }) {
-    const { filteredCount, totalCount } = editor.state.use((state) => ({
-        filteredCount: state.filteredLinks.length,
-        totalCount: state.data.links.length,
-    }));
-    return createElement(
-        "span",
-        null,
-        filteredCount === totalCount
-            ? `${totalCount} links`
-            : `${filteredCount} of ${totalCount} links`,
-    );
-}
-
 function createContentsRoot(): HTMLSpanElement {
     const root = document.createElement("span");
     root.style.display = "contents";
@@ -181,7 +66,7 @@ function selectLinkBreadcrumb(state: LinkEditorState): LinkBreadcrumbProjection 
     };
 }
 
-class LinkBreadcrumbView extends VanillaView<{ model: LinkEditor }> {
+export class LinkBreadcrumbView extends VanillaView<{ model: LinkEditor }> {
     private model: LinkEditor;
     private breadcrumb: BreadcrumbView | undefined;
     private stateSubscription: (() => void) | undefined;
@@ -268,7 +153,7 @@ function selectLinkActions(editor: LinkEditor) {
     });
 }
 
-class LinkActionView extends VanillaView<{ model: LinkEditor }> {
+export class LinkActionView extends VanillaView<{ model: LinkEditor }> {
     private model: LinkEditor;
     private addButton: ButtonView | undefined;
     private viewModeButton: ButtonView | undefined;
@@ -372,7 +257,7 @@ class LinkActionView extends VanillaView<{ model: LinkEditor }> {
             variant: "ghost",
             title: "View Mode",
             icon: VIEW_MODE_ICONS[viewMode],
-            onClick: this.openViewModeMenu,
+            onClick: (event) => this.openViewModeMenu(event.nativeEvent),
             children: VIEW_MODE_LABELS[viewMode],
         };
     }
@@ -408,7 +293,7 @@ class LinkActionView extends VanillaView<{ model: LinkEditor }> {
         }));
     }
 
-    private readonly openViewModeMenu = (event: ReactMouseEvent<HTMLButtonElement>): void => {
+    private readonly openViewModeMenu = (event: MouseEvent): void => {
         if (!(event.currentTarget instanceof Element)) return;
         this.closeMenu();
         this.previousFocus = document.activeElement;
@@ -445,7 +330,7 @@ function selectLinkFooter(state: LinkEditorState): LinkFooterProjection {
     };
 }
 
-class LinkFooterView extends VanillaView<{ model: LinkEditor }> {
+export class LinkFooterView extends VanillaView<{ model: LinkEditor }> {
     private model: LinkEditor;
     private stateSubscription: (() => void) | undefined;
 
@@ -486,19 +371,12 @@ class LinkFooterView extends VanillaView<{ model: LinkEditor }> {
     }
 }
 
-function linkBodyElement(model: LinkEditor) {
-    return createElement(
-        EditorErrorBoundary,
-        null,
-        createElement(LinkBody, { model }),
-    );
-}
-
 export class LinkEditorView extends VanillaView<{ model: EditorModel }> {
     private model: LinkEditor | undefined;
     private breadcrumb: LinkBreadcrumbView | undefined;
     private actions: LinkActionView | undefined;
     private footer: LinkFooterView | undefined;
+    private body: LinkBodyView | undefined;
     private chrome: TextChromeView | undefined;
 
     public constructor(props: { model: EditorModel }) {
@@ -510,23 +388,26 @@ export class LinkEditorView extends VanillaView<{ model: EditorModel }> {
         const breadcrumb = this.child(new LinkBreadcrumbView({ model }));
         const actions = this.child(new LinkActionView({ model }));
         const footer = this.child(new LinkFooterView({ model }));
+        const body = this.child(new LinkBodyView({ model }));
         const chrome = this.child(new TextChromeView({
             model: this.props.model,
             toolbarContributions: breadcrumb.root,
             rightToolbarContributions: actions.root,
             footerContributions: footer.root,
-            children: linkBodyElement(model),
+            children: body.root,
         }));
 
         this.model = model;
         this.breadcrumb = breadcrumb;
         this.actions = actions;
         this.footer = footer;
+        this.body = body;
         this.chrome = chrome;
         this.root.append(breadcrumb.root, actions.root, footer.root, chrome.root);
         breadcrumb.mount();
         actions.mount();
         footer.mount();
+        body.mount();
         chrome.mount();
     }
 
@@ -536,12 +417,13 @@ export class LinkEditorView extends VanillaView<{ model: EditorModel }> {
         this.breadcrumb?.update({ model });
         this.actions?.update({ model });
         this.footer?.update({ model });
+        this.body?.update({ model });
         this.chrome?.update({
             model: props.model,
             toolbarContributions: this.breadcrumb?.root,
             rightToolbarContributions: this.actions?.root,
             footerContributions: this.footer?.root,
-            children: linkBodyElement(model),
+            children: this.body?.root,
         });
     }
 
@@ -550,6 +432,7 @@ export class LinkEditorView extends VanillaView<{ model: EditorModel }> {
         this.breadcrumb = undefined;
         this.actions = undefined;
         this.footer = undefined;
+        this.body = undefined;
         this.chrome = undefined;
     }
 }

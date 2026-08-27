@@ -1,0 +1,11 @@
+@layer editor {
+    [data-type="mcp-resource-content"] .mcp-content-image,
+    [data-type="mcp-tool-result"] .mcp-content-image,
+    [data-type="mcp-message-content"] .mcp-content-image {
+        max-width: 100%;
+    }
+
+    [data-type="mcp-server-info"] a {
+        color: inherit;
+    }
+}

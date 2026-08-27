@@ -218,15 +218,15 @@ class DiscoveredImagesView extends VanillaView<DiscoveredImagesProps> {
 
 export class EditLinkDialogView extends VanillaView<DialogViewProps> {
     private readonly model: EditLinkDialogModel;
-    private titleView!: TextareaView;
-    private hrefView!: InputView;
-    private categoryView!: PathInputView;
-    private targetView!: SelectView<TargetOption>;
-    private tagsView!: TagsInputView;
-    private imageView!: InputView;
+    private titleView: TextareaView | undefined;
+    private hrefView: InputView | undefined;
+    private categoryView: PathInputView | undefined;
+    private targetView: SelectView<TargetOption> | undefined;
+    private tagsView: TagsInputView | undefined;
+    private imageView: InputView | undefined;
     private clearImageButton: IconButtonView | undefined;
-    private previewSwap!: SubtreeSwap<string>;
-    private discoveredImagesSwap!: SubtreeSwap<"images">;
+    private previewSwap: SubtreeSwap<string> | undefined;
+    private discoveredImagesSwap: SubtreeSwap<"images"> | undefined;
     private discoveredImagesView: DiscoveredImagesView | undefined;
 
     public constructor(props: DialogViewProps) {

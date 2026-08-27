@@ -18,8 +18,9 @@ import { BrowserTabsPanel } from "./BrowserTabsPanel";
 import { UrlSuggestionsDropdown } from "./UrlSuggestionsDropdown";
 import { BookmarksDrawer } from "./BookmarksDrawer";
 import { BrowserSecondaryViews } from "./BrowserSecondaryViews";
-import { LinkBody } from "../link-editor/LinkBody";
-import { LinkActionBits, LinkBreadcrumbBits } from "../link-editor";
+import { mountVanilla } from "../../uikit/shared/mount";
+import { LinkActionView, LinkBreadcrumbView } from "../link-editor";
+import { LinkBodyView } from "../link-editor/LinkBody";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 import { DownloadButton } from "./DownloadButton";
 import { FindBar } from "../shared/FindBar";
@@ -238,14 +239,14 @@ const BlankPageLinks = memo(function BlankPageLinks({ bookmarks }: BlankPageLink
                 paddingX="md" paddingY="xs" background="dark" borderBottom
                 shrink={false} minHeight={32}
             >
-                <LinkBreadcrumbBits model={bookmarks.linkEditor} />
+                {mountVanilla(LinkBreadcrumbView, { model: bookmarks.linkEditor })}
                 <Panel flex={1} />
-                <LinkActionBits model={bookmarks.linkEditor} />
+                {mountVanilla(LinkActionView, { model: bookmarks.linkEditor })}
             </Panel>
             <Panel name="blank-page-body" direction="row" flex={1} overflow="hidden">
                 <BrowserSecondaryViews host={bookmarks.panelHost} />
                 <Panel flex={1} overflow="hidden">
-                    <LinkBody model={bookmarks.linkEditor} />
+                    {mountVanilla(LinkBodyView, { model: bookmarks.linkEditor })}
                 </Panel>
             </Panel>
         </Panel>

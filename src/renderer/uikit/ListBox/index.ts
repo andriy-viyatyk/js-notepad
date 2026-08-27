@@ -4,6 +4,5 @@ export type {
     IListBoxItem,
     ListItemRenderContext,
 } from "./ListBox";
-export { ListItem } from "./ListItem";
 export type { ListItemProps } from "./ListItem";
 export type { SectionItemProps } from "./SectionItem";

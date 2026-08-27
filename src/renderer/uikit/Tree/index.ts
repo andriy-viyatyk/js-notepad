@@ -1,10 +1,10 @@
-export { Tree, TREE_ITEM_KEY } from "./Tree";
+export { TREE_ITEM_KEY } from "./types";
 export type {
     ITreeItem,
     TreeProps,
     TreeRow,
     TreeItemRenderContext,
-} from "./Tree";
+} from "./types";
 export { TreeItem } from "./TreeItem";
 export type { TreeItemProps } from "./TreeItem";
 export type { SectionItemProps as TreeSectionItemProps } from "./SectionItem";

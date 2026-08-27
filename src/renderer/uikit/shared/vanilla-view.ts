@@ -60,8 +60,22 @@ export abstract class VanillaView<P> implements IOwnedView {
         // Mark mounted before calling user code so a binding installed by the
         // hook can use the immediate-apply contract safely.
         this.mounted = true;
-        this.onMount();
-        return this.root;
+        try {
+            this.onMount();
+            return this.root;
+        } catch (mountError) {
+            // A failed mount is terminal: child ownership is lifetime-wide, so
+            // retrying this instance could never safely reclaim a child.
+            // Clear mounted first so disposal skips onDispose() for half-built
+            // views, and preserve the mount error if cleanup also fails.
+            this.mounted = false;
+            try {
+                this.dispose();
+            } catch {
+                // Preserve the original mount failure after attempting cleanup.
+            }
+            throw mountError;
+        }
     }
 
     /**

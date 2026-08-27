@@ -1,4 +1,3 @@
-import React from "react";
 import type { ILink } from "../../api/types/io.tree";
 import {
     createTreeProviderItemIconElement,
@@ -26,7 +25,7 @@ import { attachTooltip, type TooltipAttachment } from "../../uikit/Tooltip/attac
 import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { IconName } from "../../theme/icon-registry";
-import { LinkTooltipContent } from "./LinkTooltip";
+import { createLinkTooltipContent } from "./LinkTooltipView";
 import type { LinksListProps } from "./LinksList";
 import type { TorProxyInfo } from "./tor-src";
 import "../../uikit/IconButton/IconButton.css";
@@ -345,8 +344,8 @@ export class LinksListView extends VanillaView<LinksListProps> {
         });
     }
 
-    private tooltipContent(link: ILink, record?: CellParts): React.ReactElement {
-        return React.createElement(LinkTooltipContent, {
+    private tooltipContent(link: ILink, record?: CellParts): Node {
+        return createLinkTooltipContent({
             link,
             allTags: record?.allTags ?? this.props.allTags,
             onToggleTag: record?.onToggleTag ?? this.props.onToggleTag,

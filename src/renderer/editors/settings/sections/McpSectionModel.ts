@@ -23,6 +23,7 @@ export type McpSectionState = typeof defaultMcpSectionState;
 
 /** Coordinates server status subscriptions and editable MCP configuration fields. */
 export class McpSectionModel extends TComponentModel<McpSectionState, McpSectionProps> {
+    private copiedTimer: ReturnType<typeof setTimeout> | undefined;
     init(): void {
         this.effect(
             () => { this.state.update((state) => { state.portValue = String(this.props.mcpPort); }); },
@@ -86,12 +87,19 @@ export class McpSectionModel extends TComponentModel<McpSectionState, McpSection
     handleCopy = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
         this.state.update((state) => { state.copied = label; });
-        setTimeout(() => {
+        if (this.copiedTimer !== undefined) clearTimeout(this.copiedTimer);
+        this.copiedTimer = setTimeout(() => {
+            this.copiedTimer = undefined;
             if (this.isLive) this.state.update((state) => {
                 if (state.copied === label) state.copied = null;
             });
         }, 2000);
     };
+
+    dispose() {
+        if (this.copiedTimer !== undefined) clearTimeout(this.copiedTimer);
+        this.copiedTimer = undefined;
+    }
 }
 
 export { defaultMcpSectionState };

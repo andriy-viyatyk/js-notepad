@@ -1,13 +1,13 @@
-import React from "react";
 import type { ITreeProviderItem } from "../../../api/types/io.tree";
 import type { ContextMenuEvent } from "../../../api/events/events";
+import type { SlotText } from "../../../uikit/shared/slots";
 import { TreeProviderViewImpl } from "../../../components/tree-provider/TreeProviderViewImpl";
 import { createPanelElement } from "../../../uikit/Panel/panel-style";
 import "../../../uikit/Panel/Panel.css";
 import { createTextElement } from "../../../uikit/Text/text-style";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { LinkEditor } from "../LinkEditor";
-import { LinkTooltipContent } from "../LinkTooltip";
+import { createLinkTooltipContent } from "../LinkTooltipView";
 
 export interface LinkCategoryPanelProps {
     vm: LinkEditor;
@@ -70,13 +70,21 @@ export class LinkCategoryPanelView extends VanillaView<LinkCategoryPanelProps> {
             selectedHref: selectedHref(editor),
             onItemClick: this.onItemClick,
             onContextMenu: this.onContextMenu,
-            getTooltip: (item: ITreeProviderItem) => item.isDirectory
+            // `createLinkTooltipContent` returns a DOM node, but this whole chain is typed
+            // `SlotText` (`string | React.ReactNode`) — TreeProviderViewModel.getTooltip, Tree's
+            // own getTooltip, and TreeItemView all declare it — while `fillSlot` underneath has
+            // accepted `Node` since Epic B. Widening it is a 15-declaration change across `uikit/`
+            // and two unconverted editors, deliberately out of EPIC-071's scope and recorded in
+            // its §E13-11 for a later epic. The cast is the documented symptom of that gap, not a
+            // silenced disagreement: the sibling `renderTrailing` one line above this type already
+            // carries the `| Node` arm that this member is missing.
+            getTooltip: (item: ITreeProviderItem) => (item.isDirectory
                 ? item.href
-                : React.createElement(LinkTooltipContent, {
+                : createLinkTooltipContent({
                     link: item,
                     showCopyJson: true,
                     imageProxy: editor.imageProxy,
-                }),
+                })) as unknown as SlotText,
             renderTrailing: (item: ITreeProviderItem) => item.isDirectory && item.size !== undefined
                 ? createTextElement(String(item.size), { color: "light", size: "sm" })
                 : null,

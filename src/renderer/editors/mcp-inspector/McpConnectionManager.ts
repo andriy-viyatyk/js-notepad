@@ -78,6 +78,8 @@ export class McpConnectionManager {
     private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     /** Index into the backoff schedule; reset to 0 on a successful connect. */
     private _reconnectAttempt = 0;
+    /** Identity of the current client/transport pair. Late callbacks from an older pair are inert. */
+    private _transportGeneration = 0;
     /** Resource URIs to (re)subscribe on connect; survives reconnects, cleared on dispose (US-661). */
     private subscriptions = new Set<string>();
 
@@ -134,6 +136,7 @@ export class McpConnectionManager {
         this._lastConfig = config;
         this._autoReconnect = !!config.autoReconnect;
         this.cancelReconnect();
+        const generation = ++this._transportGeneration;
 
         this.setStatus("connecting");
 
@@ -184,7 +187,7 @@ export class McpConnectionManager {
             const origOnClose = this.transport.onclose;
             this.transport.onclose = () => {
                 origOnClose?.();
-                if (this._status === "connected") {
+                if (generation === this._transportGeneration && this._status === "connected") {
                     this._serverInfo = null;
                     this.setStatus("disconnected");
                     this.scheduleReconnect();
@@ -194,13 +197,14 @@ export class McpConnectionManager {
             this.transport.onerror = (err: Error) => {
                 origOnError?.(err);
                 // Suppress errors after intentional disconnect or during disconnecting
-                if (this._disconnecting || this._status === "disconnected") return;
-                this._error = err.message;
-                this.setStatus("error", err.message);
+                if (generation !== this._transportGeneration || this._disconnecting || this._status === "disconnected") return;
+                this._error = errMessage(err);
+                this.setStatus("error", this._error);
                 this.scheduleReconnect();
             };
 
             await this.client.connect(this.transport);
+            if (generation !== this._transportGeneration) return;
 
             // Read server info
             const serverVersion = this.client.getServerVersion();
@@ -235,6 +239,7 @@ export class McpConnectionManager {
             this._reconnectAttempt = 0;
             this.setStatus("connected");
         } catch (err) {
+            if (generation !== this._transportGeneration) return;
             this._error = errMessage(err);
             this._serverInfo = null;
             this.client = null;
@@ -246,6 +251,7 @@ export class McpConnectionManager {
     }
 
     async disconnect(): Promise<void> {
+        this._transportGeneration += 1;
         // Intentional disconnect — stop any auto-reconnect (re-armed by the next connect()).
         this.cancelReconnect();
         this._autoReconnect = false;

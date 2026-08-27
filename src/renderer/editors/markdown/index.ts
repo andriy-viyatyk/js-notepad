@@ -205,5 +205,3 @@ export const markdownModule: EditorModule = {
 
 export { MarkdownEditor, defaultMarkdownEditorState };
 export type { MarkdownEditorState, MarkdownQueueEvent } from "./MarkdownEditor";
-export { MarkdownBlock } from "./MarkdownBlock";
-export type { MarkdownBlockProps } from "./MarkdownBlock";

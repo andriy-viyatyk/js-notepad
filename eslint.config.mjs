@@ -8,6 +8,386 @@ import importPlugin from "eslint-plugin-import";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 
+const vanillaViewPlugin = {
+    rules: {
+        "no-constructor-listeners": createConstructorCallRule(
+            (node) => isMemberCall(node, "addEventListener")
+                || isMemberCall(node, "subscribe")
+                || isThisCall(node, "listen")
+                || isThisCall(node, "bind"),
+            "VanillaView constructors must not install listeners or subscriptions.",
+        ),
+        "no-constructor-timers": createConstructorCallRule(
+            (node) => isNamedCall(node, new Set([
+                "setTimeout",
+                "setInterval",
+                "requestAnimationFrame",
+                "queueMicrotask",
+            ])) || isMemberCallInSet(node, new Set([
+                "setTimeout",
+                "setInterval",
+                "requestAnimationFrame",
+                "queueMicrotask",
+            ])),
+            "VanillaView constructors must not start timers or scheduled work.",
+        ),
+        "no-constructor-measurement": createConstructorCallRule(
+            (node) => isMemberCall(node, "getBoundingClientRect")
+                || isConstructorCall(node, "ResizeObserver")
+                || isConstructorCall(node, "IntersectionObserver")
+                || isLayoutMeasurement(node),
+            "VanillaView constructors must not measure layout.",
+        ),
+        "no-constructor-uncreated-field": {
+            meta: {
+                type: "problem",
+                schema: [],
+                messages: {
+                    uncreated: "Constructor reads this.{{field}} before the field is created; create it in the constructor or use it from onMount() onward.",
+                },
+            },
+            create(context) {
+                return classVisitors((classNode, constructor) => {
+                    const lifecycleFields = findLifecycleFields(classNode);
+                    if (lifecycleFields.size === 0 || !constructor) return;
+
+                    const createdBeforeConstructor = findInitializedFields(classNode);
+                    const constructorAssignments = new Set();
+                    traverse(constructor.value.body, (node) => {
+                        const field = assignmentField(node);
+                        if (field) constructorAssignments.add(field);
+                    });
+
+                    traverse(constructor.value.body, (node) => {
+                        if (node.type !== "MemberExpression") return;
+                        const field = thisField(node);
+                        if (!field || !lifecycleFields.has(field)) return;
+                        if (field === "props" || field === "root") return;
+                        if (isAssignmentTarget(node) || constructorAssignments.has(field)
+                            || createdBeforeConstructor.has(field)) return;
+
+                        context.report({ node, messageId: "uncreated", data: { field } });
+                    });
+                });
+            },
+        },
+        "no-child-claim-twice": {
+            meta: {
+                type: "problem",
+                schema: [],
+                messages: {
+                    duplicate: "VanillaView field this.{{field}} is claimed by child() more than once without releasing the previous child.",
+                },
+            },
+            create(context) {
+                return classVisitors((classNode) => {
+                    const events = findClaimEvents(classNode);
+                    const activeClaims = new Map();
+
+                    for (const event of events) {
+                        if (event.kind === "release") {
+                            activeClaims.delete(event.field);
+                            continue;
+                        }
+                        const previous = activeClaims.get(event.field);
+                        if (previous && !areMutuallyExclusive(previous.node, event.node)) {
+                            context.report({ node: event.node, messageId: "duplicate", data: { field: event.field } });
+                        }
+                        activeClaims.set(event.field, event);
+                    }
+                });
+            },
+        },
+    },
+};
+
+function createConstructorCallRule(matcher, message) {
+    return {
+        meta: { type: "problem", schema: [], messages: { violation: message } },
+        create(context) {
+            return classVisitors((_classNode, constructor) => {
+                if (!constructor) return;
+                traverse(constructor.value.body, (node) => {
+                    if (matcher(node)) {
+                        context.report({ node, messageId: "violation" });
+                    }
+                });
+            });
+        },
+    };
+}
+
+function classVisitors(inspect) {
+    return {
+        ClassDeclaration(node) {
+            inspectVanillaClass(node, inspect);
+        },
+        ClassExpression(node) {
+            inspectVanillaClass(node, inspect);
+        },
+    };
+}
+
+function inspectVanillaClass(node, inspect) {
+    if (node.superClass?.type !== "Identifier" || node.superClass.name !== "VanillaView") return;
+    const constructor = node.body.body.find((member) =>
+        member.type === "MethodDefinition"
+        && member.kind === "constructor",
+    );
+    inspect(node, constructor);
+}
+
+function traverse(node, visit) {
+    if (isClassNode(node)) return;
+    visit(node);
+    if (isFunctionNode(node)) return;
+
+    for (const [key, value] of Object.entries(node)) {
+        if (key === "parent" || key === "tokens" || key === "comments" || key === "range" || key === "loc") {
+            continue;
+        }
+        if (Array.isArray(value)) {
+            value.forEach((child) => {
+                if (child && typeof child.type === "string") traverse(child, visit);
+            });
+        } else if (value && typeof value.type === "string") {
+            traverse(value, visit);
+        }
+    }
+}
+
+function traverseAll(node, visit) {
+    if (isClassNode(node)) return;
+    visit(node);
+    for (const [key, value] of Object.entries(node)) {
+        if (key === "parent" || key === "tokens" || key === "comments" || key === "range" || key === "loc") {
+            continue;
+        }
+        if (Array.isArray(value)) {
+            value.forEach((child) => {
+                if (child && typeof child.type === "string") traverseAll(child, visit);
+            });
+        } else if (value && typeof value.type === "string") {
+            traverseAll(value, visit);
+        }
+    }
+}
+
+function isFunctionNode(node) {
+    return node?.type === "FunctionExpression"
+        || node?.type === "ArrowFunctionExpression"
+        || node?.type === "FunctionDeclaration";
+}
+
+function isClassNode(node) {
+    return node?.type === "ClassDeclaration" || node?.type === "ClassExpression";
+}
+
+function thisField(node) {
+    if (node.type !== "MemberExpression" || node.object.type !== "ThisExpression") return undefined;
+    if (!node.computed && node.property.type === "Identifier") return node.property.name;
+    if (node.computed && node.property.type === "Literal" && typeof node.property.value === "string") {
+        return node.property.value;
+    }
+    return undefined;
+}
+
+function assignmentField(node) {
+    if (node.type !== "AssignmentExpression") return undefined;
+    return thisField(node.left);
+}
+
+function isAssignmentTarget(node) {
+    const parent = node.parent;
+    return (parent?.type === "AssignmentExpression" && parent.left === node)
+        || (parent?.type === "UpdateExpression" && parent.argument === node);
+}
+
+function memberName(node) {
+    if (node.type !== "MemberExpression") return undefined;
+    if (!node.computed && node.property.type === "Identifier") return node.property.name;
+    if (node.computed && node.property.type === "Literal" && typeof node.property.value === "string") {
+        return node.property.value;
+    }
+    return undefined;
+}
+
+function isMemberCall(node, name) {
+    return node.type === "CallExpression"
+        && node.callee.type === "MemberExpression"
+        && memberName(node.callee) === name;
+}
+
+function isMemberCallInSet(node, names) {
+    return node.type === "CallExpression"
+        && node.callee.type === "MemberExpression"
+        && names.has(memberName(node.callee));
+}
+
+function isThisCall(node, name) {
+    return isMemberCall(node, name) && node.callee.object.type === "ThisExpression";
+}
+
+function isNamedCall(node, names) {
+    return node.type === "CallExpression"
+        && node.callee.type === "Identifier"
+        && names.has(node.callee.name);
+}
+
+function isConstructorCall(node, name) {
+    return node.type === "NewExpression"
+        && node.callee.type === "Identifier"
+        && node.callee.name === name;
+}
+
+function isLayoutMeasurement(node) {
+    if (node.type !== "MemberExpression") return false;
+    const name = memberName(node);
+    return name !== undefined && /^(?:offset|client)/.test(name);
+}
+
+function findInitializedFields(classNode) {
+    const fields = new Set(["root", "props"]);
+    for (const member of classNode.body.body) {
+        if (member.type === "PropertyDefinition" && member.value) {
+            const name = memberNameFromDefinition(member);
+            if (name) fields.add(name);
+        }
+    }
+    return fields;
+}
+
+function memberNameFromDefinition(member) {
+    if (!member.computed && member.key.type === "Identifier") return member.key.name;
+    if (member.computed && member.key.type === "Literal" && typeof member.key.value === "string") {
+        return member.key.value;
+    }
+    return undefined;
+}
+
+function findLifecycleFields(classNode) {
+    const writes = new Map();
+    for (const member of classNode.body.body) {
+        const body = functionBody(member);
+        const memberName = memberNameFromDefinition(member);
+        if (member.type === "PropertyDefinition" && member.value && memberName) {
+            writes.set(memberName, new Set(["field-initializer"]));
+            continue;
+        }
+        if (!body) continue;
+        const owner = memberName ?? "method";
+        traverse(body, (node) => {
+            const field = assignmentField(node);
+            if (!field) return;
+            const owners = writes.get(field) ?? new Set();
+            owners.add(owner);
+            writes.set(field, owners);
+        });
+    }
+    const fields = new Set();
+    writes.forEach((owners, field) => {
+        if ([...owners].every((owner) => owner === "onMount" || owner === "onUpdate")) {
+            fields.add(field);
+        }
+    });
+    return fields;
+}
+
+function findClaimEvents(classNode) {
+    const aliases = new Map();
+    const helperReleases = new Map();
+    const events = [];
+    const members = classNode.body.body;
+
+    for (const member of members) {
+        const body = functionBody(member);
+        if (!body) continue;
+        traverseAll(body, (node) => {
+            if (node.type !== "VariableDeclarator" || node.id.type !== "Identifier") return;
+            const field = node.init && thisField(node.init);
+            if (field) aliases.set(node.id.name, field);
+        });
+    }
+
+    for (const member of members) {
+        const body = functionBody(member);
+        if (!body) continue;
+        const helperName = memberNameFromDefinition(member);
+        const releases = new Set();
+        traverseAll(body, (node) => {
+            const release = releaseField(node, aliases);
+            if (release) releases.add(release);
+        });
+        if (helperName && releases.size > 0) helperReleases.set(helperName, releases);
+    }
+
+    for (const member of members) {
+        const body = functionBody(member);
+        if (!body) continue;
+        traverseAll(body, (node) => {
+            if (node.type === "CallExpression" && isThisCall(node, "child")) {
+                const assignment = node.parent;
+                const field = assignment?.type === "AssignmentExpression"
+                    && assignment.right === node
+                    ? thisField(assignment.left)
+                    : undefined;
+                if (field) events.push({ kind: "claim", field, node: assignment });
+            }
+
+            if (node.type !== "CallExpression") return;
+            const release = releaseField(node, aliases);
+            if (release) events.push({ kind: "release", field: release, node });
+
+            if (isThisCall(node, memberName(node.callee)) && node.arguments.length === 0) {
+                const helper = helperReleases.get(memberName(node.callee));
+                helper?.forEach((field) => events.push({ kind: "release", field, node }));
+            }
+        });
+    }
+
+    return events.sort((left, right) => left.node.range[0] - right.node.range[0]);
+}
+
+function functionBody(member) {
+    if (member.type === "MethodDefinition") return member.value.body;
+    if (member.type === "PropertyDefinition" && isFunctionNode(member.value)) return member.value.body;
+    return undefined;
+}
+
+function releaseField(node, aliases) {
+    if (!isThisCall(node, "releaseChild") || node.arguments.length !== 1) return undefined;
+    const argument = node.arguments[0];
+    return thisField(argument) ?? (argument.type === "Identifier" ? aliases.get(argument.name) : undefined);
+}
+
+function areMutuallyExclusive(first, second) {
+    let ancestor = first.parent;
+    while (ancestor) {
+        if (ancestor.type === "IfStatement"
+            && isWithin(first, ancestor.consequent)
+            && isWithin(second, ancestor.alternate)) return true;
+        ancestor = ancestor.parent;
+    }
+    ancestor = second.parent;
+    while (ancestor) {
+        if (ancestor.type === "IfStatement"
+            && isWithin(second, ancestor.consequent)
+            && isWithin(first, ancestor.alternate)) return true;
+        ancestor = ancestor.parent;
+    }
+    return false;
+}
+
+function isWithin(node, ancestor) {
+    if (!ancestor) return false;
+    let current = node;
+    while (current) {
+        if (current === ancestor) return true;
+        current = current.parent;
+    }
+    return false;
+}
+
 export default tseslint.config(
     // Global ignores (flat-config replacement for ignorePatterns). The *.{js,jsx,mjs,cjs}
     // globs re-create the old `--ext .ts,.tsx` scope: only TypeScript is linted, so build
@@ -53,6 +433,7 @@ export default tseslint.config(
         // rules — intentionally not adopted here.
         plugins: {
             "react-hooks": reactHooks,
+            "vanilla-view": vanillaViewPlugin,
         },
         languageOptions: {
             parser: tseslint.parser,
@@ -113,6 +494,12 @@ export default tseslint.config(
             // imports the SDK requires at runtime/bundle time — the TS resolver reports them
             // unresolved even though they build and run. Exempt just that package.
             "import/no-unresolved": ["error", { ignore: ["^@modelcontextprotocol/sdk/"] }],
+
+            "vanilla-view/no-constructor-listeners": "error",
+            "vanilla-view/no-constructor-timers": "error",
+            "vanilla-view/no-constructor-measurement": "error",
+            "vanilla-view/no-constructor-uncreated-field": "error",
+            "vanilla-view/no-child-claim-twice": "error",
         },
     },
 

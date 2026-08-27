@@ -54,24 +54,27 @@ export class PageSlot {
             return;
         }
 
-        this.attach(root);
-        const view = new viewConstructor({ pageId: this.id });
+        const attachedHere = !this.element.parentNode;
+        let view: VanillaView<PageSlotViewProps> | undefined;
         // A construction or mount failure must not leave the slot holding a half-built view:
         // `renderNative` returns early whenever `nativeView` is set, so a retained broken view
         // would never be retried and the page would stay permanently blank. Roll back to the
         // empty state and rethrow, matching AsyncEditorView's mount-failure handling.
         try {
+            this.attach(root);
+            view = new viewConstructor({ pageId: this.id });
             this.nativeView = view;
             this.element.append(view.root);
             view.mount();
         } catch (error) {
             this.nativeView = undefined;
             try {
-                view.dispose();
+                view?.dispose();
             } catch {
                 // Preserve the mount failure after attempting cleanup.
             }
-            view.root.remove();
+            view?.root.remove();
+            if (attachedHere) this.element.remove();
             throw error;
         }
     }

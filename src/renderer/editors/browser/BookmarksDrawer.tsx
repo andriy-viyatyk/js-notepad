@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, Splitter } from "../../uikit";
+import { mountVanilla } from "../../uikit/shared/mount";
 import color from "../../theme/color";
-import { LinkBody } from "../link-editor/LinkBody";
-import {
-    LinkActionBits,
-    LinkBreadcrumbBits,
-    LinkFooterBits,
-} from "../link-editor";
+import { LinkActionView, LinkBreadcrumbView, LinkFooterView } from "../link-editor";
+import { LinkBodyView } from "../link-editor/LinkBody";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 import { BrowserSecondaryViews } from "./BrowserSecondaryViews";
 
@@ -104,14 +101,14 @@ export function BookmarksDrawer({
                         background="dark" borderBottom
                         shrink={false} minHeight={32}
                     >
-                        <LinkBreadcrumbBits model={bookmarks.linkEditor} />
+                        {mountVanilla(LinkBreadcrumbView, { model: bookmarks.linkEditor })}
                         <Panel flex={1} />
-                        <LinkActionBits model={bookmarks.linkEditor} />
+                        {mountVanilla(LinkActionView, { model: bookmarks.linkEditor })}
                     </Panel>
                     <Panel name="bookmarks-editor-host" direction="row" flex={1} overflow="hidden">
                         <BrowserSecondaryViews host={bookmarks.panelHost} />
                         <Panel flex={1} overflow="hidden">
-                            <LinkBody model={bookmarks.linkEditor} />
+                            {mountVanilla(LinkBodyView, { model: bookmarks.linkEditor })}
                         </Panel>
                     </Panel>
                     <Panel
@@ -121,7 +118,7 @@ export function BookmarksDrawer({
                         background="dark" borderTop
                         shrink={false} minHeight={22}
                     >
-                        <LinkFooterBits model={bookmarks.linkEditor} />
+                        {mountVanilla(LinkFooterView, { model: bookmarks.linkEditor })}
                     </Panel>
                 </Panel>
             </div>

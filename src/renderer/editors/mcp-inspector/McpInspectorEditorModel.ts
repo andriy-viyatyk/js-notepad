@@ -245,10 +245,20 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     readonly promptsState = new TOneState<McpPromptsPanelState>(getDefaultPromptsPanelState());
 
     private _history: McpRequestEntry[] = [];
+    private _disposed = false;
+    private _connectionGeneration = 0;
+    private _toolSelectionGeneration = 0;
+    private _resourceSelectionGeneration = 0;
+    private _templateSelectionGeneration = 0;
+    private _promptSelectionGeneration = 0;
 
     constructor(state: TComponentState<McpInspectorEditorState>) {
         super(state);
         this.connection.onStatusChange = (status, error) => {
+            if (this._disposed) return;
+            if (status === "connecting" || status === "disconnected" || status === "error") {
+                this._connectionGeneration += 1;
+            }
             const info = this.connection.serverInfo;
             this.state.update((s) => {
                 s.connectionStatus = status;
@@ -291,6 +301,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
 
     /** Connect using current state config. */
     connect = async (): Promise<void> => {
+        if (this._disposed) return;
         const s = this.state.get();
         await this.connection.connect({
             name: s.connectionName || "MCP Server",
@@ -305,6 +316,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
 
     /** Disconnect from the current server. */
     disconnect = async (): Promise<void> => {
+        if (this._disposed) return;
         await this.connection.disconnect();
     };
 
@@ -316,6 +328,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
 
     /** Auto-save connection config on successful connect. */
     private autoSaveConnection = async (): Promise<void> => {
+        const client = this.connection.getClient();
+        if (!client) return;
+        const generation = this._connectionGeneration;
         const s = this.state.get();
         const name = s.connectionName || s.serverName || s.url || s.command || "MCP Server";
         await mcpConnectionStore.save({
@@ -325,6 +340,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
             command: s.command,
             args: s.args,
         });
+        if (!this.isCurrentRequest(client, generation)) return;
         if (!s.connectionName && name) {
             this.state.update((st) => { st.connectionName = name; });
         }
@@ -352,9 +368,11 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     loadTools = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const generation = this._connectionGeneration;
         const start = Date.now();
         try {
             const result = await client.listTools();
+            if (!this.isCurrentRequest(client, generation)) return;
             this.logRequest("tools/list", null, result, null, Date.now() - start);
             const tools: McpToolInfo[] = (result.tools || []).map((t) => ({
                 name: t.name,
@@ -369,14 +387,17 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.toolArgs = {};
             });
         } catch (err) {
+            if (!this.isCurrentRequest(client, generation)) return;
             this.logRequest("tools/list", null, null, errMessage(err), Date.now() - start);
         }
     };
 
     /** Select a tool by name. Clears previous args and result. */
     selectTool = (name: string): void => {
+        this._toolSelectionGeneration += 1;
         this.toolsState.update((s) => {
             s.selectedToolName = name;
+            s.toolCallLoading = false;
             s.toolResult = null;
             s.toolArgs = {};
         });
@@ -393,9 +414,11 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     callTool = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const connectionGeneration = this._connectionGeneration;
         const ts = this.toolsState.get();
         const tool = ts.tools.find((t) => t.name === ts.selectedToolName);
         if (!tool) return;
+        const toolSelectionGeneration = this._toolSelectionGeneration;
 
         // Parse argument strings to proper types based on schema
         const args: Record<string, unknown> = {};
@@ -422,6 +445,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         try {
             const result = await client.callTool(callParams);
             const duration = Date.now() - startTime;
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || toolSelectionGeneration !== this._toolSelectionGeneration
+                || this.toolsState.get().selectedToolName !== tool.name) return;
             this.logRequest("tools/call", callParams, result, null, duration);
             this.toolsState.update((s) => {
                 s.toolCallLoading = false;
@@ -433,6 +459,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
             });
         } catch (err) {
             const duration = Date.now() - startTime;
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || toolSelectionGeneration !== this._toolSelectionGeneration
+                || this.toolsState.get().selectedToolName !== tool.name) return;
             this.logRequest("tools/call", callParams, null, errMessage(err), duration);
             this.toolsState.update((s) => {
                 s.toolCallLoading = false;
@@ -451,6 +480,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     loadResources = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const generation = this._connectionGeneration;
         const start = Date.now();
         try {
             // `never[]` fallbacks are assignable to the SDK's typed
@@ -459,6 +489,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 client.listResources().catch(() => ({ resources: [] as never[] })),
                 client.listResourceTemplates().catch(() => ({ resourceTemplates: [] as never[] })),
             ]);
+            if (!this.isCurrentRequest(client, generation)) return;
             this.logRequest("resources/list", null, { resources: resResult, templates: tmplResult }, null, Date.now() - start);
             const resources: McpResourceInfo[] = (resResult.resources || []).map((r) => ({
                 uri: r.uri,
@@ -480,17 +511,21 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.readError = "";
             });
         } catch (err) {
+            if (!this.isCurrentRequest(client, generation)) return;
             this.logRequest("resources/list", null, null, errMessage(err), Date.now() - start);
         }
     };
 
     /** Select a resource by URI. Clears previous content and deselects template. */
     selectResource = (uri: string): void => {
+        this._resourceSelectionGeneration += 1;
         this.resourcesState.update((s) => {
             s.selectedUri = uri;
+            s.readLoading = false;
             s.readContent = null;
             s.readError = "";
             s.selectedTemplateUri = "";
+            s.templateReadLoading = false;
             s.templateArgs = {};
             s.templateReadContent = null;
             s.templateReadError = "";
@@ -499,12 +534,15 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
 
     /** Select a resource template. Clears static resource selection. */
     selectTemplate = (uriTemplate: string): void => {
+        this._templateSelectionGeneration += 1;
         this.resourcesState.update((s) => {
             s.selectedTemplateUri = uriTemplate;
+            s.templateReadLoading = false;
             s.templateArgs = {};
             s.templateReadContent = null;
             s.templateReadError = "";
             s.selectedUri = "";
+            s.readLoading = false;
             s.readContent = null;
             s.readError = "";
         });
@@ -521,8 +559,11 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     readTemplateResource = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const connectionGeneration = this._connectionGeneration;
         const rs = this.resourcesState.get();
         if (!rs.selectedTemplateUri) return;
+        const templateGeneration = this._templateSelectionGeneration;
+        const selectedTemplateUri = rs.selectedTemplateUri;
 
         const expandedUri = expandUriTemplate(rs.selectedTemplateUri, rs.templateArgs);
         this.resourcesState.update((s) => {
@@ -534,6 +575,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         const start = Date.now();
         try {
             const result = await client.readResource(readParams);
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || templateGeneration !== this._templateSelectionGeneration
+                || this.resourcesState.get().selectedTemplateUri !== selectedTemplateUri) return;
             this.logRequest("resources/read", readParams, result, null, Date.now() - start);
             const first = result.contents?.[0];
             if (first) {
@@ -553,6 +597,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 });
             }
         } catch (err) {
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || templateGeneration !== this._templateSelectionGeneration
+                || this.resourcesState.get().selectedTemplateUri !== selectedTemplateUri) return;
             this.logRequest("resources/read", readParams, null, errMessage(err), Date.now() - start);
             this.resourcesState.update((s) => {
                 s.templateReadLoading = false;
@@ -565,14 +612,20 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     readResource = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const connectionGeneration = this._connectionGeneration;
         const rs = this.resourcesState.get();
         if (!rs.selectedUri) return;
+        const resourceGeneration = this._resourceSelectionGeneration;
+        const selectedUri = rs.selectedUri;
 
         this.resourcesState.update((s) => { s.readLoading = true; s.readContent = null; s.readError = ""; });
         const readParams = { uri: rs.selectedUri };
         const start = Date.now();
         try {
             const result = await client.readResource(readParams);
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || resourceGeneration !== this._resourceSelectionGeneration
+                || this.resourcesState.get().selectedUri !== selectedUri) return;
             this.logRequest("resources/read", readParams, result, null, Date.now() - start);
             const first = result.contents?.[0];
             if (first) {
@@ -592,6 +645,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 });
             }
         } catch (err) {
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || resourceGeneration !== this._resourceSelectionGeneration
+                || this.resourcesState.get().selectedUri !== selectedUri) return;
             this.logRequest("resources/read", readParams, null, errMessage(err), Date.now() - start);
             this.resourcesState.update((s) => {
                 s.readLoading = false;
@@ -606,9 +662,11 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     loadPrompts = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const generation = this._connectionGeneration;
         const start = Date.now();
         try {
             const result = await client.listPrompts();
+            if (!this.isCurrentRequest(client, generation)) return;
             this.logRequest("prompts/list", null, result, null, Date.now() - start);
             const prompts: McpPromptInfo[] = (result.prompts || []).map((p) => ({
                 name: p.name,
@@ -627,14 +685,17 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.promptError = "";
             });
         } catch (err) {
+            if (!this.isCurrentRequest(client, generation)) return;
             this.logRequest("prompts/list", null, null, errMessage(err), Date.now() - start);
         }
     };
 
     /** Select a prompt by name. Clears previous args and messages. */
     selectPrompt = (name: string): void => {
+        this._promptSelectionGeneration += 1;
         this.promptsState.update((s) => {
             s.selectedPromptName = name;
+            s.getPromptLoading = false;
             s.promptArgs = {};
             s.promptMessages = null;
             s.promptError = "";
@@ -652,9 +713,12 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     getPrompt = async (): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
+        const connectionGeneration = this._connectionGeneration;
         const ps = this.promptsState.get();
         const prompt = ps.prompts.find((p) => p.name === ps.selectedPromptName);
         if (!prompt) return;
+        const promptSelectionGeneration = this._promptSelectionGeneration;
+        const selectedPromptName = prompt.name;
 
         const args: Record<string, string> = {};
         for (const [key, value] of Object.entries(ps.promptArgs)) {
@@ -666,6 +730,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         const start = Date.now();
         try {
             const result = await client.getPrompt(getParams);
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || promptSelectionGeneration !== this._promptSelectionGeneration
+                || this.promptsState.get().selectedPromptName !== selectedPromptName) return;
             this.logRequest("prompts/get", getParams, result, null, Date.now() - start);
             const messages: McpPromptMessage[] = (result.messages || []).map((m) => {
                 const contentBlock = m.content;
@@ -680,6 +747,9 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.promptMessages = messages;
             });
         } catch (err) {
+            if (!this.isCurrentRequest(client, connectionGeneration)
+                || promptSelectionGeneration !== this._promptSelectionGeneration
+                || this.promptsState.get().selectedPromptName !== selectedPromptName) return;
             this.logRequest("prompts/get", getParams, null, errMessage(err), Date.now() - start);
             this.promptsState.update((s) => {
                 s.getPromptLoading = false;
@@ -767,8 +837,17 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     }
 
     async dispose(): Promise<void> {
+        if (this._disposed) return;
+        this._disposed = true;
+        this._connectionGeneration += 1;
         await this.connection.dispose();
         await super.dispose();
+    }
+
+    private isCurrentRequest(client: unknown, generation: number): boolean {
+        return !this._disposed
+            && generation === this._connectionGeneration
+            && this.connection.getClient() === client;
     }
 
     getIconElement = (): SVGElement | undefined => McpIcon.createElement();

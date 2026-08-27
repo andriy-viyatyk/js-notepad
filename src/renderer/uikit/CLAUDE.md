@@ -487,9 +487,12 @@ exports from `uikit/index.ts`.
 ### Lifecycle and ownership
 
 - The constructor creates the stable root and may construct the model driver and view-owned
-  state needed for the initial prop pump. It must not create child DOM, install listeners or
-  subscriptions, measure layout, or start timers. A resource created in the constructor registers
-  its cleanup with `own()` immediately; `onMount()` registers cleanup for resources it creates.
+  state needed for the initial prop pump. Whatever the constructor touches, the constructor must
+  have created; whatever `onMount()` creates, only `onMount()` and later may touch. It must not
+  install listeners or subscriptions, measure layout, or start timers. A resource created in the
+  constructor registers its cleanup with `own()` immediately; `onMount()` registers cleanup for
+  resources it creates. This wording matches the deliberate create → claim → mount pattern used
+  by `child()` and avoids treating ownership registration as child-DOM misuse.
 - Every view used by `mountVanilla` or a constructor slot declares a **public** constructor. The
   base constructor is protected, so inheriting it is not a valid public constructor contract.
 - `mount()` is where child DOM and bindings are built. The owner attaches `root` before calling

@@ -27,6 +27,7 @@ export type BrowserProfilesSectionState = typeof defaultBrowserProfilesSectionSt
 
 /** Owns profile mutations and asynchronous profile-data/bookmark operations. */
 export class BrowserProfilesSectionModel extends TComponentModel<BrowserProfilesSectionState, BrowserProfilesSectionProps> {
+    private clearedTimer: ReturnType<typeof setTimeout> | undefined;
     init() {
         this.effect(
             () => {
@@ -75,7 +76,9 @@ export class BrowserProfilesSectionModel extends TComponentModel<BrowserProfiles
         await ipcRenderer.invoke(BrowserChannel.clearProfileData, getPartitionString(profileName, false));
         if (!this.isLive) return;
         this.state.update((state) => { state.clearedProfile = profileName; });
-        setTimeout(() => {
+        if (this.clearedTimer !== undefined) clearTimeout(this.clearedTimer);
+        this.clearedTimer = setTimeout(() => {
+            this.clearedTimer = undefined;
             if (this.isLive) this.state.update((state) => {
                 if (state.clearedProfile === profileName) state.clearedProfile = null;
             });
@@ -133,6 +136,11 @@ export class BrowserProfilesSectionModel extends TComponentModel<BrowserProfiles
         const result = await api.showOpenFileDialog({ title: "Select Bookmarks File", filters: [{ name: "Link Files", extensions: ["link.json"] }] });
         return result?.[0];
     };
+
+    dispose() {
+        if (this.clearedTimer !== undefined) clearTimeout(this.clearedTimer);
+        this.clearedTimer = undefined;
+    }
 }
 
 export { defaultBrowserProfilesSectionState };

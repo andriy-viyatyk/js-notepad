@@ -21,7 +21,6 @@
  * are actually released.
  */
 
-import { useEffect, useState } from "react";
 import { isArchivePath, fpExtname } from "../../core/utils/file-path";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
 
@@ -58,7 +57,6 @@ const failed = new Set<string>();
 export function isPipeImageSrc(src: string | null | undefined): boolean {
     return !!src && isArchivePath(src);
 }
-
 /** Memory-only lookup. Returns the blob URL, or null if not read yet / unreadable. */
 export function getPipeImageSrcSync(src: string | null | undefined): string | null {
     if (!src) return null;
@@ -103,42 +101,4 @@ function evictOverflow() {
         cache.delete(oldest.value);
         if (url) URL.revokeObjectURL(url);
     }
-}
-
-/**
- * Resolve an `imgSrc` for direct use in an `<img>`.
- *
- * Sources the DOM already understands are returned unchanged and cost nothing. An archive
- * entry returns null on the first render and the blob URL once the read lands, which the
- * hook signals by re-rendering — so the caller shows its fallback glyph in the meantime
- * and needs no loading state of its own.
- */
-export function usePipeImageSrc(src: string | null | undefined): string | null {
-    const needs = isPipeImageSrc(src);
-    // Seeded from the cache so a tile scrolled back into view paints its image on the
-    // first render rather than flashing the fallback glyph.
-    const [resolved, setResolved] = useState<string | null>(
-        needs ? getPipeImageSrcSync(src) : null,
-    );
-
-    useEffect(() => {
-        if (!needs || !src) {
-            setResolved(null);
-            return;
-        }
-        const cached = getPipeImageSrcSync(src);
-        if (cached) {
-            setResolved(cached);
-            return;
-        }
-        let alive = true;
-        void resolvePipeImageSrc(src).then((url) => {
-            if (alive) setResolved(url);
-        });
-        return () => { alive = false; };
-    }, [src, needs]);
-
-    if (!src) return null;
-    if (!needs) return src;
-    return resolved;
 }
