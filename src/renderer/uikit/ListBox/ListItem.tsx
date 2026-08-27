@@ -1,6 +1,7 @@
 import React from "react";
 import { mountVanilla } from "../shared/mount";
 import type { IconRef, SlotText } from "../shared/slots";
+import type { SlotContent } from "../shared/fill-slot";
 import type { ListItemDragProps } from "./types";
 import { ListItemView } from "./ListItemView";
 
@@ -21,7 +22,7 @@ export interface ListItemProps
     /** Application-owned class hook for an ordinary native row. */
     rowClass?: string;
     /** Label content. Link editor folder rows retain a styled rich label; string labels are highlighted. */
-    label: React.ReactNode;
+    label: SlotContent;
     /** Highlight matches in string labels. */
     searchText?: string;
     /** True when this item is the current `value` of its ListBox. */
@@ -41,7 +42,7 @@ export interface ListItemProps
      */
     tooltipDelayShow?: number;
     /** Trailing slot — defaults to a check icon when `selected`. */
-    trailing?: React.ReactNode;
+    trailing?: SlotContent;
     /** Direct DOM trailing content supplied by a vanilla parent. */
     trailingElement?: Node;
     /** Native drag handlers for an ordinary row. */

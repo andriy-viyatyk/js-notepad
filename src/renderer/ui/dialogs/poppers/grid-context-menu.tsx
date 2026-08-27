@@ -39,17 +39,17 @@ import { showAppPopupMenu } from "./showPopupMenu";
  * The three `avg-copy-as-*` submenu children are deliberately absent: they carry no icon today.
  */
 const ICONS: Record<string, () => Node> = {
-    "avg-copy": () => CopyIcon.createElement!({}),
-    "avg-copy-as": () => CopyIcon.createElement!({}),
-    "avg-paste": () => PasteIcon.createElement!({}),
-    "avg-insert-rows": () => PlusIcon.createElement!({}),
-    "avg-add-rows": () => PlusIcon.createElement!({}),
-    "avg-delete-rows": () => DeleteIcon.createElement!({}),
-    "avg-insert-columns": () => PlusIcon.createElement!({}),
-    "avg-add-columns": () => PlusIcon.createElement!({}),
-    "avg-insert-column": () => PlusIcon.createElement!({}),
-    "avg-delete-columns": () => DeleteIcon.createElement!({}),
-    "avg-delete-column": () => DeleteIcon.createElement!({}),
+    "avg-copy": () => CopyIcon.createElement({}),
+    "avg-copy-as": () => CopyIcon.createElement({}),
+    "avg-paste": () => PasteIcon.createElement({}),
+    "avg-insert-rows": () => PlusIcon.createElement({}),
+    "avg-add-rows": () => PlusIcon.createElement({}),
+    "avg-delete-rows": () => DeleteIcon.createElement({}),
+    "avg-insert-columns": () => PlusIcon.createElement({}),
+    "avg-add-columns": () => PlusIcon.createElement({}),
+    "avg-insert-column": () => PlusIcon.createElement({}),
+    "avg-delete-columns": () => DeleteIcon.createElement({}),
+    "avg-delete-column": () => DeleteIcon.createElement({}),
 };
 
 /**

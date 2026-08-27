@@ -1,6 +1,6 @@
 import React from "react";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
@@ -104,7 +104,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
             this.appliedIconNode = undefined;
             this.iconCleanup = fillSlot(
                 this.iconHost,
-                createIconElement(isIconName(icon) ? icon : icon as never),
+                isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement(),
             );
             return;
         }

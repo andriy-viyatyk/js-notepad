@@ -266,7 +266,7 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
             contextEvent.items.push({
                 startGroup: true,
                 label: "Open in New Tab",
-                icon: OpenFileIcon.createElement?.(),
+                icon: OpenFileIcon.createElement(),
                 onClick: async () => {
                     const { app } = await import("../../api/app");
                     const { createLinkData } = await import("../../../shared/link-data");
@@ -279,7 +279,7 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
 
         contextEvent.items.push({
             label: "Copy Link",
-            icon: CopyIcon.createElement?.(),
+            icon: CopyIcon.createElement(),
             onClick: () => { void navigator.clipboard.writeText(href); },
         });
         if (isExternal) appendLinkOpenMenuItems(contextEvent.items, href);

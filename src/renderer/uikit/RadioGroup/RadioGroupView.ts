@@ -2,7 +2,7 @@ import { isTraited, resolveTraited } from "../../core/traits/traits";
 import { gap as gapTokens } from "../tokens";
 import { fillSlot } from "../shared/fill-slot";
 import { KeyedList } from "../shared/keyed-list";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 import type { IRadio, RadioGroupProps } from "./RadioGroup";
 import { RADIO_KEY } from "./RadioGroup";
@@ -133,7 +133,7 @@ export class RadioGroupView extends VanillaView<RadioGroupProps> {
             button.insertBefore(state.itemIconHost, state.labelText);
         }
         const content = typeof icon === "string"
-            ? createIconElement(isIconName(icon) ? icon : icon as never)
+            ? (isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement())
             : icon;
         state.itemIconCleanup = fillSlot(state.itemIconHost, content);
     }

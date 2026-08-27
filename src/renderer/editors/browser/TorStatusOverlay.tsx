@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { Panel, IconButton, Button, Text, Spinner } from "../../uikit";
 import { ColorizedCode } from "../shared/ColorizedCode";
 import { TorIcon } from "../../theme/language-icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { TOR_BROWSER_COLOR } from "../../theme/palette-colors";
 import type { BrowserEditorModel } from "./BrowserEditorModel";
 
@@ -71,7 +72,7 @@ export function TorStatusOverlay({ model, torStatus, torLog }: TorStatusOverlayP
             >
                 {showSpinner
                     ? <Spinner size={40} color={TOR_BROWSER_COLOR} />
-                    : <TorIcon width={40} height={40} />}
+                    : <Icon icon={TorIcon} width={40} height={40} />}
 
                 <Text size="base" color="light">{STATUS_MESSAGE[torStatus]}</Text>
 

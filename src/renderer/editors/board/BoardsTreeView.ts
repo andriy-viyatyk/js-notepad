@@ -1,5 +1,5 @@
-import type React from "react";
 import type { MenuItem } from "../../uikit/Menu";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import { TreeView } from "../../uikit/Tree/TreeView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createFolderIconElement } from "../../components/icons/icon-elements";
@@ -9,7 +9,7 @@ import { buildBoardsTree, type BoardTreeNode } from "./boards-tree-build";
 import type { BoardsTreeProps } from "./BoardsTree";
 
 export interface BoardsTreeViewProps extends Omit<BoardsTreeProps, "renderTrailing"> {
-    renderTrailing?: (root: string) => React.ReactNode | Node;
+    renderTrailing?: (root: string) => SlotContent;
 }
 
 export class BoardsTreeView extends VanillaView<BoardsTreeViewProps> {
@@ -35,7 +35,7 @@ export class BoardsTreeView extends VanillaView<BoardsTreeViewProps> {
         this.iconElements.set(node.value, icon);
         return icon;
     };
-    private readonly renderTrailing = (node: BoardTreeNode): React.ReactNode | Node | undefined =>
+    private readonly renderTrailing = (node: BoardTreeNode): SlotContent | undefined =>
         node.kind === "board" && node.root
             ? this.props.renderTrailing?.(node.root)
             : undefined;

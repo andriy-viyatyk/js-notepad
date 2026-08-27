@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Input, Panel } from "../../uikit";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import color from "../../theme/color";
 import type { GraphEditor } from "./GraphEditor";
 import { NodeShape } from "./types";
@@ -17,10 +18,6 @@ type SelectionFilter = "" | "selected" | "not-selected" | "selected-with-childre
 
 /** Host type for this panel. */
 type GraphLegendHost = GraphEditor;
-
-function asReactNode(element: Node): React.ReactNode {
-    return element as unknown as React.ReactNode;
-}
 
 // =============================================================================
 // Inline styles
@@ -436,7 +433,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasRoot && (
                                             <LegendRow
                                                 label="Root"
-                                                icon={asReactNode(createLevelIconElement("root", 14))}
+                                                icon={createLevelIconElement("root", 14)}
                                                 checked={checkedLevels.has("root")}
                                                 description={descriptions.levels?.root ?? ""}
                                                 onToggle={() => toggleCheck("level", "root")}
@@ -446,7 +443,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasGroup && (
                                             <LegendRow
                                                 label="Group"
-                                                icon={asReactNode(createShapeIconElement("group", 14))}
+                                                icon={createShapeIconElement("group", 14)}
                                                 checked={checkedLevels.has("group")}
                                                 description={descriptions.levels?.group ?? ""}
                                                 onToggle={() => toggleCheck("level", "group")}
@@ -457,7 +454,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                             <LegendRow
                                                 key={level}
                                                 label={`Level ${level}`}
-                                                icon={asReactNode(createLevelIconElement(level, 14))}
+                                                icon={createLevelIconElement(level, 14)}
                                                 checked={checkedLevels.has(String(level))}
                                                 description={descriptions.levels?.[String(level)] ?? ""}
                                                 onToggle={() => toggleCheck("level", String(level))}
@@ -471,7 +468,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasRoot && (
                                             <LegendRow
                                                 label="Root"
-                                                icon={asReactNode(createShapeIconElement("root", 14))}
+                                                icon={createShapeIconElement("root", 14)}
                                                 checked={checkedShapes.has("root")}
                                                 description={descriptions.shapes?.root ?? ""}
                                                 onToggle={() => toggleCheck("shape", "root")}
@@ -481,7 +478,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         {hasGroup && (
                                             <LegendRow
                                                 label="Group"
-                                                icon={asReactNode(createShapeIconElement("group", 14))}
+                                                icon={createShapeIconElement("group", 14)}
                                                 checked={checkedShapes.has("group")}
                                                 description={descriptions.shapes?.group ?? ""}
                                                 onToggle={() => toggleCheck("shape", "group")}
@@ -492,7 +489,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                             <LegendRow
                                                 key={shape}
                                                 label={shape.charAt(0).toUpperCase() + shape.slice(1)}
-                                                icon={asReactNode(createShapeIconElement(shape, 14))}
+                                                icon={createShapeIconElement(shape, 14)}
                                                 checked={checkedShapes.has(shape)}
                                                 description={descriptions.shapes?.[shape] ?? ""}
                                                 onToggle={() => toggleCheck("shape", shape)}
@@ -535,7 +532,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
 
 interface LegendRowProps {
     label: string;
-    icon: React.ReactNode;
+    icon: SlotContent;
     checked: boolean;
     description: string;
     onToggle: () => void;
@@ -567,7 +564,7 @@ function LegendRow({ label, icon, checked, description, onToggle, onDescriptionC
                 checked={checked}
                 onChange={onToggle}
             />
-            <span ref={iconHostRef} style={iconCellStyle}>{nativeIcon ? null : icon}</span>
+            <span ref={iconHostRef} style={iconCellStyle}>{icon instanceof Node ? null : icon}</span>
             <span style={labelStyle}>{label}</span>
             <Panel direction="row" flex={1} minWidth={0}>
                 <Input

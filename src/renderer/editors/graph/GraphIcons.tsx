@@ -1,6 +1,7 @@
 import type { NodeShape } from "./types";
 import { starPoints, hexagonPoints, compassPoints, diamondPoints, trianglePoints, pointsToSvgString } from "./shapeGeometry";
 import color from "../../theme/color";
+import type { SvgIconComponent } from "../../theme/icons";
 
 /**
  * Shared SVG icon components for shape and level visualization.
@@ -110,6 +111,13 @@ export function createShapeIconElement(shape: ShapeIconProps["shape"], size = 16
     return svg;
 }
 
+export function createShapeIconComponent(shape: ShapeIconProps["shape"], size = 16): SvgIconComponent {
+    return {
+        viewBox: `0 0 ${size} ${size}`,
+        createElement: () => createShapeIconElement(shape, size),
+    };
+}
+
 interface LevelIconProps {
     level: number | "root";
     size?: number;
@@ -152,4 +160,11 @@ export function createLevelIconElement(level: LevelIconProps["level"], size = 16
     const r = (size / 2) - level;
     appendSvgChild(svg, "circle", { cx: c, cy: c, r, fill: "currentColor" });
     return svg;
+}
+
+export function createLevelIconComponent(level: LevelIconProps["level"], size = 16): SvgIconComponent {
+    return {
+        viewBox: `0 0 ${size} ${size}`,
+        createElement: () => createLevelIconElement(level, size),
+    };
 }

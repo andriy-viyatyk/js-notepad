@@ -1,7 +1,7 @@
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
-import { WarningIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 
 /**
  * Untrusted-board placeholder (EPIC-035). A Board's UI is web content and
@@ -18,7 +18,7 @@ export function UntrustedBoardView({
 }) {
     return (
         <Panel direction="column" flex={1} align="center" justify="center" gap="md" padding="xl">
-            <WarningIcon width={32} height={32} />
+            <Icon name="warning" width={32} height={32} />
             <Text size="lg">This board is not trusted</Text>
             <Text color="light" align="center">
                 Trusting this board lets it run programs on your computer with your full user

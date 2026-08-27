@@ -551,7 +551,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
 
     // Warm green icon accent (a fixed icon color, like the browser-profile colors),
     // shared by the page tab and the Tools & Editors sidebar entry.
-    getIconElement = (): SVGElement | undefined => MemoryIcon.createElement?.({ color: MEMORY_ICON_COLOR });
+    getIconElement = (): SVGElement | undefined => MemoryIcon.createElement({ color: MEMORY_ICON_COLOR });
 
     async dispose(): Promise<void> {
         this.stopPolling();

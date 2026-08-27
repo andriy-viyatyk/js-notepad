@@ -1,6 +1,6 @@
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { WarningIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 
 /**
  * Shown in single-board mode (US-748) when the linked board can't be resolved —
@@ -11,7 +11,7 @@ import { WarningIcon } from "../../theme/icons";
 export function BoardNotFoundView({ path }: { path: string }) {
     return (
         <Panel direction="column" flex={1} align="center" justify="center" gap="md" padding="xl">
-            <WarningIcon width={32} height={32} />
+            <Icon name="warning" width={32} height={32} />
             <Text size="lg">Board not found</Text>
             <Text color="light" align="center">
                 This board could not be opened — its folder is missing or is not a board

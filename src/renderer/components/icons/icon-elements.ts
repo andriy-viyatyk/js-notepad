@@ -10,7 +10,7 @@ import {
     resolveFileIcon,
     subscribeFileIconChanges,
     type FileTypeIconProps,
-} from "./LanguageIcon";
+} from "./language-icon-resolver";
 
 /** The result of resolving an editor icon into a native element. */
 export type EditorIconElement =
@@ -18,9 +18,7 @@ export type EditorIconElement =
     | null;
 
 function createSvg(icon: SvgIconComponent, props: SvgIconProps = {}): SVGElement {
-    const builder = icon.createElement;
-    if (!builder) throw new Error("Resolved icon does not expose a DOM builder");
-    return builder(props);
+    return icon.createElement(props);
 }
 
 function createImage(src: string, width: number | string, height: number | string): HTMLImageElement {

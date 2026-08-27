@@ -1,13 +1,14 @@
 import React from "react";
 import { mountVanilla } from "../shared/mount";
 import type { IconRef } from "../shared/slots";
+import type { SlotContent } from "../shared/fill-slot";
 import { SegmentedControlView } from "./SegmentedControlView";
 import type { Traited } from "../../core/traits/traits";
 import "./SegmentedControl.css";
 
 export interface ISegment {
     value: string;
-    label?: React.ReactNode;
+    label?: SlotContent;
     icon?: IconRef;
     title?: string;
     disabled?: boolean;

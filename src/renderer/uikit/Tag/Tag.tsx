@@ -2,13 +2,14 @@ import React from "react";
 import { mountVanilla } from "../shared/mount";
 import { TagView } from "./TagView";
 import type { IconRef } from "../shared/slots";
+import type { SlotContent } from "../shared/fill-slot";
 
 // --- Types ---
 
 export interface TagProps
     extends Omit<
         React.HTMLAttributes<HTMLSpanElement>,
-        "style" | "className" | "onClick"
+        "style" | "className" | "onClick" | "children"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
@@ -39,6 +40,7 @@ export interface TagProps
     removeAffordance?: "always" | "hover";
     /** Accessible label for the remove button. Default: "Remove tag". */
     removeAriaLabel?: string;
+    children?: SlotContent;
 }
 
 export function Tag(props: TagProps): React.ReactElement {

@@ -1,33 +1,25 @@
-import { ReactElement, ReactNode, SVGProps } from "react";
+import type { SVGProps } from "react";
 import { themeState } from "./theme-state";
 
-export interface SvgIconProps extends SVGProps<SVGSVGElement> {
-    children?: ReactNode;
+export type SvgIconProps = Omit<SVGProps<SVGSVGElement>, "children"> & {
     viewBox?: string;
     title?: string;
-}
+};
 
 export type SvgIconDomBuilder = (props?: SvgIconProps) => SVGElement;
 
-export type SvgIconComponent = ((props: SvgIconProps) => ReactElement) & {
-    createElement?: SvgIconDomBuilder;
+export type SvgIconComponent = {
+    createElement: SvgIconDomBuilder;
     viewBox?: string;
 };
 
 
 /**
- * Build an icon component's DOM form. `createElement` is optional on the type because an icon
- * defined with a JSX body has no string source to build from, so callers cannot assume it exists —
- * and a `!` here would turn a missing builder into a confusing null-append far from the cause.
- * Prefer `createIconElement(name)` when the icon is in the name registry; use this for the icons
- * that are not.
+ * Build an icon's native DOM form for callers outside the name registry.
+ * All icon contracts provide a native builder, so callers can invoke it directly.
  */
 export function createIconComponentElement(icon: SvgIconComponent, props?: SvgIconProps): SVGElement {
-    const builder = icon.createElement;
-    if (!builder) {
-        throw new Error(`Icon "${icon.name}" has no DOM builder.`);
-    }
-    return builder(props);
+    return icon.createElement(props);
 }
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
@@ -76,7 +68,6 @@ function applyStyle(element: SVGElement, style: SvgIconProps["style"]): void {
 
 function createSvgElement(viewBox: string, body: string, props: SvgIconProps = {}): SVGElement {
     const {
-        children: _children,
         viewBox: propsViewBox,
         width = 24,
         height = 24,
@@ -120,55 +111,13 @@ function createSvgElement(viewBox: string, body: string, props: SvgIconProps = {
     return element;
 }
 
-type IconBody = string | ReactNode;
-
-const SvgIcon = function SvgIcon(props: SvgIconProps) {
-        const {
-            children,
-            viewBox = "0 0 24 24",
-            width = 24,
-            height = 24,
-            title,
-            color,
-            ref,
-            ...otherProps
-        } = props;
-
-        return (
-            <svg
-                ref={ref}
-                viewBox={viewBox}
-                width={width}
-                height={height}
-                color={color}
-                style={{ color }}
-                {...otherProps}
-            >
-                {title && <title>{title}</title>}
-                {children}
-            </svg>
-        );
-    };
+type IconBody = string;
 
 export const createIconWithViewBox = (viewBox: string) => (icon: IconBody): SvgIconComponent => {
-    const IconWithViewBox: SvgIconComponent = function IconWithViewBox(props: SvgIconProps) {
-        return (
-            <SvgIcon {...props} viewBox={viewBox}>
-                {typeof icon === "string" ? (
-                    <g dangerouslySetInnerHTML={{ __html: icon }} />
-                ) : (
-                    icon
-                )}
-            </SvgIcon>
-        );
+    return {
+        viewBox,
+        createElement: (props) => createSvgElement(viewBox, icon, props ? { ...props, viewBox } : { viewBox }),
     };
-
-    IconWithViewBox.viewBox = viewBox;
-    if (typeof icon === "string") {
-        IconWithViewBox.createElement = (props) =>
-            createSvgElement(viewBox, icon, props ? { ...props, viewBox } : { viewBox });
-    }
-    return IconWithViewBox;
 };
 
 export const createIcon = (size: number | string) =>
@@ -236,32 +185,6 @@ export const ProgressIcon = createIcon(32)(
     "<path d=\"M17.4378 30.9492C17.4378 31.8057 16.794 32.5 15.9999 32.5C15.2058 32.5 14.562 31.8057 14.562 30.9492V26.6661C14.562 25.8097 15.2058 25.1154 15.9999 25.1154C16.794 25.1154 17.4378 25.8097 17.4378 26.6661V30.9492Z\" fill=\"currentColor\" fill-opacity=\"0.5\" /><path d=\"M25.8454 27.3629C26.36 28.0558 26.2564 28.9877 25.6139 29.4443C24.9715 29.9009 24.0335 29.7094 23.5188 29.0165L20.9453 25.5514C20.4307 24.8585 20.5343 23.9266 21.1768 23.47C21.8192 23.0134 22.7572 23.2049 23.2719 23.8978L25.8454 27.3629Z\" fill=\"currentColor\" fill-opacity=\"0.6\" /><path d=\"M30.4922 19.6273C31.3248 19.8919 31.8009 20.7054 31.5555 21.4442C31.3101 22.1831 30.4362 22.5674 29.6035 22.3028L25.4394 20.9792C24.6067 20.7146 24.1306 19.9011 24.376 19.1623C24.6214 18.4234 25.4954 18.0391 26.328 18.3037L30.4922 19.6273Z\" fill=\"currentColor\" fill-opacity=\"0.7\" /><path d=\"M29.6036 10.6972C30.4363 10.4325 31.3103 10.8169 31.5557 11.5557C31.8011 12.2945 31.325 13.108 30.4923 13.3727L26.3282 14.6962C25.4955 14.9609 24.6215 14.5765 24.3761 13.8377C24.1307 13.0989 24.6068 12.2854 25.4395 12.0207L29.6036 10.6972Z\" fill=\"currentColor\" fill-opacity=\"0.8\" /><path d=\"M23.5189 3.98348C24.0335 3.29059 24.9715 3.09904 25.614 3.55566C26.2564 4.01228 26.3601 4.94414 25.8454 5.63704L23.2719 9.10213C22.7573 9.79503 21.8192 9.98657 21.1768 9.52996C20.5343 9.07334 20.4307 8.14147 20.9453 7.44858L23.5189 3.98348Z\" fill=\"currentColor\" fill-opacity=\"0.9\" /><path d=\"M14.5622 2.05077C14.5622 1.1943 15.206 0.5 16.0001 0.5C16.7942 0.5 17.438 1.1943 17.438 2.05077V6.33386C17.438 7.19033 16.7942 7.88463 16.0001 7.88463C15.206 7.88463 14.5622 7.19033 14.5622 6.33386V2.05077Z\" fill=\"currentColor\" /><path d=\"M6.15458 5.63709C5.63996 4.94419 5.74359 4.01232 6.38606 3.55571C7.02853 3.09909 7.96653 3.29063 8.48116 3.98353L11.0547 7.44862C11.5693 8.14152 11.4657 9.07339 10.8232 9.53C10.1808 9.98662 9.24277 9.79507 8.72815 9.10218L6.15458 5.63709Z\" fill=\"currentColor\" fill-opacity=\"0.1\" /><path d=\"M1.50783 13.3727C0.675156 13.1081 0.199073 12.2946 0.444473 11.5558C0.689873 10.8169 1.56383 10.4326 2.39651 10.6972L6.56063 12.0208C7.3933 12.2854 7.86939 13.0989 7.62399 13.8377C7.37859 14.5766 6.50463 14.9609 5.67195 14.6963L1.50783 13.3727Z\" fill=\"currentColor\" fill-opacity=\"0.2\" /><path d=\"M2.39637 22.3028C1.56369 22.5675 0.689736 22.1831 0.444336 21.4443C0.198936 20.7055 0.675019 19.892 1.5077 19.6273L5.67182 18.3038C6.50449 18.0391 7.37845 18.4235 7.62385 19.1623C7.86925 19.9011 7.39317 20.7146 6.56049 20.9793L2.39637 22.3028Z\" fill=\"currentColor\" fill-opacity=\"0.3\" /><path d=\"M8.48113 29.0165C7.96651 29.7094 7.0285 29.901 6.38604 29.4443C5.74357 28.9877 5.63993 28.0559 6.15456 27.363L8.72812 23.8979C9.24275 23.205 10.1808 23.0134 10.8232 23.47C11.4657 23.9267 11.5693 24.8585 11.0547 25.5514L8.48113 29.0165Z\" fill=\"currentColor\" fill-opacity=\"0.4\" />",
 );
 
-/** Full-color Persephone lily icon with theme-aware background. */
-export const PersephoneIcon: SvgIconComponent = function PersephoneIcon(props: SvgIconProps) {
-    const isDark = themeState.use((s) => s.isDark);
-    const { width = 24, height = 24, ...rest } = props;
-    return (
-        <svg width={width} height={height} viewBox="0 0 128 128" {...rest}>
-            <circle cx="64" cy="64" r="58" fill={isDark ? "#2c3e50" : "#c5d5e0"}/>
-            <circle cx="64" cy="64" r="54" fill="none" stroke={isDark ? "#3d566e" : "#a0b5c5"} strokeWidth="1"/>
-            <path d="M 64 70 Q 63 90 62 110" fill="none" stroke="#27ae60" strokeWidth="3.5" strokeLinecap="round"/>
-            <path d="M 63 92 Q 42 82 32 68" fill="none" stroke="#27ae60" strokeWidth="3" strokeLinecap="round"/>
-            <path d="M 63 84 Q 82 76 92 64" fill="none" stroke="#2ecc71" strokeWidth="3" strokeLinecap="round"/>
-            <path d="M 64 68 Q 30 40 26 16 Q 40 30 64 60" fill="#ecf0f1" opacity="0.9"/>
-            <path d="M 64 68 Q 98 40 102 16 Q 88 30 64 60" fill="#dfe6e9" opacity="0.9"/>
-            <path d="M 64 66 Q 64 22 64 10 Q 65 22 65 66" fill="#f0f3f4" opacity="0.9"/>
-            <path d="M 64 68 Q 34 60 18 42 Q 40 52 64 62" fill="#d5dbdb" opacity="0.85"/>
-            <path d="M 64 68 Q 94 60 110 42 Q 88 52 64 62" fill="#ccd1d1" opacity="0.85"/>
-            <line x1="58" y1="62" x2="50" y2="46" stroke="#f1c40f" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="64" y1="60" x2="64" y2="42" stroke="#f1c40f" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="70" y1="62" x2="78" y2="46" stroke="#f1c40f" strokeWidth="1.5" strokeLinecap="round"/>
-            <circle cx="50" cy="44" r="2.5" fill="#e67e22"/>
-            <circle cx="64" cy="40" r="2.5" fill="#e67e22"/>
-            <circle cx="78" cy="44" r="2.5" fill="#e67e22"/>
-        </svg>
-    );
-};
-
 const getPersephoneBody = (isDark: boolean) => `
     <circle cx="64" cy="64" r="58" fill="${isDark ? "#2c3e50" : "#c5d5e0"}" />
     <circle cx="64" cy="64" r="54" fill="none" stroke="${isDark ? "#3d566e" : "#a0b5c5"}" stroke-width="1" />
@@ -281,9 +204,12 @@ const getPersephoneBody = (isDark: boolean) => `
     <circle cx="78" cy="44" r="2.5" fill="#e67e22" />
 `;
 
-PersephoneIcon.viewBox = "0 0 128 128";
-PersephoneIcon.createElement = (props) =>
-    createSvgElement("0 0 128 128", getPersephoneBody(themeState.get().isDark), props);
+/** Full-color Persephone lily icon with theme-aware background. */
+export const PersephoneIcon: SvgIconComponent = {
+    viewBox: "0 0 128 128",
+    createElement: (props) =>
+        createSvgElement("0 0 128 128", getPersephoneBody(themeState.get().isDark), props),
+};
 
 export const PlusIcon = createIcon(24)(
     "<path d=\"M6 12H18M12 6V18\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />",

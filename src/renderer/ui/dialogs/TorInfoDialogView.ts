@@ -126,7 +126,7 @@ export class TorInfoDialogView extends VanillaView<DialogViewProps> {
         );
         const contentChildren = document.createDocumentFragment();
         contentChildren.append(bodyPanel, buttonsPanel);
-        const icon = TorIcon.createElement?.();
+        const icon = TorIcon.createElement();
         const contentView = new DialogContentView({
             title: "Tor connection",
             icon,
@@ -207,4 +207,3 @@ export class TorInfoDialogView extends VanillaView<DialogViewProps> {
         });
     }
 }
-

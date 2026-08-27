@@ -771,7 +771,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         await super.dispose();
     }
 
-    getIconElement = (): SVGElement | undefined => McpIcon.createElement?.();
+    getIconElement = (): SVGElement | undefined => McpIcon.createElement();
 }
 
 // ============================================================================

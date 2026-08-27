@@ -322,7 +322,7 @@ export class CommitDiffPanelView extends VanillaView<CommitDiffPanelProps> {
         return {
             items: this.itemsFor(state.changes),
             onClick: this.handleFileClick,
-            getTrailing: this.getTrailing as unknown as FileListProps["getTrailing"],
+            getTrailing: this.getTrailing,
             getContextMenu: this.getContextMenu,
             selectedPath: state.selectedFile,
             compact: true,

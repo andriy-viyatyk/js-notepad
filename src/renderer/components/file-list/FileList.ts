@@ -1,9 +1,7 @@
-import React, { type ReactNode } from "react";
-import { mountVanilla } from "../../uikit/shared/mount";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import type { MenuItem } from "../../uikit/Menu";
 import type { IconRef } from "../../uikit";
 import { TComponentModel } from "../../core/state/model";
-import { FileListView } from "./FileListView";
 
 export interface FileListItem {
     filePath: string;
@@ -19,7 +17,7 @@ export interface FileListProps {
     getContextMenu?: (item: FileListItem) => MenuItem[] | undefined;
     onContextMenu?: (event: MouseEvent) => void;
     searchable?: boolean;
-    getTrailing?: (item: FileListItem) => ReactNode;
+    getTrailing?: (item: FileListItem) => SlotContent;
     compact?: boolean;
     selectedPath?: string;
     onModel?: (model: FileListModel | null) => void;
@@ -77,8 +75,4 @@ export class FileListModel extends TComponentModel<FileListState, FileListProps>
         this.focusSearchInput = undefined;
         this.focusRoot = undefined;
     };
-}
-
-export function FileList(props: FileListProps): React.ReactElement {
-    return mountVanilla(FileListView, props);
 }

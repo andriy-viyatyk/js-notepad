@@ -1,5 +1,5 @@
 import { AboutEditor } from "./AboutEditor";
-import { PersephoneIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { Panel, Text, Button, Divider } from "../../uikit";
 import { app } from "../../api/app";
 import { shell } from "../../api/shell";
@@ -153,7 +153,7 @@ function AboutView(props: AboutEditorProps) {
                 gap="xl"
             >
                 <Panel width={64} height={64} align="center" justify="center">
-                    <PersephoneIcon width={64} height={64} />
+                    <Icon name="persephone" width={64} height={64} />
                 </Panel>
 
                 <Panel direction="column" align="center" gap="xs">

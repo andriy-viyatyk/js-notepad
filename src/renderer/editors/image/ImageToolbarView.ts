@@ -11,10 +11,8 @@ export interface ImageToolbarViewProps {
     model: ImageEditor;
 }
 
-function createDirectToolbarIcon(component: { createElement?: () => SVGElement }): SVGElement {
-    const icon = component.createElement?.();
-    if (!icon) throw new Error("Toolbar icon does not have a DOM builder.");
-    return icon;
+function createDirectToolbarIcon(component: { createElement: () => SVGElement }): SVGElement {
+    return component.createElement();
 }
 
 export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {

@@ -5,6 +5,7 @@ import {
     type VirtualElement,
 } from "@floating-ui/dom";
 import { createComponentModelDriver } from "../../core/state/model";
+import { Icon } from "../Icon/Icon";
 import { ResizeHandleIcon } from "../../theme/icons";
 import { getOverlayLayer } from "../shared/overlayLayer";
 import {
@@ -228,7 +229,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
                     data-type="popover-resize-handle"
                     data-edge={isTop ? "top" : "bottom"}
                 >
-                    <ResizeHandleIcon />
+                    <Icon name="resize-handle" />
                 </div>
             )
             : null;
@@ -247,10 +248,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         const handle = this.nativeResizeHandle ?? document.createElement("div");
         if (!this.nativeResizeHandle) {
             handle.dataset.type = "popover-resize-handle";
-            handle.append(ResizeHandleIcon.createElement?.() ?? document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "svg",
-            ));
+            handle.append(ResizeHandleIcon.createElement());
             this.root.append(handle);
             this.nativeResizeHandle = handle;
         }

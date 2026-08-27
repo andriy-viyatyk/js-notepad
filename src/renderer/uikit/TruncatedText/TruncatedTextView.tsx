@@ -1,18 +1,19 @@
 import React from "react";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import type { TruncatedTextProps } from "./TruncatedText";
 
 export type TruncatedTextViewProps = TruncatedTextProps;
 
-function getTextFromReactChildren(children: React.ReactNode): string {
+function getTextFromSlotContent(children: SlotContent): string {
+    if (children instanceof Node) return children.textContent ?? "";
     if (typeof children === "string" || typeof children === "number") return String(children);
-    if (Array.isArray(children)) return children.map(getTextFromReactChildren).join("");
+    if (Array.isArray(children)) return children.map(getTextFromSlotContent).join("");
     if (React.isValidElement(children)) {
         const inner = (children.props as { children?: React.ReactNode }).children;
-        if (inner != null) return getTextFromReactChildren(inner);
+        if (inner != null) return getTextFromSlotContent(inner);
     }
     return "";
 }
@@ -69,9 +70,9 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
      * pre-cleared, or the React root it caches per host is discarded and the
      * next call builds a second root on the same element.
      */
-    private updateContent(children: React.ReactNode): void {
+    private updateContent(children: SlotContent): void {
         this.contentCleanup = fillSlot(this.root, children);
-        this.text = getTextFromReactChildren(children);
+        this.text = getTextFromSlotContent(children);
     }
 
     private measure(): void {

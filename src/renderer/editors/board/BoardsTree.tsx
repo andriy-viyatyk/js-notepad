@@ -1,5 +1,6 @@
 import type React from "react";
 import type { MenuItem } from "../../uikit/Menu";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import type { SlotText } from "../../uikit/shared/slots";
 import { mountVanilla } from "../../uikit/shared/mount";
 import { BoardsTreeView } from "./BoardsTreeView";
@@ -25,7 +26,7 @@ export interface BoardsTreeProps {
     /** Fires when a board row is clicked. The consumer opens it (e.g. via `persephone-board://`). */
     onOpenBoard: (root: string) => void;
     /** Optional right-aligned per-board action (e.g. the global tab's pin button). Boards only. */
-    renderTrailing?: (root: string) => React.ReactNode;
+    renderTrailing?: (root: string) => SlotContent;
     /** When provided and `false` for a board, its trailing reveals on row hover only; otherwise
      *  it stays visible (e.g. a pinned board keeps its filled pin). Boards only; default visible. */
     trailingVisible?: (root: string) => boolean;

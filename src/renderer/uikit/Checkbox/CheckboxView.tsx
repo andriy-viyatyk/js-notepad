@@ -1,6 +1,5 @@
-import React from "react";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { createIconElement } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 import type { CheckboxProps } from "./Checkbox";
@@ -60,7 +59,7 @@ export class CheckboxView extends VanillaView<CheckboxProps> {
         this.icon = next;
     }
 
-    private updateChildren(children: React.ReactNode): void {
+    private updateChildren(children: SlotContent): void {
         this.childrenCleanup = fillSlot(this.childrenHost, children);
     }
 

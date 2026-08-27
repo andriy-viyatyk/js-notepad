@@ -1,6 +1,3 @@
-import React from "react";
-import { mountVanilla } from "../../uikit/shared/mount";
-import { FileSearchView } from "./FileSearchView";
 import type { FileSearchState } from "./FileSearchModel";
 
 export type { FileSearchState } from "./FileSearchModel";
@@ -14,8 +11,4 @@ export interface FileSearchProps {
     onStateChange?: (state: FileSearchState) => void;
     /** Called when user clicks a search result. */
     onResultClick?: (filePath: string, lineNumber?: number) => void;
-}
-
-export function FileSearch(props: FileSearchProps): React.ReactElement {
-    return mountVanilla(FileSearchView, props);
 }

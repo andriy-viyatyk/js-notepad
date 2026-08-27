@@ -6,9 +6,9 @@ import {
     createRestPropsState,
     type RestPropsState,
 } from "../shared/react-compat";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { highlightInto } from "../shared/highlight";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import type { IconRef, SlotText } from "../shared/slots";
 import { attachTooltip, type TooltipAttachment, type TooltipOptions } from "../Tooltip";
 import { VanillaView } from "../shared/vanilla-view";
@@ -226,14 +226,14 @@ export class ListItemView extends VanillaView<ListItemProps> {
         // an unknown name, so an unknown name must render nothing here too. Falling through to
         // `fillSlot` would write the name into the row as literal text.
         if (typeof icon === "string") {
-            const element = isIconName(icon) ? createIconElement(icon) : null;
+            const element = isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement();
             this.iconCleanup = fillSlot(this.iconHost, element);
             return;
         }
         this.iconCleanup = fillSlot(this.iconHost, icon ?? null);
     }
 
-    private setLabel(label: React.ReactNode, searchText: string | undefined): void {
+    private setLabel(label: SlotContent, searchText: string | undefined): void {
         if (typeof label === "string") {
             if (this.labelOwner === "slot") {
                 // Release fillSlot's ownership of this host before writing to it directly.
@@ -249,7 +249,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
     }
 
     private setTrailing(
-        trailing: React.ReactNode,
+        trailing: SlotContent,
         trailingElement: Node | undefined,
         selected: boolean | undefined,
         showSelectionIcon: boolean,

@@ -1,6 +1,6 @@
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { fillSlot } from "../shared/fill-slot";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
 import type { TagProps } from "./Tag";
@@ -130,7 +130,7 @@ export class TagView extends VanillaView<TagProps> {
             this.root.insertBefore(this.iconHost, this.root.firstChild);
         }
         if (typeof icon === "string") {
-            this.iconCleanup = fillSlot(this.iconHost, createIconElement(isIconName(icon) ? icon : icon as never));
+            this.iconCleanup = fillSlot(this.iconHost, isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement());
         } else {
             this.iconCleanup = fillSlot(this.iconHost, icon);
         }

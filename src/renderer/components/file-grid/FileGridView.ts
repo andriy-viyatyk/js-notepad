@@ -3,7 +3,7 @@ import { DataGridView } from "../../uikit/DataGrid/DataGridView";
 import { showGridContextMenu } from "../../ui/dialogs/poppers/grid-context-menu";
 import { fpExtname } from "../../core/utils/file-path";
 import { createFileIconElement, createFolderIconElement, subscribeFileIconElements } from "../icons/icon-elements";
-import { prepareFileIcon } from "../icons/LanguageIcon";
+import { prepareFileIcon } from "../icons/language-icon-resolver";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { FileGridItem, FileGridProps } from "./FileGrid";
 import "./FileGrid.css";

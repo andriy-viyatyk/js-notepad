@@ -69,7 +69,7 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
      *  panel is visible as soon as the diff opens). */
     readonly fileTree = new GitTreeModel();
 
-    getIconElement = (): SVGElement | undefined => CompareIcon.createElement?.({ width: 16, height: 16 });
+    getIconElement = (): SVGElement | undefined => CompareIcon.createElement({ width: 16, height: 16 });
 
     // ── Diff helpers (consumed by the body) ─────────────────────────────
 

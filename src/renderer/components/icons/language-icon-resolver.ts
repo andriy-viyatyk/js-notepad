@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
-import { ArchiveIcon, SvgIconComponent, SvgIconProps } from "../../theme/icons";
+import type { SvgIconComponent, SvgIconProps } from "../../theme/icons";
+import { ArchiveIcon } from "../../theme/icons";
 import { api } from "../../../ipc/renderer/api";
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
@@ -67,11 +67,10 @@ import {
     parseBoardEditorId,
     resolveEditorIdForFile,
 } from "../../editors/board/custom-editor-registry";
-import { BoardGlyph } from "../../editors/board/BoardGlyph";
 import { subscribeBoardIconChanges } from "../../editors/board/board-icon-cache";
 
 // =============================================================================
-// Language → Icon mapping
+// Language â†’ Icon mapping
 // =============================================================================
 
 export const languageIconMap: { [key: string]: SvgIconComponent } = {
@@ -125,7 +124,7 @@ export const languageIconMap: { [key: string]: SvgIconComponent } = {
 };
 
 // =============================================================================
-// Compound file extension → Icon mapping (overrides language icons)
+// Compound file extension â†’ Icon mapping (overrides language icons)
 // =============================================================================
 
 const filePatternIcons: Array<{ pattern: RegExp; icon: SvgIconComponent }> = [
@@ -208,10 +207,6 @@ export function resolveFileIcon(fileName: string, language?: string): ResolvedFi
 
 export function prepareFileIcon(fileName: string): void { void systemIconModel.prepareIcon(fileName); }
 
-export function useSystemFileIcons(): ReadonlyMap<string, string> {
-    return systemIconModel.state.use((s) => s.iconCache);
-}
-
 /** Subscribe native icon owners to system-cache and trusted-board association changes. */
 export function subscribeFileIconChanges(listener: () => void): () => void {
     const unsubSystem = systemIconModel.state.subscribe(listener);
@@ -224,10 +219,6 @@ export function subscribeFileIconChanges(listener: () => void): () => void {
     };
 }
 
-// =============================================================================
-// FileTypeIcon — unified icon component
-// =============================================================================
-
 export interface FileTypeIconProps extends SvgIconProps {
     /** Monaco language ID (e.g., "json", "javascript"). */
     language?: string;
@@ -235,86 +226,6 @@ export interface FileTypeIconProps extends SvgIconProps {
     fileName?: string;
 }
 
-/**
- * Unified file type icon component.
- *
- * Resolution order:
- * 1. Determine language from `language` prop or file extension
- * 2. Get icon from language map
- * 3. Check compound file extension patterns (overrides language icon)
- * 4. Trusted custom-editor board icon (a board whose `fileMasks` claim this file)
- * 5. Fall back to Windows system icon (async)
- * 6. Fall back to DefaultIcon
- */
-export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps) {
-    const ext = useMemo(
-        () => (fileName ? fpExtname(fileName).toLowerCase() : ""),
-        [fileName],
-    );
-
-    // Step 1: Determine language
-    const lang = useMemo(() => {
-        return (
-            getLanguageById(language || "") ||
-            (ext ? getLanguageByExtension(ext) : undefined)
-        );
-    }, [language, ext]);
-
-    // Step 2: Language icon
-    const langIcon = lang ? languageIconMap[lang.id] : undefined;
-
-    // Step 3: Compound extension override
-    const patternIcon = fileName ? getFilePatternIcon(fileName) : undefined;
-
-    const resolvedIcon = patternIcon || langIcon;
-
-    // Step 4: Custom-editor board icon — a trusted board that is the DEFAULT editor for this
-    // file (its `editorPriority` beats the built-in claimant, e.g. the DrawIO board wins
-    // *.drawio over the xml language). When the board wins the file-open it wins the ICON too,
-    // OVER the language/pattern icon, so the file's icon matches the editor that actually opens
-    // it. `resolveEditorIdForFile` applies the exact same priority + local-path rules as the
-    // open path, so a board that does NOT win keeps the built-in icon. Reactive (via
-    // `useBoardsForFile`) so a trust/mask change updates the icon live.
-    const boardMatches = customEditorRegistry.useBoardsForFile(fileName || "");
-    const boardRoot = useMemo(() => {
-        if (!fileName || boardMatches.length === 0) return undefined;
-        return parseBoardEditorId(resolveEditorIdForFile(fileName) ?? "") ?? undefined;
-    }, [fileName, boardMatches]);
-
-    // Step 5: System icon fallback (async) — only fetch if neither a static icon
-    // nor a winning board applies.
-    useEffect(() => {
-        if (!resolvedIcon && !boardRoot && fileName && ext) {
-            prepareFileIcon(fileName);
-        }
-    }, [resolvedIcon, boardRoot, fileName, ext]);
-
-    const iconCache = systemIconModel.state.use((s) => s.iconCache);
-
-    // Step 4 result: board icon — wins OVER the language/pattern icon (the board is the file's
-    // default editor). Sized from the numeric width prop; the tab / sidebar render the same
-    // `BoardGlyph`, so the file icon matches the board's tab icon.
-    if (boardRoot) {
-        const size = typeof props.width === "number" ? props.width : 16;
-        return <BoardGlyph boardRoot={boardRoot} size={size} />;
-    }
-
-    if (resolvedIcon) {
-        const Icon = resolvedIcon;
-        return <Icon {...props} />;
-    }
-
-    // Step 5 result: system icon
-    const systemIconUrl = ext ? iconCache.get(ext) : undefined;
-    if (systemIconUrl) {
-        const { width = 14, height = 14 } = props;
-        return <img src={systemIconUrl} style={{ width, height }} />;
-    }
-
-    // Step 6: Default
-    return <DefaultIcon {...props} />;
-}
-
-// Backward-compatible alias for language menu items (language-only, no fileName)
-export { FileTypeIcon as LanguageIcon };
-export type { FileTypeIconProps as LanguageIconProps };
+// =============================================================================
+// FileTypeIcon â€” unified icon component
+// =============================================================================

@@ -1,8 +1,7 @@
-import React from "react";
 import { AppPageManagerView, type AppPageManagerProps } from "../../components/page-manager/AppPageManagerView";
 import { pagesModel } from "../../api/pages";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import { PageContentBridge } from "./PageContentBridge";
+import { PageContentView } from "./PageContentView";
 import "./Pages.css";
 
 export class PagesView extends VanillaView<object> {
@@ -27,7 +26,7 @@ export class PagesView extends VanillaView<object> {
             groupedActiveId: pagesModel.groupedPage?.id,
             grouping: state.leftRight,
             compareModeIds: state.compareGroups,
-            renderPage: (pageId) => React.createElement(PageContentBridge, { pageId }),
+            pageView: PageContentView,
         };
     }
 }

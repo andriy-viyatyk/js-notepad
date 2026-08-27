@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { ListItem, Panel, Text } from "../../uikit";
 import color from "../../theme/color";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
-import { PinFilledIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { LinkItem, LinkSource } from "./linkTypes";
@@ -252,7 +252,7 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
                 borderBottom
                 shrink={false}
             >
-                <PinFilledIcon style={{ width: 14, height: 14, color: color.misc.blue }} />
+                <Icon name="pin-filled" style={{ width: 14, height: 14, color: color.misc.blue }} />
                 <Text size="xs" color="light">Pinned</Text>
             </Panel>
             <Panel

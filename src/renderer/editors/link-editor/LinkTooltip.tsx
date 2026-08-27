@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Input, Panel, Tag } from "../../uikit";
 import color from "../../theme/color";
-import { CopyIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import type { ILink } from "../../api/types/io.tree";
 import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
 
@@ -70,7 +70,7 @@ export function LinkTooltipContent({ link, allTags, onToggleTag, showCopyJson, i
                         title="Copy link as JSON"
                         onClick={() => navigator.clipboard.writeText(JSON.stringify(link, null, 4))}
                     >
-                        <CopyIcon width={14} height={14} />
+                        <Icon name="copy" width={14} height={14} />
                     </span>
                 )}
             </Panel>

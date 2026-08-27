@@ -52,7 +52,7 @@ export class ToolsetEditorModel extends EditorModel<ToolsetEditorState> {
     skipSave = true;
     showBackgroundOrnament = true;
 
-    getIconElement = (): SVGElement | undefined => ToolsIcon.createElement?.();
+    getIconElement = (): SVGElement | undefined => ToolsIcon.createElement();
 
     /** Absolute path to this toolset's execution log (for the Open-Log action), or undefined
      *  when no toolset is resolved. */

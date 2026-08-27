@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useFloating, offset as floatingOffset, autoUpdate } from "@floating-ui/react";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
-import { GlobeIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { BrowserEditorModel, BrowserTabData } from "./BrowserEditorModel";
 import { Panel, IconButton } from "../../uikit";
 import type { MenuItem } from "../../uikit";
@@ -119,7 +119,7 @@ function TabItem({
                         }}
                     />
                 ) : null}
-                <GlobeIcon data-hidden={tab.favicon ? "" : undefined} />
+                <Icon name="globe" data-hidden={tab.favicon ? "" : undefined} />
             </div>
             {!compact && (
                 <div data-tab-title>

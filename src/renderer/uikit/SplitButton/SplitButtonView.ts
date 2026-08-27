@@ -4,6 +4,7 @@ import { IconButtonView } from "../IconButton/IconButtonView";
 import type { IconButtonProps } from "../IconButton/IconButton";
 import { openMenu, type MenuHandle } from "../Menu/attach-menu";
 import type { MenuItem } from "../Menu/types";
+import type { SlotContent } from "../shared/fill-slot";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import type { SplitButtonProps } from "./SplitButton";
@@ -12,6 +13,7 @@ import "../Button/Button.css";
 import "../IconButton/IconButton.css";
 
 type PrimaryView = ButtonView | IconButtonView;
+type PrimaryProps = Omit<ButtonProps & IconButtonProps, "children"> & { children?: SlotContent };
 
 export class SplitButtonView extends VanillaView<SplitButtonProps> {
     private separator: HTMLSpanElement | undefined;
@@ -54,7 +56,11 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
         if (nextIsButton !== this.primaryIsButton) {
             this.replacePrimary(props);
         } else {
-            this.primaryView?.update(this.primaryProps(props));
+            if (this.primaryView instanceof ButtonView) {
+                this.primaryView.update(this.primaryProps(props));
+            } else {
+                this.primaryView?.update({ ...this.primaryProps(props), children: undefined });
+            }
         }
 
         this.caretView?.update(this.caretProps(props));
@@ -73,7 +79,7 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
         this.primaryView = this.child(
             this.primaryIsButton
                 ? new ButtonView(this.primaryProps(props))
-                : new IconButtonView(this.primaryProps(props)),
+                : new IconButtonView({ ...this.primaryProps(props), children: undefined }),
         );
     }
 
@@ -90,7 +96,7 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
         primary.mount();
     }
 
-    private primaryProps(props: SplitButtonProps): ButtonProps & IconButtonProps {
+    private primaryProps(props: SplitButtonProps): PrimaryProps {
         return {
             name: "split-primary",
             size: props.size,

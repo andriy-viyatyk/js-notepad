@@ -141,7 +141,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     skipSave = false; // delegates dirty/save to the held host (if any)
     showBackgroundOrnament = true;
 
-    getIconElement = (): SVGElement | undefined => BoardColorIcon.createElement?.();
+    getIconElement = (): SVGElement | undefined => BoardColorIcon.createElement();
 
     private _host: TextFileModel | null = null;
     private _hostStateUnsub: (() => void) | null = null;

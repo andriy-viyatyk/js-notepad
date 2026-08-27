@@ -5,7 +5,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { fpBasename } from "../../core/utils/file-path";
 import { TraitTypeId, hasTraitDragData, setTraitDragData } from "../../core/traits";
-import { createIconElement, isIconName } from "../../uikit/shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../../uikit/shared/slots";
 import { fillSlot } from "../../uikit/shared/fill-slot";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -167,7 +167,7 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
             record.iconCleanup = fillSlot(
                 row.querySelector<HTMLElement>(".item-icon")!,
                 typeof editor.icon === "string"
-                    ? (isIconName(editor.icon) ? createIconElement(editor.icon) : null)
+                    ? (isIconName(editor.icon) ? createIconElement(editor.icon) : createIconPlaceholderElement())
                     : editor.icon ?? null,
             );
         }

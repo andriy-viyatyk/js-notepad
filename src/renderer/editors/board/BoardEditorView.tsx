@@ -1,6 +1,6 @@
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { WarningIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { boardTrust } from "../../api/board-trust";
 import { showTrustBoardDialog } from "../../ui/dialogs/TrustBoardDialog";
 import { BoardEditorModel } from "./BoardEditorModel";
@@ -65,7 +65,7 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
     if (s.contentHostError) {
         return (
             <Panel direction="column" flex={1} align="center" justify="center" gap="md" padding="xl">
-                <WarningIcon width={32} height={32} />
+                <Icon name="warning" width={32} height={32} />
                 <Text size="lg">Content unavailable</Text>
                 <Text color="light" align="center">{s.contentHostError}</Text>
             </Panel>

@@ -1,4 +1,4 @@
-import { BoardIcon } from "../../theme/icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { getBoardIconPathSync, useBoardIcon } from "./board-icon-cache";
 
 interface BoardGlyphProps {
@@ -19,5 +19,5 @@ export function BoardGlyph({ boardRoot, size = 16 }: BoardGlyphProps) {
     if (path) {
         return <img src={path} style={{ width: size, height: size, objectFit: "contain" }} />;
     }
-    return <BoardIcon width={size} height={size} />;
+    return <Icon name="board" width={size} height={size} />;
 }

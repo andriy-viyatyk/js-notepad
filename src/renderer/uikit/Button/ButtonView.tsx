@@ -1,6 +1,6 @@
 import React from "react";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
@@ -8,9 +8,7 @@ import type { IconRef } from "../shared/slots";
 import type { SlotContent } from "../shared/fill-slot";
 import type { ButtonProps } from "./Button";
 
-export type ButtonViewProps = Omit<ButtonProps, "children"> & {
-    children?: SlotContent;
-};
+export type ButtonViewProps = ButtonProps;
 
 function isSimpleChildren(value: SlotContent): boolean {
     if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
@@ -116,7 +114,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
             // button, so the flex `gap` between them still applies.
             const content = document.createDocumentFragment();
             if (typeof icon === "string") {
-                content.append(createIconElement(isIconName(icon) ? icon : icon as never));
+                content.append(isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement());
             } else if (icon instanceof Node) {
                 content.append(icon);
             }
@@ -133,7 +131,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
             this.contentCleanup = undefined;
             const { iconHost, childrenHost } = this.ensureSplitHosts();
             const iconContent = typeof icon === "string"
-                ? createIconElement(isIconName(icon) ? icon : icon as never)
+                ? (isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement())
                 : icon;
             this.iconCleanup = fillSlot(iconHost, iconContent);
             this.childrenCleanup = fillSlot(childrenHost, children);

@@ -4,6 +4,7 @@ import { EditorToolbar } from "../base/EditorToolbar";
 import color from "../../theme/color";
 import { Panel, Input, Button, IconButton, Spinner, Text, Dot, Splitter, WithMenu } from "../../uikit";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
+import { Icon } from "../../uikit/Icon/Icon";
 import { TorStatusOverlay } from "./TorStatusOverlay";
 import {
     BrowserEditorModel,
@@ -276,7 +277,7 @@ function renderUrlStartSlot(
                 onClick={(e) => { e.stopPropagation(); model.toggleTorOverlay(); }}
                 title="Tor status"
             >
-                {torStatus === "connecting" ? <Spinner size={14} /> : <TorIcon />}
+                {torStatus === "connecting" ? <Spinner size={14} /> : <Icon icon={TorIcon} />}
                 {torStatus !== "connecting" && (
                     <span data-tor-status-dot><Dot size={6} color={dotColor} /></span>
                 )}
@@ -284,7 +285,7 @@ function renderUrlStartSlot(
         );
     }
     if (isIncognito) {
-        out.push(<IncognitoIcon key="incognito" color={color.icon.light} />);
+        out.push(<Icon key="incognito" icon={IncognitoIcon} color={color.icon.light} />);
     }
     if (showSearchEngineSelector) {
         out.push(

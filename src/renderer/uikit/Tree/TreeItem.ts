@@ -1,5 +1,6 @@
 import type React from "react";
 import { mountVanilla } from "../shared/mount";
+import type { SlotContent } from "../shared/fill-slot";
 import type { IconRef, SlotText } from "../shared/slots";
 import { TreeItemView } from "./TreeItemView";
 
@@ -24,7 +25,7 @@ export interface TreeItemProps
     /** Direct DOM icon used by framework-free owners; takes precedence over `icon`. */
     iconElement?: Node;
     /** Label content. Rich tree rows remain supported; string labels are highlighted. */
-    label: React.ReactNode | Node;
+    label: SlotContent;
     /** Highlight matches in string labels. */
     searchText?: string;
     /** True when this item is the current selection of its Tree. */
@@ -66,7 +67,7 @@ export interface TreeItemProps
      * right edge. The trailing content owns its own click handling — to avoid also
      * triggering the row's onClick, its handlers should `stopPropagation()`.
      */
-    trailing?: React.ReactNode | Node;
+    trailing?: SlotContent;
     /**
      * When the trailing content is shown. `"always"` (default) keeps it visible at all times —
      * the original behavior, so existing consumers are unchanged. `"hover"` hides it at rest and

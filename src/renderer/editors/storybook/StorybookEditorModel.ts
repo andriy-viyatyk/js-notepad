@@ -53,7 +53,7 @@ export class StorybookEditorModel extends EditorModel<StorybookEditorState> {
 
     noLanguage = true;
     skipSave = true;
-    getIconElement = (): SVGElement | undefined => StorybookIcon.createElement?.();
+    getIconElement = (): SVGElement | undefined => StorybookIcon.createElement();
 
     selectStory = (id: string): void => {
         const story = findStory(id);

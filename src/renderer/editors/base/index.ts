@@ -27,8 +27,6 @@ export function getDefaultEditorModelState(): IEditorState {
 
 export { EditorToolbar } from './EditorToolbar';
 export type { EditorToolbarProps } from './EditorToolbar';
-export { LanguageIcon } from '../../components/icons/LanguageIcon';
-export type { LanguageIconProps } from '../../components/icons/LanguageIcon';
 export type { EditorConfig } from './EditorConfig';
 export { EMPTY_EDITOR_CONFIG } from './EditorConfig';
 export type { IContentHost, IContentHostState } from './IContentHost';

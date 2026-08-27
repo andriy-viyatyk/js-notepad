@@ -112,7 +112,7 @@ export class NoteItemToolbarView extends VanillaView<NoteItemToolbarViewProps> {
             this.runButton = this.child(new IconButtonView({
                 name: "note-run-script",
                 size: "sm",
-                icon: RunIcon.createElement?.() ?? document.createElement("span"),
+                icon: RunIcon.createElement(),
                 title: "Run Script",
                 onClick: () => { void this.props.model.runScript(); },
             }));
@@ -122,7 +122,7 @@ export class NoteItemToolbarView extends VanillaView<NoteItemToolbarViewProps> {
         this.runButton.update({
             name: "note-run-script",
             size: "sm",
-            icon: RunIcon.createElement?.() ?? document.createElement("span"),
+            icon: RunIcon.createElement(),
             title: hasSelection ? "Run Selected Script" : "Run Script",
             onClick: () => { void this.props.model.runScript(); },
         });
@@ -131,7 +131,7 @@ export class NoteItemToolbarView extends VanillaView<NoteItemToolbarViewProps> {
             this.runAllButton = this.child(new IconButtonView({
                 name: "note-run-all-script",
                 size: "sm",
-                icon: RunAllIcon.createElement?.() ?? document.createElement("span"),
+                icon: RunAllIcon.createElement(),
                 title: "Run All Script",
                 onClick: () => { void this.props.model.runScript(true); },
             }));

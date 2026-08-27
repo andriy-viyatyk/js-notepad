@@ -1,5 +1,5 @@
-import type React from "react";
 import type { MenuItem } from "../../uikit/Menu";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import { TreeView } from "../../uikit/Tree/TreeView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createFolderIconElement } from "../../components/icons/icon-elements";
@@ -12,7 +12,7 @@ import {
 import type { ToolsTreeProps } from "./ToolsTree";
 
 export interface ToolsTreeViewProps extends Omit<ToolsTreeProps, "renderTrailing"> {
-    renderTrailing?: (root: string) => React.ReactNode | Node;
+    renderTrailing?: (root: string) => SlotContent;
 }
 
 export class ToolsTreeView extends VanillaView<ToolsTreeViewProps> {
@@ -38,7 +38,7 @@ export class ToolsTreeView extends VanillaView<ToolsTreeViewProps> {
         this.iconElements.set(node.value, icon);
         return icon;
     };
-    private readonly renderTrailing = (node: ToolTreeNode): React.ReactNode | Node | undefined =>
+    private readonly renderTrailing = (node: ToolTreeNode): SlotContent | undefined =>
         node.kind === "toolset" && node.root
             ? this.props.renderTrailing?.(node.root)
             : undefined;

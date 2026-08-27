@@ -6,7 +6,7 @@ import type { InputProps } from "../Input/Input";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import { KeyedList } from "../shared/keyed-list";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import {
@@ -39,14 +39,12 @@ function setBooleanAttribute(element: HTMLElement, name: string, value: boolean)
     else element.removeAttribute(name);
 }
 
-function iconElement(component: { createElement?: () => SVGElement }): SVGElement {
-    const icon = component.createElement?.();
-    if (!icon) throw new Error("Menu icon does not have a DOM builder.");
-    return icon;
+function iconElement(component: { createElement: () => SVGElement }): SVGElement {
+    return component.createElement();
 }
 
 function menuIconContent(icon: unknown): SlotContent {
-    if (typeof icon === "string") return isIconName(icon) ? createIconElement(icon) : null;
+    if (typeof icon === "string") return isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement();
     if (icon instanceof Node || icon == null || icon === false) return icon as SlotContent;
     return null;
 }

@@ -17,7 +17,7 @@ export interface DialogContentProps
     /** Close-X button click. When unset, the X is hidden. */
     onClose?: () => void;
     /** Inline buttons rendered between the title and the close X. */
-    headerButtons?: React.ReactNode | Node;
+    headerButtons?: SlotContent;
 
     /** Sizing — pass through to the root element. Numbers → px. */
     width?: number | string;

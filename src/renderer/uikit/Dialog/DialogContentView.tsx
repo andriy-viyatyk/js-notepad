@@ -1,8 +1,9 @@
 import React from "react";
 import { cssLength } from "../Input/InputView";
 import { IconButtonView } from "../IconButton/IconButtonView";
-import { createIconElement, isIconName, type IconRef } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName, type IconRef } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
+import type { SlotContent } from "../shared/fill-slot";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
@@ -26,7 +27,7 @@ function setOptionalDataAttribute(
     else root.setAttribute(name, value);
 }
 
-function hasSlot(value: React.ReactNode | Node): boolean {
+function hasSlot(value: SlotContent): boolean {
     return value !== undefined && value !== null && value !== false;
 }
 
@@ -196,12 +197,12 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         }
 
         const content = typeof icon === "string"
-            ? createIconElement(isIconName(icon) ? icon : icon as never)
+            ? (isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement())
             : icon;
         this.iconCleanup = fillSlot(this.iconHost, content);
     }
 
-    private syncHeaderButtons(buttons: React.ReactNode | Node): void {
+    private syncHeaderButtons(buttons: SlotContent): void {
         if (!hasSlot(buttons)) {
             this.headerButtonsCleanup?.();
             this.headerButtonsCleanup = undefined;

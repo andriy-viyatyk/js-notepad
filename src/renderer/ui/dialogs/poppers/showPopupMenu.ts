@@ -90,7 +90,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                             activeElement.dispatchEvent(new Event("input", { bubbles: true }));
                         }
                     },
-                    icon: CopyIcon.createElement!({}),
+                    icon: CopyIcon.createElement({}),
                 });
             }
 
@@ -100,7 +100,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                     onClick: () => {
                         navigator.clipboard.writeText(selText ?? "");
                     },
-                    icon: CopyIcon.createElement!({}),
+                    icon: CopyIcon.createElement({}),
                     startGroup: true,
                 });
             }
@@ -113,7 +113,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                         const { x, y } = this.state.get();
                         api.inspectElement(x, y);
                     },
-                    icon: CursorIcon.createElement!({}),
+                    icon: CursorIcon.createElement({}),
                 });
             }
 
@@ -121,7 +121,7 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
             if (anyIcon) {
                 s.items.forEach((item) => {
                     if (!item.icon) {
-                        item.icon = EmptyIcon.createElement!({});
+                        item.icon = EmptyIcon.createElement({});
                     }
                 });
             }

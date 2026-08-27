@@ -3,8 +3,8 @@ import { Button, Input, Panel } from "../../uikit";
 import { DataGrid, detectColumnWidth, type CellContext, type Column, type DataGridInstance, type CellEditEvent, type AddRowsEvent, type DeleteRowsEvent } from "../../uikit/DataGrid";
 import { GraphNode, NodeShape, nodeLabel, isReservedPropertyKey } from "./types";
 import color from "../../theme/color";
-import { ChevronDownIcon, ChevronUpIcon } from "../../theme/icons";
-import { ShapeIcon, LevelIcon } from "./GraphIcons";
+import { Icon } from "../../uikit/Icon/Icon";
+import { createShapeIconComponent, createLevelIconComponent } from "./GraphIcons";
 import "./GraphDetailPanel.css";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 
@@ -550,7 +550,7 @@ function GraphDetailPanel({
                 <span style={panelTitleStyle} title={headerText}>{headerText}</span>
                 {hasSelection && (
                     <span style={panelChevronStyle}>
-                        {expanded ? <ChevronUpIcon width={14} height={14} /> : <ChevronDownIcon width={14} height={14} />}
+                        {expanded ? <Icon name="chevron-up" width={14} height={14} /> : <Icon name="chevron-down" width={14} height={14} />}
                     </span>
                 )}
             </div>
@@ -1119,7 +1119,7 @@ function MultiInfoTab({ nodes, onBatchUpdateProps }: MultiInfoTabProps) {
                                 onClick={() => onBatchUpdateProps(nodeIds, { level: lvl })}
                                 title={`Level ${lvl}`}
                             >
-                                <LevelIcon level={lvl} />
+                                <Icon icon={createLevelIconComponent(lvl)} />
                             </button>
                         );
                     })}
@@ -1139,7 +1139,7 @@ function MultiInfoTab({ nodes, onBatchUpdateProps }: MultiInfoTabProps) {
                                 onClick={() => onBatchUpdateProps(nodeIds, { shape: shape === "circle" ? undefined : shape })}
                                 title={shape}
                             >
-                                <ShapeIcon shape={shape} />
+                                <Icon icon={createShapeIconComponent(shape)} />
                             </button>
                         );
                     })}
@@ -1206,7 +1206,7 @@ function InfoTab({
                             onClick={() => onUpdateProps(node.id, { level: lvl })}
                             title={`Level ${lvl}`}
                         >
-                            <LevelIcon level={lvl} />
+                            <Icon icon={createLevelIconComponent(lvl)} />
                         </button>
                     ))}
                 </div>
@@ -1222,7 +1222,7 @@ function InfoTab({
                             onClick={() => onUpdateProps(node.id, { shape: shape === "circle" ? undefined : shape })}
                             title={shape}
                         >
-                            <ShapeIcon shape={shape} />
+                            <Icon icon={createShapeIconComponent(shape)} />
                         </button>
                     ))}
                 </div>

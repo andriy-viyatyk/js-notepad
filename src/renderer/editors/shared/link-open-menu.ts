@@ -6,7 +6,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { settings } from "../../api/settings";
 
 function createDirectMenuIcon(component: { createElement?: () => SVGElement }): SVGElement {
-    const icon = component.createElement?.();
+    const icon = component.createElement();
     if (!icon) throw new Error("Menu icon does not have a DOM builder.");
     return icon;
 }

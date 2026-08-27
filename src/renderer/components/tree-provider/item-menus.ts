@@ -29,7 +29,7 @@ export function getFileMenuItems(
 ): MenuItem[] {
     const items: MenuItem[] = [{
         label: isUrlOrCurl(item.href) ? "Copy Href" : "Copy Path",
-        icon: CopyIcon.createElement!(),
+        icon: CopyIcon.createElement(),
         onClick: () => navigator.clipboard.writeText(item.href),
     }];
 
@@ -38,12 +38,12 @@ export function getFileMenuItems(
             {
                 startGroup: true,
                 label: "Cut",
-                icon: CutIcon.createElement!(),
+                icon: CutIcon.createElement(),
                 onClick: () => copyPathToOsClipboard(item.href, true),
             },
             {
                 label: "Copy",
-                icon: CopyIcon.createElement!(),
+                icon: CopyIcon.createElement(),
                 onClick: () => copyPathToOsClipboard(item.href, false),
             },
         );
@@ -53,14 +53,14 @@ export function getFileMenuItems(
         items.push({
             startGroup: true,
             label: "Rename...",
-            icon: RenameIcon.createElement!(),
+            icon: RenameIcon.createElement(),
             onClick: () => actions.rename(item),
         });
     }
     if (provider.writable && provider.deleteItem) {
         items.push({
             label: "Delete",
-            icon: DeleteIcon.createElement!(),
+            icon: DeleteIcon.createElement(),
             onClick: () => actions.deleteItem(item),
         });
     }
@@ -82,19 +82,19 @@ export function getFolderMenuItems(options: FolderMenuOptions): MenuItem[] {
     const items: MenuItem[] = [];
 
     if (onOpen) {
-        items.push({ label: "Open", icon: FolderOpenIcon.createElement!(), onClick: onOpen });
+        items.push({ label: "Open", icon: FolderOpenIcon.createElement(), onClick: onOpen });
     }
     if (provider.writable && provider.mkdir) {
         items.push(
             {
                 startGroup: !!onOpen,
                 label: "New File...",
-                icon: NewFileIcon.createElement!(),
+                icon: NewFileIcon.createElement(),
                 onClick: () => actions.createFile(directory),
             },
             {
                 label: "New Folder...",
-                icon: NewFolderIcon.createElement!(),
+                icon: NewFolderIcon.createElement(),
                 onClick: () => actions.createFolder(directory),
             },
         );
@@ -103,7 +103,7 @@ export function getFolderMenuItems(options: FolderMenuOptions): MenuItem[] {
     items.push({
         startGroup: items.length > 0,
         label: isUrlOrCurl(item.href) ? "Copy Href" : "Copy Path",
-        icon: CopyIcon.createElement!(),
+        icon: CopyIcon.createElement(),
         onClick: () => navigator.clipboard.writeText(item.href),
     });
 
@@ -112,7 +112,7 @@ export function getFolderMenuItems(options: FolderMenuOptions): MenuItem[] {
             items.push({
                 startGroup: true,
                 label: "Cut",
-                icon: CutIcon.createElement!(),
+                icon: CutIcon.createElement(),
                 onClick: () => copyPathToOsClipboard(item.href, true),
             });
         }
@@ -120,18 +120,18 @@ export function getFolderMenuItems(options: FolderMenuOptions): MenuItem[] {
             {
                 startGroup: isRoot,
                 label: "Copy",
-                icon: CopyIcon.createElement!(),
+                icon: CopyIcon.createElement(),
                 onClick: () => copyPathToOsClipboard(item.href, false),
             },
             {
                 label: "Paste",
-                icon: PasteIcon.createElement!(),
+                icon: PasteIcon.createElement(),
                 onClick: () => actions.paste(directory),
             },
             {
                 startGroup: true,
                 label: "Open Terminal here",
-                icon: TerminalIcon.createElement!(),
+                icon: TerminalIcon.createElement(),
                 onClick: async () => {
                     const { openTerminalAt } = await import("../../api/terminal");
                     openTerminalAt(item.href);
@@ -144,14 +144,14 @@ export function getFolderMenuItems(options: FolderMenuOptions): MenuItem[] {
         items.push({
             startGroup: true,
             label: "Rename...",
-            icon: RenameIcon.createElement!(),
+            icon: RenameIcon.createElement(),
             onClick: () => actions.rename(item),
         });
     }
     if (provider.writable && !isRoot && provider.deleteItem) {
         items.push({
             label: "Delete",
-            icon: DeleteIcon.createElement!(),
+            icon: DeleteIcon.createElement(),
             onClick: () => actions.deleteItem(item),
         });
     }
@@ -168,12 +168,12 @@ export function getBackgroundMenuItems(
         items.push(
             {
                 label: "New File...",
-                icon: NewFileIcon.createElement!(),
+                icon: NewFileIcon.createElement(),
                 onClick: () => actions.createFile(directory),
             },
             {
                 label: "New Folder...",
-                icon: NewFolderIcon.createElement!(),
+                icon: NewFolderIcon.createElement(),
                 onClick: () => actions.createFolder(directory),
             },
         );
@@ -182,7 +182,7 @@ export function getBackgroundMenuItems(
         items.push({
             startGroup: items.length > 0,
             label: "Paste",
-            icon: PasteIcon.createElement!(),
+            icon: PasteIcon.createElement(),
             onClick: () => actions.paste(directory),
         });
     }

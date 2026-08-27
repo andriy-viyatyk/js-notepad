@@ -1,6 +1,6 @@
 import React from "react";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import type { SelectableRowProps } from "./SelectableRow";
 import "./SelectableRow.css";
@@ -49,7 +49,7 @@ export class SelectableRowView extends VanillaView<SelectableRowProps> {
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
-    private updateContent(children: React.ReactNode): void {
+    private updateContent(children: SlotContent): void {
         this.contentCleanup = fillSlot(this.root, children);
     }
 

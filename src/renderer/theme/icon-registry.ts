@@ -118,7 +118,7 @@ import {
 } from "./icons";
 import type { SvgIconComponent } from "./icons";
 
-// Keep this list in sync with the explicit exports in icons.tsx. The registry is the
+// Keep this list in sync with the explicit exports in icons.ts. The registry is the
 // single source of truth for IconName; adding an icon still requires a manual entry here.
 // Excluded by design: language-icons.ts, components/icons/* resolver components,
 // SvgIcon/SvgIconProps/SvgIconComponent, createIcon, and createIconWithViewBox.

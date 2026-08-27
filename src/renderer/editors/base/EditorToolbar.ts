@@ -1,12 +1,13 @@
 import React from "react";
 import { mountVanilla } from "../../uikit/shared/mount";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import { EditorToolbarView } from "./EditorToolbarView";
 
 export interface EditorToolbarProps {
     name?: string;
     borderTop?: boolean;
     borderBottom?: boolean;
-    children?: React.ReactNode;
+    children?: SlotContent;
 }
 
 export function EditorToolbar(props: EditorToolbarProps): React.ReactElement {

@@ -6,9 +6,9 @@ import {
     createRestPropsState,
     type RestPropsState,
 } from "../shared/react-compat";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { highlightInto } from "../shared/highlight";
-import { createIconElement, isIconName } from "../shared/slots";
+import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import type { IconRef, SlotText } from "../shared/slots";
 import { SpinnerView } from "../Spinner/SpinnerView";
 import { attachTooltip, type TooltipAttachment, type TooltipOptions } from "../Tooltip";
@@ -308,14 +308,14 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         // an unknown name, so an unknown name must render nothing here too. Falling through to
         // `fillSlot` would write the name into the row as literal text.
         if (typeof icon === "string") {
-            const element = isIconName(icon) ? createIconElement(icon) : null;
+            const element = isIconName(icon) ? createIconElement(icon) : createIconPlaceholderElement();
             this.iconCleanup = fillSlot(this.iconHost, element);
             return;
         }
         this.iconCleanup = fillSlot(this.iconHost, icon);
     }
 
-    private setLabel(label: React.ReactNode | Node, searchText: string | undefined): void {
+    private setLabel(label: SlotContent, searchText: string | undefined): void {
         if (typeof label === "string") {
             if (this.labelOwner === "slot") {
                 // Release fillSlot's ownership of this host before writing to it directly.
@@ -331,7 +331,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     }
 
     /** React rendered `{trailing != null && <span className="tree-trailing">…}`. */
-    private setTrailing(trailing: React.ReactNode | Node): void {
+    private setTrailing(trailing: SlotContent): void {
         if (trailing == null) {
             if (this.trailingAttached) {
                 this.trailingCleanup?.();

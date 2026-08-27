@@ -16,10 +16,8 @@ import { NoteItemToolbarView } from "./note-editor/NoteItemToolbarView";
 
 const NOTE_EDITOR_MAX_HEIGHT = 400;
 
-function iconElement(icon: { createElement?: (props?: Record<string, unknown>) => SVGElement }, width = 16, height = 16): SVGElement {
-    const element = icon.createElement?.({ width, height });
-    if (!element) throw new Error("Note icon does not have a DOM builder.");
-    return element;
+function iconElement(icon: { createElement: (props?: Record<string, unknown>) => SVGElement }, width = 16, height = 16): SVGElement {
+    return icon.createElement({ width, height });
 }
 
 export class NoteItemView extends VanillaView<NoteItemViewProps> {

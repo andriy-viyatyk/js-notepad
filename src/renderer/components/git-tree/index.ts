@@ -10,8 +10,6 @@ export {
     type GitRefNode,
     type GitRefNodeKind,
 } from "./git-refs-tree";
-export { GitStatusBadge } from "./GitStatusBadge";
-export { RefBadge } from "./RefBadge";
 export { REF_COLOR } from "./git-ref-color";
 export { dateText } from "./git-date";
 export {

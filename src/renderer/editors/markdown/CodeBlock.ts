@@ -210,7 +210,7 @@ export class MermaidBlockView extends VanillaView<MermaidBlockProps> {
             const openButton = document.createElement("button");
             openButton.className = "toolbar-btn";
             openButton.title = "Open in Editor";
-            const openIcon = OpenLinkIcon.createElement?.({ width: 14, height: 14 });
+            const openIcon = OpenLinkIcon.createElement({ width: 14, height: 14 });
             if (openIcon) openButton.append(openIcon);
             this.listen(openButton, "click", () => {
                 pagesModel.addEditorPage("mermaid-view", "mermaid", "Mermaid Diagram", this.props.code);
@@ -219,7 +219,7 @@ export class MermaidBlockView extends VanillaView<MermaidBlockProps> {
             const copyButton = document.createElement("button");
             copyButton.className = "toolbar-btn";
             copyButton.title = "Copy";
-            const copyIcon = CopyIcon.createElement?.({ width: 14, height: 14 });
+            const copyIcon = CopyIcon.createElement({ width: 14, height: 14 });
             if (copyIcon) copyButton.append(copyIcon);
             this.listen(copyButton, "click", () => {
                 if (!this.image) return;
@@ -278,7 +278,7 @@ class CodePreBlockView extends VanillaView<CodePreBlockProps> {
         const copyButton = document.createElement("button");
         copyButton.className = "copy-btn";
         copyButton.title = "Copy";
-        const copyIcon = CopyIcon.createElement?.({ width: 14, height: 14 });
+        const copyIcon = CopyIcon.createElement({ width: 14, height: 14 });
         if (copyIcon) copyButton.append(copyIcon);
         this.pre = pre;
         this.copyButton = copyButton;

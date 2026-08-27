@@ -1,8 +1,5 @@
-import type React from "react";
-import { mountVanilla } from "../../uikit/shared/mount";
 import type { CellRenderer } from "../../uikit/DataGrid";
 import type { MenuItem } from "../../uikit/Menu";
-import { FileGridView } from "./FileGridView";
 
 export interface FileGridItem {
     filePath: string;
@@ -21,8 +18,4 @@ export interface FileGridProps {
     getTrailing?: CellRenderer<FileGridItem>;
     getContextMenuItems?: (items: FileGridItem[]) => MenuItem[];
     compact?: boolean;
-}
-
-export function FileGrid(props: FileGridProps): React.ReactElement {
-    return mountVanilla(FileGridView, props);
 }

@@ -4,6 +4,7 @@ import { useComponentModel } from "../../../core/state/model";
 import color from "../../../theme/color";
 import { DEFAULT_BROWSER_COLOR, TAG_COLORS } from "../../../theme/palette-colors";
 import { IncognitoIcon, TorIcon } from "../../../theme/language-icons";
+import { Icon } from "../../../uikit/Icon/Icon";
 import { Button } from "../../../uikit/Button";
 import { Dot } from "../../../uikit/Dot";
 import { IconButton } from "../../../uikit/IconButton";
@@ -44,7 +45,7 @@ function TorProfileRow({ model, torPortValue }: { model: BrowserProfilesSectionM
     const torExeFilename = model.props.torExePath ? fpBasename(model.props.torExePath) : "";
 
     return <Panel direction="column" rounded="sm" background="dark">
-        <Panel direction="row" align="center" gap="md" paddingX="md" paddingY="xs"><TorIcon style={{ width: 14, height: 14, flexShrink: 0 }} /><Panel flex><Text size="sm">Tor</Text></Panel></Panel>
+        <Panel direction="row" align="center" gap="md" paddingX="md" paddingY="xs"><Icon icon={TorIcon} style={{ width: 14, height: 14, flexShrink: 0 }} /><Panel flex><Text size="sm">Tor</Text></Panel></Panel>
         <Panel direction="row" align="center" gap="md" paddingTop="xs" paddingRight="md" paddingBottom="sm" paddingLeft="xxl">
             <span style={fieldLabelStyle}>tor.exe:</span>
             {torExeFilename ? <span style={{ ...labelTextStyle, ...linkStyle }} title={model.props.torExePath} onClick={() => void model.handleBrowseTorExe()}>{torExeFilename}</span>
@@ -102,7 +103,7 @@ export function BrowserProfilesSection() {
                 </Panel>
                 <BookmarksFileLine filePath={profile.bookmarksFile || ""} onBrowse={() => void model.handleBrowseProfileBookmarks(profile.name)} onClear={() => model.handleClearProfileBookmarks(profile.name)} />
             </Panel>)}
-            <Panel direction="column" rounded="sm" background="dark"><Panel direction="row" align="center" gap="md" paddingX="md" paddingY="xs"><IncognitoIcon style={{ width: 14, height: 14, flexShrink: 0 }} /><Panel flex><Text size="sm">Incognito</Text></Panel></Panel><BookmarksFileLine filePath={incognitoBookmarksFile} onBrowse={() => void model.handleBrowseIncognitoBookmarks()} onClear={() => settings.set("browser-incognito-bookmarks-file", "")} /></Panel>
+            <Panel direction="column" rounded="sm" background="dark"><Panel direction="row" align="center" gap="md" paddingX="md" paddingY="xs"><Icon icon={IncognitoIcon} style={{ width: 14, height: 14, flexShrink: 0 }} /><Panel flex><Text size="sm">Incognito</Text></Panel></Panel><BookmarksFileLine filePath={incognitoBookmarksFile} onBrowse={() => void model.handleBrowseIncognitoBookmarks()} onClear={() => settings.set("browser-incognito-bookmarks-file", "")} /></Panel>
             <TorProfileRow model={model} torPortValue={torPortValue} />
         </Panel>
         <Panel direction="column" gap="md"><Panel direction="row" align="center" gap="md"><Panel flex><Input size="sm" placeholder="Profile name" value={newName} onChange={model.setNewName} onKeyDown={model.handleKeyDown} /></Panel><Button variant="default" size="sm" background="light" disabled={!model.canAdd} onClick={model.handleAddProfile}>Add</Button></Panel><Text color="light" size="xs">Profile color:</Text><Panel direction="row" wrap gap="md">{TAG_COLORS.map((tagColor) => <Dot key={tagColor.hex} size="lg" color={tagColor.hex} selected={newColor === tagColor.hex} title={tagColor.name} onClick={() => model.setNewColor(tagColor.hex)} />)}</Panel></Panel>

@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
+import type { VanillaViewCtor } from "../../uikit/shared/mount";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { GroupContainer } from "./GroupContainer";
-import { PageSlot } from "./PageSlot";
+import { PageSlot, type PageSlotViewProps } from "./PageSlot";
 
 export interface AppPageManagerProps {
     /** All page IDs in display order. */
@@ -14,8 +14,8 @@ export interface AppPageManagerProps {
     grouping: Map<string, string>;
     /** Set of left page IDs in compare mode. */
     compareModeIds?: Set<string>;
-    /** Render function for page content. */
-    renderPage: (id: string) => ReactNode;
+    /** Native constructor for page content. */
+    pageView: VanillaViewCtor<PageSlotViewProps>;
     /** Optional CSS class for the container. */
     className?: string;
 }
@@ -73,7 +73,7 @@ export class AppPageManagerView extends VanillaView<AppPageManagerProps> {
             groupedActiveId,
             grouping,
             compareModeIds,
-            renderPage,
+            pageView,
             className,
         } = props;
         this.root.className = className ?? "";
@@ -154,7 +154,7 @@ export class AppPageManagerView extends VanillaView<AppPageManagerProps> {
             if (!this.hasBeenActive.has(id)) {
                 continue;
             }
-            this.slots.get(id)?.render(this.root, renderPage(id));
+            this.slots.get(id)?.renderNative(this.root, pageView);
         }
 
         const activeGroupId = findGroupId(activeId, validGrouping);

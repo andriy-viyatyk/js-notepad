@@ -1,5 +1,6 @@
 import type React from "react";
 import type { MenuItem } from "../../uikit/Menu";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import type { SlotText } from "../../uikit/shared/slots";
 import { mountVanilla } from "../../uikit/shared/mount";
 import { ToolsTreeView } from "./ToolsTreeView";
@@ -26,7 +27,7 @@ export interface ToolsTreeProps {
     /** Fires when a toolset row is clicked. The consumer opens it (e.g. via `persephone-toolset://`). */
     onOpenToolset: (root: string) => void;
     /** Optional right-aligned per-toolset action. Toolsets only. */
-    renderTrailing?: (root: string) => React.ReactNode;
+    renderTrailing?: (root: string) => SlotContent;
     /** Optional per-toolset context menu (e.g. "Remove"). Toolsets only. */
     getContextMenu?: (root: string) => MenuItem[] | undefined;
     /** Shown when `toolsets` is empty. */

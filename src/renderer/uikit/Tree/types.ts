@@ -7,6 +7,7 @@ import {
 import type { TraitDragPayload } from "../../core/traits/dnd";
 import type { TraitTypeId } from "../../core/traits/TraitRegistry";
 import type { MenuItem } from "../Menu";
+import type { SlotContent } from "../shared/fill-slot";
 import type { IconRef, SlotText } from "../shared/slots";
 
 // =============================================================================
@@ -17,7 +18,7 @@ export interface ITreeItem {
     /** Stable identifier — what `value` / `onChange` refer to. Unique within the whole tree. */
     value: string | number;
     /** Display label. Tree providers and category trees may supply rich labels. */
-    label: React.ReactNode | Node;
+    label: SlotContent;
     /** Leading icon (rendered between the chevron and the label). */
     icon?: IconRef;
     /** Disables this item — no click, no selection styling, but children still render. */
@@ -174,7 +175,7 @@ export interface TreeProps<T = ITreeItem>
     /** Optional per-row trailing visibility for the default row renderer. */
     getTrailingVisibility?: (item: T, level: number) => "always" | "hover";
     /** Optional right-side React compatibility slot for the default row renderer. */
-    renderTrailing?: (item: T, level: number) => React.ReactNode | Node;
+    renderTrailing?: (item: T, level: number) => SlotContent;
     /**
      * Per-row context-menu callback. It is bound on the row root, before the Tree's bubbling
      * container handler, so callers can stamp the native event before background handling runs.
@@ -197,7 +198,7 @@ export interface TreeProps<T = ITreeItem>
     onContextMenu?: (event: MouseEvent) => void;
 
     /** Custom row renderer. Receives a context with the resolved item + flags. */
-    renderItem?: (ctx: TreeItemRenderContext<T>) => React.ReactNode | Node;
+    renderItem?: (ctx: TreeItemRenderContext<T>) => SlotContent;
 
     /**
      * Initial expansion state when the component mounts. Keys are source `value`s; values are
@@ -224,7 +225,7 @@ export interface TreeProps<T = ITreeItem>
     /** Replaces row rendering with a centered spinner. */
     loading?: boolean;
     /** Renders when the tree resolves to zero rows and not `loading`. */
-    emptyMessage?: SlotText | Node;
+    emptyMessage?: SlotContent;
     /** When true, the Tree handles ArrowUp/Down/Left/Right/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
     /**
