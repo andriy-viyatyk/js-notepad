@@ -292,9 +292,15 @@ class BrowserToolbarView extends VanillaView<BrowserToolbarProps> {
         this.controls.push(bookmarks, torInfo, more, devtools, close);
         this.endSlot.append(this.navigate.root, this.star.root);
         this.inputPanel.append(this.input.root);
-        this.root.append(...this.controls.map((control) => control.root), this.inputPanel, downloads.root);
-        this.root.insertBefore(this.inputPanel, bookmarks.root);
-        this.root.insertBefore(torInfo.root, downloads.root);
+        // Spell the DOM order out once, left to right, rather than appending `this.controls`
+        // in construction order and patching it with insertBefore. `this.controls` keeps its
+        // own order because sync() indexes into it positionally.
+        this.root.append(
+            home.root, back.root, forward.root, reload.root,
+            this.inputPanel,
+            bookmarks.root, torInfo.root, downloads.root,
+            more.root, devtools.root, close.root,
+        );
         this.downloads = downloads;
     }
 
