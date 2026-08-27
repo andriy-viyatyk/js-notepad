@@ -282,9 +282,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── OpenTabsListView.ts      # Native open-tabs list
 │   │   ├── RecentFileListView.ts    # Native recent-files panel
 │   │   ├── ToolsEditorsPanelView.ts # Native Tools & Editors panel
-│   │   ├── TrustedBoardsList.tsx    # "Boards" segment — trusted boards grouped by folder; open / pin / Remove (≡ untrust)
 │   │   ├── TrustedBoardsListView.tsx # Native list shell with editor-owned React tree arm
-│   │   ├── TrustedToolsList.tsx     # "Tools" segment — all registered toolsets across roots (ToolsTree); open / Remove (≡ untrust)
 │   │   ├── TrustedToolsListView.tsx  # Native list shell with editor-owned React tree arm
 │   │   ├── pinned-items.ts          # Unified PinnedRef model over the pinned-editors setting (editors + "board:<root>" pins)
 │   │   ├── tools-editors-registry.ts # Creatable items registry (editors + tools)
@@ -361,8 +359,8 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── monaco/             # Monaco text editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── MonacoEditor.ts           # EditorModel subclass — composes IContentHost, hosts Monaco
-│   │   ├── MonacoBody.tsx            # React component
-│   │   └── index.tsx
+│   │   ├── MonacoBodyView.ts         # Native Monaco body
+│   │   └── index.ts
 │   ├── grid/               # JSON/CSV/JSONL grid editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── GridEditor.ts             # EditorModel — parsing, sort/filter/edit state
 │   │   ├── GridBodyView.ts            # Native DataGrid integration
@@ -432,27 +430,25 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
-│   │   ├── LinkBody.tsx              # React component
+│   │   ├── LinkBody.ts               # Native link body and branch ownership
 │   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state; drag-drop import (files→links, links across windows)
 │   │   ├── linkTypes.ts
 │   │   ├── link-open.ts              # buildLinkEditorContent — links → .link.json content; dependency-light for the sync openLinks API
 │   │   ├── tor-src.ts                # Rewrites remote image src → tor-src:// when the editor is hosted by a Tor browser page (the app renderer is unproxied); local schemes pass through
 │   │   ├── pipe-image-src.ts         # usePipeImageSrc — reads an archive-entry imgSrc through a content pipe into a cached blob URL; every other src shape passes through
 │   │   ├── panels/                   # Shared panel components (inline + secondary view)
-│   │   │   ├── LinkCategoryPanel.tsx       # Categories tree panel
+│   │   │   ├── LinkCategoryPanel.ts         # Categories tree panel
 │   │   │   ├── LinkTagsPanel.tsx           # Tags list panel
 │   │   │   ├── LinkHostnamesPanel.tsx      # Hostnames list panel
-│   │   │   ├── LinkCategorySecondaryView.tsx  # Secondary view wrapper
-│   │   │   ├── LinkTagsSecondaryView.tsx      # Secondary view wrapper
-│   │   │   └── LinkHostnamesSecondaryView.tsx # Secondary view wrapper
-│   │   ├── LinksList.tsx             # React-facing mount face
+│   │   │   ├── LinkCategorySecondaryView.ts    # Secondary view wrapper
+│   │   │   ├── LinkTagsSecondaryView.ts        # Secondary view wrapper
+│   │   │   └── LinkHostnamesSecondaryView.ts   # Secondary view wrapper
+│   │   ├── LinksList.ts              # Native/type module
 │   │   ├── LinksListView.ts           # Native VirtualGrid list renderer
-│   │   ├── LinksTiles.tsx            # React-facing mount face
+│   │   ├── LinksTiles.ts             # Native/type module
 │   │   ├── LinksTilesView.ts          # Native VirtualGrid tile renderer
-│   │   ├── LinkItemList.tsx          # Wrapper: wires LinksList to LinkEditor
-│   │   ├── LinkItemTiles.tsx         # Wrapper: wires LinksTiles to LinkEditor
-│   │   ├── LinkTooltip.tsx
-│   │   ├── PinnedLinksPanel.tsx
+│   │   ├── LinkTooltipView.ts         # Native tooltip content
+│   │   ├── PinnedLinksPanelView.ts    # Native pinned-links panel
 │   │   ├── EditLinkDialog.ts       # Edit-link dialog model and registration
 │   │   ├── EditLinkDialogView.ts   # Native edit-link dialog view
 │   │   └── index.ts
@@ -536,37 +532,39 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── mcp-inspector/      # MCP Inspector (non-text, no trait)
 │   │   ├── McpInspectorEditorModel.ts # EditorModel — connection, tools, resources, prompts
-│   │   ├── McpInspectorView.tsx      # Main view — connection bar, panel routing
+│   │   ├── McpInspectorView.ts        # Main view — connection bar, panel routing
 │   │   ├── McpConnectionManager.ts   # MCP SDK Client wrapper
 │   │   ├── McpConnectionStore.ts     # Saved connections store (mcp-connections.json)
-│   │   ├── ToolsPanel.tsx
-│   │   ├── ToolArgForm.tsx
-│   │   ├── ToolResultView.tsx
-│   │   ├── ResourcesPanel.tsx
-│   │   ├── ResourceContentView.tsx
-│   │   ├── PromptsPanel.tsx
-│   │   └── index.tsx
+│   │   ├── ToolsPanel.ts
+│   │   ├── ToolArgForm.ts
+│   │   ├── ToolResultView.ts
+│   │   ├── ResourcesPanel.ts
+│   │   ├── ResourceContentView.ts
+│   │   ├── PromptsPanel.ts
+│   │   ├── mcp-inspector.css
+│   │   └── index.ts
 │   ├── compare/            # Diff editor (non-text, no trait)
 │   │   ├── CompareEditor.ts
 │   │   └── index.ts
 │   ├── about/              # About page (non-text, no trait)
 │   │   ├── AboutEditor.ts            # EditorModel
-│   │   ├── AboutView.tsx
-│   │   └── index.tsx
+│   │   ├── AboutView.ts
+│   │   └── index.ts
 │   ├── settings/           # Settings page (non-text, no trait)
 │   │   ├── SettingsEditor.ts         # EditorModel
-│   │   ├── SettingsView.tsx           # Page layout + section composition
+│   │   ├── SettingsView.ts            # Page layout + section composition
 │   │   ├── sections/                  # Focused settings views + component models
-│   │   │   ├── BrowserProfilesSection.tsx
+│   │   │   ├── BrowserProfilesSection.ts
 │   │   │   ├── BrowserProfilesSectionModel.ts # Profile CRUD, bookmarks + partition cleanup
-│   │   │   ├── DefaultBrowserSection.tsx
+│   │   │   ├── DefaultBrowserSection.ts
 │   │   │   ├── DefaultBrowserSectionModel.ts # Registration status + actions
-│   │   │   ├── McpSection.tsx
+│   │   │   ├── McpSection.ts
 │   │   │   ├── McpSectionModel.ts    # MCP/Mneme status, validation + actions
-│   │   │   ├── FileSearchSection.tsx
-│   │   │   ├── ThemeSection.tsx
-│   │   │   └── SettingsSections.tsx  # Simple settings-bound sections
-│   │   └── index.tsx
+│   │   │   ├── FileSearchSection.ts
+│   │   │   ├── ThemeSection.ts
+│   │   │   ├── SettingsSections.ts
+│   │   │   └── settings-native.ts   # Shared native settings helpers
+│   │   └── index.ts
 │   ├── storybook/          # Native Storybook editor with React story compatibility arm
 │   │   ├── StorybookEditorModel.ts   # EditorModel — component browser, live preview
 │   │   ├── StorybookEditorView.ts
@@ -612,14 +610,14 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── mneme-config/       # Mneme config & monitoring editor (non-text, no trait)
 │   │   ├── MnemeConfigEditorModel.ts # EditorModel — roots, include/ignore, reindex + progress, model, status polling
-│   │   ├── MnemeConfigView.tsx       # Main view (single page)
-│   │   ├── RootsPanel.tsx            # Roots + include/ignore + reindex/progress
-│   │   ├── ModelPanel.tsx            # Embedding-model status + update
+│   │   ├── MnemeConfigView.ts        # Main view (single page)
+│   │   ├── RootsPanel.ts             # Roots + include/ignore + reindex/progress
+│   │   ├── ModelPanel.ts             # Embedding-model status + update
 │   │   ├── mnemeTypes.ts             # Shared types + parseToolResult helper
 │   │   └── index.tsx
 │   ├── mneme-root/         # Mneme root — search main view + Explorer-like tree sidebar (Pattern B navigation-singleton, per-folder)
 │   │   ├── MnemeRootEditorModel.ts   # EditorModel — root resolve, search (text/vector/hybrid), tree state
-│   │   ├── MnemeRootEditorView.tsx   # Search UI + ranked results
+│   │   ├── MnemeRootEditorView.ts    # Search UI + ranked results
 │   │   ├── MnemeTreeSecondaryView.tsx # "mneme-tree" sidebar panel (browse/create/rename/delete/drop)
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
@@ -652,8 +650,8 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── tools-hub/          # Tools & Editors hub ("tools-hub-view") — full-page counterpart of the sidebar panel (singleton via fixed PageModel id)
 │   │   ├── ToolsHubEditor.ts         # EditorModel — HubTab state; Built-in / Registered boards / Search boards / Tools
-│   │   ├── ToolsHubView.tsx          # Tab strip + body + right Pinned rail (reuses the sidebar list components)
-│   │   ├── SearchBoardsTab.tsx       # Published-catalog browse/filter — board cards → Board Info page
+│   │   ├── ToolsHubView.ts            # Tab strip + body + right Pinned rail
+│   │   ├── SearchBoardsTab.ts         # Published-catalog browse/filter — board cards → Board Info page
 │   │   └── index.tsx
 │   ├── toolset/            # Per-toolset viewer (non-text, no trait) — opened via persephone-toolset://
 │   │   ├── ToolsetEditorModel.ts     # EditorModel ("toolset-view") — reads manifest, exposes tool list + log path; restore from toolsetRoot

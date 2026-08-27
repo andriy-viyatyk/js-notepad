@@ -4,6 +4,61 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-071 — [De-React Epic E13: the editor bodies that still build React](EPIC-071.md)
+
+**Completed 2026-08-27.** The first epic in this programme scoped purely by **body**: its contract
+search came back negative for the third consecutive time, so there was no React-typed declaration left
+pinning callers that would otherwise be vanilla. Eight editors converted — `monaco`, `about`,
+`tools-hub`, `mneme-root`, `mneme-config`, `settings`, `mcp-inspector`, `link-editor` — plus the
+`VanillaView` lifecycle guard and the `uikit/` face collection.
+
+**All four closing properties met:**
+
+| Property | Result |
+|---|---|
+| `EditorModule.Component` reduced to the `<webview>` editors only | **8 → 2** (`board`, `browser`) |
+| Faces removed from the value graph | **9** — 2 deleted, 7 type-relocated to `.ts` |
+| One React root on the everyday path | **1** (`GlobalStyles`) across 17 open tabs, 0 empty SVGs app-wide |
+| Converted bodies produce no React | zero React imports/JSX/`createElement` in all eight folders |
+
+`editors/` JSX markers **1,337 → 535** (60% of the remaining editor JSX); `editors/` non-story `.tsx`
+76 → 36; `uikit/` 51 → 39; renderer 136 → 85.
+
+**The headline was met at task 2 of 10.** `MonacoBody.tsx` — one 239-line file — accounted for three of
+the app's four live React roots. The other eight tasks bought the arm property, the collection and the
+guard, none of which a root count shows: **a single metric would have declared the epic finished after
+its second task**, which is the argument for the four-part closing property it opened with.
+
+**Its largest finding is about instruments, not React.** The epic corrected its own measurement **four
+times**, always the same mistake: E12's `createElement` column counted `document.createElement` and the
+icon builders E12 itself had just created (12 React-producing editors read as 7); a constructor `append`
+scan read 49 sites as 2; a hook-token count read 47 as 35; and — the dangerous one — the JSX face matcher
+`<Sym[[:space:]/>]` missed **every multi-line opening tag**, so twelve *live* faces looked dead and a task
+had been scheduled to delete them. The mechanism: **a grep counts occurrences of a string; a measurement
+counts occurrences of a behaviour, and the gap is always filled by imports, comments, types, generics and
+the codebase's own dominant formatting convention.** Narrowing a pattern is not validating it; validation
+costs one line — run the instrument against a case whose answer you already know.
+
+**Close review: nine findings, six fixed, three handed to US-1152.** Finding 3 resolved the one thing
+the epic could not explain: `settings` measured 25 buttons against a baseline of 24 because
+`LibraryPathSectionView` always built a clear button that React had rendered **conditionally**. Settings
+now matches its pre-conversion baseline on **15 of 16** element counts. The lesson corrected the epic's
+own reasoning: an unexplained mismatch surrounded by exact matches is *more* likely to be real, not
+less — fifteen matches are evidence the instrument is sound. Also fixed: 6 panel-type casts, 24
+`undefined as never` clears, **135 definite-assignment assertions**, and 5 non-null assertions. One cast
+survives, documented rather than silenced, because removing it needs the deferred `SlotText` →
+`SlotContent` migration.
+
+**Carried forward:** `graph` (the largest remaining body, with a canvas and the last `highlight.ts`
+React consumer), `rest-client`, `browser`, `board`, `env-vars`, `file-diff`, `draw` and
+`editors/base/EditorError.tsx` — 535 markers, E14's scope, inherited as a list rather than a search.
+Also **US-1152** (five pre-existing secondary views that bind as if their model were fixed), **US-1153**
+(`mneme-root` and `link-editor` tiles mode, closed unverified), and the measurement that the biggest
+React concentration in the app is **not an editor** — `tools-hub`'s Registered-boards tab holds 26
+roots, 24 of them one *per visible row* in shell code E12 named as a survivor without weighing it.
+
+---
+
 ## EPIC-070 — [De-React Epic E12: the shell's React-typed content](EPIC-070.md)
 
 **Completed 2026-08-27.** Three contracts outside `editors/` still declared **React** for content the

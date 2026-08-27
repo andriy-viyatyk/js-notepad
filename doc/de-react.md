@@ -1386,6 +1386,169 @@ flat, too (worst file: 4), so it is a per-editor cost rather than an excavation.
 all — so Epic A is not a prerequisite for any editor and Epic F's Emotion uninstall does not wait on
 Epic E.
 
+**E13 ([EPIC-071](epics/EPIC-071.md), scoped 2026-08-27) is the first epic in this programme scoped
+purely by body**, because its contract search is negative for the third consecutive time (E10's was,
+E12's re-ran it and agreed). Every candidate fails for a different reason: `EditorModule.Component` is
+load-bearing at 8 callers, `EditorErrorBoundary` is a *consequence* of a React body rather than a
+contract over it, `highlight.ts`'s React form is down to **one** consumer, `WithMenu`'s render prop has
+no vanilla equivalent, the `applyRestProps` bridge is still waiting on its last JSX caller, and
+`TextChromeViewProps.children` has accepted `Node` since Epic B — so an epic built on it deletes
+nothing, which is why E12 measured it and declined. **The axis is content, and content means bodies.**
+
+The cut is eight editors — `settings` (284 JSX markers), `mcp-inspector` (238), `mneme-config` (114),
+`tools-hub` (42), `mneme-root` (41), `about` (34), `link-editor` (40) and `monaco` (2) — 795 of the
+1,337 remaining markers across 32 files. It closes on three collections rather than a count: the
+`Component` arm reduced to exactly the two `<webview>` editors (`browser`, `board`), **six** `uikit/`
+React faces deleted at zero callers (`Divider`, `Breadcrumb`, `ListItem`, `TagsInput`, `DateInput`, `ProgressBar`)
+plus the **three** already zero-caller (`Tree`, `TruncatedText`, `Tooltip`), and **one React root on the everyday text-editing
+path**.
+
+**Four things it records before implementing anything.**
+
+- **E12's corrective table was contaminated by E12's own migration.** E12's headline finding — that
+  the arm count measures which arm a module registers on, not whether it produces React — is correct
+  and stands. The table it published to prove it is not: its `createElement` column counted
+  `document.createElement` and the `SomeIcon.createElement()` DOM builders that same epic had just
+  created. Five of the twelve editors it named produce **no React at all** — `notebook` (39 of 44 were
+  `document.createElement`, the rest icon builders), `log-view` (24 of 24), `markdown`, `grid`, `video`.
+  They are fully converted. **Ninth instance of *the proxy is not the measurement*, and the first where
+  the contaminated instrument was the corrective one** — the measurement built to replace a proxy
+  inherited the defect it was diagnosing. Generalised: *an instrument built to replace a proxy must be
+  validated against whatever that replacement newly touches.* The honest count is **sixteen**
+  React-producing editors, and the seven `View`-arm ones all share one shape:
+  `children: createElement(EditorErrorBoundary, null, createElement(XBody, { model }))`.
+- **Three of the app's four live React roots are `MonacoBody`, and the fourth is Emotion.** Measured on
+  the user's real seven-page session: 4 `[data-react-root]`, one at `body` and three at
+  `text-chrome-root` with first child `DIV[monaco-body]`. E12's honest rule holds exactly. And
+  `MonacoBody.tsx` is **239 lines with 2 JSX markers** whose whole render is a `Panel` wrapping
+  `MonacoEditorHost`, whose vanilla twin `MonacoEditorHostView` was built in E1 and converted in E3 —
+  so **one file removes three of four live roots**, the best Rule 4 payoff per unit of risk since E6's
+  icon contract, and unlike E6 a single-file change. The roots metric and the collection metric point
+  at different files; taking both costs one task.
+- **E11's rejection of this cut expired at E11's own close.** E11 measured the form-and-panel group,
+  called it "the safest large group left in `editors/`", and rejected it partly because the three uikit
+  faces it appeared to strand (`DateInput`, `ProgressBar`, `TagsInput`) "each keep one caller: their
+  own story" — and E11 then deleted every story. All three now have zero callers. Third time
+  re-measuring has **promoted** a rejected or deferred candidate rather than rejecting an inherited
+  one, and the ninth instance of *a forward-looking note is a measurement with a date on it*. The
+  sharper form, now holding twice: **when an epic rejects a cut on a blocker it is itself about to
+  remove, the rejection expires at that epic's close, not later.**
+- **Three ways to miscount a face's callers, all found while building the instrument.** A JSX-tag grep
+  misses `createElement(Face, …)` — `link-editor/index.ts` alone holds `IconButton`, `Input`,
+  `Breadcrumb` and `Button` alive that way, so *a component with no JSX tag anywhere can still have
+  live callers* (E11's tagless-wrapper finding, from the consumer side). A module-path grep misses
+  barrel re-exports — the first scanner reported five zero-caller faces, and `WithMenu` alone has five,
+  every one importing it from `uikit` or `uikit/Menu`: **match the symbol, not the path.** And *a
+  comment is not a caller* — `Tooltip.tsx` looked held by `link-editor` because `LinkTooltip.tsx:21`
+  mentions `<Tooltip content={…}>` in prose while the code uses the vanilla `attach-tooltip`, the same
+  family as E9's `<TextChrome` grep returning a comment.
+
+**Two smaller corrections it carries.** The removal ledger's `highlight.ts` row names two consumers
+(`GraphBody`, `LinkCategoryPanel`); `LinkCategoryPanel` is gone, so the row's unblock condition is now
+a single editor, `graph`. And **US-1131 is absorbed as E13's first task** rather than deferred again:
+the dashboard already said the `VanillaView` constructor guard was due before the next conversion
+epic, and E13 writes roughly thirty new `VanillaView` subclasses, the largest batch since E9.
+
+**E14 inherits a scope rather than a search**: `browser`, `board`, `graph`, `rest-client`, `env-vars`,
+`file-diff`, `draw` — seven bodies, ~8,100 lines, collecting `Checkbox`, `Spacer`, `Dot`, `WithMenu`,
+`Spinner`, `highlight.ts`'s React form, `EditorToolbar.ts`, `ContentHostFooter.ts`,
+`EditorErrorBoundary`, the `Component` arm and its normalisation shim, and uninstalling
+`@floating-ui/react`. It is the last epic in Epic E — and per the bullet above it must **re-measure**
+any blocker E13 removes rather than inherit that sentence. The next free epic number is **EPIC-072**.
+
+
+**E13 is complete as [EPIC-071](epics/completed.md) (2026-08-27)** — all ten tasks reviewed, all four
+closing properties met. **`EditorModule.Component` is reduced to two callers, `board` and `browser`, the
+two editors that host a `<webview>`** — so what remains of Epic E is inherited by E14 as a list rather
+than a search. Nine `uikit/` React faces left the value graph (2 deleted, 7 type-relocated to `.ts`);
+`editors/` JSX markers **1,337 → 535**, `editors/` non-story `.tsx` 76 → 36, `uikit/` 51 → 39, renderer
+136 → **85**. On a live seventeen-tab session the app measures **one** React root — `GlobalStyles`, the
+Emotion root Epic F removes — with **no per-open-tab term and no per-open-editor term for any converted
+editor**, and zero empty SVGs app-wide.
+
+**Its headline was met at task 2 of 10, which is the argument against single-metric epics.**
+`MonacoBody.tsx` — one 239-line file whose whole render was a `Panel` around an already-converted
+Monaco host — accounted for three of the app's four live React roots. The remaining eight tasks bought
+the arm reduction, the face collection and the lifecycle guard, none of which the root count can see. An
+epic scoped on Rule 4 alone would have closed after its second task with most of its value unbuilt.
+
+**The finding that outlasts it is about instruments, and it is the sharpest form this programme has
+found of E12's *the proxy is not the measurement*.** E13 corrected its own measurement **four times**,
+each the same error wearing different clothes:
+
+| Instrument | Read as | Actually | Direction |
+|---|---:|---:|---|
+| E12's `createElement` column | 12 React-producing `View`-arm editors | **7** — five were `document.createElement` and the icon builders E12 had just created | over-counted work |
+| constructor `append` scan | 2 sites | **49** | under-counted the convention |
+| JSX face matcher `<Sym[[:space:]/>]` | 15 dead faces | **3** — twelve were live behind multi-line tags | **invited deletion** |
+| hook token count | 47 sites | **35** — twelve were imports and comments | over-counted risk |
+
+The mechanism, stated once: **a grep counts occurrences of a string; a measurement counts occurrences of
+a behaviour, and the gap between them is always populated by imports, comments, types, generics and the
+codebase's own dominant formatting convention.** The face matcher is the one that matters, because it
+failed in the direction that destroys code and it failed on *normal* code — a tag whose props start on
+the next line, which is how every multi-prop tag in this repository is written. It was caught only
+because a task investigation contradicted the epic document. Two corollaries: **narrowing a pattern is
+not validating it** (the refined `useMemo(` still missed `useMemo<T>(`), and the validation costs one
+line — run the instrument against a case whose answer you already know. No epic in this programme had
+done that before writing a number down.
+
+**A second finding, and it relocates the programme's biggest remaining target.** The largest single
+React concentration measured anywhere is **not an editor body**: `tools-hub`'s "Registered boards" tab
+holds **26** React roots, of which **1** is the editor and **24** are one `fillSlot` root *per rendered
+row* inside `ui/sidebar/TrustedBoardsListView.tsx` and its tree slot. Those are shell files E12's
+closing property named as deliberate survivors — *"views held by the `tools-hub` and browser editors"* —
+without measuring what they cost. **E12's survivor list was a list of files, not a list of roots, and
+one entry on it outweighs all eight editors E13 converted.** It also sharpens E11's rule that the root
+count is not monotonically decreasing: here the count is a function of how much content exists and how
+much of it is on screen, so **Rule 4 has no content-independent form on a virtualised surface**, and
+every roots figure this programme has published for a list-bearing surface is a figure for one machine's
+data.
+
+**Three smaller things it hands forward.** First, `SlotText` (`string | React.ReactNode`,
+`uikit/shared/slots.ts:9`, **15 consumer declarations**) — EPIC-064 declined to narrow it because "the
+link-editor tooltip genuinely needs React", and that blocker expired when E13 converted the tooltip.
+The type is wrong in *both* directions: `board/BoardsTree.tsx:36` and `tools/ToolsTree.tsx:34` union
+`| Node` on top of it, so it is simultaneously too wide for React and too narrow for its callers. **A
+consumer that unions an extra arm onto an imported type is telling you the type is wrong, silently,
+because adding an arm compiles.** Replace it with `SlotContent` when a later epic owns the sweep.
+Second, **US-1152**: five pre-existing secondary views (`LinkCategoryPanel`, `LinkCategorySecondaryView`,
+`MnemeTreeSecondaryView`, `LinkTagsSecondaryView`/`LinkTagsPanel`, `LinkHostnamesNavigationPanel`) share
+one shape — *a view that accepts a replaceable model but binds as if the model were fixed* — which is
+E10's *`bind()` is only for state that outlives the view* arriving five times in one subsystem. Third,
+the lifecycle guard E13 built forbids `this.listen()` in a **constructor** at a zero baseline but says
+nothing about `this.listen()` inside a method called repeatedly; E13's own review found that three times
+in new code. Both belong to US-1131's family.
+
+**Its close review found nine findings — six fixed, three handed off — and one of them corrected the
+epic's own reasoning.** `settings` measured 25 buttons against a baseline of 24. The epic ruled out
+timing, invisibility and duplication, could not attribute it, and reasoned that "an unexplained mismatch
+is only interpretable against a state-matched baseline" — using that to hand it to the user. The review
+found it at source: `LibraryPathSectionView` always built the `Unlink`/`Reset` button that React had
+rendered **conditionally**. The reasoning was backwards: **fifteen exact matches are evidence the
+instrument is sound, which makes the sixteenth more likely to be real, not less.** A digest with one
+unexplained delta has one unexplained defect until someone reads the source — and what resolved it was
+diffing the deleted file against the new one. It is also the mirror of E10's persistent-child hazard:
+*what React did by not rendering must become an explicit deletion when something always renders.*
+
+**E13 closed with two surfaces unverified, by decision** (tracked as **US-1153**): `mneme-root` was
+never rendered, because its route works but exercising it displays the user's live customer notes and
+this epic's rule was that verification must never cause customer work data to be read; and
+`link-editor`'s tiles mode and its list↔tiles teardown were never exercised. The distinction is worth
+keeping — *unmeasured because the instrument cannot reach it* and *unmeasured because measuring it is
+not allowed* are different states, and only the first is worth retrying with a better instrument.
+
+**E14 is the last epic in Epic E** and inherits a scope rather than a search: `graph` (the largest body
+left, with a canvas and the last consumer of `highlight.ts`'s React form), `rest-client`, `browser`,
+`board`, `env-vars`, `file-diff`, `draw` and `editors/base/EditorError.tsx` — 535 markers. It collects
+`Checkbox`, `Spacer`, `Dot`, `WithMenu`, `Spinner`, `Select`, `Tag`, `IconButton`, `Input`, `Textarea`,
+`Splitter`, `SegmentedControl`, `SelectableRow`, `Autocomplete`, `Slider`, `ListBox`, `highlight.ts`'s
+React form, `EditorToolbar.ts`, `ContentHostFooter.ts`, `EditorErrorBoundary`, the `Component` arm and
+its normalisation shim, and it uninstalls `@floating-ui/react`. **Per E13's own findings it must
+re-measure every blocker listed here rather than inherit this paragraph**, and it must validate its
+instruments before quoting them. The next free epic number is **EPIC-072**.
+
+
 ### Epic F — Removal
 
 Delete `react-dom`, then `react`, `@types/react*`, `@emotion/*`, `@monaco-editor/react`,

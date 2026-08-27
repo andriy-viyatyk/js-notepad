@@ -237,12 +237,14 @@ class ExampleView extends VanillaView<ExampleProps> {
 }
 ```
 
-The constructor creates the stable root and may construct the model driver and view-owned state,
-but it does not create child DOM, listeners, subscriptions, timers, or measurements. Constructor-
-created resources register `own()` cleanup immediately. `mount()` builds children and installs
-bindings; the owner attaches the root before calling it when layout measurement matters. An
-`update(props)` before mount stores props without calling `onUpdate`; `onMount()` renders from the
-stored props. Later updates modify existing DOM without replacing the root.
+The constructor creates the stable root and may construct the model driver, view-owned state, and
+child views whose ownership it claims. Whatever the constructor touches it must have created;
+anything created by `onMount()` is touched only by `onMount()` and later. Constructors do not
+install listeners, subscriptions, timers, or measurements, and constructor-created resources
+register `own()` cleanup immediately. `mount()` builds child DOM and installs bindings; the owner
+attaches the root before calling it when layout measurement matters. An `update(props)` before
+mount stores props without calling `onUpdate`; `onMount()` renders from the stored props. Later
+updates modify existing DOM without replacing the root.
 
 `claimViewOwnership()` and `child()` only establish ownership; they do not mount the child. An owner
 that claims a view directly must mount it exactly once before handing its root to a keyed list, slot,
@@ -250,8 +252,11 @@ or other structural inserter, and must arrange disposal itself when it is not us
 
 Disposal is idempotent and depth-first: owned children are disposed first, then registered
 resources in FIFO registration order, then `onDispose()`. Every cleanup is attempted and the first
-error is rethrown after the full cleanup snapshot. The base makes the view inert but does not
-detach its root; the adapter or structural helper that attached the root owns detachment.
+error is rethrown after the full cleanup snapshot. If `onMount()` throws, the base rolls back the
+registered children/resources, marks the view inert, skips `onDispose()` for the half-built view,
+and rethrows the original mount error; a failed instance cannot be retried. The base makes the
+view inert but does not detach its root; the adapter or structural helper that attached the root
+owns detachment.
 
 ### Vanilla update and event hazards
 

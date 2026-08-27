@@ -118,7 +118,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
 | Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
 | Reusable minimap (scroll mirroring, drag navigation, and viewport indicator) | `/src/renderer/uikit/Minimap/` |
-| ISO date input seam (native date input view composed over `InputView`, with the React face retained for existing callers) | `/src/renderer/uikit/DateInput/DateInputView.ts`, `/src/renderer/uikit/DateInput/DateInput.tsx` |
+| ISO date input seam (native date input view composed over `InputView`, with the React face retained for existing callers) | `/src/renderer/uikit/DateInput/DateInputView.ts`, `/src/renderer/uikit/DateInput/DateInput.ts` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.ts` |
 | Monaco widget hosts (VanillaView owners for single and diff Monaco widgets; imperative content writes, model ownership and deferred disposal) | `/src/renderer/editors/shared/MonacoEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts` |
 | Monaco widget React faces (thin `mountVanilla` adapters for the shared hosts) | `/src/renderer/editors/shared/MonacoEditorHost.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHost.ts` |
@@ -126,6 +126,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Script panel model, React compatibility face, and native view | `/src/renderer/editors/text/ScriptPanel.ts`, `/src/renderer/editors/text/ScriptPanelView.ts` |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
+| Monaco editor body (native `VanillaView`, host lifecycle and text-editor queue projection) | `/src/renderer/editors/monaco/MonacoBodyView.ts` |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
 | Native grid body (embedded or inside the native `TextChromeView` shell; mounts UIKit `DataGridView` directly) | `/src/renderer/editors/grid/GridBodyView.ts` |
 | Native HTML preview body (sandboxed iframe, guarded `srcdoc`, host-content binding) | `/src/renderer/editors/html/HtmlBodyView.ts` |
@@ -151,6 +152,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
 | Settings page composition and section models | `/src/renderer/editors/settings/` |
+| Native settings page and section composition (settings controls, model-backed branches, and lifecycle ownership) | `/src/renderer/editors/settings/SettingsView.ts`, `/src/renderer/editors/settings/sections/` |
+| Native link editor body and chrome (list/tiles switching, pinned links, tooltip content, and direct TextChrome composition) | `/src/renderer/editors/link-editor/LinkBody.ts`, `/src/renderer/editors/link-editor/index.ts`, `/src/renderer/editors/link-editor/PinnedLinksPanelView.ts` |
 | Browser editor coordinator (restore/persistence, navigation normalization, profile presentation, keyboard shortcuts, and composed browser sub-model lifecycle) | `/src/renderer/editors/browser/BrowserEditor.ts` |
 | Browser internal-tab and bookmark resource model (tab lifecycle, current URL/favicon caches, mute/panel operations, bookmark initialization) | `/src/renderer/editors/browser/BrowserTabsModel.ts` |
 | Browser internal-tab host face (unchanged React props; mounts the native stable-placeholder manager) | `/src/renderer/components/page-manager/PageManager.tsx` |
@@ -166,6 +169,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Draw editor              | `/src/renderer/editors/draw/DrawEditor.ts`        |
 | Rest Client editor       | `/src/renderer/editors/rest-client/RestClientEditor.ts` |
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
+| Native MCP Inspector page and panels (connection, capability panels, result branches, and teardown) | `/src/renderer/editors/mcp-inspector/McpInspectorView.ts`, `/src/renderer/editors/mcp-inspector/*.ts` |
+| Native Mneme editor views (root search and configuration/progress branches) | `/src/renderer/editors/mneme-root/MnemeRootEditorView.ts`, `/src/renderer/editors/mneme-config/` |
+| Native About editor view and update-status branches | `/src/renderer/editors/about/AboutView.ts` |
 | Fixed-height framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualGridView.ts` |
 | Measured-height framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualFlexGridView.ts` |
 | Data grid mounting boundary | `/src/renderer/uikit/DataGrid/DataGridView.ts` |
@@ -346,14 +352,14 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Board install registry (`installedBoards.json`; reactive `record`/`remove`/`getByRoot`/`getById`/`useInstalled`; one entry per catalog id; stale-entry reconciliation when a root's manifest is gone) | `/src/renderer/api/board-install-registry.ts` |
 | Board update detection + safe re-install (`getBoardUpdate`/`useBoardUpdates`/`listBoardUpdates`; `runBoardUpdate`/`runBoardVersionInstall` share the idle precondition + progress + toasts; `ensureBoardIdle` — close-pages/busy guard before a swap) | `/src/renderer/api/board-updates.ts` |
 | Board Info editor (install + properties over one host-capable holder that adopts/yields `CONTENT_HOST_TRAIT` without rendering, so `Text ↔ + ↔ board` switches transfer the host losslessly; **install mode** — Download → Register two-step with byte progress; **properties mode** — info + on-demand versions list install/rollback + Uninstall/Unregister + Open board; both modes show the catalog `BoardScreenshot`, which properties mode resolves by catalog id because the screenshot is excluded from the release ZIP and so is never on disk (a locally registered board shows the placeholder); editor id `board-info`, state type `boardInfoPage`. `openBoardInfo(page,opts)` replaces a page's editor; `openBoardInfoPage(opts)` opens a new page; id in `board-info-id.ts`) | `/src/renderer/editors/board-info/` |
-| Tools & Editors hub page (full-page counterpart to the sidebar panel; singleton via a fixed `PageModel` id `TOOLS_HUB_PAGE_ID` + `addPage` dedup — NOT well-known-pages; `HubTab = builtin\|boards\|search\|tools`; Built-in / Registered boards / Search boards / Tools tabs + right Pinned rail; editor id `tools-hub-view`, state type `toolsHubPage`; opened via `pages.showToolsHubPage({tab})`) | `/src/renderer/editors/tools-hub/` |
+| Tools & Editors hub page (native singleton; Built-in / Registered boards / Search boards / Tools tabs + right Pinned rail) | `/src/renderer/editors/tools-hub/ToolsHubEditor.ts`, `/src/renderer/editors/tools-hub/ToolsHubView.ts`, `/src/renderer/editors/tools-hub/SearchBoardsTab.ts` |
 | Tools & Editors sidebar panel (native composition — pinned rail + Built-in Editors / Boards / Tools tabs; "Open in new tab" header button → `showToolsHubPage`) | `/src/renderer/ui/sidebar/ToolsEditorsPanelView.ts` |
-| Pinned rail (extracted from the panel; `layout="horizontal"\|"vertical"`, shared `RowStyled`; drives both the sidebar panel and the hub page) | `/src/renderer/ui/sidebar/PinnedRail.tsx` |
-| Built-in editors list (extracted from the panel; the creatable-items list with pin/open — shared by panel + hub) | `/src/renderer/ui/sidebar/BuiltinEditorsList.tsx` |
-| Published-catalog search tab (hub "Search boards" — filter over the cached catalog grouped by usage; per-board card is a row: `BoardScreenshot` left, name/version/size/description/masks/actions right; Install / Update / Properties → Board Info page; Refresh) | `/src/renderer/editors/tools-hub/SearchBoardsTab.tsx` |
+| Pinned rail (native view extracted from the panel; horizontal/vertical layouts; drives both the sidebar panel and the hub page) | `/src/renderer/ui/sidebar/PinnedRailView.ts` |
+| Built-in editors list (native view extracted from the panel; creatable items with pin/open — shared by panel + hub) | `/src/renderer/ui/sidebar/BuiltinEditorsListView.ts` |
+| Published-catalog search tab (native hub "Search boards" view; cached-catalog filter/grouping and Board Info actions) | `/src/renderer/editors/tools-hub/SearchBoardsTab.ts` |
 | Catalog board screenshot (shared by the Search boards cards and both Board Info modes; a plain remote `<img>` at a fixed 200×125 16:10 footprint — no URL, a 404 or no network all fall back to a same-size placeholder so card heights never jump. Loaded straight from the catalog repo over `https` (the app renderer sets no `img-src`/`default-src` CSP) and deliberately NOT fetched through main or disk-cached, so screenshots are the one part of the catalog that does not work offline. A raw `<img>` rather than a UIKit primitive — Rule 7 governs Emotion in app code and `style`/`className` on UIKit *components*, not raw elements) | `/src/renderer/editors/board-info/BoardScreenshot.tsx` |
 | Creatable-items registry (`CreatableItem` list shared by the Tools & Editors panel and the `+` new-page dropdown; `DEFAULT_PINNED_EDITORS`) | `/src/renderer/ui/sidebar/tools-editors-registry.ts` |
-| Trusted-boards sidebar tab (all trusted boards across roots via `BoardsTree` multi-root; open / pin (standalone-gated via `useBoardStandalone`) / Remove ≡ untrust; "Update available" badge + context-menu Update for catalog-installed boards) | `/src/renderer/ui/sidebar/TrustedBoardsList.tsx` |
+| Trusted-boards sidebar tab (native list shell with an editor-owned React tree arm; open/pin/remove and catalog update actions) | `/src/renderer/ui/sidebar/TrustedBoardsListView.tsx` |
 | Human-readable byte size (`formatBytes`) | `/src/renderer/core/utils/format-bytes.ts` |
 | Unified pin model (`PinnedRef` over `pinned-editors`; editors + `board:<root>`) | `/src/renderer/ui/sidebar/pinned-items.ts` |
 | Board authoring guide (bridge surface, reload, MCP debugging, --p-* contract, chrome classes) | `/assets/board-template/CLAUDE.md` |
@@ -372,6 +378,6 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Per-toolset editor model (`toolset-view`; manifest info + tool list + open-log) | `/src/renderer/editors/toolset/ToolsetEditorModel.ts` |
 | Shared registered-toolsets tree (`ToolsTree` compatibility face + native `ToolsTreeView` + `buildToolsTree`) | `/src/renderer/editors/tools/ToolsTreeView.ts`, `/src/renderer/editors/tools/ToolsTree.tsx` |
 | Toolset registration dialog (`showRegisterToolsetDialog`; RCE gate, MCP-initiated only) | `/src/renderer/ui/dialogs/RegisterToolsetDialog.ts` |
-| Trusted-toolsets sidebar tab (all registered toolsets; open / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedToolsList.tsx` |
+| Trusted-toolsets sidebar tab (native list shell with an editor-owned React tree arm; open/remove actions) | `/src/renderer/ui/sidebar/TrustedToolsListView.tsx` |
 | Toolset authoring guide (manifest, stdin/stdout contract, `.env`, requirements) | `/assets/tool-template/CLAUDE.md` |
 | Agent-facing tools guide (`read_guide("tools")`) | `/assets/mcp-res-tools.md` |

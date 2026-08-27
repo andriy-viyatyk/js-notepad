@@ -143,6 +143,9 @@ detached. This prevents iframes, webviews, and canvas elements from reloading wh
 closed, reordered, grouped, or ungrouped. Placeholders are never reparented (moved between
 containers) — grouping is achieved purely via CSS absolute positioning among siblings in the same
 container. See `GroupContainer` and `ImperativeSplitter` in the same folder.
+`PageSlot` treats page-view construction and mounting as one rollback scope: if `onMount()`
+fails, the partially built view and its registered resources are rolled back before the error is
+re-thrown.
 
 **Main editor view keyed by model id:** `PageContentView` owns a `RenderEditorView` for the
 current editor model (`src/renderer/ui/app/PageContentView.ts`). Its identity includes the model
