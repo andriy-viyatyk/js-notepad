@@ -46,15 +46,15 @@ function process(data: any): void {
 }
 ```
 
-## React
+## React island
 
-### Functional Components Only (Exception: Error Boundaries)
-
-> **Exception:** React error boundaries require class components (`getDerivedStateFromError`/`componentDidCatch` have no hook equivalent). See `EditorErrorBoundary` and `EntryErrorBoundary`.
+React is confined to the Excalidraw vendor island under `src/renderer/editors/draw/`. New renderer
+components and editor chrome use native `VanillaView` classes and DOM events. Do not add React
+imports outside that directory.
 
 ```typescript
 // GOOD
-function MyComponent({ title }: { title: string }) {
+function ExcalidrawIsland({ title }: { title: string }) {
   return <h1>{title}</h1>;
 }
 
@@ -75,7 +75,7 @@ function MyComponent({ title, onClick }: MyComponentProps) {
 function MyComponent() {
   // Hooks first
   const [value, setValue] = useState('');
-  const data = model.state.use((s) => s.data);
+  const data = model.state.get().data;
 
   // Then derived values
   const isValid = value.length > 0;
@@ -138,7 +138,7 @@ Use the established `data-part` vocabulary for stable internal regions; do not r
 part names, use generated Emotion classes, or rely on generic global selectors. Direct-child
 selectors are appropriate when the old Emotion rule depended on DOM shape. An owning parent may
 target a descendant's `[data-type]` or `[data-part]` from its own stylesheet, as existing
-`AudioPlayer`, `FileSearch`, `GlobalStyles`, `CollapsiblePanelStack`, and DataGrid patterns do.
+`AudioPlayer`, `FileSearch`, `global-styles`, `CollapsiblePanelStack`, and DataGrid patterns do.
 That is an owner relationship, not a public styling escape hatch. Converted UIKit components still
 omit public `style` and `className` props, although their implementation may set a narrowly typed
 custom property on its own raw root element.
@@ -374,9 +374,7 @@ export { Input } from './Input';
 ### Import Order
 
 ```typescript
-// 1. React/external libraries
-import { useState, useCallback } from 'react';
-import styled from '@emotion/styled';
+// 1. External libraries
 
 // 2. Internal absolute imports (if configured)
 
@@ -401,7 +399,7 @@ import type { MyType } from './types';
 | Function | camelCase | `formatDate`, `handleClick` |
 | Constant | UPPER_SNAKE_CASE | `MAX_TABS`, `DEFAULT_ENCODING` |
 | Interface/Type | PascalCase | `EditorModel`, `EditorProps` |
-| File (component) | PascalCase.tsx | `TextEditor.tsx` |
+| File (native view) | PascalCaseView.ts | `TextEditorView.ts` |
 | File (utility) | kebab-case.ts | `csv-utils.ts` |
 | Folder | kebab-case | `data-grid`, `text-editor` |
 

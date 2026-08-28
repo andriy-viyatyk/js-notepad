@@ -11,7 +11,7 @@ persephone/
 │   ├── renderer/           # React + VanillaView frontend (see below)
 │   ├── ipc/                # IPC communication layer
 │   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine)
-│   ├── renderer.tsx        # Async bootstrap; calls renderer/index.tsx mount(container)
+│   ├── renderer.ts          # Async bootstrap; calls renderer/index.ts mount(container)
 │   ├── preload.ts          # Preload script (main renderer)
 │   ├── board-shim.ts       # Board bridge shim entry — browser IIFE inlined into board HTML; boot, host trust gate, MessagePort plumbing, window.persephone
 │   ├── board-context-menu.ts # Browser-safe Board context menu, image and editable-field clipboard support
@@ -92,12 +92,10 @@ persephone/
 
 ## Renderer Structure
 
-The renderer entry is `src/renderer.tsx`: after asynchronous application bootstrap it calls
-`mount(container)` exported by `src/renderer/index.tsx`. The application shell and the coupled
-views under `ui/` and `components/` are framework-free `VanillaView` classes. React-facing mount
-faces remain only for remaining React callers; the corresponding `*View.ts` files own DOM
-structure, bindings, and disposal. React roots are reserved for editor islands and compatibility
-boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
+The renderer entry is `src/renderer.ts`: after asynchronous application bootstrap it calls
+`mount(container)` exported by `src/renderer/index.ts`. The application shell, coupled views,
+editors, and UIKit are framework-free `VanillaView` classes. The only React root is the Excalidraw
+vendor island under `editors/draw/`; native global styles are installed by `theme/global-styles.ts`.
 
 ```
 /src/renderer/
@@ -262,7 +260,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── tree-provider-link.ts # tree-category:// link format (encode/decode)
 │   │   ├── MnemeTreeProvider.ts  # ITreeProvider over a Mneme root — browse like a filesystem; create/rename/delete; drag-drop import
 │   │   └── mnemeLinkTraits.ts    # MnemeLink TraitSet (LINK + FILE_LINK) for tree drag-drop (move within / copy across roots)
-│   ├── tree-context-menus.tsx   # Default context menu handlers for tree provider items
+│   ├── tree-context-menus.ts    # Default context menu handlers for tree provider items
 │   └── open-with-default-app.ts # Hand a path to the OS shell (shell.openPath); shared by the tree context menu and Explorer double-click
 │
 ├── ui/                     # Application Shell
@@ -270,7 +268,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── MainPageView.ts         # Native root layout (header, tabs, editors, sidebar)
 │   │   ├── PagesView.ts            # Native page container/router
 │   │   ├── RenderEditorView.ts      # Native editor dispatcher
-│   │   ├── AsyncEditorView.ts      # Native async editor loader and React editor island
+│   │   ├── AsyncEditorView.ts      # Native async editor loader and error surface
 │   │   └── PageContentView.ts        # Native page content and editor lifecycle
 │   ├── tabs/               # Tab bar
 │   │   ├── PageTabsView.ts         # Native tab strip and scroll projection
@@ -294,7 +292,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── Dialogs.ts              # Dialog state/actions API
 │   │   ├── DialogsView.ts          # Native dialog host and slot ownership
 │   │   ├── dialog-view-registry.ts # Only dialog/popper view registry; maps view IDs to native constructors
-│   │   ├── Dialog.tsx              # Base dialog component
+│   │   ├── DialogsView.ts          # Native dialog host
 │   │   ├── ConfirmationDialog.ts
 │   │   ├── InputDialog.ts
 │   │   ├── PasswordDialog.ts
@@ -304,11 +302,11 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── NamespaceCollisionDialog.ts # Non-blocking advisory at board registration when the new board's author/name namespace collides with an already-registered board
 │   │   ├── TextDialog.ts            # Multi-purpose text dialog (Monaco editor)
 │   │   ├── alerts/                 # Notification bar
-│   │   │   ├── AlertsBar.tsx
-│   │   │   └── AlertItem.tsx
+│   │   │   ├── AlertsBar.ts
+│   │   │   └── AlertItem.ts
 │   │   ├── progress/               # Progress overlay, notifications, screen lock
 │   │   │   ├── ProgressModel.ts    # State + API (showProgress, createProgress, notifyProgress, addScreenLock)
-│   │   │   └── Progress.tsx        # React component (two-zone overlay)
+│   │   │   └── ProgressOverlay.ts  # Two-zone overlay model
 │   │   ├── poppers/                # Floating menus
 │   │   │   ├── Poppers.ts
 │   │   │   ├── PoppersView.ts      # Native popper host and slot ownership
@@ -336,9 +334,9 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── editor-switch.ts          # switchMainEditor — switch-widget transition (host transfer / rebuild)
 │   │   ├── PageToolbarView.ts        # Native page toolbar — NavPanel + switch widget auto-slots
 │   │   ├── TextChromeView.ts         # Native host-aware chrome (toolbar, script panel, footer)
-│   │   ├── EditorToolbar.ts          # React-facing compatibility face
+│   │   ├── EditorToolbar.ts          # Editor toolbar model
 │   │   ├── EditorToolbarView.ts      # Native toolbar root used by individual editors
-│   │   ├── ContentHostFooter.ts      # React-facing compatibility face
+│   │   ├── ContentHostFooter.ts      # Shared text-host footer model
 │   │   ├── ContentHostFooterView.ts  # Native text-host footer
 │   │   ├── ContentHostFooter.css     # Footer styles
 │   │   ├── EditorConfig.ts            # Editor configuration value and empty default
@@ -349,7 +347,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── TextFileIOModel.ts        # File I/O via content pipes (read/write/watch/cache)
 │   │   ├── TextFileActionsModel.ts   # Text actions (duplicate, transform)
 │   │   ├── TextFileEncryptionModel.ts # Encryption state machine
-│   │   ├── ScriptPanel.ts            # Script panel model + React-facing compatibility face
+│   │   ├── ScriptPanel.ts            # Script panel model
 │   │   ├── ScriptPanelView.ts        # Native inline script runner panel
 │   │   ├── paste-rich-text.ts        # Rich-text paste handler
 │   │   └── index.ts
@@ -410,8 +408,8 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── NoteItemView.ts           # Recycled native note cell
 │   │   ├── NoteItemViewModel.ts      # Per-row view model for virtualized note list
 │   │   ├── ExpandedNoteView.ts        # Expanded note overlay
-│   │   ├── TagsListView.tsx
-│   │   ├── category-tree.tsx
+│   │   ├── TagsListView.ts
+│   │   ├── category-tree.ts
 │   │   ├── notebookTypes.ts
 │   │   ├── note-editor/              # Per-note embedded editor subsystem
 │   │   │   ├── NoteItemEditModel.ts  # IContentHost for one note (no file I/O — state in notebook JSON)
@@ -420,8 +418,8 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   │   ├── NoteItemToolbarView.ts
 │   │   │   └── index.ts
 │   │   ├── panels/                   # Secondary view panel components
-│   │   │   ├── NotebookCategoriesSecondaryView.tsx  # "notebook-categories" panel
-│   │   │   └── NotebookTagsSecondaryView.tsx        # "notebook-tags" panel
+│   │   │   ├── NotebookCategoriesSecondaryView.ts  # "notebook-categories" panel
+│   │   │   └── NotebookTagsSecondaryView.ts        # "notebook-tags" panel
 │   │   └── index.ts
 │   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
@@ -433,8 +431,8 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── pipe-image-src.ts         # usePipeImageSrc — reads an archive-entry imgSrc through a content pipe into a cached blob URL; every other src shape passes through
 │   │   ├── panels/                   # Shared panel components (inline + secondary view)
 │   │   │   ├── LinkCategoryPanel.ts         # Categories tree panel
-│   │   │   ├── LinkTagsPanel.tsx           # Tags list panel
-│   │   │   ├── LinkHostnamesPanel.tsx      # Hostnames list panel
+│   │   │   ├── LinkTagsPanel.ts             # Tags list panel
+│   │   │   ├── LinkHostnamesPanel.ts        # Hostnames list panel
 │   │   │   ├── LinkCategorySecondaryView.ts    # Secondary view wrapper
 │   │   │   ├── LinkTagsSecondaryView.ts        # Secondary view wrapper
 │   │   │   └── LinkHostnamesSecondaryView.ts   # Secondary view wrapper
@@ -500,7 +498,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
 │   │   ├── LogBodyView.ts             # Log viewer native view (VirtualFlexGridView + auto-scroll)
-│   │   ├── LogBody.ts                # React-facing mount face
+│   │   ├── LogBodyView.ts             # Log viewer native view
 │   │   ├── LogEntryWrapper.ts        # Cell root — subscribes to entries[index]
 │   │   ├── LogEntryContent.ts        # Type router — dispatches to entry renderers
 │   │   ├── LogMessageView.ts          # Log message renderer
@@ -613,9 +611,9 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── explorer/           # File explorer (non-text, sidebar-only)
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── page-explorer.ts          # Explorer provisioning for a page — toggleNavigator, auto-init
-│   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
+│   │   ├── ExplorerSecondaryView.ts   # "explorer" panel — tree view with portaled header
 │   │   ├── SearchSecondaryView.ts  # "search" panel — file search with native header
-│   │   ├── BoardsSecondaryView.tsx # "boards" panel — Boards/Tools body switch: trusted boards (BoardsTree) or registered toolsets (ToolsTree) under the Explorer root; "+ New board" in the switch row
+│   │   ├── BoardsSecondaryView.ts # "boards" panel — Boards/Tools body switch: trusted boards (BoardsTree) or registered toolsets (ToolsTree) under the Explorer root; "+ New board" in the switch row
 │   │   └── index.ts
 │   ├── mneme-config/       # Mneme config & monitoring editor (non-text, no trait)
 │   │   ├── MnemeConfigEditorModel.ts # EditorModel — roots, include/ignore, reindex + progress, model, status polling
@@ -623,13 +621,13 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── RootsPanel.ts             # Roots + include/ignore + reindex/progress
 │   │   ├── ModelPanel.ts             # Embedding-model status + update
 │   │   ├── mnemeTypes.ts             # Shared types + parseToolResult helper
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── mneme-root/         # Mneme root — search main view + Explorer-like tree sidebar (Pattern B navigation-singleton, per-folder)
 │   │   ├── MnemeRootEditorModel.ts   # EditorModel — root resolve, search (text/vector/hybrid), tree state
 │   │   ├── MnemeRootEditorView.ts    # Search UI + ranked results
-│   │   ├── MnemeTreeSecondaryView.tsx # "mneme-tree" sidebar panel (browse/create/rename/delete/drop)
+│   │   ├── MnemeTreeSecondaryView.ts # "mneme-tree" sidebar panel (browse/create/rename/delete/drop)
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── board/              # Board editor (non-text, Pattern B survive-navigation)
 │   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, live iframe ref, icon; opens any board root; busy keep-alive (survives navigation as an invisible ownership handle while its processes run)
 │   │   ├── BoardEditorView.ts        # Native four-way board branch host
@@ -660,7 +658,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── ToolsHubEditor.ts         # EditorModel — HubTab state; Built-in / Registered boards / Search boards / Tools
 │   │   ├── ToolsHubView.ts            # Tab strip + body + right Pinned rail
 │   │   ├── SearchBoardsTab.ts         # Published-catalog browse/filter — board cards → Board Info page
-│   │   └── index.tsx
+│   │   └── index.ts
 │   ├── toolset/            # Per-toolset viewer (non-text, no trait) — opened via persephone-toolset://
 │   │   ├── ToolsetEditorModel.ts     # EditorModel ("toolset-view") — reads manifest, exposes tool list + log path; restore from toolsetRoot
 │   │   ├── ToolsetEditorView.ts       # Native read-only view — manifest info + tool cards
@@ -671,13 +669,13 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── shared/             # Shared editor utilities and Monaco widget hosts
 │   │   ├── link-open-menu.ts
 │   │   ├── MonacoEditorHostView.ts   # VanillaView host for monaco.editor.create
-│   │   ├── MonacoEditorHost.ts       # React mountVanilla face for the single-editor host
+│   │   ├── MonacoEditorHostView.ts   # VanillaView host for the single-editor host
 │   │   ├── MonacoEditorHostView.css  # Single-editor host flex geometry
 │   │   ├── MonacoDiffEditorHostView.ts # VanillaView host for createDiffEditor
-│   │   ├── MonacoDiffEditorHost.ts   # React mountVanilla face for the diff host
+│   │   ├── MonacoDiffEditorHostView.ts # VanillaView host for the diff host
 │   │   ├── MonacoDiffEditorHostView.css # Diff-host flex geometry
 │   │   ├── ColorizedCodeView.ts      # Native syntax-highlighted code via Monaco colorize()
-│   │   └── ColorizedCode.ts          # React residual-props face
+│   │   └── ColorizedCodeView.ts      # Native syntax-highlighted code
 │   │
 │   ├── register-editors.ts # Editor registration — table-driven (EDITORS rows + loop) + content-host module preload
 │   ├── types.ts            # View-module prop types (required native EditorModule.View)
@@ -782,8 +780,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │       ├── deps-gate.ts    # Fixed-length repaint/dependency identity gate
 │       ├── element-id.ts   # Shared DOM id allocation for generated elements
 │       ├── fill-slot.ts    # React-valued slot bridge
-│       ├── mount.tsx       # React host and nested React-root boundary adapters
-│       ├── react-compat.ts # Residual React prop/event/ref bridge
+│       ├── dom-props.ts    # Native attributes, events, refs, and rest-prop bridge
 │       └── slots.ts        # Neutral icon and slot-content types/resolution
 │
 ├── components/             # Persephone-Coupled Components (KEEP-only)
@@ -846,7 +843,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │
 ├── theme/                  # Styling
 │   ├── color.ts            # Color tokens (CSS custom properties)
-│   ├── GlobalStyles.tsx    # React global-style island (the sole startup React root)
+│   ├── global-styles.ts    # Native theme-dependent global stylesheet
 │   ├── icons.ts             # SVG icon DOM builders and builder contract
 │   ├── icon-registry.ts    # Single-source-of-truth names for registered SVG icons
 │   ├── language-icons.ts   # Language-specific DOM-built icons
@@ -861,7 +858,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── window.d.ts         # Window interface extension
 │   └── events.d.ts         # MouseEvent extension
 │
-└── index.tsx               # mount(container): application composition root
+└── index.ts                # mount(container): application composition root
 ```
 
 ## Main Process Structure

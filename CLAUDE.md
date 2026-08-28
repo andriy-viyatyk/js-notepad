@@ -122,7 +122,7 @@ The user may say "review done tasks" or "run review for completed tasks" at any 
 | Add sidebar panels            | [/doc/architecture/secondary-views.md](doc/architecture/secondary-views.md) |
 | Work with scripting system    | [/doc/architecture/scripting.md](doc/architecture/scripting.md) |
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |
-| Check the current Emotion and inline-style inventory | [/doc/architecture/styling-inventory.md](doc/architecture/styling-inventory.md) |
+| Check the current styling and inline-style inventory | [/doc/architecture/styling-inventory.md](doc/architecture/styling-inventory.md) |
 | See active/planned work       | [/doc/active-work.md](doc/active-work.md) |
 | Find the file that owns a behavior | [/doc/architecture/key-files.md](doc/architecture/key-files.md) |
 | See future ideas              | [/doc/tasks/backlog.md](doc/tasks/backlog.md) |
@@ -150,11 +150,11 @@ Persephone (formerly js-notepad) is a Windows Notepad replacement for developers
 ## Tech Stack
 
 - **Runtime:** Electron 43 — [Castlabs ECS](https://github.com/castlabs/electron-releases) fork with Widevine DRM support (nodeIntegration: true, contextIsolation: false)
-- **Frontend:** React 19 islands plus framework-free `VanillaView` classes, all in TypeScript
+- **Frontend:** Framework-free `VanillaView` classes, with React 19 confined to the Excalidraw vendor island in `editors/draw/**`
 - **Editor:** Monaco Editor
 - **State:** Custom reactive primitives (TOneState, TGlobalState, TComponentState, TModel)
 - **Build:** Vite 8 (rolldown) — `scripts/dev.mjs` (dev server + HMR), `scripts/build-prod.mjs` (production bundle), electron-builder (installer/packaging)
-- **Styling:** Static/co-located CSS for the native shell and converted components; one non-story Emotion importer (`theme/GlobalStyles.tsx`); editor-local CSS for generated content and third-party/native hosts
+- **Styling:** Static/co-located CSS for the native shell and components; no Emotion; editor-local CSS for generated content and third-party/native hosts
 
 ## Commands
 
@@ -170,9 +170,9 @@ npm run lint        # Run ESLint
 ```
 /src
   /main              # Electron main process
-  /renderer          # React islands + VanillaView frontend
+  /renderer          # VanillaView frontend; React is confined to editors/draw/**
     /api             # Object Model — app.settings, app.pages, app.fs, app.proc, etc.
-    /ui              # Native application shell — MainPage, tabs, sidebar, dialogs (React-facing faces remain)
+    /ui              # Native application shell — MainPage, tabs, sidebar, dialogs
     /editors         # ALL editors (text, grid, markdown, compare, notebook, board, …)
     /content         # Content delivery — providers, transformers, pipes
     /scripting       # Script execution, wrappers, editor facades, worker
@@ -254,10 +254,10 @@ TextFileIOModel uses dual pipes: primary (source file) + cache (auto-save). Pipe
 
 ### 7. React-root measurement and conversion debugging
 
+`editors/draw/react-island.ts` owns the only application React-root adapter, and
 `mountReactHandle` marks its host with `data-react-root`; this is the authoritative marker for a
-live React root. `fillSlot` additionally marks its wrapper with `data-part="react-slot"`, but some
-native Dialog and Tag slots also carry that marker, so it can over-report roots. Use
-`data-react-root` for root counts and `data-part="react-slot"` only to locate compatibility slots.
+live React root. `fillSlot` is native and does not create React roots. Use `data-react-root` for
+root counts when verifying the Excalidraw island.
 When asserting rendered content, check visibility (for example, `offsetParent`) separately from
 `textContent`, which includes hidden subtrees. If a converted dynamic import reports
 `Failed to fetch dynamically imported module` after a `.tsx` → `.ts` rename, touch the
@@ -266,8 +266,8 @@ importer to invalidate Vite's stale specifier resolution; a renderer reload alon
 ## Coding Standards (Quick Reference)
 
 - **TypeScript** for all new code
-- **Static/co-located CSS** for native views and converted components; residual Emotion only at documented React boundaries; editor-owned generated-content and integration styling stays in scoped local CSS
-- **Functional React components** with hooks where React remains; use `VanillaView` classes for native views
+- **Static/co-located CSS** for native views and converted components; editor-owned generated-content and integration styling stays in scoped local CSS
+- **Functional React components** with hooks only inside `editors/draw/**`; use `VanillaView` classes elsewhere
 - **Direct imports** preferred over barrel imports (avoid circular deps)
 - **Meaningful names** - descriptive, no abbreviations
 - **No hardcoded colors** - All colors must come from `import color from "../../theme/color"`. Never use hex codes, `rgb()`/`rgba()`, or named colors directly in styled components or inline styles. If a needed color doesn't exist in `color`, add it to `color.ts` and all theme definitions in `/src/renderer/theme/themes/`.

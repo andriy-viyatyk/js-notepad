@@ -2,7 +2,7 @@
 
 How sidebar panels work in Persephone. Covers registration, lifecycle hooks, navigation survival, rendering, persistence, and how to add new secondary views.
 
-**Source code:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts), [`SecondaryViewsView.ts`](../../src/renderer/ui/secondary-views/SecondaryViewsView.ts), and the React-facing [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx) shim.
+**Source code:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts), [`SecondaryViewsView.ts`](../../src/renderer/ui/secondary-views/SecondaryViewsView.ts), and the native secondary-view registry.
 
 ---
 
@@ -92,7 +92,7 @@ EditorModel provides lifecycle hooks that PageModel calls at specific moments:
 |------|-----------|------|---------------|-------------|
 | `setPage(page)` | `addSecondaryView()`, `setMainEditor()` | Model attached to / detached from a page | Stores reference | Registration (e.g., ArchiveEditorModel sets `secondaryView` here) |
 | `beforeNavigateAway(newEditor)` | `setMainEditor()` | Old mainEditor is about to be replaced | Clears `secondaryView` (remove self) | Conditional survival (check `newEditor.sourceLink`) |
-| `onMainEditorChanged(newMainEditor)` | `notifyMainEditorChanged()` | After mainEditor was replaced | No-op | React to new content: highlight file in tree, clear selection, or remove self |
+| `onMainEditorChanged(newMainEditor)` | `notifyMainEditorChanged()` | After mainEditor was replaced | No-op | Respond to new content: highlight file in tree, clear selection, or remove self |
 | `onPanelExpanded(panelId)` | `setActivePanel()` | A panel belonging to this model was expanded | No-op | Deferred reveal (scroll to highlighted item); sync derived state from the active panel |
 
 `onPanelExpanded` runs on the **model**, so it fires whenever the active panel changes —
@@ -211,7 +211,7 @@ Editor ids are UUIDs and panel-type ids are kebab-case, so `"::"` is an unambigu
 
 ## 6. Rendering in SecondaryViews
 
-**Source:** [`SecondaryViewsView.ts`](../../src/renderer/ui/secondary-views/SecondaryViewsView.ts) and the React-facing [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx) shim.
+**Source:** [`SecondaryViewsView.ts`](../../src/renderer/ui/secondary-views/SecondaryViewsView.ts) and the native secondary-view registry.
 
 The native rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryView[]` panel IDs. Every `(model, panelId)` pair is rendered — there is **no** panel-id-uniqueness restriction (the page may render multiple panels of the same type — one per repo). The `CollapsiblePanel` `id` is the **composite** key (§5a); the registry lookup and the `LazySecondaryViewView panelId` prop stay **bare**:
 
@@ -228,7 +228,7 @@ Each descriptor is backed by a native `LazySecondaryViewView` and a native
 `CollapsiblePanelStackView`. The stack publishes `headerRef` after the panel is
 created; the provider passes that ref to `SideBarPanelHeaderView` on every update.
 
-The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
+The stable view key stays `${model.id}-${panelId}`; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 
 **Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor DOM icon otherwise** — by `createIconElement()` or `createEditorIconElement()`. Editor models that own a no-language glyph may expose `getIconElement()`; language editors use the shared file-icon resolver. The resulting `Node` is passed as `SecondaryViewProps.iconElement` to the native panel and then to `SideBarPanelHeaderView`.
 

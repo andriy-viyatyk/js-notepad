@@ -17,9 +17,9 @@ persephone is an **Electron desktop application** — a Windows Notepad replacem
 │                    Electron Application                      │
 ├─────────────────────┬───────────────────────────────────────┤
 │    Main Process     │          Renderer Process             │
-│    (Node.js)        │       (Chromium + React/Vanilla)      │
+│    (Node.js)        │       (Chromium + native VanillaView) │
 ├─────────────────────┼───────────────────────────────────────┤
-│ - Window management │ - React islands + VanillaView shell   │
+│ - Window management │ - Native VanillaView application     │
 │ - System tray       │ - Monaco Editor                       │
 │ - File dialogs      │ - Object Model (app.*)                │
 │ - Named Pipe server │ - Script execution                    │
@@ -41,10 +41,10 @@ persephone is an **Electron desktop application** — a Windows Notepad replacem
 
 ## Object Model
 
-The **Object Model** is the central architectural concept. It provides a single, typed API (`app.*`) that all consumers use — React components, `VanillaView` classes, user scripts, and coding agents all access the same interfaces.
+The **Object Model** is the central architectural concept. It provides a single, typed API (`app.*`) that all consumers use — native views, the bounded Excalidraw React island, user scripts, and coding agents all access the same interfaces.
 
 ```
-  Consumers:   React/Vanilla UI  │  User Scripts  │  Coding Agents
+  Consumers:    Native UI + draw island │ User Scripts │ Coding Agents
                  │               │                │
   Access:    direct import  │  app/page globals  │  .d.ts types
                  │               │                │
@@ -76,7 +76,7 @@ Type definitions live in `/src/renderer/api/types/*.d.ts` and serve triple duty:
 
 ## Bootstrap Sequence
 
-Each renderer window bootstraps via `src/renderer.tsx`:
+Each renderer window bootstraps via `src/renderer.ts`:
 
 ```
 1. app.init()          ──  Fetch version from main process
@@ -86,21 +86,19 @@ Each renderer window bootstraps via `src/renderer.tsx`:
 5. app.initPages()     ──  Restore persisted pages, handle CLI args
 6. app.initEvents()    ──  Subscribe to global/keyboard/IPC events, init MCP handler
 7. api.windowReady()   ──  Signal main process → window shown
-8. `mount(container)`  ──  Vanilla shell mounts; React islands appear as needed
+8. `mount(container)`  ──  Native shell mounts; the draw editor owns its vendor island when opened
 ```
 
 Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previous).
 
 ## Renderer Architecture
 
-The renderer has a framework-free application shell. `src/renderer.tsx` performs the asynchronous
-bootstrap and calls the `mount(container)` export from `src/renderer/index.tsx`. The shell and
-coupled components are `VanillaView` classes; thin React-facing mount faces remain only where a
-React caller still exists. Editor bodies are native views, with one deliberate vendor island in
-`editors/draw/ExcalidrawIsland.tsx` because Excalidraw requires React. React also remains at the
-Storybook component-story and compatibility boundaries. The sole startup React root is the
-`GlobalStyles` island; application pages and the browser editor's internal tabs enter native
-page-manager slots directly.
+The renderer has a framework-free application shell. `src/renderer.ts` performs the asynchronous
+bootstrap and calls the `mount(container)` export from `src/renderer/index.ts`. The shell,
+coupled components, editor bodies, and Storybook are `VanillaView` classes. React is confined to
+the Excalidraw vendor island in `editors/draw/ExcalidrawIsland.tsx`; its root adapter lives beside
+that editor in `editors/draw/react-island.ts`. Global styles are installed by the native
+`theme/global-styles.ts` module, so startup creates no React root.
 
 ```
 /src/renderer/
@@ -127,7 +125,7 @@ page-manager slots directly.
 | **content/** | Content I/O pipeline — providers, transformers, pipes | `ContentPipe.ts`, `parsers.ts`, `resolvers.ts`, `providers/`, `transformers/` |
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
 | **automation/** | Playwright-compatible browser MCP tools, CDP, input, refs | `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
-| **uikit/** | Standalone reusable component library; complex primitives may expose both a React face and a framework-free `VanillaView` over the same model | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `VirtualGrid/` (`VirtualGridView` and `VirtualFlexGridView`), `DataGrid/`, … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
+| **uikit/** | Standalone reusable framework-free component library built from `VanillaView` classes and native DOM builders | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `VirtualGrid/` (`VirtualGridView` and `VirtualFlexGridView`), `DataGrid/`, … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
 | **components/** | Persephone-coupled components and native views only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/` |
 | **core/** | State primitives, utilities | `state/` (TOneState, TModel), `utils/` |
 | **theme/** | Design tokens, themes, static global geometry | `color.ts`, `root.css`, `themes/` |
@@ -168,9 +166,9 @@ See [editors.md](./editors.md).
 
 See [scripting.md](./scripting.md).
 
-- JavaScript/TypeScript execution with `page` and `app` globals
+- JavaScript/TypeScript execution with `page`, `app`, `io`, and `ai` globals
 - TypeScript transpilation via sucrase (lazy-loaded, type stripping only)
-- Full Node.js and React access for scripts
+- Full Node.js access for scripts; renderer UI frameworks are not part of the script context
 - API wrappers (AppWrapper, PageWrapper) provide safe, typed access
 - Editor facades (TextEditorFacade, GridEditorFacade, etc.) for typed editor operations
 - Auto-cleanup of event subscriptions on script completion
@@ -298,10 +296,10 @@ persephone provides UI building blocks (toolbar, editors, grouped pages). Users 
 Every editor follows the same pattern:
 ```
 /editors/[name]/
-├── index.ts / index.tsx  # EditorModule registration (factory + matchers; required native View)
+├── index.ts              # EditorModule registration (factory + matchers; required native View)
 ├── [Name]Editor.ts       # EditorModel subclass — state, lifecycle, business logic
 ├── [Name]BodyView.ts      # Native body (when the editor has an embeddable body)
-├── [Name]Body.tsx         # React body only when a bounded vendor/compatibility island is required
+├── [Name]Body.tsx         # Only for the Excalidraw vendor island under editors/draw/
 └── components/           # Editor-specific (optional)
 ```
 
@@ -309,7 +307,7 @@ Every editor follows the same pattern:
 
 | Type | Convention | Example |
 |------|------------|---------|
-| React Component | PascalCase.tsx | `TextEditor.tsx` |
+| React island | PascalCase.tsx | `ExcalidrawIsland.tsx` (draw only) |
 | Model/State | PascalCase.ts | `PagesModel.ts`, `GridViewModel.ts` |
 | Utility | kebab-case.ts | `csv-utils.ts` |
 | Types | kebab-case.d.ts | `page.d.ts`, `settings.d.ts` |

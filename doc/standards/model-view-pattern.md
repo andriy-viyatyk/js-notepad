@@ -1,21 +1,20 @@
 # Model-View Pattern
 
-This document describes the model-view pattern used for complex components in Persephone. React
-remains the current view runtime for most components, while converted components may use the same
-model from a framework-free `VanillaView`.
+This document describes the model-view pattern used for complex components in Persephone. Renderer
+components use framework-free `VanillaView` classes; the only React code is the bounded Excalidraw
+vendor island under `editors/draw/`.
 
 ## Overview
 
 The model-view pattern separates UI rendering (View) from business logic and state management (Model):
 
-- **View**: a React component function or a `VanillaView` class responsible for rendering UI and
-  binding event handlers
+- **View**: a `VanillaView` class responsible for rendering UI and binding native event handlers
 - **Model**: Class containing all logic, state, and event handlers
 
 This separation provides:
 - Cleaner, more testable code
-- No cycled dependencies in hooks
-- Possibility for alternative views (desktop/mobile) reusing the same model
+- No cyclic dependencies in lifecycle code
+- Possibility for alternative views reusing the same model
 - Better code organization for complex components
 
 ## Editor chrome shapes
@@ -31,11 +30,9 @@ Editor views have three intentional shapes:
   its `SlotContent` children slot.
 
 Export a native main view as `EditorModule.View`, or an embeddable native body as `BodyView`;
-`AsyncEditorView` mounts a main `View` directly. A React body may remain inside a native
-`TextChromeView` slot when it needs React, but it must be wrapped in `EditorErrorBoundary`. The
-`EditorToolbar` and `ContentHostFooter` remain React compatibility faces for callers outside the
-native view path. A converted non-text editor uses `PageToolbarView` directly; there is no separate
-React page-toolbar face to preserve.
+`AsyncEditorView` mounts a main `View` directly. `TextChromeView` and `PageToolbarView` compose
+native child views and DOM slots. The Excalidraw body is the sole exception: it owns one explicit
+React vendor island under `editors/draw/`.
 
 The native main-view shape is used by the text-bearing editor set, including `svg`, `html`,
 `markdown`, `grid`, `mermaid`, `log-view`, and `notebook`; the graph, rest-client, env-vars, and
@@ -48,14 +45,12 @@ dispatch can mount them without page chrome.
 ## When to Use
 
 ### Use Model-View Pattern When:
-- More than 4-5 `useState()` hooks in a component
-- More than 3 `useCallback()` hooks
-- Component function is very long and hard to understand
-- Hooks have many complex dependencies
+- A view has substantial state, event handling, or lifecycle work
+- A view is long or difficult to test as one unit
+- Several views need the same state transitions or domain operations
 
 ### Don't Use When:
-- 1-2 simple `useState()` hooks
-- 1-2 `useCallback()` hooks
+- The view has only a small amount of local DOM state
 - Component is small and easy to understand
 - Simple presentational components
 
@@ -63,7 +58,7 @@ dispatch can mount them without page chrome.
 
 ### TComponentState (state.ts)
 
-State that works both inside and outside React:
+State shared by models and native views:
 
 ```typescript
 import { TComponentState } from "../../core/state/state";
@@ -78,8 +73,10 @@ const value = state.get();
 state.set(newValue);
 state.update((draft) => { draft.field = value; });
 
-// Subscribe to changes in React
-const { field } = state.use((s) => ({ field: s.field }));
+// Subscribe to changes in a native view or model owner
+const unsubscribe = state.subscribe((next) => {
+    renderField(next.field);
+});
 ```
 
 ### TComponentModel (model.ts)
@@ -99,16 +96,30 @@ class MyViewModel extends TComponentModel<MyState, MyProps> {
 }
 ```
 
-### useComponentModel Hook
+### Native component-model driver
 
-Creates and manages the model instance:
+Creates and manages the model instance from a `VanillaView`:
 
 ```typescript
-function MyComponent(props: MyProps) {
-    const viewModel = useComponentModel(props, MyViewModel, defaultState);
-    const { field } = viewModel.state.use((s) => ({ field: s.field }));
+class MyView extends VanillaView<MyProps> {
+    private readonly driver = createComponentModelDriver(
+        this.props, MyViewModel, defaultState,
+    );
 
-    return <div onClick={viewModel.handleClick}>{field}</div>;
+    protected onMount(): void {
+        this.driver.mount();
+        this.bind(this.driver.model.state, (state) => state.field, (field) => {
+            this.root.textContent = String(field);
+        });
+    }
+
+    protected onUpdate(props: MyProps): void {
+        this.driver.update(props);
+    }
+
+    protected onDispose(): void {
+        this.driver.dispose();
+    }
 }
 ```
 
@@ -178,57 +189,53 @@ class MyViewModel extends TComponentModel<MyViewState, MyViewProps> {
 }
 ```
 
-### Step 3: Create View Component
+### Step 3: Create the native view
 
 ```typescript
-function MyComponent(props: MyViewProps) {
-    // Create model — init() and dispose() are called automatically
-    const viewModel = useComponentModel(props, MyViewModel, defaultMyViewState);
+class MyView extends VanillaView<MyViewProps> {
+    private readonly driver: ComponentModelDriver<MyViewState, MyViewProps, MyViewModel>;
 
-    // Subscribe to state (only fields needed for rendering)
-    const { isOpen, selectedIndex } = viewModel.state.use((s) => ({
-        isOpen: s.isOpen,
-        selectedIndex: s.selectedIndex,
-    }));
+    public constructor(props: MyViewProps) {
+        super(props);
+        this.driver = createComponentModelDriver(props, MyViewModel, defaultMyViewState);
+        this.own(() => this.driver.dispose());
+    }
 
-    // Render - no logic, just bind handlers and render
-    return (
-        <div
-            ref={viewModel.setContainerRef}
-            onClick={() => viewModel.handleClick(0)}
-            onKeyDown={viewModel.handleKeyDown}
-        >
-            {isOpen && <Dropdown selectedIndex={selectedIndex} />}
-        </div>
-    );
+    protected onMount(): void {
+        this.driver.mount();
+        this.bind(this.driver.model.state, (state) => [state.isOpen, state.selectedIndex], ([isOpen, selectedIndex]) => {
+            this.root.dataset.state = isOpen ? "open" : "closed";
+            this.root.replaceChildren(isOpen ? document.createTextNode(String(selectedIndex)) : document.createTextNode(""));
+        });
+        this.listen("click", () => this.driver.model.handleClick(0));
+        this.listen("keydown", this.driver.model.handleKeyDown);
+    }
+
+    protected onUpdate(props: MyViewProps): void {
+        this.driver.update(props);
+    }
 }
 ```
 
-**Note:** `useComponentModel` automatically calls `init()` after the first render and `dispose()` on unmount. No `useEffect` boilerplate is needed in the View.
+The driver owns the model lifecycle explicitly: call `mount()` from `onMount()`, forward later
+props with `update()`, and register `dispose()` with the view owner.
 
-## Runtime-neutral model, two view adapters
+## Model and native view driver
 
-`TComponentModel` owns props, state, handlers, and computed behavior. A React View uses
-`useComponentModel`; a vanilla View uses `createComponentModelDriver`. Both adapters pump props
-before initialization and dispose the model owner, but only the React adapter evaluates registered
-model effects. A vanilla-driven model must have zero `TComponentModel.effect()` registrations; the
-driver rejects such a model at mount because those effects depend on React's render timing.
+`TComponentModel` owns props, state, handlers, and computed behavior. A `VanillaView` uses
+`createComponentModelDriver` to pump props, mount the model, and dispose it. Driver-backed models
+must not register `TComponentModel.effect()` entries; those effects depended on the removed React
+render path. Put subscriptions, measurements, and asynchronous work in explicit view lifecycle
+hooks or model methods with clear cleanup.
 
-The model remains independent of the DOM. A React View renders JSX and uses React event handlers;
-a vanilla View owns a stable DOM root and uses native events. Adapters belong at the boundary, not
-inside model methods or ordinary component props.
-
-When a React face is only `mountVanilla(View, props)`, the face does not own a React-rendered DOM
-element and therefore does not receive SyntheticEvents, even when a caller is written in JSX. Its
-event props should use the corresponding native DOM event types, and the view should pass its native
-listener event through unchanged. Keep a React-event adapter only for a face that renders the
-element itself and is actually dispatched to by React.
+The model remains independent of the DOM. The view owns a stable DOM root and uses native events;
+the model receives domain values and callbacks rather than framework-specific event objects.
 
 ## Vanilla lifecycle
 
 `VanillaView<P>` is the framework-free lifecycle base at
 [`src/renderer/uikit/shared/vanilla-view.ts`](../../src/renderer/uikit/shared/vanilla-view.ts).
-Every class passed to `mountVanilla` declares a public constructor because the base constructor is
+Every concrete `VanillaView` declares a public constructor because the base constructor is
 protected:
 
 ```typescript
@@ -371,10 +378,8 @@ conversion complete, inspect the original JSX and exercise each interaction path
 
 ## Effects and the vanilla driver
 
-Model effects are a React compatibility mechanism. `useComponentModel` can evaluate a dependency-
-based effect during a later render after the first mount, so effects must not synchronously write
-to another React-backed model or perform work that must be commit-timed. Keep DOM measurement and
-layout reads in the View's commit-timed React effect or vanilla mount/update hook. Async model work
+Driver-backed native views cannot use model effects: the driver rejects registered effects at
+mount. Keep DOM measurement and layout reads in the View's mount/update hooks. Async model work
 must be cancellable and must not publish after disposal.
 
 For a vanilla view, use `createComponentModelDriver` from
@@ -385,31 +390,20 @@ prop pump and rejects registered effects. It also disposes an explicitly-owned m
 view is disposed before mount; this differs from an uncommitted React render, which never runs its
 unmount effect.
 
-## Choosing a boundary adapter
+## Choosing a boundary
 
-Use [`mountVanilla`](../../src/renderer/uikit/shared/mount.tsx) when a React tree needs to host a
-converted vanilla component. Its host component is module-level and stable, attaches the view root
-before `mount()`, skips the redundant first update, and replaces the instance only when the
-constructor identity changes. Use [`mountReact`](../../src/renderer/uikit/shared/mount.tsx) only
-when a vanilla view temporarily owns a React subtree for which no vanilla equivalent exists. The
-vanilla view owns that host element; the returned disposer owns the React root. Neither adapter
-should be used for ordinary DOM nodes, whole-application mounting, or to avoid converting a parent
-or child that is already in scope.
-
-The concrete end-to-end reference is
-[`PathInputView`](../../src/renderer/uikit/PathInput/PathInputView.ts), which combines the
-driver, `bind`, `KeyedList`, native events, static CSS, and a deliberately local `mountReact`
-bridge.
+Native components compose `VanillaView` instances directly. The concrete end-to-end reference is
+[`PathInputView`](../../src/renderer/uikit/PathInput/PathInputView.ts), which combines the driver,
+`bind`, `KeyedList`, native events, and static CSS. The only React boundary is the Excalidraw
+vendor adapter at [`editors/draw/react-island.ts`](../../src/renderer/editors/draw/react-island.ts);
+do not add a general-purpose renderer adapter for ordinary DOM nodes or converted components.
 
 ### Hosting an imperative widget
 
-An imperative third-party widget belongs in a `VanillaView`, with a thin React face only when a
-React tree still needs to host it. The view owns widget creation, subscriptions, model ownership,
-and disposal; the face calls `mountVanilla` and must not recreate that lifecycle in hooks. A mount
-callback should return the view instance when consumers need imperative operations, because
-`mountVanilla` otherwise exposes only the mounted DOM root. The view can expose the raw widget
-through a deliberately named escape hatch such as `getEditor()` without making consumers depend on
-the widget for lifecycle or synchronization policy.
+An imperative third-party widget belongs in a `VanillaView`. The view owns widget creation,
+subscriptions, model ownership, and disposal. It can expose the raw widget through a deliberately
+named escape hatch such as `getEditor()` without making consumers depend on the widget for lifecycle
+or synchronization policy.
 
 For uncontrolled widgets, distinguish mount-only initial props from later commands. A prop named
 `initialValue` is not a controlled value: subsequent external writes go through a view method, which
@@ -419,18 +413,17 @@ widget no longer references them, never dispose borrowed models, and defer dispo
 releases references asynchronously. Widget geometry belongs to scoped static CSS on the view root,
 not to a generic adapter prop.
 
-For a React-valued slot inside a vanilla view, use `fillSlot` from
+For a native slot inside a vanilla view, use `fillSlot` from
 [`uikit/shared/fill-slot.ts`](../../src/renderer/uikit/shared/fill-slot.ts). It owns the supplied
-host, reuses the nested React root when the slot remains React-backed, and defers disposal when a
-React root must be released during another React commit. Do not mutate a fill-slot host directly;
-the host's direct-child shape is part of the component contract. Use `mountReactHandle` directly
-only when the view owns a deliberate multi-node React bridge or needs to retain a render handle.
+host and replaces text or DOM-node content with generation-safe cleanup. Do not mutate a fill-slot
+host directly; the host's direct-child shape is part of the component contract. The draw editor's
+`react-island.ts` is the only place that may create a React root.
 
 Never pass a `DocumentFragment` as a slot value: slot filling appends the supplied node, which
 consumes a fragment on the first fill and leaves later refills empty. Use a persistent element or a
 mounted view root for content that may be projected more than once.
 
-Every React root created by `mountReactHandle` marks its host with
+The React root created by draw's `mountReactHandle` marks its host with
 `data-react-root`; disposal removes the marker. A root created directly by that helper is not
 inside the `[data-part="react-slot"]` host used by `fillSlot`, so DOM measurements of React
 islands must query both `[data-part="react-slot"]` and `[data-react-root]`.
@@ -446,14 +439,6 @@ resolution. Touch the importer to invalidate it before debugging the conversion 
 ## Before and after: the same model, two view runtimes
 
 ```typescript
-// React view
-function PathInput(props: PathInputProps) {
-    const model = useComponentModel(props, PathInputModel, defaultPathInputState);
-    const { open } = model.state.use((state) => ({ open: state.open }));
-    return <input data-type="path-input" data-state={open ? "open" : "closed"} />;
-}
-
-// Vanilla view
 class PathInputView extends VanillaView<PathInputViewProps> {
     public constructor(props: PathInputViewProps) {
         super(props);
@@ -476,11 +461,13 @@ class PathInputView extends VanillaView<PathInputViewProps> {
 }
 ```
 
-The two views share the model and state contract; they do not share a React callback-slot API.
+The view shares the model and state contract directly; its slot and event APIs are native.
 
 ## Effect and Memo Primitives
 
-`TComponentModel` provides `effect()` and `memo()` — model-level equivalents of React's `useEffect` and `useMemo`. These allow ALL logic to live in the Model, making Views pure render functions.
+`TComponentModel` provides `effect()` and `memo()` for model-level derived work. Native
+`createComponentModelDriver` views must not register `effect()`; use explicit lifecycle hooks for
+subscriptions and measurements.
 
 ### effect(callback, depsFactory?)
 
@@ -539,35 +526,25 @@ class MyViewModel extends TComponentModel<MyState, MyProps> {
 
 ### Lifecycle Summary
 
-| Primitive | React Equivalent | Where to Define | When Evaluated |
+| Primitive | Where to Define | When Evaluated |
 |-----------|-----------------|-----------------|----------------|
-| `this.effect(cb)` | `useEffect(cb, [])` | `init()` | Once on init, cleanup on unmount |
-| `this.effect(cb, deps)` | `useEffect(cb, deps)` | `init()` | Each render cycle when deps change |
-| `this.memo(fn, deps)` | `useMemo(fn, deps)` | Class body or `init()` | On `.value` access when deps change |
-| `init()` | `useEffect(() => init(), [])` | Class | Once, after first render |
-| `dispose()` | `useEffect(() => () => dispose(), [])` | Class | Once, on unmount |
+| `this.effect(cb)` | `init()` | Rejected by native driver; use explicit subscriptions |
+| `this.effect(cb, deps)` | `init()` | Rejected by native driver; use explicit updates |
+| `this.memo(fn, deps)` | Class body or `init()` | On `.value` access when deps change |
+| `init()` | Class | On explicit driver mount |
+| `dispose()` | Class | On explicit driver/view disposal |
 
-### Render-phase effect constraint
+### Native update constraint
 
-`useComponentModel` calls `setPropsInternal(props)` while rendering. After `init()` has
-registered an effect, a dependency-based `this.effect()` may therefore run during a later render
-when its dependencies change; the first evaluation still occurs after mount. Treat model effects
-as render-phase-capable code:
+The native driver pumps props explicitly through `driver.update(props)` and rejects models that
+register `effect()` entries. Keep prop-to-state seeding behind an identity guard in `setProps()`;
+put DOM measurement and layout reads in the View's mount/update hooks, and make asynchronous model
+work cancellable so it cannot publish after disposal.
 
-- Do not synchronously update another React-backed model or component from a dependency-based
-  effect. Such a write can produce a render-phase update warning or a render loop.
-- Keep prop-to-state seeding behind an identity guard in `setProps()`, because `setPropsInternal()`
-  runs on every parent render.
-- Keep DOM measurement, layout reads, and other work that must be commit-timed in the View's
-  `useEffect`. Model effects are appropriate for subscriptions, timers, and asynchronous results
-  when their cleanup and cancellation are explicit.
-- Do not enable Strict Mode without auditing these effects for double invocation; model effects
-  are not a substitute for React's commit-timed effect contract.
-
-When a model state has many fields, subscribe to the stored fields the View actually renders with
-`state.use(selector)`. Return stored values from selectors; put derived arrays or objects in a
-model `memo()` rather than allocating them inside the selector, or structural/reference comparison
-will cause unnecessary renders.
+When a model state has many fields, subscribe to only the stored fields the View actually renders
+with `VanillaView.bind(state, selector, render)`. Return stored values from selectors; put derived
+arrays or objects in a model `memo()` rather than allocating them inside the selector, or
+structural/reference comparison will cause unnecessary updates.
 
 ---
 

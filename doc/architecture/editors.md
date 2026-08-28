@@ -80,9 +80,9 @@ RenderEditor
     └── module.View → native VanillaView root
 ```
 
-All editors flow through the same path — there is no longer a content-view branching point that wraps text-bearing editors inside `TextEditorView`. Every `EditorModule` has one required framework-free `View` arm, and `AsyncEditorView` mounts it directly. Native text editors compose `TextChromeView`, while no-host editors that need shared page controls compose `PageToolbarView`. `EditorToolbar` and `ContentHostFooter` remain thin React compatibility faces for callers that still live in React; they are not editor-module arms.
+All editors flow through the same path — there is no longer a content-view branching point that wraps text-bearing editors inside `TextEditorView`. Every `EditorModule` has one required framework-free `View` arm, and `AsyncEditorView` mounts it directly. Native text editors compose `TextChromeView`, while no-host editors that need shared page controls compose `PageToolbarView`. `EditorToolbar` and `ContentHostFooter` are native views, not editor-module arms.
 
-**Error protection:** `AsyncEditorView` catches native editor construction, mount, update, and module-load failures and displays `NativeEditorErrorView` with the error message and optional stack. React bodies that remain inside a native editor's `TextChromeView` slot are still wrapped in `EditorErrorBoundary` (`/src/renderer/ui/app/EditorErrorBoundary.tsx`); that boundary is a compatibility boundary, not part of the editor registry.
+**Error protection:** `AsyncEditorView` catches native editor construction, mount, update, and module-load failures and displays `NativeEditorErrorView` with the error message and optional stack.
 
 The graph, rest-client, env-vars, and file-diff editor bodies are native `VanillaView`s. The draw
 editor is native around its vendor boundary: `DrawBodyView` owns the chrome, model bindings, and
@@ -94,8 +94,7 @@ when the hosted widget cannot establish its own size.
 
 Monaco widgets are owned by two framework-free hosts in `editors/shared/`: `MonacoEditorHostView`
 wraps `monaco.editor.create`, and `MonacoDiffEditorHostView` wraps
-`monaco.editor.createDiffEditor`. Their `.tsx` files are thin React faces that call `mountVanilla`;
-they preserve React call sites without making React the owner of the Monaco lifecycle.
+`monaco.editor.createDiffEditor`. Their `*View.ts` files own the Monaco lifecycle directly.
 
 The hosts are uncontrolled. `initialValue`, or `initialOriginal` and `initialModified`, is read only
 when the widget mounts. Later content changes go through `setValue(next)` or
@@ -332,7 +331,7 @@ When the **source** is host-less but the **target** is a built-in file editor, a
 
 ## EditorModule Interface & Registration
 
-Each editor folder's `index.ts` or `index.tsx` exports an `EditorModule` — the lazily-loaded half of the
+Each editor folder's `index.ts` exports an `EditorModule` — the lazily-loaded half of the
 registration (`/src/renderer/editors/base/editorRegistry.ts`):
 
 ```typescript
@@ -350,9 +349,8 @@ interface EditorModule {
 ```
 
 `View` is required and `BodyView` is optional for embeddable editors. The registry stores and
-returns the native constructor as-is; it has no React arm and no normalization shim. React chrome
-faces use `mountVanilla` only where a React caller still exists, while `AsyncEditorView` always
-mounts the module's `View` directly.
+returns the native constructor as-is; it has no React arm and no normalization shim. All chrome
+callers use native views, and `AsyncEditorView` mounts the module's `View` directly.
 
 The eagerly-registered half is the `EditorDefinition` (`id`, `name`, `accepts`,
 `hasContentHost`, `match?`, `loadModule`). Registration lives in
@@ -533,10 +531,10 @@ Every editor follows this pattern:
 
 ```
 /editors/[name]/
-├── index.ts / index.tsx   # EditorModule export — factory + matchers
+├── index.ts               # EditorModule export — factory + matchers
 ├── [Name]Editor.ts        # EditorModel subclass (state, lifecycle, business logic)
 ├── [Name]BodyView.ts      # Native body, or [Name]View.ts for a standalone main view
-├── [Name]Body.tsx         # React body only for a bounded vendor/compatibility island
+├── [Name]Body.tsx         # Only for the Excalidraw vendor island under editors/draw/
 ├── components/            # Editor-specific components (optional)
 └── utils/                 # Editor-specific utilities (optional)
 ```

@@ -19,13 +19,13 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 
 **UIKit primitives** follow the rules in [`src/renderer/uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md). Briefly:
 
-- **Rule 1** — `data-type` (required) + `data-*` state attributes on the root element; style state via scoped attribute selectors, never via state classes. Converted components use co-located static CSS; unconverted components retain the legacy Emotion form until migration.
+- **Rule 1** — `data-type` (required) + `data-*` state attributes on the root element; style state via scoped attribute selectors, never via state classes. Components use co-located static CSS.
 - **Rule 2** — controlled components only; never `useState` for the component's primary value.
 - **Rule 3** — list/collection props accept `T[] | Traited<T[]>`; resolve with `resolveTraited(items, KEY)` at the top.
 - **Rule 4** — roving tabindex inside keyboard-navigable widgets (Toolbar, Tree, ListBox, SegmentedControl, Tab bar).
 - **Rule 5** — focus trap inside modal dialogs.
 - **Rule 6** — `ComponentSet` descriptor pattern for runtime-built UIs.
-- **Rule 7** — no Emotion outside `uikit/` in app code, and no `style=` / `className=` **on a UIKit component** (exception: `src/renderer/ui/` chrome). The `style`/`className` half of the rule scopes to UIKit components, not to raw HTML elements — an inline style object on a plain `<img>` or `<div>` in app code is fine, and is the intended escape hatch when a one-off element needs sizing that no UIKit primitive covers.
+- **Rule 7** — Emotion is not part of the renderer. Do not add runtime styling imports; use co-located static CSS. Do not add `style=` / `className=` **on a UIKit component** (exception: `src/renderer/ui/` chrome). The `style`/`className` half of the rule scopes to UIKit components, not to raw HTML elements — an inline style object on a plain `<img>` or `<div>` in app code is fine, and is the intended escape hatch when a one-off element needs sizing that no UIKit primitive covers.
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
 - **Rule 9** — converted components may expose a framework-free `VanillaView`; follow the lifecycle, ownership, model-driver, and structural-helper contract in [`model-view-pattern.md`](./model-view-pattern.md).
 - **Primitive attribute contract** — never override a UIKit primitive's generated `data-type`; its CSS is keyed by that value. Use an additive class or a separate data attribute for app-specific state.
@@ -53,11 +53,10 @@ wrong, TypeScript rejects it and the runtime resolver throws if the type boundar
 Runtime-sourced names must be validated at their boundary and use the visible icon placeholder; an
 empty `<svg>` is never a valid fallback.
 
-`SlotContent` is the shared slot-content type (`string | Node | React.ReactNode`) for native-facing
-slot contracts throughout the renderer, including `components/` and `editors/`, not only inside
-`uikit/`. `SlotText` remains `string | ReactNode` for tooltip-like APIs that intentionally do not
-promise a DOM-node body. `fillSlot` remains able to host React content while those callers are
-still React-backed. Narrowing `IconRef` does not make UIKit or `mount.tsx` React-free.
+`SlotContent` is the native slot-content type exported by `uikit/shared/fill-slot.ts`; it accepts
+text, DOM nodes, and arrays of those values. `fillSlot` owns replacement and cleanup for a
+view-owned DOM region. React values are not part of the UIKit slot contract; the sole React
+island is the Excalidraw vendor boundary under `editors/draw/`.
 
 For a `Tree` row's right-side content, use `renderTrailing` for a slot value that may be rebuilt,
 and `trailingElement` for a stable, caller-owned DOM node. The direct-node form is identity-aware:
@@ -82,8 +81,7 @@ removing either; typechecking and production builds do not detect an unused face
 ### Storybook stories
 
 Storybook stories are records consumed by the in-app component gallery. Declare a story with
-`Story<P>`, where `P` is the props surface sent to the story's demo, and make the two rendering
-arms mutually exclusive:
+`Story<P>`, where `P` is the props surface sent to its native demo view:
 
 ```ts
 const buttonStory: Story<ButtonDemoProps> = {
@@ -95,9 +93,8 @@ const buttonStory: Story<ButtonDemoProps> = {
 };
 ```
 
-Use either `component: React.ComponentType<P>` or `view: VanillaViewCtor<P>`, never both. New or
-converted demos should normally use the `view` arm and a story-local `VanillaView` when the demo
-needs layout context, sample content, state, or event handlers. Its constructor creates only the
+Stories use `view: VanillaViewCtor<P>`. New demos should use a story-local `VanillaView` when the
+demo needs layout context, sample content, state, or event handlers. Its constructor creates only the
 stable root; create and mount child DOM and child views in `onMount()`, claim owned children with
 `child()`, and release structural replacements before rebuilding them. A story's `PropDef<P>` names
 are checked as `keyof P & string`, so the generic should describe the actual demo props, including
@@ -106,26 +103,27 @@ demo-only controls.
 The heterogeneous story registry uses the intentionally erased `AnyStory` type; keep each story's
 concrete generic at its declaration and do not replace the registry's typed array with an ad hoc cast.
 
-`previewChildren` follows the selected arm: React stories return `ReactNode`, while vanilla stories
-return a native `Node`. A vanilla provider that supplies multiple siblings must return one persistent
-element (usually a `display: contents` wrapper), never a `DocumentFragment`. Use
+`previewChildren` returns a native `Node`. A provider that supplies multiple siblings must return
+one persistent element (usually a `display: contents` wrapper), never a `DocumentFragment`. Use
 `editors/storybook/story-props.ts`'s `prepareStoryProps()` for verification or other rendering
 paths; it is the single preparation path for empty enum values, managed values, synthetic icon
 controls, and generated children.
 
 ## Naming conventions
 
-React faces use `.tsx`; framework-free `VanillaView` implementations use a `View.ts` suffix.
+UIKit components and Storybook demos use framework-free `VanillaView` implementations with a
+`View.ts` suffix. The Excalidraw vendor island is the only React component surface.
 
 - Component name — PascalCase (`Button`, `MultiSelect`).
-- File name — `<ComponentName>.tsx` inside the component's own subfolder.
+- File name — `<ComponentName>View.ts` inside the component's own subfolder.
 - `data-type` attribute — kebab-case matching the component name (`data-type="multi-select"`).
 - `name?: string` debug prop — every UIKit primitive accepts it and emits it as `data-name="…"` on the same root element that carries `data-type`; see `uikit/CLAUDE.md` for the naming contract.
 - For the canonical naming table (old name → new name) and prop-naming guidelines, see the **Naming conventions** section in [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md).
 
 ## Component file template
 
-Use the template at the bottom of [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) — single styled root, `data-type` + `data-*` state, `name?: string` debug prop, `Omit<HTMLAttributes<…>, "style" | "className">` for the props interface.
+Use the template at the bottom of [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) — single
+native root, co-located static CSS, `data-type` + `data-*` state, and `name?: string` debug prop.
 
 ## Migration history
 

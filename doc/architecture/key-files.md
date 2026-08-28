@@ -38,9 +38,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Callback-backed asynchronous DOM references used by virtualized views | `/src/renderer/uikit/shared/async-ref.ts` |
 | Stable repaint/dependency identity gate for fixed-length signatures | `/src/renderer/uikit/shared/deps-gate.ts` |
 | Shared DOM id allocation for generated component elements | `/src/renderer/uikit/shared/element-id.ts` |
-| React/vanilla boundary adapters (`mountVanilla` stable host, `mountReact`/`mountReactHandle` owned roots, commit-safe host replacement, and `data-react-root` observability marker for direct React islands) | `/src/renderer/uikit/shared/mount.tsx` |
-| Slot-content bridge (`SlotContent = string \| Node \| React.ReactNode`; host ownership, React-root reuse, and deferred disposal across React commits) | `/src/renderer/uikit/shared/fill-slot.ts` |
-| Native bridge for residual React props/events (`applyRestProps`, its module-private branded-event facade, and ref cleanup) | `/src/renderer/uikit/shared/react-compat.ts` |
+| Excalidraw React island root adapter (`mountReactHandle`, `MountedReactRoot`, and `data-react-root` observability marker) | `/src/renderer/editors/draw/react-island.ts` |
+| Native slot-content bridge (`SlotContent`; host ownership and superseded cleanup) | `/src/renderer/uikit/shared/fill-slot.ts` |
+| Native attributes/events/refs bridge (`applyRestProps`, `bindRef`, and listener cleanup) | `/src/renderer/uikit/shared/dom-props.ts` |
 | Non-React component model driver (initial prop pump, explicit mount/update/dispose, and zero-effect guard) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
 | Framework-free virtualization engine (render-window calculation, pooled cells, sticky regions, scroll/resize handling, and scheduled repaint) | `/src/renderer/uikit/VirtualGrid/` |
@@ -89,7 +89,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | File→editor matchers (the per-editor `acceptFile`/`switchOption`/`validForLanguage`/`detectsContent` rules + the numeric priority ladder that decides which editor OPENS a file — monaco 0, markdown 10, compound names 20, draw 50, viewers 100, category 200; `acceptFile` is name-only while `switchOption` is language-based, which is why language-only editors like `html-view` never claim a file on open) | `/src/renderer/editors/base/editor-matchers.ts` |
 | Storybook editor and story contract (native gallery shell, browser, property editor, live preview, heterogeneous registry, and mutually exclusive React/vanilla story arms) | `/src/renderer/editors/storybook/StorybookEditorView.ts`, `/src/renderer/editors/storybook/storyTypes.ts`, `/src/renderer/editors/storybook/storyRegistry.ts` |
 | Story prop preparation (single path for managed values, empty enum cleanup, synthetic icon controls, and generated children; shared by the live preview and verification) | `/src/renderer/editors/storybook/story-props.ts` |
-| Renderer entry and application composition root (`bootstrap()` initializes services/pages/events, then returns the native `mount(container)` callback) | `/src/renderer.tsx`, `/src/renderer/index.tsx` |
+| Renderer entry and application composition root (`bootstrap()` initializes services/pages/events, then returns the native `mount(container)` callback) | `/src/renderer.ts`, `/src/renderer/index.ts` |
 | App shell composition root (header strip, tab strip, page host, sidebar, status and overlay composition) | `/src/renderer/ui/app/MainPageView.ts` |
 | Native page/editor views (page host, editor dispatch, async editor island, and page-content lifecycle) | `/src/renderer/ui/app/PagesView.ts`, `/src/renderer/ui/app/RenderEditorView.ts`, `/src/renderer/ui/app/AsyncEditorView.ts`, `/src/renderer/ui/app/PageContentView.ts` |
 | Native editor failure view (message + optional stack for failures in the native editor path) | `/src/renderer/ui/app/NativeEditorErrorView.ts` |
@@ -97,15 +97,15 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Page-tab shared contract (tab props, sizing constants, and menu/drag support helpers) | `/src/renderer/ui/tabs/PageTab.ts` |
 | Dialog/popper view registry | `/src/renderer/ui/dialogs/dialog-view-registry.ts` |
 | Native dialog/popper hosts | `/src/renderer/ui/dialogs/DialogsView.ts`, `/src/renderer/ui/dialogs/poppers/PoppersView.ts` |
-| Editor error boundary (deliberate React class island around React editor content) | `/src/renderer/ui/app/EditorErrorBoundary.tsx` |
+| Native editor error view (message + optional stack for failures in the native editor path) | `/src/renderer/ui/app/NativeEditorErrorView.ts`, `/src/renderer/ui/app/NativeEditorErrorView.css` |
 | UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
 | Secondary view registry (single native `VanillaView` panel loader; exact and prefix resolution) | `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
 | Composite panel keys (sidebar) | `/src/renderer/ui/secondary-views/panel-key.ts` |
 | Native shared sidebar panel header (DOM title/badge/actions adoption, show-main control, and late `headerRef` reparenting) | `/src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts` |
 | Native secondary-panel loader (cancellable dynamic import, vanilla panel mount, semantic error host, and explicit retirement cleanup) | `/src/renderer/ui/secondary-views/LazySecondaryViewView.ts` |
-| Native sidebar/menu views (Menu Bar, panels, lists, pinned rail, and folder rows) | `/src/renderer/ui/sidebar/*View.ts`, `/src/renderer/ui/sidebar/*View.tsx` |
+| Native sidebar/menu views (Menu Bar, panels, lists, pinned rail, and folder rows) | `/src/renderer/ui/sidebar/*View.ts` |
 | Shared global overlay host | `/src/renderer/uikit/shared/overlayLayer.ts` |
-| Native toolbar styling and DOM helpers (toolbar layout, separators, and static toolbar CSS contract) | `/src/renderer/uikit/Toolbar/toolbar-style.ts`, `/src/renderer/uikit/Toolbar/ToolbarView.tsx` |
+| Native toolbar styling and DOM helpers (toolbar layout, separators, and static toolbar CSS contract) | `/src/renderer/uikit/Toolbar/toolbar-style.ts`, `/src/renderer/uikit/Toolbar/ToolbarView.ts` |
 | Editor registration (table-driven: one `EDITORS` row per editor with a literal `import()` per row for code splitting; `match` derives from `EDITOR_MATCHERS[id]`, `accepts` defaults from the matcher or `-1`; monaco/file-diff override `accepts`; row order breaks `resolveForFile` ties; ends with the `preloadContentHostModules()` warm-up) | `/src/renderer/editors/register-editors.ts`       |
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
 | Text-host editor base (the layer between `EditorModel` and every editor wrapping a `TextFileModel` — 14 editors extend it. Owns the host-adoption lifecycle: `CONTENT_HOST_TRAIT` registration, `switchFrom`/`restore`/`adoptHost`, identity persistence, release/save/dispose, plus the parts that are easy to get subtly wrong — the single host-subscription registry torn down on re-adopt/extract/dispose, the `writeToHost`/`subscribeHostContent` content echo guard, and the `mirrorHostSettings` seed+mirror for per-editor view settings riding `host.editorSettings`. Subclass hooks: `displayName`, `adoptHost` override, `onHostAttached` (initial load on the switch/restore/open paths — the open path reaches it via the public `bootstrapFromHost()` bridge), `onHostExtracted`, `untitledName`. Board editors deliberately excluded) | `/src/renderer/editors/base/TextHostEditorModel.ts` |
@@ -122,7 +122,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | ISO date input seam (native date input view composed over `InputView`, with the React face retained for existing callers) | `/src/renderer/uikit/DateInput/DateInputView.ts`, `/src/renderer/uikit/DateInput/DateInput.ts` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.ts` |
 | Monaco widget hosts (VanillaView owners for single and diff Monaco widgets; imperative content writes, model ownership and deferred disposal) | `/src/renderer/editors/shared/MonacoEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts` |
-| Monaco widget React faces (thin `mountVanilla` adapters for the shared hosts) | `/src/renderer/editors/shared/MonacoEditorHost.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHost.ts` |
+| Monaco widget hosts (VanillaView owners for single and diff Monaco widgets; imperative content writes, model ownership and deferred disposal) | `/src/renderer/editors/shared/MonacoEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts` |
 | Monaco host geometry (separate root classes and flex-child width rules for single and diff widgets) | `/src/renderer/editors/shared/MonacoEditorHostView.css`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.css` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Script panel model, React compatibility face, and native view | `/src/renderer/editors/text/ScriptPanel.ts`, `/src/renderer/editors/text/ScriptPanelView.ts` |
@@ -192,7 +192,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | UIKit library            | `/src/renderer/uikit/`                            |
 | UIKit authoring rules    | `/src/renderer/uikit/CLAUDE.md`                   |
 | Focus-aware list selection contract (Explorer two-state look — blurred gray / focused blue via `:focus-within` + `data-focus-selection`. Keyed off each row's own `[data-selected]`, so a multi-selection paints with no styling change; `[data-active]` stays singular). Each owner keeps a scoped copy so the rules do not depend on cross-file stylesheet order | `/src/renderer/uikit/ListBox/ListItem.css`, `/src/renderer/uikit/Tree/Tree.css` + `TreeItem.css`, `/src/renderer/uikit/SelectableRow/SelectableRow.css`, `/src/renderer/ui/sidebar/FolderItem.css` |
-| Selectable-row primitive (Rule-7-clean bespoke-row host for the focus-aware selection; `selected`/`active` props) | `/src/renderer/uikit/SelectableRow/SelectableRow.tsx` |
+| Selectable-row primitive (Rule-7-clean bespoke-row host for the focus-aware selection; `selected`/`active` props) | `/src/renderer/uikit/SelectableRow/SelectableRowView.ts` |
 | Tree multi-selection gestures (opt-in `multiSelect`: Ctrl/Shift+click, Ctrl+A, Shift+Arrow/Home/End/PageUp/Down; the Tree stores NO selection — it derives the current set via `isSelected` per visible row, holds only a transient `anchorValue`, and emits the result through `onSelectionChange` for the consumer to store. Row visuals need nothing extra: N rows carry `[data-selected]`, one carries `[data-active]`) | `/src/renderer/uikit/Tree/TreeModel.ts` |
 | Color tokens             | `/src/renderer/theme/color.ts`                    |
 | Active theme state shared by React and non-React consumers (`themeState`; `{ id, isDark }`, synchronous `get`/`subscribe` path) | `/src/renderer/theme/theme-state.ts` |
@@ -200,7 +200,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | App design-token CSS variables (`APP_TOKEN_VARS`, numeric scale mapper, idempotent `:root` installation) | `/src/renderer/theme/token-vars.ts` |
 | Static CSS cascade-layer order | `/src/renderer/theme/style-layers.css` |
 | Static application-root geometry (absolute/flex `#root` layout, loaded before shell measurement) | `/src/renderer/theme/root.css` |
-| Global-style React island (the only React root created by application startup) | `/src/renderer/theme/GlobalStyles.tsx` |
+| Native global-style installer (theme-dependent stylesheet and live theme subscription) | `/src/renderer/theme/global-styles.ts` |
 | SVG icon registry and builder contract (`IconName`, required `createElement`, `createIconElement`, visible invalid-name placeholder, and the `IconName \| Node` slot contract) | `/src/renderer/theme/icon-registry.ts`, `/src/renderer/theme/icons.ts`, `/src/renderer/uikit/shared/slots.ts` |
 | Builder-backed icon bridge (native SVG/IMG builders, registry resolution, and runtime placeholder handling) | `/src/renderer/components/icons/icon-elements.ts`, `/src/renderer/theme/icons.ts` |
 | File/language icon resolver (language, compound-extension, system, board, and default precedence) | `/src/renderer/components/icons/language-icon-resolver.ts`, `/src/renderer/components/icons/icon-elements.ts` |
@@ -292,13 +292,13 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git refs (branches/remotes/tags) model + fetch / push / pull / ahead-behind | `/src/renderer/components/git-tree/GitBranchesModel.ts` |
 | Refs-tree builder (Branches/Remotes/Tags nodes, `/`-folding, historical/alpha order) | `/src/renderer/components/git-tree/git-refs-tree.ts` |
 | Git history date formatter (shared) | `/src/renderer/components/git-tree/git-date.ts` |
-| L/R side-select toggle   | `/src/renderer/components/git-tree/SideSelectToggle.tsx` |
+| L/R side-select toggle   | `/src/renderer/components/git-tree/SideSelectToggle.ts` |
 | Swimlane lane layout     | `/src/renderer/components/git-tree/swimlane-layout.ts` |
 | Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
 | Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.ts` |
 | Git "Git" panel — merged secondary view (container: "Git (N)" header, Refresh + "x" close + "Show Git Tree" zone, Changes/Branches/Tags SegmentedControl + body-toolbar AZ toggle for refs segments; persists `gitPanelTab`) | `/src/renderer/editors/git-tree/GitPanelSecondaryView.ts` |
 | Git "Changes" segment body (stage/unstage/reset + Commit button — buttons, double-click, context menu; header-less) | `/src/renderer/editors/git-tree/GitChangesView.ts` |
-| Git "Branches"/"Tags" segment body (`show="branches"` → Branches + Remotes refs tree; `show="tags"` → flat tags; head-green active branch, AZ/historical order, click-to-reveal, Switch context menu; header-less) | `/src/renderer/editors/git-tree/GitRefsView.tsx` |
+| Git "Branches"/"Tags" segment body (`show="branches"` → Branches + Remotes refs tree; `show="tags"` → flat tags; head-green active branch, AZ/historical order, click-to-reveal, Switch context menu; header-less) | `/src/renderer/editors/git-tree/GitRefsView.ts` |
 | Commit dialog (message + author Name/Email + branch; "Commit" / "Commit & Push" actions; `showCommitDialog`) | `/src/renderer/ui/dialogs/CommitDialog.ts` |
 | Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.ts` |
 | Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.ts` |

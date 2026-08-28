@@ -12,12 +12,12 @@ persephone uses a custom context menu system that replaces the native browser co
 User right-clicks
     |
     v
-Native or React-owned onContextMenu handler (deepest child)
+    Native onContextMenu handler (deepest child)
     -> ContextMenuEvent.fromNativeEvent(e, targetKind)
     -> Pushes items to ctxEvent.items
     |
     v  (DOM event bubbles up)
-Native or React-owned onContextMenu handler (parent)
+Native onContextMenu handler (parent)
     -> Reuses same ContextMenuEvent via fromNativeEvent()
     -> Pushes more items
     -> Optionally fires EventChannel (sendAsync) for script integration
@@ -38,9 +38,9 @@ AppPopupMenuModel
 ## ContextMenuEvent on the Native Event
 
 All context menu handlers communicate through a shared `ContextMenuEvent` object attached to the native DOM event.
-Handlers on `mountVanilla` faces receive a native `MouseEvent` directly. A React-owned element may
-still supply a React event; `fromNativeEvent` unwraps that one genuine React boundary before reading
-the same native expando.
+Native handlers receive a `MouseEvent` directly and share the event expando through bubbling. The
+only React-owned element is the Excalidraw vendor island; it is outside the general context-menu
+surface.
 
 ```typescript
 // Type augmentation (src/renderer/types/events.d.ts)
@@ -140,8 +140,7 @@ The EventChannel system allows scripts to subscribe to context menu events and m
 
 1. **Item handler** sets the typed `target` on the event
 2. **Container handler** (parent in the DOM tree) fires `sendAsync()` after all built-in items are collected
-3. The promise is attached to the native event's `contextMenuPromise` expando (unwrap a React event
-   first only when the handler is attached to a React-owned element)
+3. The promise is attached to the native event's `contextMenuPromise` expando
 4. `GlobalEventService` awaits the promise before showing the menu
 5. Scripts see all items and can push, remove, or replace them
 
@@ -178,7 +177,8 @@ field on the shared `ContextMenuEvent`: only this one consumer would ever set it
 The folder-content view (`CategoryView`, shown on a page when a folder is opened from
 the Explorer) fires the **same** `linkContextMenu` channel for its file/folder items. So
 the href-based items ("Open in New Tab", "Open in New Window", "Open with Default App",
-"Show in File Explorer", "Open in Browser", …) are defined once in `tree-context-menus.tsx`
+"Show in File Explorer", "Open in Browser", …) are defined once in
+`content/tree-context-menus.ts`
 and appear identically in the Explorer tree and the folder page. The Categories list/tiles (`LinkItemList` /
 `LinkItemTiles`) fire it too. A right-click on empty space in `CategoryView` adds "New
 File" / "New Folder" scoped to the open category (gated on a writable provider), mirroring
@@ -270,7 +270,7 @@ interface MenuItem {
 
 ## Menu View
 
-`MenuView` (`/src/renderer/uikit/Menu/MenuView.tsx`) renders the actual menu:
+`MenuView` (`/src/renderer/uikit/Menu/MenuView.ts`) renders the actual menu:
 
 - **Portal-based** — attaches the native menu root to `document.body`
 - **Virtualized** — uses the `ListBox` primitive for performance with many items
@@ -320,6 +320,6 @@ interface MenuItem {
 | Event type definitions | `/src/renderer/api/types/events.d.ts` |
 | Native event augmentation | `/src/renderer/types/events.d.ts` |
 | Global event handler | `/src/renderer/api/internal/GlobalEventService.ts` |
-| Menu view | `/src/renderer/uikit/Menu/MenuView.tsx` |
+| Menu view | `/src/renderer/uikit/Menu/MenuView.ts` |
 | showAppPopupMenu | `/src/renderer/ui/dialogs/poppers/showPopupMenu.ts` |
 | MenuItem type | `/src/renderer/api/types/events.d.ts` |

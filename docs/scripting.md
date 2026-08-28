@@ -487,7 +487,8 @@ return helpers.formatTable(result);
 - Extension auto-resolution: `.ts`, `.js`, `/index.ts`, `/index.js` are tried automatically — no need to specify the extension
 - TypeScript files are transpiled automatically; `.js` files using ES module syntax (`export`/`import`) are also transpiled
 - Relative requires within library modules work as expected (e.g., `require('./db-config')` inside a library file)
-- Library modules have access to the same globals as the top-level script — `app`, `page`, `React`, `styledText`, `ui`, `preventOutput()`, and `require()` all work inside library code
+- Library modules have access to the same globals as the top-level script — `app`, `page`, `styledText`, `ui`, `preventOutput()`, and `require()` all work inside library code
+- Breaking change: the injected `React` global is no longer available to top-level or library scripts. A script that references `React` now throws `ReferenceError`; import or bundle any dependencies it needs explicitly.
 - Library modules are reloaded fresh on every `require()` call — there is no cached state between script runs. If you need to persist data across executions, use `page.data` or `app.settings`
 - If no library folder is linked, `require("library/...")` throws a clear error message
 

@@ -23,8 +23,8 @@ Three questions decide the shape of your editor:
    preview — no)
    - **Yes** → route every write through `this.writeToHost(content, true)` and read external
      changes via `this.subscribeHostContent(handler)` — the pair forms the echo guard.
-   - **No** → the body can read `host.state.use((s) => s.content)` directly; no subscription
-     needed.
+   - **No** → the native body can bind `host.state` directly with `VanillaView.bind()`; no separate
+     subscription registry is needed.
 
 3. **Should the editor have its own sidebar panel(s)?** (e.g. Link Editor's Categories panel)
    - **Yes** → set `this.secondaryView = ["my-panel"]` in `setPage()` or `restore()`. See [Secondary Editors](../architecture/secondary-views.md).
@@ -34,10 +34,10 @@ Three questions decide the shape of your editor:
 
 ```
 /src/renderer/editors/myeditor/
-├── index.ts / index.tsx     # EditorModule registration
+├── index.ts                 # EditorModule registration
 ├── MyEditor.ts              # EditorModel subclass
-├── MyEditorBody.tsx         # React body, or MyEditorBodyView.ts for a vanilla body
-│                            # (MyEditorView.ts / .tsx for a standalone main view)
+├── MyEditorBodyView.ts       # Native body
+│                            # (MyEditorView.ts for a standalone main view)
 └── components/              # (optional) Editor-specific components
 ```
 
@@ -174,12 +174,10 @@ Choose the page chrome before writing the view:
   script panel, content-host footer, focus/key handling, and overlay slot. The editor's `View`
   composes it directly; a React body may remain a bounded island in its `children` slot.
 
-Every editor module now requires a native `View` arm. A converted or new DOM-heavy view should use
-`VanillaView` and export it as `View` (or `BodyView` when embeddable). Keep the root stable.
-If a body still needs React, wrap it in `EditorErrorBoundary` and pass the resulting element as
-`TextChromeView.children`; the native chrome owns the slot and the body remains one bounded React
-island. `EditorToolbar` and `ContentHostFooter` are compatibility faces for React callers, not the
-native implementation path.
+Every editor module requires a native `View` arm. A converted or new DOM-heavy view should use
+`VanillaView` and export it as `View` (or `BodyView` when embeddable). Keep the root stable and
+pass DOM nodes through native slots. The only React body is the Excalidraw vendor island under
+`editors/draw/`; native editor chrome is not wrapped in a React error boundary.
 
 If a third-party editor widget requires React, keep the React code in a named, minimal island and
 let the native view own its host element, surrounding chrome, model bindings, and disposal. Give
@@ -198,10 +196,9 @@ overflow and cover sibling controls such as the script-panel splitter.
 ### Using the shared Monaco hosts
 
 Use the shared hosts in `/src/renderer/editors/shared/` for Monaco widgets. The single-editor host
-(`MonacoEditorHostView` / `MonacoEditorHost`) creates `monaco.editor.create`; the diff host
-(`MonacoDiffEditorHostView` / `MonacoDiffEditorHost`) creates `createDiffEditor`. The React faces are
-only `mountVanilla` adapters. A native consumer may instantiate the view directly; a React consumer
-should keep the host view from `onMount` in a ref.
+(`MonacoEditorHostView`) creates `monaco.editor.create`; the diff host
+(`MonacoDiffEditorHostView`) creates `createDiffEditor`. Native consumers instantiate the view
+directly and keep the host view from `onMount` when imperative access is needed.
 
 These widgets are intentionally uncontrolled. `initialValue` or `initialOriginal` /
 `initialModified` is consumed once at mount; later prop changes do not reconcile content. When model
@@ -223,33 +220,22 @@ responsibility and are never disposed by the host. The host detaches the widget 
 owned models and defers disposal to a macrotask. For a diff editor, apply the same rule to the
 original and modified model pair.
 
-### React view example
+### Native view example
 
 ```typescript
-// MyEditorBody.tsx (or MyEditorView.tsx for non-text editors)
-import { MyEditor } from "./MyEditor";
-import { Panel } from "../../uikit/Panel/Panel";
-import { Spinner } from "../../uikit/Spinner/Spinner";
+import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { MyEditor } from "./MyEditor";
 
-interface Props {
-    model: MyEditor;
-}
-
-export function MyEditorBody({ model }: Props) {
-    const { customData, isLoading } = model.state.use((s) => ({
-        customData: s.customData,
-        isLoading: s.isLoading,
-    }));
-
-    if (isLoading) {
-        return (
-            <Panel flex direction="column" overflow="hidden" align="center" justify="center">
-                <Spinner size={24} />
-            </Panel>
-        );
+export class MyEditorView extends VanillaView<{ model: MyEditor }> {
+    public constructor(props: { model: MyEditor }) {
+        super(props);
     }
 
-    return <Panel flex direction="column" overflow="hidden">Your editor content: {customData}</Panel>;
+    protected onMount(): void {
+        this.bind(this.props.model.state, (state) => state.customData, (value) => {
+            this.root.textContent = value;
+        });
+    }
 }
 ```
 
@@ -257,56 +243,14 @@ For generated-content renderers or third-party/native hosts, import a stylesheet
 editor and scope its selectors below a semantic editor root. Do not add a general-purpose
 `className` or `style` escape hatch to UIKit to carry those rules.
 
-For a text-bearing native editor, compose the shared chrome directly:
-
-```typescript
-import { createElement } from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
-import { TextChromeView } from "../base/TextChromeView";
-import { VanillaView } from "../../uikit/shared/vanilla-view";
-
-export class MyEditorView extends VanillaView<{ model: EditorModel }> {
-    private readonly chrome: TextChromeView;
-
-    public constructor(props: { model: EditorModel }) {
-        const chrome = new TextChromeView({
-            model: props.model,
-            children: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(MyEditorBody, { model: props.model }),
-            ),
-        });
-        super(props, chrome.root);
-        this.chrome = this.child(chrome);
-    }
-
-    protected onMount(): void {
-        this.chrome.mount();
-    }
-
-    protected onUpdate(props: { model: EditorModel }): void {
-        this.chrome.update({
-            model: props.model,
-            children: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(MyEditorBody, { model: props.model }),
-            ),
-        });
-    }
-}
-```
-
-When the body is native, construct it as a `VanillaView`, pass `body.root` as the
-`children` slot, register it with `child()`, and mount/update it alongside the chrome. The
-`TextChromeView` slot accepts either DOM nodes or React elements; only the latter create a React
-root.
+For a text-bearing native editor, construct `TextChromeView` directly, register it with `child()`,
+and mount/update it alongside the editor body. Pass DOM nodes through native slots; no React element
+or error-boundary adapter is needed.
 
 ## Step 4: Export the EditorModule
 
 ```typescript
-// index.ts (or index.tsx when the module contains React body code)
+// index.ts
 import { TComponentState } from "../../core/state/state";
 import { MyEditor, defaultMyEditorState } from "./MyEditor";
 import { MyEditorView } from "./MyEditorView";
@@ -413,9 +357,8 @@ class MyEditor extends EditorModel<MyEditorState> {
 Register the panel in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`. A registration
 returns `VanillaViewCtor<SecondaryViewProps>`; the secondary-view host owns the asynchronous load,
 stable root, and retirement lifecycle. Build headers with `SideBarPanelHeaderView` against the
-provided `headerRef`, pass DOM `Node` slots where possible, and use `mountReactHandle` only for a
-deliberate React island that remains outside the converted surface. Do not register a replaced
-record view with `this.child()`.
+provided `headerRef`, pass DOM `Node` slots, and keep the Excalidraw React island out of secondary
+views. Do not register a replaced record view with `this.child()`.
 
 ## Testing Your Editor
 

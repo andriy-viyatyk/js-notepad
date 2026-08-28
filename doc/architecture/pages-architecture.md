@@ -12,13 +12,13 @@ page lifecycle, action taxonomy, and internal submodel structure.
 
 The renderer initializes in a strict 3-layer sequence before the application mount runs.
 This ensures all systems are ready before the UI appears — no race conditions,
-no flash of empty state. `renderer.tsx` returns the `mount(container)` callback from
-`renderer/index.tsx`; the shell is native and React editor content is mounted only in explicit
-islands.
+no flash of empty state. `renderer.ts` returns the `mount(container)` callback from
+`renderer/index.ts`; the shell is native and React content is mounted only in the explicit
+Excalidraw island.
 
 ```mermaid
 graph TD
-    A["App Start"] -->|Electron loaded| B["renderer.tsx bootstrap()"]
+    A["App Start"] -->|Electron loaded| B["renderer.ts bootstrap()"]
     B -->|Parallel load| C["import Renderer Code<br/>+ app.init"]
     C -->|Side effects| C1["configure-monaco<br/>register-editors"]
     B -->|await| D["app.initServices<br/>Layer 1"]
@@ -61,7 +61,7 @@ The gate tracks *restore in progress* and nothing else, and is released in a `fi
 
 **Ready signal** (`api.windowReady()`): Tells the main process this window is fully initialized. The main process waits for this before sending IPC events like `eMovePageIn` (page transfer between windows). This is critical for multi-window operations.
 
-**Implementation:** [`/src/renderer.tsx`](../../src/renderer.tsx), [`/src/renderer/api/app.ts`](../../src/renderer/api/app.ts)
+**Implementation:** [`/src/renderer.ts`](../../src/renderer.ts), [`/src/renderer/api/app.ts`](../../src/renderer/api/app.ts)
 
 ---
 
@@ -73,7 +73,7 @@ Every tab is a `PageModel` — a stable container that owns the browsing context
 
 ```
 PageModel (one per tab — stable identity, never changes during navigation)
-├── id: string                          // stable UUID — tab key, React key, cache key
+├── id: string                          // stable UUID — tab key, cache key
 ├── state: TOneState<IPageState>        // reactive: { pinned, hasSidebar, mainEditorId }
 ├── mainEditor: EditorModel | null      // the content (swapped during navigation)
 ├── secondaryViews: EditorModel[]     // sidebar panels (ExplorerEditorModel, ArchiveEditorModel, etc.)
@@ -361,8 +361,8 @@ Some pages are **singletons** — they should exist as a single instance and be 
 ### Pre-existing singleton pages
 
 About and Settings pages use a similar pattern with hardcoded IDs directly in their modules:
-- `ABOUT_PAGE_ID = "about-page"` in `AboutPage.tsx`
-- `SETTINGS_PAGE_ID = "settings-page"` in `SettingsPage.tsx`
+- `ABOUT_PAGE_ID = "about-page"` in `AboutPage.ts`
+- `SETTINGS_PAGE_ID = "settings-page"` in `SettingsPage.ts`
 
 These work as singletons through the same `addPage()` deduplication — each `showXPage()` method builds its editor via `editorRegistry.createEditor(id)` and attaches it to a `PageModel` constructed with the fixed page ID.
 
@@ -437,7 +437,7 @@ A third optional hook, `revealFragment?(fragment)`, follows the same shape for i
 **Step 6** — `page.setMainEditor(newEditor)` is the high-level editor swap method on PageModel. It consolidates the lifecycle:
 - Calls `oldEditor.beforeNavigateAway(newEditor)` — old editor decides to keep/clear its `secondaryView`
 - Checks survival: a panel contributor (`contributesPanels()`) demotes to the sidebar; a `keepAliveOnNavigation()` editor stays attached with **no view at all** — an invisible ownership handle. The one current keep-alive editor is a **busy Board**: its spawned processes must outlive its iframe, so the model stays on the page to tie their lifetime to the page (page close disposes it, which reaps the jobs). Re-navigating to the same board promotes the surviving handle back to main via the `matchesNavigationTarget` singleton reuse (Step 3). A `movePageOut` (cross-window transfer) disposes keep-alive editors — their processes never transfer. Session restore drops a persisted non-main board descriptor entirely (busy is transient; its processes died with the app), so no zombie handle survives a restart.
-- Otherwise, defers old editor disposal (`setTimeout` to let React unmount the view first)
+- Otherwise, disposes the old native view after the replacement is attached
 - Sets `newEditor.setPage(page)`, updates `mainEditorId` for UI re-render
 - Calls `notifyMainEditorChanged()` — secondary views react, cleanup runs
 - Registers new editor's secondary panel if it has one
@@ -477,8 +477,7 @@ PageModel holds a `secondaryViews[]` array of EditorModel instances that appear 
 - **Pattern A** (separate model): A dedicated EditorModel subclass, e.g., ExplorerEditorModel
 - **Pattern B** (mainEditor as secondary): The mainEditor registers itself in `secondaryViews[]` simultaneously, e.g., ArchiveEditorModel when browsing an archive
 - Lifecycle hooks: `beforeNavigateAway()`, `onMainEditorChanged()`, `onPanelExpanded()`
-- Header compatibility: the native secondary-view host exposes the same `headerRef` DOM targets;
-  the remaining React editor panels may still use `createPortal()` to render into them
+- Header contract: the native secondary-view host exposes `headerRef` DOM targets for panel views
 - Persistence: saved as `SecondaryModelDescriptor[]` in sidebar cache, with deduplication for Pattern B
 
 ---

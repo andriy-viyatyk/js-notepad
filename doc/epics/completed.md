@@ -4,6 +4,67 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-074 — [De-React Epic F: React confined](EPIC-074.md)
+
+**Completed 2026-08-28. The De-React programme is finished.** `react` and `react-dom` are importable
+from exactly **one directory** — `src/renderer/editors/draw/` — and `npm run lint` fails if that
+changes. The only `.tsx` file in the repository is `editors/draw/ExcalidrawIsland.tsx`.
+
+`react` importers **85 → 2**, React *value* users **16 → 2**, type-only **69 → 0**, non-story `.tsx`
+**10 → 1**, story `.tsx` **2 → 0**. 169 files changed, **+468 / −2,877**. Deleted: 10 dead
+`mountVanilla` faces and the vanilla-to-React adapter, 9 dead hook entry points, the dead
+`IState.use()` hook path (15 wrapper call sites), storybook's React arm with the `Panel`/`Text` faces,
+and the React event proxy. Emotion `<Global>` became a native `theme/global-styles.ts`, which killed
+the last always-live React root. `@emotion/react`, `@emotion/styled` and `react-markdown` are
+uninstalled; **`react`, `react-dom`, `@types/react` and `@types/react-dom` stay installed
+permanently** — Excalidraw declares the first two as peer dependencies and its own `.d.ts` imports
+React, so no amount of our own work removes them. That is the stated outcome, not a shortfall.
+
+**Its largest finding is about measurement, not React: a census keyed to one spelling of a construct
+is not a census of the construct.** The instrument that has measured React usage in every epic since
+A was wrong **three times here**, each differently, each time producing a confident wrong total —
+(1) the import regex hardcoded double quotes, hiding `core/state/state.ts`, which calls four React
+hooks, from *every figure this programme ever published*; (2) `@types/react` declares a global `React`
+namespace, so `core/traits/dnd.ts:48` referenced React types with no import at all, invisible to any
+import-based query; (3) the value test looked for `React.member`, so
+`scripting/ScriptContext.ts:64`'s `readonly React = React` — a namespace used as a value, never
+dereferenced — was filed as type-only. Defects 1 and 3 were **blocking**: both files were React value
+users outside `editors/draw/`, so the epic's own closing rule could not have passed while either
+stood. *An epic whose deliverable is a lint rule cannot be scoped by a query weaker than the rule.*
+The corrected baseline was 85/16/69, not the 84/14/70 the epic published at scoping time.
+
+**Two plan corrections it made on itself.** F-e and F-f were ordered wrongly: the runtime half
+(`applyRestProps`) and the type half (`React.HTMLAttributes`) of one contract lived in different
+tasks, and doing runtime first left every `on*` handler receiving a native `Event` while its declared
+type promised a synthetic one — nothing failing to compile while
+`editors/link-editor/index.ts:260`'s `event.nativeEvent` silently became `undefined`. Reversed, with
+the general rule: **when a contract's runtime and its types are changed by separate tasks, change the
+types first — a type change fails loudly and lists the work, a runtime change fails silently and
+hides it.** And F-h could not "just delete `mount.tsx`": `VanillaViewCtor`, the type the whole vanilla
+architecture rests on, was stranded in that React module with 13 references across eight subsystems,
+and relocating it touched more files than the rule did.
+
+**One breaking change, recorded rather than absorbed:** the injected `React` script global is gone.
+It was documented (`docs/scripting.md`, `whats-new.md:1145`) but provably inert — no script-facing API
+can consume a React value across all 40 `assets/editor-types/*.d.ts`, and it never had typings — so a
+script could build a React element nothing could render. Scripts referencing `React` now throw
+`ReferenceError`; a what's-new entry says so.
+
+`/review` found two must-fix items, both real and both fixed: `dom-props.ts` compared enumerated
+attributes case-sensitively while the new props type spells them camelCase, so `spellCheck={true}`
+would have written `""` — which for an enumerated attribute means *auto*, the opposite of the
+request — and the props type omitted `draggable` while the helper still special-cased it. A rename
+that makes an implicit contract explicit surfaces disagreements that were always there.
+
+Also recorded: **`execute_script` cannot use dynamic `import()`** (V8 rejects it inside `new Function`
+with a *parse* error naming no import — use the `app` global instead), and raw HTTP to the app's own
+MCP endpoint is not a usable verification fallback. Left unverified by decision: the theme-switch
+stylesheet rebuild (argued sound by inspection; `app.settings.set("theme", …)` does **not** apply a
+theme in-session, which is a property of the settings path and not evidence about the subscription),
+plus the post-proxy event checks now tracked with US-1173.
+
+---
+
 ## EPIC-073 — [De-React Epic E15: the last React editor](EPIC-073.md)
 
 **Completed 2026-08-28.** Epic E is finished: **no editor in Persephone produces React except the one

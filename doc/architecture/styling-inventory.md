@@ -1,12 +1,12 @@
 # Styling inventory
 
-> **Current snapshot — 2026-08-27.** Re-run the commands below after styling changes. This
+> **Current snapshot — 2026-08-28.** Re-run the commands below after styling changes. This
 > inventory records the source-tree baseline; it is not a conversion plan.
 
 This is the durable source for the renderer's Emotion and literal inline-style inventories. The
-application shell now uses co-located static CSS and `VanillaView` DOM updates. React remains at
-named boundaries, so the counts below distinguish residual infrastructure from app-shell style
-ownership.
+application shell and UIKit use co-located static CSS and `VanillaView` DOM updates. React remains
+only at the Excalidraw vendor boundary; the counts below distinguish that runtime island from
+app-shell style ownership.
 
 ## Reverification commands
 
@@ -27,23 +27,20 @@ The Emotion command includes story files. The inline-style command excludes stor
 
 ## Emotion inventory
 
-The current renderer has **1 Emotion importer, all in production code**.
+The current renderer has **0 Emotion importers**.
 
 | Scope | Files |
 |---|---:|
-| Production | 1 |
+| Production | 0 |
 | Story | 0 |
-| **Total** | **1** |
+| **Total** | **0** |
 
-The files are:
-
-- `src/renderer/theme/GlobalStyles.tsx`
+There are no files importing Emotion.
 
 The shell and coupled components do not import Emotion. Their converted styles are co-located
 static CSS in `ui/` and `components/`; `theme/root.css` owns the geometry of `#root` so first-paint
-layout does not depend on the asynchronous commit of the `GlobalStyles` React island.
-`GlobalStyles.tsx` is the renderer's only non-story Emotion importer and the final production
-Emotion boundary. Story files do not import Emotion.
+layout does not depend on a React style island. `theme/global-styles.ts` owns the theme-dependent
+native stylesheet and subscribes to `themeState`. Story files do not import Emotion.
 
 Runtime keyframes used by converted components now live in static CSS, including the dialog pulse,
 notification entry, spinner rotation, and progress-bar indeterminate animation.
@@ -64,8 +61,6 @@ The non-editor files are:
 
 **`uikit/`**
 
-- `src/renderer/uikit/shared/mount.tsx`
-
 **`editors/`**
 
 The 19 editor-owned files remain intentionally editor-local and are listed by the verification
@@ -74,10 +69,9 @@ handles, editor chrome, and content-specific presentation; they are not part of 
 
 ## Ownership and boundaries
 
-`theme/root.css` is static application geometry, while `GlobalStyles.tsx` remains the theme-dependent
-React island. `src/renderer/uikit/shared/mount.tsx` is the sanctioned adapter boundary and its
-`display: contents` host is included in the inline count because it is a React-facing compatibility
-host rather than app styling.
+`theme/root.css` is static application geometry, while `theme/global-styles.ts` owns the
+theme-dependent native stylesheet. The Excalidraw island is the only React boundary and its
+`editors/draw/react-island.ts` host is not part of the component-style inventory.
 
 Inline styles remain appropriate for measured layout, image dimensions, and third-party/native
 hosts. Static component presentation belongs in a co-located stylesheet and

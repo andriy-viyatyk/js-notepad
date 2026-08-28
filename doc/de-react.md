@@ -56,13 +56,13 @@ hiding in a render function that has to be excavated first.
 | `react-tooltip` | our own `uikit/Tooltip` | **Done — uninstalled in C1.** It had zero importers; it was an uninstall, not a migration |
 | `zustand` (1 file) | A value plus the listener array `TOneState` already keeps | Small — the dependency is deleted, not replaced (§3.3) |
 | Emotion (85 files) | CSS custom properties + static CSS | Medium, mechanical. **58 production importers as of C2 open** — `uikit` 35, `components` 11, `ui` 10, `theme` 1, `editors` 0 |
-| `react-markdown` | The existing `remark`/`rehype` stack plus the hand-written `hast → DOM` walker | Converted in the editor migration; the package remains installed until Epic F |
+| `react-markdown` | The existing `remark`/`rehype` stack plus the hand-written `hast → DOM` walker | Converted in the editor migration; removed in EPIC-074 F-d |
 
 `react-markdown` looked like the only entry with no cheap swap: it backs the markdown preview, the
 notebook note editor and the MCP inspector, all through custom component overrides. Investigation
 (open decision #1, settled 2026-08-18) found it is a thin React binding over a parsing stack that is
 already framework-free, so the parser was kept and only its final `hast → React` step was replaced
-by the local DOM walker described in §3.6. The package remains installed until Epic F.
+by the local DOM walker described in §3.6. The package was removed in EPIC-074 F-d.
 
 ## 3. What we keep
 
@@ -1371,7 +1371,7 @@ after removal by TypeScript plus both custom languages (`mermaid`, `log`) still 
 `unified`, `remark-parse`, `remark-rehype`, and `property-information` to direct dependencies for
 the native walker. In `src/`, `react-markdown` now has no importer, while
 `hast-util-to-jsx-runtime` has no importer outside the one explanatory comment in
-`markdown/hast-dom.ts`. Both packages remain installed and are collectable in Epic F.
+`markdown/hast-dom.ts`; `react-markdown` was removed in EPIC-074 F-d.
 
 **Fourth, Epic P's state lifting never reached the long tail — and does not need its own epic.**
 `editors/` holds **107 `useState`**, 153 `useEffect` and 148 `useRef` — against Epic D's 7 in a
@@ -1784,9 +1784,59 @@ rather than converted*. The next free epic number is **EPIC-074**.
 
 ### Epic F — Removal
 
+#### Epic F is complete as [EPIC-074](epics/completed.md) — **the De-React programme is finished** *(2026-08-28)*
+
+**`react` and `react-dom` are importable from exactly one directory — `src/renderer/editors/draw/` —
+and `npm run lint` fails if that changes.** The rule is proven in both directions: a throwaway `react`
+import under `uikit/` fails lint, and the same import inside `editors/draw/` passes. The only `.tsx`
+file in the repository is `editors/draw/ExcalidrawIsland.tsx`.
+
+`react` importers **85 → 2**; React *value* users **16 → 2**; type-only **69 → 0**; non-story `.tsx`
+**10 → 1**; story `.tsx` **2 → 0**. 169 files, **+468 / −2,877**. Gone: 10 dead `mountVanilla` faces
+and the vanilla-to-React adapter, 9 dead hook entry points, the dead `IState.use()` path (15 wrapper
+call sites), storybook's React arm with the `Panel`/`Text` faces, and the React event proxy. Emotion
+`<Global>` became native CSS injection, killing the last always-live React root. Three packages
+uninstalled; **four React packages stay permanently**, per §Epic F above.
+
+**The largest finding is about measurement, not React.** The instrument that has counted React usage
+since Epic A was wrong **three times in this epic** — a double-quote-only import regex (hiding
+`core/state/state.ts`, which calls four hooks, from *every figure this programme published*), a global
+`React` namespace referenced with no import at all (`core/traits/dnd.ts:48`), and a value test that
+only recognised `React.member` (missing `ScriptContext.ts:64`'s `readonly React = React`). Two of the
+three were **blocking**: both files were React value users outside `editors/draw/`, so this epic's own
+rule could not have passed while either stood.
+
+> **A census keyed to one spelling of a construct is not a census of the construct**, and *an epic
+> whose deliverable is a lint rule cannot be scoped by a query weaker than the rule.*
+
+**A second rule worth keeping, from reversing F-e and F-f:** when a contract's runtime and its types
+are changed by separate tasks, **change the types first** — a type change fails loudly and enumerates
+the work, a runtime change fails silently and hides it. Doing the runtime first here would have left
+`link-editor/index.ts:260`'s `event.nativeEvent` type-checking while being `undefined`.
+
+**One breaking change:** the injected `React` script global is removed. Documented but provably inert —
+no script-facing API can consume a React value — so a script could build an element nothing could
+render. Scripts using it now throw `ReferenceError`; a what's-new entry records it.
+
+Unverified by decision and carried on **US-1173**: the theme-switch stylesheet rebuild (sound by
+inspection; note that `app.settings.set("theme", …)` does *not* apply a theme in-session, which is a
+property of the settings path rather than evidence about the subscription), and the post-proxy event
+checks — a rest-prop listener firing, `aria-expanded` serialising, and `event.key` in a keyboard
+handler.
+
+---
+
+*Original scope, retained for context:*
+
 **Amended by user decision, 2026-08-27: `react` and `react-dom` stay, scoped to the Excalidraw
-editor alone.** Delete `@types/react*`, `@emotion/*`, `@monaco-editor/react`, `react-markdown`,
-`react-tooltip`, `eslint-plugin-react-hooks`. Strip the adapters. Update `CLAUDE.md`,
+editor alone.** **Corrected again at EPIC-074's scoping: `@types/react` and `@types/react-dom` stay
+too, and no amount of our own conversion changes that** — `@excalidraw/excalidraw`'s own
+`dist/types/excalidraw/index.d.ts` imports from `"react"`, so the React types are required to
+typecheck the island regardless of how few of our files reference them. **The removable set is
+exactly three packages:** `@emotion/react`, `@emotion/styled`, `react-markdown` (the last already
+has zero importers). `@monaco-editor/react` went in E3, `react-tooltip` in Epic C, and
+`eslint-plugin-react-hooks` is retained deliberately — it still guards the Excalidraw island.
+Strip the adapters. Update `CLAUDE.md`,
 `component-guide.md`, `model-view-pattern.md`, `uikit-vs-components-split.md`.
 
 **The programme's terminal state is "React only where a vendor requires it".** The one place
@@ -1805,8 +1855,22 @@ enhanced first — but it is not De-React work, and no task in this programme ma
 **Epic F's closing statement is enforceable, and should be enforced.** Its final task should add a
 local ESLint rule (the repo has had a local plugin since EPIC-071) forbidding any `react`/`react-dom`
 import outside `editors/draw/**`. It cannot be switched on until the React **type** surface is gone:
-the baseline measured while scoping E15 is **116 files importing `react`** — 39 as a value, 77 for
-types only. Until then "React is confined to Excalidraw" is a claim; after it, it is a build failure.
+the baseline re-measured at EPIC-074's scoping is **84 files importing `react`** — 14 as a value, 70
+for types only (E15 opened at 116 / 39 / 77). Until then "React is confined to Excalidraw" is a
+claim; after it, it is a build failure.
+
+**And the rule's allowlist can be exactly one directory, which was not obvious.** `mountReactHandle`
+— the vanilla-to-React adapter — lives in `uikit/shared/mount.tsx` and would have forced a second
+exception. But once `GlobalStyles` is native and storybook's React arm is gone it has exactly **one**
+consumer, `DrawBodyView.ts:170`, so it moves into `editors/draw/` and `uikit/` becomes React-free by
+construction rather than by audit. The reverse adapter `mountVanilla` needs no exception at all: its
+ten remaining call sites are all dead (see EPIC-074 F-2).
+
+**Since the type surface is what gates the rule, its shape matters more than its size.** It is not 70
+independent decisions: of ~132 `React.<Type>` references, **85 are two types** — `React.Ref` (50,
+consumed by `bindRef`) and `React.HTMLAttributes` (35, consumed by `applyRestProps`), both defined in
+the single 168-line `uikit/shared/react-compat.ts` and restated by the 39 views that call it. Replace
+those two and the sweep is mechanical.
 
 
 **Per open decision #3, this epic also strips the React wrapper off every converted UIKit
@@ -1854,7 +1918,7 @@ creates the duplicate, not in the epic that hopes to remove it.
 |---|---|---|
 | `EditorModule.Body` React arm and its registry normalization shim | **Collected.** All five embeddable bodies expose `BodyView`; notebook dispatch mounts that view directly. | Done in the editor conversion epic |
 | `@monaco-editor/react` | **Collected — uninstalled in [EPIC-061](epics/EPIC-061.md).** Zero importers in `src/`, `loader.config({ monaco })` deleted from `configure-monaco.ts`, package removed from `package.json`. Collected in the epic that freed it rather than deferred to Epic F, per this section's own note. | Done in E3 |
-| `react-markdown` and `hast-util-to-jsx-runtime` application importers | **Collectable in Epic F.** Neither has an application importer now; `hast-util-to-jsx-runtime` remains only in one explanatory source comment. The npm packages are still installed. | Epic F |
+| `react-markdown` and `hast-util-to-jsx-runtime` application importers | **Collected in EPIC-074 F-d.** Neither has an application importer; `hast-util-to-jsx-runtime` remains only in one explanatory source comment. `react-markdown` was uninstalled; the remaining parser packages stay installed. | EPIC-074 |
 
 **The former React grid entries were collected in E4**, the epic that freed them, rather than
 deferred to a cleanup epic that would have had to re-establish why they existed.

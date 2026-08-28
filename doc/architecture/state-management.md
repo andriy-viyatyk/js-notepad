@@ -2,9 +2,9 @@
 
 ## Overview
 
-persephone uses a custom reactive state system built on Zustand + Immer:
+persephone uses a custom reactive state system built on `TOneState` + Immer:
 - Immutable updates via Immer's `produce()`
-- React hooks for subscriptions with structural comparison for plain objects and reference comparison for other values
+- Synchronous subscriptions, with structural comparison for plain objects and reference comparison for other values
 - Type-safe state access via `TOneState<T>`
 
 All state primitives live in `/src/renderer/core/state/`.
@@ -15,9 +15,9 @@ All state primitives live in `/src/renderer/core/state/`.
 |-----------|----------|----------|
 | `TOneState<T>` | Simple reactive value (standalone or inside a model) | Anywhere |
 | `TGlobalState<T>` | Application-wide state (cleared on logout) | `api/` modules |
-| `TComponentState<T>` | Component-scoped state (with `useComponentModel`) | React components |
+| `TComponentState<T>` | Component-scoped state | `TComponentModel` instances |
 | `TModel<T>` | Stateful business logic (non-React) | Models, services |
-| `TComponentModel<T, P>` | Component model with props, effects, and memos; adapted by React or a vanilla driver | React components, `VanillaView` classes |
+| `TComponentModel<T, P>` | Component model with props, effects, and memos; driven by an explicit lifecycle adapter | `VanillaView` classes |
 | `TDialogModel<T, R>` | Dialog/modal with async result | Dialogs |
 | `EditorModel<T, R>` | Editor instance (every editor subclasses this) | Editors |
 
@@ -25,22 +25,20 @@ All state primitives live in `/src/renderer/core/state/`.
 
 ### TOneState\<T\>
 
-Foundation of all state. Wraps Zustand store with Immer updates.
+Foundation of all state. Stores the current value and dispatches synchronous listeners around Immer updates.
 
 ```typescript
 const count = new TOneState(0);
 count.get();              // 0
 count.set(5);             // direct set
 count.update(s => s + 1); // Immer update (for objects/arrays)
-count.use();              // React hook — re-renders on change
-count.use(s => s > 3);    // Selective subscription with shallow compare
-count.subscribe(() => {}); // Non-React listener
+count.subscribe(() => {}); // Full-state listener
+count.subscribe((isLarge) => {}, (value) => value > 3); // Selective subscription
 count.clear();            // Reset to default
 ```
 
-`TOneState` is also the bridge for values shared by React and non-React consumers. The active
-renderer theme is held in `theme/theme-state.ts`: React views select it with `use()`, while
-Monaco, canvas, webview, and board integration code use `get()` and `subscribe()`. A theme
+`TOneState` is also the bridge for values shared by native consumers. The active renderer theme is
+held in `theme/theme-state.ts`; views use `get()` and selector-aware `subscribe()`. A theme
 mutation updates the CSS variables first and publishes the state last, so subscribers observe
 the already-applied theme.
 
@@ -55,7 +53,7 @@ globalState.update(s => { s.pages.push(newPage); });
 
 ### TComponentState\<T\>
 
-Extends `TOneState` — identical API. Used with `useComponentModel` for component-scoped state that persists across re-renders.
+Extends `TOneState` — identical API. Used for component-scoped state owned by a model and view.
 
 ```typescript
 const state = new TComponentState<MyState>({ name: '', items: [] });
@@ -65,7 +63,7 @@ state.update(s => {
 });
 ```
 
-**Design Note:** Both `TGlobalState` and `TComponentState` extend `TOneState` with the same API. The distinction is organizational — `TGlobalState` clears on logout, while `TComponentState` is scoped to a component model's lifetime via `useComponentModel` or `createComponentModelDriver`.
+**Design Note:** Both `TGlobalState` and `TComponentState` extend `TOneState` with the same API. The distinction is organizational — `TGlobalState` clears on logout, while `TComponentState` is scoped to a component model's lifetime via `createComponentModelDriver`.
 
 ### Large Accumulating Collections Don't Belong in State
 
@@ -97,8 +95,8 @@ where Immer's copying is what makes selective subscription and change detection 
 Vanilla views share mutable fields and per-row records with the synchronous store-notification
 path. Treat every store write as a possible immediate refresh. A handler must capture any value it
 needs before the write, or derive it from a stable model/key afterward; never read a mutable view
-field or row record after a write that can notify the view. A React handler often captured a
-per-render constant, which hid this race; a `VanillaView` field does not have that snapshot behavior.
+field or row record after a write that can notify the view. A declarative handler often captures a
+per-render constant, which hides this race; a `VanillaView` field does not have that snapshot behavior.
 
 Related values can also reach an imperative widget over different channels. Establish direct
 widget data before publishing state that synchronously projects companion options. In
@@ -115,19 +113,20 @@ Two related lifecycle details are easy to misread:
   app-specific value. Attribute-keyed CSS rules, including selection, drag, hover, and slot rules,
   will no longer match; use an additive class or a separate data attribute instead.
 
-### useOptionalState Hook
+### Subscribing from a native view
 
-`useOptionalState(state, selector, defaultValue)` — subscribes to a `TOneState` that may be null. Always calls `useState` + `useEffect` (stable hook count), returns `defaultValue` when state is null. Use this instead of `state?.use()` which is a conditional hook and violates React Rules of Hooks.
+Use `VanillaView.bind()` for a state value that projects into the DOM. It applies once immediately,
+then subscribes with the same selector comparison used by `TOneState`:
 
 ```typescript
-// Bad — conditional hook, crashes when editor type changes:
-const compareMode = editor?.state.use((s) => s.compareMode);
-
-// Good — unconditional hook, safe for optional state:
-const compareMode = useOptionalState(editor?.state, (s) => s.compareMode, false);
+this.bind(model.state, (state) => state.compareMode, (compareMode) => {
+    if (compareMode) toggle.dataset.active = "";
+    else delete toggle.dataset.active;
+});
 ```
 
-This is especially important for components like `PageContent` and `PageTab` where `page.mainEditor` can change type or become null during navigation.
+Use `state.get()` for one-off reads and `state.subscribe(listener)` when a full-state notification
+is needed. The subscription is synchronous and must be disposed with the owning view.
 
 ## Model Classes
 
@@ -145,13 +144,13 @@ class MyModel extends TModel<MyState> {
 
 ### TComponentModel\<T, P\>
 
-Component model with props tracking, effects, and memos. React views use the `useComponentModel`
-hook; framework-free views use `createComponentModelDriver` from `core/state/model.ts`.
+Component model with props tracking, effects, and memos. Framework-free views use
+`createComponentModelDriver` from `core/state/model.ts`.
 
 ```typescript
 class MyComponentModel extends TComponentModel<State, Props> {
     init() {
-        // Called once after first render
+        // Called once when the model is initialized
         this.effect(() => {
             console.log("value changed:", this.props.value);
         }, () => [this.props.value]);
@@ -162,34 +161,32 @@ class MyComponentModel extends TComponentModel<State, Props> {
     }
 }
 
-// In component:
-const model = useComponentModel(props, MyComponentModel, defaultState);
+const driver = createComponentModelDriver(props, MyComponentModel, defaultState);
+driver.mount();
 ```
 
 **Lifecycle:**
-1. Mount: creates model, stores in React ref
-2. Each render: `setPropsInternal(props)` — updates props, evaluates effects
-3. After first render: `init()` called via `useEffect` — registers effects
-4. Unmount: `dispose()` called, all effects cleaned up
+1. Construction: creates the model and performs the initial prop pump
+2. `mount()`: initializes the model and evaluates its lifecycle
+3. `update(props)`: pumps new props and evaluates registered effects
+4. `dispose()`: cleans up model resources
 
-The React lifecycle above is only the hook adapter. The non-React driver performs the initial prop
-pump, exposes explicit `mount()` / `update()` / `dispose()` operations, and rejects models that
-register `effect()` callbacks because those callbacks depend on React render timing. A model shared
-with a vanilla view must put DOM work in the view lifecycle or in explicit model methods, and must
-keep asynchronous work cancellable after disposal.
+The driver performs the initial prop pump, exposes explicit `mount()` / `update()` / `dispose()`
+operations, and rejects models that
+register `effect()` callbacks when it is driven by a native view. A model shared with a vanilla view
+must put DOM work in the view lifecycle or in explicit model methods, and must keep asynchronous
+work cancellable after disposal.
 
 **Primitives:**
-- `this.effect(callback, depsFactory?)` — side effect with dependency tracking (like `useEffect`)
+- `this.effect(callback, depsFactory?)` — side effect with dependency tracking
 - `this.memo(computeFn, depsFactory)` — cached computation (like `useMemo`)
 
 See [Model-View Pattern](/doc/standards/model-view-pattern.md) for full documentation.
 
-Dependency-based model effects are evaluated by `setPropsInternal()` during render after the
-model has been initialized. Keep those effects free of synchronous writes to other React-backed
-models or components; such writes can trigger a render-phase update warning or loop. DOM reads,
-subscriptions, and other post-mount work that must remain commit-timed belong in the View's
-`useEffect` instead. Effects are also not safe to assume under Strict Mode unless their callback
-is explicitly idempotent.
+Dependency-based model effects are evaluated by the driver during `update()` after the model has
+been initialized. Keep those effects free of synchronous writes that can re-enter the same model;
+such writes can trigger a notification loop. DOM reads and other lifecycle work belong in the
+`VanillaView` mount/update hooks. Effects must be cancellable and explicitly idempotent.
 
 ### TDialogModel\<T, R\>
 
@@ -364,7 +361,8 @@ class PagesModel extends TModel<PagesState> {
 }
 ```
 
-**Key point:** Consumers (React components, scripts) access state through Object Model interfaces (`app.settings`, `app.pages`), not through raw state primitives.
+**Key point:** Consumers (native views, the draw vendor island, and scripts) access state through
+Object Model interfaces (`app.settings`, `app.pages`) when available, not through raw state primitives.
 
 ### Settings actuation and the idempotency rule
 
@@ -409,32 +407,30 @@ whenever the decision point is already a renderer→main message.
 ### Via Object Model
 
 ```typescript
-function MyComponent() {
-    const theme = app.settings.use("theme");  // subscribe via Object Model
-    return <div>Theme: {theme}</div>;
-}
+const unsubscribe = app.settings.onChanged.subscribe(({ key, value }) => {
+    if (key === "theme") updateTheme(value);
+});
 ```
 
 ### Via Model State (direct)
 
 ```typescript
-function MyEditorView({ model }: { model: TextFileModel }) {
-    const { content, modified } = model.state.use(s => ({
-        content: s.content,
-        modified: s.modified,
-    }));
-    return <Editor value={content} />;
+class MyEditorView extends VanillaView<{ model: TextFileModel }> {
+    protected onMount(): void {
+        this.bind(this.props.model.state, (state) => state.content, (content) => {
+            this.root.textContent = content;
+        });
+    }
 }
 ```
 
-### Via useComponentModel
+### Via TComponentModel
 
 ```typescript
-function MyWidget(props: WidgetProps) {
-    const model = useComponentModel(props, WidgetModel, defaultState);
-    const { count } = model.state.use(s => ({ count: s.count }));
-    return <div onClick={() => model.increment()}>{count}</div>;
-}
+const model = new TComponentModel(new TComponentState(defaultState));
+const driver = createComponentModelDriver(props, WidgetModel, defaultState);
+driver.mount();
+driver.update(props);
 ```
 
 ## Best Practices
@@ -442,40 +438,33 @@ function MyWidget(props: WidgetProps) {
 ### 1. Minimize Subscriptions
 
 ```typescript
-// GOOD — subscribe to what you need
-const { title } = state.use(s => ({ title: s.title }));
+// Selective subscription; the listener receives the selected value.
+const unsubscribe = state.subscribe((title) => updateTitle(title), (value) => value.title);
 
-// BAD — subscribe to everything (re-renders on any change)
-const state = model.state.use();
+// Use a full listener only when the whole state is relevant.
+const unsubscribeAll = model.state.subscribe(() => refreshAll());
 ```
 
 ### 2. Derive Computed Values Inside the Selector
 
-`use(selector)` re-renders only when the selector's **result** changes (structural compare via
-`compareSelection`). A helper that reads state through `this.state.get()` at render time is therefore
-invisible to that comparison — if the state it reads is not also part of the selector's result, the
-component never re-renders when it changes, and the stale value persists until some *other* selected
-field happens to change.
+`subscribe(listener, selector)` invokes the listener only when the selector's **result** changes
+(structural compare via `compareSelection`). A helper that reads state through `this.state.get()`
+outside the selector is therefore invisible to that comparison — if the state it reads is not also
+part of the selector's result, the view never updates when it changes.
 
 ```typescript
-// BAD — getViewMode() reads data.state.*ViewMode, which the selector never returns.
-// Changing the view mode updates the state but produces an equal selection: no re-render.
-const { searchText } = model.state.use(s => ({ searchText: s.searchText }));
-const viewMode = model.getViewMode();
-
-// GOOD — derived inside the selector, so it participates in the comparison
-const { searchText, viewMode } = model.state.use(s => ({
-    searchText: s.searchText,
-    viewMode: model.getViewMode(s),
-}));
+// GOOD — derive inside the selector, so it participates in comparison.
+const unsubscribe = model.state.subscribe(
+    ({ searchText, viewMode }) => render(searchText, viewMode),
+    (state) => ({ searchText: state.searchText, viewMode: model.getViewMode(state) }),
+);
 ```
 
 Give such helpers an optional state-snapshot parameter (`getViewMode(snapshot?)`) so the selector
 stays pure instead of reaching back into `this.state.get()`.
 
-This failure mode is easy to miss because it looks like a working feature: the value updates as soon
-as anything else triggers a render. Prefer deriving from state over caching computed values in state —
-but when a getter derives from state, call it through the selector.
+When a getter derives from state, call it through the selector and dispose the returned subscription
+with the owning view.
 
 ### 3. Use Immer Updates
 
@@ -489,7 +478,8 @@ state.set({ ...state.get(), items: [...state.get().items, newItem] });
 
 ### 4. Prefer Object Model Over Raw State
 
-Access state through `app.*` interfaces when available. Only use raw `state.use()` inside the component/editor that owns the state.
+Access state through `app.*` interfaces when available. Use raw `state.get()`/`subscribe()` only in
+the component or editor that owns the state.
 
 ### 5. EditorModel for New Editors
 

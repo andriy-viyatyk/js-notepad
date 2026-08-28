@@ -8,6 +8,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.23 (Upcoming)
 
+### Breaking Changes
+
+- **The `React` script global has been removed** — User scripts that reference `React` now throw `ReferenceError`. The global was documented but inert: no script-facing API could consume a React value, and it had no typings or usage in the supplied samples and board scripts. Scripts that need a dependency must import or bundle it explicitly.
+
 ### Improvements
 
 - **Large notebooks stay responsive** — Long notebooks scroll more smoothly without disturbing note editing. Expanding and collapsing a note keeps its editor state, and scrolling over inactive note content continues to move the notebook.
