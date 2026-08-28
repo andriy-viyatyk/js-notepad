@@ -165,11 +165,15 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Browser Tor lifecycle model (per-page partition IDs, fail-closed proxy arming, listeners/reconnect, window-close cleanup) | `/src/renderer/editors/browser/BrowserTorModel.ts` |
 | Browser webview context-menu builder (bounded DOM/SVG/resource probes and menu actions) | `/src/renderer/editors/browser/webview-context-menu.ts` |
 | Graph editor host lifecycle, parsing, serialization and composed-model orchestration | `/src/renderer/editors/graph/GraphEditor.ts` |
+| Native graph body and composed graph panels (canvas renderer, detail/settings/legend/tooltip views, and scoped geometry) | `/src/renderer/editors/graph/GraphBodyView.ts`, `/src/renderer/editors/graph/*View.ts`, `/src/renderer/editors/graph/*.css` |
 | Graph interactive grouping and membership operations | `/src/renderer/editors/graph/GraphGroupActionsModel.ts` |
 | Graph mutation, export and rebuild/persist workflows | `/src/renderer/editors/graph/GraphMutationModel.ts` |
 | Graph tooltip timing, hover state and status hints | `/src/renderer/editors/graph/GraphTooltipModel.ts` |
-| Draw editor              | `/src/renderer/editors/draw/DrawEditor.ts`        |
-| Rest Client editor       | `/src/renderer/editors/rest-client/RestClientEditor.ts` |
+| Draw editor model and native/vendor view boundary | `/src/renderer/editors/draw/DrawEditor.ts`, `/src/renderer/editors/draw/DrawBodyView.ts`, `/src/renderer/editors/draw/ExcalidrawIsland.tsx` |
+| Rest Client editor and native request/response views | `/src/renderer/editors/rest-client/RestClientEditor.ts`, `/src/renderer/editors/rest-client/RestClientBodyView.ts`, `/src/renderer/editors/rest-client/RequestBuilderView.ts`, `/src/renderer/editors/rest-client/ResponseViewerView.ts`, `/src/renderer/editors/rest-client/KeyValueEditorView.ts` |
+| Environment variables editor and native grid body | `/src/renderer/editors/env-vars/EnvVarsEditor.ts`, `/src/renderer/editors/env-vars/EnvVarsBodyView.ts` |
+| File diff editor and native revision/diff views | `/src/renderer/editors/file-diff/FileDiffEditor.ts`, `/src/renderer/editors/file-diff/FileDiffBodyView.ts`, `/src/renderer/editors/file-diff/RevisionPickerView.ts`, `/src/renderer/editors/file-diff/FileDiffToolbarView.ts` |
+| Native Git tree view used by revision selection | `/src/renderer/components/git-tree/GitTreeView.ts` |
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
 | Native MCP Inspector page and panels (connection, capability panels, result branches, and teardown) | `/src/renderer/editors/mcp-inspector/McpInspectorView.ts`, `/src/renderer/editors/mcp-inspector/*.ts` |
 | Native Mneme editor views (root search and configuration/progress branches) | `/src/renderer/editors/mneme-root/MnemeRootEditorView.ts`, `/src/renderer/editors/mneme-config/` |
@@ -198,7 +202,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Static application-root geometry (absolute/flex `#root` layout, loaded before shell measurement) | `/src/renderer/theme/root.css` |
 | Global-style React island (the only React root created by application startup) | `/src/renderer/theme/GlobalStyles.tsx` |
 | SVG icon registry and builder contract (`IconName`, required `createElement`, `createIconElement`, visible invalid-name placeholder, and the `IconName \| Node` slot contract) | `/src/renderer/theme/icon-registry.ts`, `/src/renderer/theme/icons.ts`, `/src/renderer/uikit/shared/slots.ts` |
-| React bridge for builder-backed icons (the single generic JSX face, including runtime placeholder handling) | `/src/renderer/uikit/Icon/Icon.tsx` |
+| Builder-backed icon bridge (native SVG/IMG builders, registry resolution, and runtime placeholder handling) | `/src/renderer/components/icons/icon-elements.ts`, `/src/renderer/theme/icons.ts` |
 | File/language icon resolver (language, compound-extension, system, board, and default precedence) | `/src/renderer/components/icons/language-icon-resolver.ts`, `/src/renderer/components/icons/icon-elements.ts` |
 | App theme cycling (`cycleAppTheme(direction)` — cycle + persist to settings; shared by the host `KeyboardService` shortcut and the `board:cycleTheme` message forwarded out of a board frame, so both paths behave identically) | `/src/renderer/api/cycle-app-theme.ts` |
 | Theme definitions        | `/src/renderer/theme/themes/`                     |
@@ -280,7 +284,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git service (main)       | `/src/main/git-service.ts`                        |
 | Git IPC types            | `/src/ipc/git-ipc.ts`                             |
 | Git renderer API         | `/src/renderer/api/git.ts`                        |
-| Git Tree React-facing face | `/src/renderer/components/git-tree/GitTree.tsx` |
+| Native Git Tree view | `/src/renderer/components/git-tree/GitTreeView.ts` |
 | Git Tree native view       | `/src/renderer/components/git-tree/GitTreeView.ts` |
 | Git ref palette bridge   | `/src/renderer/components/git-tree/git-ref-color.ts` |
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
@@ -293,7 +297,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
 | Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.ts` |
 | Git "Git" panel — merged secondary view (container: "Git (N)" header, Refresh + "x" close + "Show Git Tree" zone, Changes/Branches/Tags SegmentedControl + body-toolbar AZ toggle for refs segments; persists `gitPanelTab`) | `/src/renderer/editors/git-tree/GitPanelSecondaryView.ts` |
-| Git "Changes" segment body (stage/unstage/reset + Commit button — buttons, double-click, context menu; header-less) | `/src/renderer/editors/git-tree/GitChangesView.tsx` |
+| Git "Changes" segment body (stage/unstage/reset + Commit button — buttons, double-click, context menu; header-less) | `/src/renderer/editors/git-tree/GitChangesView.ts` |
 | Git "Branches"/"Tags" segment body (`show="branches"` → Branches + Remotes refs tree; `show="tags"` → flat tags; head-green active branch, AZ/historical order, click-to-reveal, Switch context menu; header-less) | `/src/renderer/editors/git-tree/GitRefsView.tsx` |
 | Commit dialog (message + author Name/Email + branch; "Commit" / "Commit & Push" actions; `showCommitDialog`) | `/src/renderer/ui/dialogs/CommitDialog.ts` |
 | Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.ts` |
@@ -359,7 +363,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Pinned rail (native view extracted from the panel; horizontal/vertical layouts; drives both the sidebar panel and the hub page) | `/src/renderer/ui/sidebar/PinnedRailView.ts` |
 | Built-in editors list (native view extracted from the panel; creatable items with pin/open — shared by panel + hub) | `/src/renderer/ui/sidebar/BuiltinEditorsListView.ts` |
 | Published-catalog search tab (native hub "Search boards" view; cached-catalog filter/grouping and Board Info actions) | `/src/renderer/editors/tools-hub/SearchBoardsTab.ts` |
-| Catalog board screenshot (shared by the Search boards cards and both Board Info modes; a plain remote `<img>` at a fixed 200×125 16:10 footprint — no URL, a 404 or no network all fall back to a same-size placeholder so card heights never jump. Loaded straight from the catalog repo over `https` (the app renderer sets no `img-src`/`default-src` CSP) and deliberately NOT fetched through main or disk-cached, so screenshots are the one part of the catalog that does not work offline. A raw `<img>` rather than a UIKit primitive — Rule 7 governs Emotion in app code and `style`/`className` on UIKit *components*, not raw elements) | `/src/renderer/editors/board-info/BoardScreenshot.tsx` |
+| Catalog board screenshot (shared by the Search boards cards and both Board Info modes; a plain remote `<img>` at a fixed 200×125 16:10 footprint — no URL, a 404 or no network all fall back to a same-size placeholder so card heights never jump. Loaded straight from the catalog repo over `https` (the app renderer sets no `img-src`/`default-src` CSP) and deliberately NOT fetched through main or disk-cached, so screenshots are the one part of the catalog that does not work offline. A raw `<img>` rather than a UIKit primitive — Rule 7 governs Emotion in app code and `style`/`className` on UIKit *components*, not raw elements) | `/src/renderer/editors/board-info/BoardScreenshotView.ts` |
 | Creatable-items registry (`CreatableItem` list shared by the Tools & Editors panel and the `+` new-page dropdown; `DEFAULT_PINNED_EDITORS`) | `/src/renderer/ui/sidebar/tools-editors-registry.ts` |
 | Trusted-boards sidebar tab (native list with open/pin/remove and catalog update actions) | `/src/renderer/ui/sidebar/TrustedBoardsListView.ts` |
 | Human-readable byte size (`formatBytes`) | `/src/renderer/core/utils/format-bytes.ts` |

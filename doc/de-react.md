@@ -1722,11 +1722,92 @@ shims, which die with their last callers rather than by deliberate deletion. **P
 must re-measure every figure in this paragraph rather than inherit it, and it must pair each removal
 statement with a presence statement.** The next free epic number is **EPIC-073**.
 
+#### E15 is complete as [EPIC-073](epics/completed.md) — Epic E is finished *(2026-08-28)*
+
+**No editor in Persephone produces React except the one a vendor requires.** The last five React
+bodies are native — `env-vars`, `file-diff`, `rest-client`, `graph`, and `draw` reduced to an 87-line
+Excalidraw island — the 18-face `mountVanilla` layer is gone after its props types moved into native
+modules, and the residual React paths are stripped from `PopoverView`, `DialogView`, `highlight.ts`,
+`fill-slot.ts` and four uikit views. JSX markers **403 → 10**, `editors/` **385 → 2**, non-story
+`.tsx` **50 → 9**, faces **21 → 0**, `react` importers **116 → 84**, React *runtime* users
+**39 → 14**. `editors/` holds exactly one `.tsx`. All 14 `effect()` registrations in `graph` are
+gone, as is the last `ReactDOM.createPortal` in the editors.
+
+**The epic's largest finding is not about React: a sized element is not a rendered one.** Two defects
+reached the tree and **both passed every structural check the programme owns**. The Excalidraw island
+host `div` — an element the React original never had — was created bare, so `display: block;
+height: 0` made Excalidraw's own `height: 100%` resolve against zero and the drawing surface
+collapsed. And `GraphBodyView` kept only the *unmount* half of the original's `canvasRef` callback,
+so `editor.renderer.setCanvas()` was never called: no simulation, no `handleResize()`, and the canvas
+**backing store stayed at the HTML default 300×150 while the element measured 1557×949**. At the
+moment each shipped, the readings were 0 React roots on the correct host, no crash, correct element
+geometry, and for graph a footer correctly reporting the node count *from the model*. Every reading
+was true and both features were blank.
+
+The rule, a strict generalisation of E14's **C9a**: *element geometry, root counts, crash checks and
+model-derived labels are all upstream of rendering.* For a canvas, read the **backing store** and a
+**pixel histogram** — an unrendered canvas is one uniform transparent colour. For a nested host, walk
+the height chain and find where it goes to zero. Neither defect was findable another way; both took
+minutes once the right instrument was used. Corollary, now proven twice: **introducing a nesting
+level the original did not have is a layout change**, which is exactly why `mountVanilla`'s host is
+deliberately `display: contents` while `mountReactHandle`'s must be sized by its caller.
+
+**A third instrument failure class appeared: validation cases rot.** Five cases went stale mid-epic
+because each named a file the work deleted. Every time the script refused to publish numbers and
+exited non-zero — the guard added at E15-3 earned itself seven times — but each refusal cost a
+re-baseline. *Pin known answers to invariants, not to conversion targets.* Two false alarms are also
+on record, both from verification rather than code: a hand-invented `.rest.json` schema crashed
+Monaco (the real `body` is a `string`), and the corrected fixture *still* showed the crash because
+`openRawLink` reactivates an existing page rather than remounting it — **to re-test a crash fix, open
+a fresh path.**
+
+**Closing statement 4 was wrong as written and is corrected, not reinterpreted.** It claimed React's
+runtime is reachable from exactly two places; there are three — `GlobalStyles` at `index.tsx:15`,
+"the sole startup React root", live in every session, which the epic document acknowledged elsewhere
+and the statement simply failed to count. Statements 1–3 were met.
+
+**Epic F is now the only epic left, and its scope changed twice during E15.** First, `draw` proved
+the programme's stated ending impossible — `@excalidraw/excalidraw` declares `react`/`react-dom` as
+peer dependencies with no non-React entry point (concern **C18**: the scoping measured markers, files
+and lines correctly and never asked whether a dependency could exist without React). Then the **user
+decided** the terminal state is *"React only where a vendor requires it"*. Second, removing the draw
+editor turns out not to free React either: four other files take pure helpers from the same
+single-entry package, and `drawExport.ts` alone has seven consumers including the native `image`,
+`mermaid`, `svg` and `graph` editors.
+
+So Epic F inherits: the ~**70**-file React **type** surface, which is the actual blocker on
+uninstalling anything; an **enforceable** ending — an ESLint rule confining `react`/`react-dom`
+imports to `editors/draw/**`, with **84** importers (14 using React as a value) as the baseline to
+drive down, after which the claim becomes a build failure; the three live React roots; and **seven
+hook-exporting modules whose React consumers E15 removed**, which should be *re-measured for deadness
+rather than converted*. The next free epic number is **EPIC-074**.
+
 ### Epic F — Removal
 
-Delete `react-dom`, then `react`, `@types/react*`, `@emotion/*`, `@monaco-editor/react`,
-`react-markdown`, `react-tooltip`, `eslint-plugin-react-hooks`. Strip the adapters. Update
-`CLAUDE.md`, `component-guide.md`, `model-view-pattern.md`, `uikit-vs-components-split.md`.
+**Amended by user decision, 2026-08-27: `react` and `react-dom` stay, scoped to the Excalidraw
+editor alone.** Delete `@types/react*`, `@emotion/*`, `@monaco-editor/react`, `react-markdown`,
+`react-tooltip`, `eslint-plugin-react-hooks`. Strip the adapters. Update `CLAUDE.md`,
+`component-guide.md`, `model-view-pattern.md`, `uikit-vs-components-split.md`.
+
+**The programme's terminal state is "React only where a vendor requires it".** The one place
+`react`/`react-dom` may be imported or executed is `src/renderer/editors/draw/`'s Excalidraw island.
+Why it cannot be otherwise: `@excalidraw/excalidraw@0.18.1` declares both as `peerDependencies`,
+ships no non-React entry point, and is published as *"Excalidraw as a React component"*; its
+framework-free halves (`@excalidraw/element`, `@excalidraw/utils`, neither declaring React) exist
+only under prerelease tags. Note that removing the draw *editor* would not by itself free React —
+four other importers take pure helpers from the same single-entry package, and `drawExport.ts` has
+seven consumers including the native `image`, `mermaid`, `svg` and `graph` editors.
+
+**Out of scope by the same decision:** relocating Excalidraw into persephone-boards. It is a
+plausible future route to removing the last React dependency — it would need board functionality
+enhanced first — but it is not De-React work, and no task in this programme may drift into it.
+
+**Epic F's closing statement is enforceable, and should be enforced.** Its final task should add a
+local ESLint rule (the repo has had a local plugin since EPIC-071) forbidding any `react`/`react-dom`
+import outside `editors/draw/**`. It cannot be switched on until the React **type** surface is gone:
+the baseline measured while scoping E15 is **116 files importing `react`** — 39 as a value, 77 for
+types only. Until then "React is confined to Excalidraw" is a claim; after it, it is a build failure.
+
 
 **Per open decision #3, this epic also strips the React wrapper off every converted UIKit
 component** — they were scaffolding, not a published API. Two consequences that reach backwards:

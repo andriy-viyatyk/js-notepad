@@ -316,12 +316,9 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   │   └── types.ts
 │   │   └── index.ts
 │   └── secondary-views/    # SecondaryViews — native controlled panel host
-│       ├── SecondaryViews.tsx       # React-facing panel-host face
 │       ├── SecondaryViewsView.ts    # Native panel host; retains headerRef portal compatibility
 │       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
-│       ├── LazySecondaryView.tsx    # React dynamic panel loader (compatibility arm)
 │       ├── LazySecondaryViewView.ts  # Native dynamic panel loader (vanilla arm)
-│       ├── SideBarPanelHeader.tsx   # React-facing shared panel-header face
 │       ├── SideBarPanelHeaderView.ts # React-free DOM header factory
 │       ├── SideBarPanelHeader.css   # Static panel-header styles
 │       ├── panel-key.ts             # Composite panel keys (`${editorId}::${panelId}`)
@@ -345,7 +342,6 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── ContentHostFooterView.ts  # Native text-host footer
 │   │   ├── ContentHostFooter.css     # Footer styles
 │   │   ├── EditorConfig.ts            # Editor configuration value and empty default
-│   │   ├── EditorError.tsx           # Error boundary
 │   │   └── index.ts
 │   │
 │   ├── text/               # Text file content host (file I/O + encryption + script panel)
@@ -410,7 +406,6 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── notebook/           # Notebook editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── NotebookEditor.ts         # EditorModel — page-level notes, categories, tags
-│   │   ├── NotebookBody.tsx          # React-facing mount face
 │   │   ├── NotebookBodyView.ts       # Native body (VirtualFlexGrid + expanded overlay)
 │   │   ├── NoteItemView.ts           # Recycled native note cell
 │   │   ├── NoteItemViewModel.ts      # Per-row view model for virtualized note list
@@ -467,7 +462,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── graph/              # Force graph viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── GraphEditor.ts            # EditorModel — JSON parsing, orchestration, sub-models
-│   │   ├── GraphBody.tsx             # Canvas-based graph component
+│   │   ├── GraphBodyView.ts          # Native canvas graph body and interaction wiring
 │   │   ├── GraphDataModel.ts         # Source data ownership + node/link CRUD + legend data
 │   │   ├── GraphSearchModel.ts       # Search query matching + result computation
 │   │   ├── GraphGroupModel.ts        # Group membership analysis + link pre-processing
@@ -479,20 +474,26 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   ├── GraphContextMenu.ts       # Context menu item builders
 │   │   ├── ForceGraphRenderer.ts     # D3 force simulation + canvas rendering
 │   │   ├── GraphVisibilityModel.ts   # BFS-based visibility filtering
-│   │   ├── GraphDetailPanel.tsx      # Collapsible detail panel overlay
+│   │   ├── GraphDetailPanelView.ts    # Collapsible detail panel overlay
 │   │   ├── GraphDetailPanel.css      # Scoped graph-detail presentation
-│   │   ├── GraphTuningSliders.tsx
-│   │   ├── GraphExpansionSettings.tsx
-│   │   ├── GraphLegendPanel.tsx
-│   │   ├── GraphIcons.tsx
-│   │   ├── GraphTooltip.tsx
+│   │   ├── GraphTuningSlidersView.ts
+│   │   ├── GraphExpansionSettingsView.ts
+│   │   ├── GraphLegendPanelView.ts
+│   │   ├── GraphIcons.ts
+│   │   ├── GraphTooltipView.ts
+│   │   ├── GraphBody.css              # Canvas/body geometry and native graph presentation
+│   │   ├── GraphExpansionSettings.css
+│   │   ├── GraphLegendPanel.css
+│   │   ├── GraphTooltip.css
+│   │   ├── GraphTuningSliders.css
 │   │   ├── shapeGeometry.ts
 │   │   ├── types.ts
 │   │   ├── constants.ts
 │   │   └── index.ts
 │   ├── draw/               # Excalidraw drawing editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── DrawEditor.ts             # EditorModel — JSON parsing, fingerprint change detection
-│   │   ├── DrawBody.tsx              # Wraps <Excalidraw> component
+│   │   ├── DrawBodyView.ts            # Native chrome, model binding, and vendor-host lifecycle
+│   │   ├── ExcalidrawIsland.tsx       # Deliberate React island required by Excalidraw
 │   │   ├── drawExport.ts             # Export helpers
 │   │   ├── drawLibrary.ts            # Library persistence
 │   │   └── index.ts
@@ -510,20 +511,20 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── rest-client/        # Rest Client editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── RestClientEditor.ts       # EditorModel — collections, requests, responses
-│   │   ├── RestClientBody.tsx        # React component
-│   │   ├── RestClientShared.tsx
-│   │   ├── RequestBuilder.tsx
-│   │   ├── ResponseViewer.tsx
-│   │   ├── KeyValueEditor.tsx
+│   │   ├── RestClientBodyView.ts      # Native request/response composition
+│   │   ├── RestClientShared.ts        # Shared request/response helpers and types
+│   │   ├── RequestBuilderView.ts      # Native request builder
+│   │   ├── ResponseViewerView.ts      # Native response viewer
+│   │   ├── KeyValueEditorView.ts      # Native key/value editor
 │   │   ├── multipartBuilder.ts
 │   │   ├── httpConstants.ts
 │   │   ├── open-in-rest-client.ts
 │   │   ├── panels/                   # Secondary view panel components
-│   │   │   └── RestPanelSecondaryView.tsx        # "rest" panel
+│   │   │   └── RestPanelSecondaryView.ts         # "rest" panel
 │   │   └── index.ts
 │   ├── env-vars/           # Board environment-variables editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── EnvVarsEditor.ts          # EditorModel — namespace/profile selection, CRUD over the namespace's profile data
-│   │   ├── EnvVarsBody.tsx           # React component
+│   │   ├── EnvVarsBodyView.ts         # Native environment-variable grid body
 │   │   ├── open-env-vars.ts          # openEnvVarsPage(namespace) — used by persephone.var.show() and app.boardVars.show(namespace)
 │   │   └── index.ts
 │   ├── image/              # Image viewer (non-text, no trait)
@@ -545,6 +546,14 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   │   └── index.ts
 │   ├── compare/            # Diff editor (non-text, no trait)
 │   │   ├── CompareEditor.ts
+│   │   └── index.ts
+│   ├── file-diff/          # Git revision diff editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── FileDiffEditor.ts         # EditorModel — revision selection and diff state
+│   │   ├── FileDiffBodyModel.ts      # Diff content and revision state
+│   │   ├── FileDiffBodyView.ts       # Native diff body and Monaco host composition
+│   │   ├── FileDiffToolbarView.ts    # Native revision toolbar
+│   │   ├── RevisionPickerView.ts     # Native revision picker popover
+│   │   ├── GitDiffRevisionsSecondaryView.ts # Native revisions sidebar panel
 │   │   └── index.ts
 │   ├── about/              # About page (non-text, no trait)
 │   │   ├── AboutEditor.ts            # EditorModel
@@ -643,7 +652,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── board-info/         # Board Info editor ("board-info") — install + properties over one host-capable holder
 │   │   ├── BoardInfoEditorModel.ts   # EditorModel — install/properties modes; adopts/yields CONTENT_HOST_TRAIT without rendering (lossless Text↔+↔board switch)
 │   │   ├── BoardInfoEditorView.ts     # Download→Register install UI + properties/versions UI (UIKit only)
-│   │   ├── BoardScreenshot.tsx       # Catalog screenshot at a fixed 16:10 footprint — remote <img>, placeholder on no-URL/404; also used by the hub's Search boards tab
+│   │   ├── BoardScreenshotView.ts      # Catalog screenshot at a fixed 16:10 footprint — remote <img>, placeholder on no-URL/404; also used by the hub's Search boards tab
 │   │   ├── board-info-id.ts          # BOARD_INFO_EDITOR_ID constant (avoids an import cycle with PageToolbarView)
 │   │   ├── open-board-info.ts        # openBoardInfo(page,opts) replaces a page's editor; openBoardInfoPage(opts) opens a new page
 │   │   └── index.ts
@@ -800,7 +809,7 @@ boundaries, with `theme/GlobalStyles.tsx` as the only startup root.
 │   ├── file-grid/          # FileGrid.ts types + FileGridView.ts native DataGrid/av-grid list
 │   ├── icons/              # Builder-backed Icon face and DOM icon resolvers
 │   ├── page-manager/       # Native app-page and browser internal-tab hosts
-│   └── git-tree/           # GitTree.tsx face + GitTreeView.ts native history view and git submodels
+│   └── git-tree/           # GitTreeView.ts native history view and git submodels
 │
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives

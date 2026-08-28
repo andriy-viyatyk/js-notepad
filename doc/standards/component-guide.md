@@ -43,8 +43,8 @@ registry, use `createIconComponentElement(icon, props?)` from `theme/icons.ts`; 
 is a builder contract with a required `createElement` function and optional `viewBox`, not a
 callable React component. Language/file resolution lives in
 `components/icons/language-icon-resolver.ts` and `icon-elements.ts`; DOM builders are passed as
-native elements rather than as React-node icon values. JSX callers use the single generic
-`uikit/Icon/Icon.tsx` face.
+native elements rather than as React-node icon values. Native callers use the icon builders from
+`components/icons/icon-elements.ts` or `theme/icons.ts`; there is no generic UIKit `Icon` face.
 
 DOM icon nodes are single-use resources: appending one to a second host moves it and leaves the
 first host without an icon. Build the node at the point of use; do not cache, memoise, hoist, or

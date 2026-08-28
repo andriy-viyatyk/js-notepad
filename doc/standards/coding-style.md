@@ -435,7 +435,7 @@ console.error(error);
 **Dialogs/notifications from internal UI vs. scripts.** Internal UI code (editors, components, models)
 that needs a modal confirmation imports `showConfirmationDialog` from
 `src/renderer/ui/dialogs/ConfirmationDialog` directly — that is the real modal popup (precedent:
-`editors/graph/GraphBody.tsx`, `editors/text/ScriptPanel.ts`, `editors/git-tree/GitChangesView.tsx`).
+`editors/graph/GraphBodyView.ts`, `editors/text/ScriptPanel.ts`, `editors/git-tree/GitChangesView.ts`).
 For toasts, use the `ui` singleton's `ui.notify(message, "error")` (the global alerts bar). The
 `app.ui.confirm` / `app.ui.*` surface is the **script-facing** Object Model API (it routes to the script's
 log/output context) — do not use it for the app's own UI.

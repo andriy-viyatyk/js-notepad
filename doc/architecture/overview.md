@@ -96,9 +96,11 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 The renderer has a framework-free application shell. `src/renderer.tsx` performs the asynchronous
 bootstrap and calls the `mount(container)` export from `src/renderer/index.tsx`. The shell and
 coupled components are `VanillaView` classes; thin React-facing mount faces remain only where a
-React caller still exists. React is retained only for editor islands and a small set of other
-compatibility boundaries. The sole startup React root is the `GlobalStyles` island; application
-pages and the browser editor's internal tabs enter native page-manager slots directly.
+React caller still exists. Editor bodies are native views, with one deliberate vendor island in
+`editors/draw/ExcalidrawIsland.tsx` because Excalidraw requires React. React also remains at the
+Storybook component-story and compatibility boundaries. The sole startup React root is the
+`GlobalStyles` island; application pages and the browser editor's internal tabs enter native
+page-manager slots directly.
 
 ```
 /src/renderer/
@@ -298,7 +300,8 @@ Every editor follows the same pattern:
 /editors/[name]/
 ├── index.ts / index.tsx  # EditorModule registration (factory + matchers; required native View)
 ├── [Name]Editor.ts       # EditorModel subclass — state, lifecycle, business logic
-├── [Name]Body.tsx        # React body, or [Name]BodyView.ts for a native body
+├── [Name]BodyView.ts      # Native body (when the editor has an embeddable body)
+├── [Name]Body.tsx         # React body only when a bounded vendor/compatibility island is required
 └── components/           # Editor-specific (optional)
 ```
 

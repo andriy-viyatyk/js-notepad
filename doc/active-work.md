@@ -8,8 +8,23 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-
 - *(no epic)*
+  - [ ] US-1173: **interactive verification pass for EPIC-073's converted surfaces.** Every one of
+    these was conceded as *could not reach with the available instrument* rather than *not allowed*,
+    and EPIC-073 shipped two defects that passed every structural check — so this is the pass that
+    would have caught them. Ordered by value: (1) **open a dialog** and confirm commit plus the focus
+    pass — `DialogCommitSignal` was replaced by a native scheduled focus pass and no dialog was ever
+    opened; (2) **popover resize**, reachable *only* through `uikit/Popover/Popover.story.ts` because
+    no application caller sets `resizable` — which also means that path has no app consumer at all
+    and Epic F may want to know; (3) **graph interaction** — node select → detail panel, hover
+    tooltip positioning, legend contents, expansion/tuning sliders, search highlighting via
+    `highlightInto`; (4) **rest-client's Monaco hosts**, both behind a `SegmentedControlView` switch a
+    synthetic click cannot drive, plus sending a request (needs network); (5) **av-grid editing** in
+    `env-vars` and `file-diff`, and file-diff's revision pick and readOnly rule; (6) the **four
+    repointed stories**, which compile but were never rendered; (7) **`PopoverView`'s board, browser
+    and grid call sites** — hover preview, downloads popup, column options — of which only the
+    file-diff picker was exercised. Also still open from EPIC-072: the browser's network-dependent
+    surfaces.
   - [ ] US-1164: the browser toolbar's **download** and **Tor info** buttons rendered after
     **Close Tab** instead of before **Page Menu** (user-reported, fixed 2026-08-27 in
     `BrowserView.ts:292`). An EPIC-072 conversion defect: `BrowserToolbarView` appended
@@ -356,7 +371,7 @@ a JSX-text apostrophe (*"this file isn't in a git repository"*) opened a phantom
 swallowed the rest of the file, so `file-diff` measured zero markers while holding a full React body.
 Corrected, `editors/` is **542**, not 535 — and the new rule is that **when two cheap instruments
 disagree, at least one is wrong, which is a better validator than making one instrument careful,
-because it needs no ground truth prepared in advance.** Next free epic number: **EPIC-073**; next free task number: **US-1164**. **E15 is Epic E's last epic.**
+because it needs no ground truth prepared in advance.** **E15 is complete as [EPIC-073](epics/completed.md) (2026-08-28)** — Epic E is finished; see the close record in the roadmap. It was scoped as follows: — the last React editor: the five remaining React editor bodies (`graph`, `rest-client`, `env-vars`, `file-diff`, `draw`, 383 of the renderer's 403 JSX markers), the 21-face `mountVanilla` layer that only those bodies render, and the residual React paths inside `PopoverView`/`DialogView`. It is Epic E's last epic. Re-measuring E14's handoff confirmed more than it corrected — the five marker counts and `graph` as `highlight.ts`'s last React consumer all verified exactly — but it found the face count is 21 not 19, `EditorErrorBoundary.tsx` **cannot** die (storybook renders through it), the `SlotText` sweep is not De-React work at all (both aliases include `React.ReactNode`), and the handoff omitted what actually gates Epic F: ~260 `React.*` **type** references across 80 files that contain no React runtime. Next free epic number: **EPIC-074**; next free task number: **US-1173**. **Epic F is the only epic left**, and its opening line changed: `react`/`react-dom` stay, scoped to the Excalidraw editor (user decision 2026-08-27). Its real blocker is the ~70-file React **type** surface, and its ending is enforceable — an ESLint rule confining `react` imports to `editors/draw/**`, with 84 importers as the baseline.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

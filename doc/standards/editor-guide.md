@@ -181,6 +181,11 @@ If a body still needs React, wrap it in `EditorErrorBoundary` and pass the resul
 island. `EditorToolbar` and `ContentHostFooter` are compatibility faces for React callers, not the
 native implementation path.
 
+If a third-party editor widget requires React, keep the React code in a named, minimal island and
+let the native view own its host element, surrounding chrome, model bindings, and disposal. Give
+the host explicit size styles when the widget does not establish its own geometry; do not hide the
+island in a `.ts` file merely to satisfy an extension count.
+
 ### Size editor bodies to their container
 
 An editor body is often a flex child of the shared chrome. Set `minHeight: 0` on the flex panel

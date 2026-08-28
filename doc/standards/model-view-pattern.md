@@ -38,10 +38,12 @@ native view path. A converted non-text editor uses `PageToolbarView` directly; t
 React page-toolbar face to preserve.
 
 The native main-view shape is used by the text-bearing editor set, including `svg`, `html`,
-`markdown`, `grid`, `mermaid`, `log-view`, and `notebook`. The remaining React-bodied editors keep
-one bounded React body island inside `TextChromeView`; that body root is a deliberate implementation
-boundary, not a second page shell. The five embeddable bodies (`svg`, `html`, `markdown`, `grid`, and
-`mermaid`) also expose `BodyView`, so notebook note dispatch can mount them without page chrome.
+`markdown`, `grid`, `mermaid`, `log-view`, and `notebook`; the graph, rest-client, env-vars, and
+file-diff bodies follow the same `VanillaView` shape. The draw editor also uses a native body, with
+one bounded `ExcalidrawIsland.tsx` inside it because the vendor package requires React. A vendor
+island is a deliberate implementation boundary, not a second page shell. The five embeddable
+bodies (`svg`, `html`, `markdown`, `grid`, and `mermaid`) also expose `BodyView`, so notebook note
+dispatch can mount them without page chrome.
 
 ## When to Use
 
@@ -395,7 +397,7 @@ should be used for ordinary DOM nodes, whole-application mounting, or to avoid c
 or child that is already in scope.
 
 The concrete end-to-end reference is
-[`PathInputView`](../../src/renderer/uikit/PathInput/PathInputView.tsx), which combines the
+[`PathInputView`](../../src/renderer/uikit/PathInput/PathInputView.ts), which combines the
 driver, `bind`, `KeyedList`, native events, static CSS, and a deliberately local `mountReact`
 bridge.
 
@@ -434,11 +436,12 @@ inside the `[data-part="react-slot"]` host used by `fillSlot`, so DOM measuremen
 islands must query both `[data-part="react-slot"]` and `[data-react-root]`.
 
 When checking a converted panel, assert visibility separately from content: `textContent`
-includes text in a `display: none` subtree. Use a layout signal such as `offsetParent` before
-claiming that text is visible. During development, renaming an imported converted module from
-`.tsx` to `.ts` can leave Vite resolving the old specifier; a renderer reload does not clear
-that stale dynamic-import resolution. Touch the importer to invalidate it before debugging the
-conversion itself.
+includes text in a `display: none` subtree. Use `offsetParent` for ordinary-flow elements; for
+fixed-position overlays such as popovers, dialogs, menus, and tooltips, use
+`getBoundingClientRect()` together with computed visibility because `offsetParent` is `null` by
+design. During development, renaming an imported converted module from `.tsx` to `.ts` can leave
+Vite resolving the old specifier; a renderer reload does not clear that stale dynamic-import
+resolution. Touch the importer to invalidate it before debugging the conversion itself.
 
 ## Before and after: the same model, two view runtimes
 
