@@ -1,4 +1,4 @@
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type { DividerProps } from "./Divider";
 import "./Divider.css";

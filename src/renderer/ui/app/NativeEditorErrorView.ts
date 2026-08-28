@@ -1,6 +1,6 @@
 import { errMessage } from "../../../shared/utils";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import "./EditorErrorBoundary.css";
+import "./NativeEditorErrorView.css";
 
 interface NativeEditorErrorViewProps {
     error: unknown;

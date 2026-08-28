@@ -1,6 +1,6 @@
 import type { EditorOrHost } from "../../editors/base";
 import type { IconName } from "../../theme/icon-registry";
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 
 /** Props passed to secondary view sidebar components. */
 export interface SecondaryViewProps {

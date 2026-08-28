@@ -1,18 +1,13 @@
-import React from "react";
-import { mountReactHandle } from "./uikit/shared/mount";
 import { AlertsBarView } from "./uikit/Notification/AlertsBar";
 import { ProgressOverlayView } from "./uikit/Progress/ProgressOverlayView";
 import { DialogsView } from "./ui/dialogs/DialogsView";
 import { PoppersView } from "./ui/dialogs/poppers/PoppersView";
 import { MainPageView } from "./ui/app/MainPageView";
-import { GlobalStyles } from "./theme/GlobalStyles";
+import { installGlobalStyles } from "./theme/global-styles";
 import "./editors/register-editors";
 
 export function mount(container: HTMLElement): () => void {
-    const globalStylesHost = document.createElement("div");
-    globalStylesHost.style.display = "contents";
-    container.append(globalStylesHost);
-    const globalStylesHandle = mountReactHandle(globalStylesHost, React.createElement(GlobalStyles));
+    const disposeGlobalStyles = installGlobalStyles();
 
     const mainPage = new MainPageView({});
     container.append(mainPage.root);
@@ -26,9 +21,9 @@ export function mount(container: HTMLElement): () => void {
     container.append(progress.root);
     progress.mount();
 
-    // `AlertsBar` is only a React face over `AlertsBarView` (`mountVanilla`), so mounting the face
+    // `AlertsBar` is only a React face over `AlertsBarView`, so mounting the face
     // would create a React root purely to wrap a vanilla view — the one thing D9 exists to remove.
-    // `GlobalStyles` is the sole startup React root, and D6 owns it.
+    // The startup path creates no React root at all.
     const alerts = new AlertsBarView({});
     container.append(alerts.root);
     alerts.mount();
@@ -48,7 +43,6 @@ export function mount(container: HTMLElement): () => void {
         dialogs.root.remove();
         mainPage.dispose();
         mainPage.root.remove();
-        globalStylesHost.remove();
-        globalStylesHandle.dispose();
+        disposeGlobalStyles();
     };
 }

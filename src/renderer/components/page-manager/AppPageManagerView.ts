@@ -1,4 +1,4 @@
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { GroupContainer } from "./GroupContainer";
 import { PageSlot, type PageSlotViewProps } from "./PageSlot";

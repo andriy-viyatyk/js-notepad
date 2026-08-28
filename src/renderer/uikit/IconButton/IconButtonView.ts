@@ -1,8 +1,8 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, NativeButtonHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
 // Owned by the view, not the shim: a vanilla parent may compose `IconButtonView` directly (`Select`
@@ -10,8 +10,8 @@ import type { IconRef } from "../shared/slots";
 // the stylesheet has to travel with the DOM rather than with the React face. Matches `InputView`.
 import "./IconButton.css";
 
-export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
-    ref?: React.Ref<HTMLButtonElement>;
+export interface IconButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
+    ref?: ElementRef<HTMLButtonElement>;
     name?: string;
     title?: string;
     onClick?: (event: MouseEvent) => void;
@@ -40,7 +40,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
     private appliedIconNode: Node | undefined;
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: (() => void) = () => undefined;
-    private boundRef: React.Ref<HTMLButtonElement> | undefined;
+    private boundRef: ElementRef<HTMLButtonElement> | undefined;
 
     public constructor(props: IconButtonViewProps) {
         super(props, document.createElement("button"));
@@ -138,7 +138,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         this.appliedIconNode = undefined;
     }
 
-    private setRef(ref: React.Ref<HTMLButtonElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLButtonElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

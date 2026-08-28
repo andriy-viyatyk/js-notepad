@@ -1,10 +1,9 @@
-import type React from "react";
-import type { ReactNode } from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 import type { IconName } from "../../theme/icon-registry";
 import type { SlotContent } from "../shared/fill-slot";
 
 export interface CollapsiblePanelProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
     name?: string;
     id: string;
     title?: string;
@@ -16,11 +15,11 @@ export interface CollapsiblePanelProps
 }
 
 export interface CollapsiblePanelStackProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className"> {
     name?: string;
     activePanel: string;
     setActivePanel: (panelId: string) => void;
-    children: ReactNode;
+    children: SlotContent;
     width?: number | string;
     minWidth?: number | string;
     maxWidth?: number | string;

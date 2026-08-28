@@ -1,6 +1,6 @@
 import { EditorOrHost } from "./base";
 import type { IContentHost } from "./base/IContentHost";
-import type { VanillaViewCtor } from "../uikit/shared/mount";
+import type { VanillaViewCtor } from "../uikit/shared/vanilla-view";
 
 export interface EditorViewModule {
     View: FileEditorView;

@@ -257,7 +257,7 @@ export class LinkActionView extends VanillaView<{ model: LinkEditor }> {
             variant: "ghost",
             title: "View Mode",
             icon: VIEW_MODE_ICONS[viewMode],
-            onClick: (event) => this.openViewModeMenu(event.nativeEvent),
+            onClick: (event) => this.openViewModeMenu(event),
             children: VIEW_MODE_LABELS[viewMode],
         };
     }

@@ -1,6 +1,6 @@
 import { createIconElement } from "../shared/slots";
 import type { IconName } from "../../theme/icon-registry";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { KeyedList } from "../shared/keyed-list";
 import { VanillaView } from "../shared/vanilla-view";
 import type { CategoryListProps } from "./CategoryList";

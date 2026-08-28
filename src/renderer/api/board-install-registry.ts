@@ -127,10 +127,6 @@ class BoardInstallRegistry {
         return this.selectInstalledEntries(this.state.get());
     }
 
-    useInstalled(): InstalledBoardEntry[] {
-        return this.state.use(this.selectInstalledEntries);
-    }
-
     subscribeInstalled(listener: () => void): () => void {
         return this.state.subscribe(listener, this.selectInstalledEntries);
     }

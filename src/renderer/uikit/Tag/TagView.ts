@@ -1,5 +1,5 @@
-import type React from "react";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
@@ -8,7 +8,7 @@ import "./Tag.css";
 
 export interface TagProps
     extends Omit<
-        React.HTMLAttributes<HTMLSpanElement>,
+        NativeHTMLAttributes<HTMLSpanElement>,
         "style" | "className" | "onClick" | "children"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate

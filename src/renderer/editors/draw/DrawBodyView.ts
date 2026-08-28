@@ -15,7 +15,7 @@ import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { SpinnerView } from "../../uikit/Spinner/SpinnerView";
 import "../../uikit/Spinner/Spinner.css";
 import { createTextElement } from "../../uikit/Text/text-style";
-import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
+import { mountReactHandle, type MountedReactRoot } from "./react-island";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { errMessage } from "../../../shared/utils";

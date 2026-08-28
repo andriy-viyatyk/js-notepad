@@ -1,10 +1,10 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { cssLength } from "../Input/InputView";
 import { IconButtonView } from "../IconButton/IconButtonView";
 import { createIconElement, createIconPlaceholderElement, isIconName, type IconRef } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
 import type { SlotContent } from "../shared/fill-slot";
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import type { DialogContentProps } from "./DialogContent";
@@ -45,7 +45,7 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
     private closeSwapParent: HTMLElement | undefined;
     private closeView: IconButtonView | undefined;
     private refCleanup: (() => void) | undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: DialogContentProps) {
         super(props, document.createElement("div"));
@@ -281,7 +281,7 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.headerButtonsHost = undefined;
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup?.();
         this.boundRef = ref;

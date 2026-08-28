@@ -1,6 +1,6 @@
 /**
  * Renderer-side reactive model of the published-boards catalog (EPIC-045 / US-862).
- * Mirrors `board-trust.ts`: a `TGlobalState` singleton with `use()` hooks for views.
+ * Mirrors `board-trust.ts`: a `TGlobalState` singleton with subscriptions for views.
  * Subscribes to main's `ePublishedBoardsUpdated` broadcast and pulls the initial catalog
  * via `getPublishedBoards`. Compatibility (`minAppVersion` vs the running app) is checked
  * with the shared `compareVersions`.
@@ -79,11 +79,6 @@ class PublishedBoards {
         });
     }
 
-    /** All catalog boards (reactive). */
-    useCatalog(): PublishedBoardInfo[] {
-        return this.state.use(this.selectCatalogBoards);
-    }
-
     /** All catalog boards (sync, non-reactive). */
     getCatalog(): PublishedBoardInfo[] {
         return this.selectCatalogBoards(this.state.get());
@@ -104,16 +99,9 @@ class PublishedBoards {
     }
 
     /** Compatible catalog boards whose masks match the given file name (sync, non-reactive).
-     *  Sync counterpart of `useCatalogBoardsForFile` for model code (e.g. the Board Info
-     *  editor) that computes matches outside a React render. */
+     *  Used by model code (e.g. the Board Info editor) that computes matches directly. */
     catalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
         return this.selectCatalogBoardsForFile(this.state.get(), fileName);
-    }
-
-    /** Compatible catalog boards whose masks match the given file (path preferred over a bare
-     *  name — a folder-scoped catalog board can only be gated when a path is available). */
-    useCatalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
-        return this.state.use((state) => this.selectCatalogBoardsForFile(state, fileName));
     }
 
     subscribeCatalogBoardsForFile(

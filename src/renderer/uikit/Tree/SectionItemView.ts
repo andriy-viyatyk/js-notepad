@@ -1,11 +1,5 @@
-import React from "react";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import { TreeIndents } from "./tree-indents";
@@ -18,7 +12,7 @@ const defaultIndentSize = 16;
  * A non-interactive section header row in a tree.
  *
  * Deliberately **not** shared with `ListBox`'s `SectionItemView`, which writes `root.textContent`:
- * Tree's section `label` is a `React.ReactNode`, so a rich label has to go through a slot, and the
+ * Tree's section `label` is slot content, so a rich label has to go through a slot, and the
  * ListBox implementation would silently stringify or drop it. It also renders level guides, which
  * the flat list has no concept of.
  *
@@ -38,7 +32,7 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
     private indents: TreeIndents | undefined;
 
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: SectionItemProps) {
         super(props, document.createElement("div"));
@@ -95,7 +89,7 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
         applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

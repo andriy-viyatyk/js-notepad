@@ -1,10 +1,10 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 // --- Types ---
 
 export interface TagsInputProps
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         "style" | "className" | "onChange"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate

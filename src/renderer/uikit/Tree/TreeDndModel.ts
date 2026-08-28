@@ -1,4 +1,3 @@
-import type React from "react";
 import { getTraitDragDataFromEvent, hasTraitDragData, isFileDrag, setTraitDragData } from "../../core/traits/dnd";
 import { DragEnterCounter } from "../shared/drag-enter-counter";
 import type { ITreeItem, TreeRow } from "./types";
@@ -45,13 +44,12 @@ export class TreeDndModel<T = ITreeItem> {
             e.preventDefault();
             return;
         }
-        // The public prop keeps its `React.DragEvent` signature — Epic F owns API cleanup — and its
-        // one consumer only calls `dataTransfer`/`preventDefault`, which exist on the native event.
+        // Pass the native drag event through to the application-owned override unchanged.
         if (
             this.tree.props.onDragStartOverride?.(
                 row.source,
                 row.level,
-                e as unknown as React.DragEvent,
+                e,
             )
         ) {
             e.stopPropagation();

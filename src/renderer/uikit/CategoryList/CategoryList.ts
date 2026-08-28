@@ -1,9 +1,9 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 // --- Types ---
 
 export interface CategoryListProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances in DOM inspector output. Never used for styling. */
     name?: string;

@@ -1,10 +1,10 @@
-import type React from "react";
+import type { ElementRef, NativeHTMLAttributes } from "../shared/dom-props";
 
 // --- Types ---
 
 export interface SectionItemProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
-    ref?: React.Ref<HTMLDivElement>;
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: ElementRef<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

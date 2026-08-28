@@ -1,6 +1,6 @@
-import type React from "react";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import color from "../../theme/color";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import "./Dot.css";
 
@@ -14,7 +14,7 @@ export type DotColor =
 
 export interface DotProps
     extends Omit<
-        React.HTMLAttributes<HTMLSpanElement>,
+        NativeHTMLAttributes<HTMLSpanElement>,
         "style" | "className" | "color" | "children"
     > {
     name?: string;

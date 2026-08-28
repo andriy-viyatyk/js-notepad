@@ -1,7 +1,7 @@
 import { createIconElement } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
 import { KeyedList } from "../shared/keyed-list";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type {
     CollapsiblePanelProps,

@@ -10,7 +10,7 @@ import { createTextElement } from "../../uikit/Text/text-style";
 import type { IconRef } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 import { InputView } from "../../uikit/Input/InputView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { ButtonView } from "../../uikit/Button/ButtonView";

@@ -71,7 +71,7 @@ export class LinkCategoryPanelView extends VanillaView<LinkCategoryPanelProps> {
             onItemClick: this.onItemClick,
             onContextMenu: this.onContextMenu,
             // `createLinkTooltipContent` returns a DOM node, but this whole chain is typed
-            // `SlotText` (`string | React.ReactNode`) — TreeProviderViewModel.getTooltip, Tree's
+            // `SlotText` (native slot content) — TreeProviderViewModel.getTooltip, Tree's
             // own getTooltip, and TreeItemView all declare it — while `fillSlot` underneath has
             // accepted `Node` since Epic B. Widening it is a 15-declaration change across `uikit/`
             // and two unconverted editors, deliberately out of EPIC-071's scope and recorded in

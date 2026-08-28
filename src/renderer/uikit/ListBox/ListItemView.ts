@@ -1,11 +1,5 @@
-import React from "react";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { highlightInto } from "../shared/highlight";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
@@ -18,11 +12,12 @@ import "./ListItem.css";
 /**
  * The list row, and the single source of truth for its DOM.
  *
- * Two callers drive this class, which is the point: `ListBoxView` builds one per pooled cell and
- * calls `update()` as that cell is re-pointed at different rows, while `ListItem.tsx` is a
- * `mountVanilla` shim over the same class for the two app-layer JSX call sites. A second
- * implementation of a row with six state attributes, three slots, three variants x three selection
- * styles and a drop state would drift, and nothing in the build would catch it.
+ * `ListBoxView` builds one per pooled cell and calls `update()` as that cell is re-pointed at
+ * different rows. It is the sole driver: the `ListItem` React face that once wrapped this class for
+ * app-layer JSX callers was deleted in EPIC-074, and `ListItem.ts` now holds only the props type.
+ * The class stays the single implementation because a second one — a row with six state attributes,
+ * three slots, three variants x three selection styles and a drop state — would drift, and nothing
+ * in the build would catch it.
  *
  * **Slot hosts are stable for the view's lifetime.** Each of the three slots owns its own host
  * element and is written only through `fillSlot` (or, for a string label, `highlightInto`), because
@@ -58,7 +53,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
 
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: ListItemProps) {
         super(props, document.createElement("div"));
@@ -303,7 +298,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
         };
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

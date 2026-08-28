@@ -2,7 +2,7 @@ import { errMessage } from "../../../shared/utils";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { guard } from "../../core/utils/guard";
-import { type VanillaViewCtor } from "../../uikit/shared/mount";
+import { type VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import {
     secondaryViewRegistry,

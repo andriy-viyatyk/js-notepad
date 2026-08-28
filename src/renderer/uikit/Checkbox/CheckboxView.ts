@@ -1,11 +1,11 @@
-import type React from "react";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeLabelHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { createIconElement } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 
 export interface CheckboxProps
-    extends Omit<React.HTMLAttributes<HTMLLabelElement>, "onChange" | "children"> {
+    extends Omit<NativeLabelHTMLAttributes<HTMLLabelElement>, "onChange" | "children"> {
     /** Optional debug label emitted as `data-name` on the root element. */
     name?: string;
     /** Checked state (controlled). */

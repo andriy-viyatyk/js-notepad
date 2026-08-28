@@ -1,11 +1,11 @@
-import type React from "react";
-import type { TextStyleProps } from "../Text/Text";
+import type { NativeLabelHTMLAttributes } from "../shared/dom-props";
+import type { TextStyleProps } from "../Text/text-style";
 import type { SlotContent } from "../shared/fill-slot";
 
 // --- Types ---
 
 export interface LabelProps extends
-    Omit<React.LabelHTMLAttributes<HTMLLabelElement>, "style" | "className" | "color" | "children">,
+    Omit<NativeLabelHTMLAttributes<HTMLLabelElement>, "style" | "className" | "color" | "children">,
     TextStyleProps {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */

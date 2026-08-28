@@ -6,7 +6,6 @@ import { UiFacade } from "./api-wrapper/UiFacade";
 import { styledText } from "./api-wrapper/StyledTextBuilder";
 import { resolveLibraryModule } from "./library-require";
 import { LogViewEditor } from "../editors/log-view";
-import React from "react";
 import { fpResolve } from "../core/utils/file-path";
 import { createIoNamespace } from "./api-wrapper/IoNamespace";
 import { createAiNamespace } from "./api-wrapper/AiNamespace";
@@ -61,7 +60,6 @@ export class ScriptContext {
     readonly page: PageWrapper | undefined;
     readonly io = createIoNamespace();
     readonly ai = createAiNamespace();
-    readonly React = React;
     readonly styledText = styledText;
     readonly preventOutput: () => void;
     console: Console | Record<string, unknown>;

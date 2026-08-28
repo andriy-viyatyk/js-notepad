@@ -1,4 +1,4 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 import type { IconRef } from "../shared/slots";
 import type { SlotContent } from "../shared/fill-slot";
 import type { MenuItem } from "../Menu/types";
@@ -6,7 +6,7 @@ import type { MenuItem } from "../Menu/types";
 // --- Types ---
 
 export interface SplitButtonProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onClick" | "title" | "children"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onClick" | "title" | "children"> {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances in DOM inspector output. Never used for styling. */
     name?: string;

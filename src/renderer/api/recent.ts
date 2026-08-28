@@ -19,11 +19,6 @@ class RecentFiles implements IRecentFiles {
         return this.state.get().files;
     }
 
-    /** React hook for reactive reading. Not exposed in script .d.ts. */
-    useFiles(): string[] {
-        return this.state.use((s) => s.files);
-    }
-
     async load(): Promise<void> {
         const data = await fs.getDataFile(recentFileName);
         const files = (data ?? "").split("\n").map((f) => f.trim()).filter((f) => f);

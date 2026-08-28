@@ -1,5 +1,5 @@
 // Main components
-export { ScriptPanel, ScriptPanelModel, defaultScriptPanelState } from './ScriptPanel';
+export { ScriptPanelModel, defaultScriptPanelState } from './ScriptPanel';
 export type { ScriptPanelState } from './ScriptPanel';
 
 // Model

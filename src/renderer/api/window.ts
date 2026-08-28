@@ -78,12 +78,6 @@ export class Window implements IWindow {
         this._state.update(s => { s.zoomLevel = zoomLevel; });
     }
 
-    // ── React hook (not in .d.ts) ──────────────────────────────────
-
-    use() {
-        return this._state.use();
-    }
-
     // ── Window actions ─────────────────────────────────────────────
 
     minimize(): void {

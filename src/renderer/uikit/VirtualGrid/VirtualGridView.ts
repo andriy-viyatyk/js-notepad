@@ -307,7 +307,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         this.container = div("scroll");
         // Focusable so keyboard navigation has somewhere to land, but not in the tab order.
         this.container.tabIndex = -1;
-        // The global hover-reveal scrollbar treatment (theme/GlobalStyles.tsx).
+        // The global hover-reveal scrollbar treatment (theme/global-styles.ts).
         this.container.classList.add("scroll-container");
 
         this.area = div("area");

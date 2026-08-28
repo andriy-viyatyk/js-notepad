@@ -1,4 +1,4 @@
-import React from "react";
+import type { NativeCSSProperties, NativeHTMLAttributes } from "../shared/dom-props";
 import {
     TraitKey,
     Traited,
@@ -82,7 +82,7 @@ export interface TreeItemRenderContext<T> {
 
 export interface TreeProps<T = ITreeItem>
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         "style" | "className" | "onChange" | "onContextMenu"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
@@ -217,7 +217,7 @@ export interface TreeProps<T = ITreeItem>
     /** Pixel height of each row. Default: 22. */
     rowHeight?: number;
     /** When set, the tree grows to fit content up to this max height. */
-    growToHeight?: React.CSSProperties["height"];
+    growToHeight?: NativeCSSProperties["height"];
     /** Top/bottom whitespace padding inside the scroll container. */
     whiteSpaceY?: number;
 
@@ -365,7 +365,7 @@ export interface TreeProps<T = ITreeItem>
      * Keeps UIKit free of Electron/IPC: the app supplies the native-drag behavior.
      * A row is only draggable when this hook OR (`traitTypeId` + `getDragData`) is set.
      */
-    onDragStartOverride?: (source: T, level: number, e: React.DragEvent) => boolean;
+    onDragStartOverride?: (source: T, level: number, e: DragEvent) => boolean;
 }
 
 // =============================================================================

@@ -1,4 +1,4 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 import type { Traited } from "../../core/traits/traits";
 import type { SlotText } from "../shared/slots";
 import type { IListBoxItem } from "../ListBox/types";
@@ -8,7 +8,7 @@ import type { IListBoxItem } from "../ListBox/types";
 // =============================================================================
 
 export interface MultiListBoxProps<T = IListBoxItem>
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

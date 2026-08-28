@@ -1,4 +1,4 @@
-import type React from "react";
+import type { SlotContent } from "../../uikit/shared/fill-slot";
 import { TComponentModel } from "../../core/state/model";
 import type { ITreeProvider, ITreeProviderItem, ILink } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu";
@@ -81,7 +81,7 @@ export interface TreeProviderViewProps {
     refreshKey?: string | number;
     /** Optional per-row trailing content (right-aligned action slot). Receives the row's
      *  ITreeProviderItem; return null for rows without an action. */
-    renderTrailing?: (item: ITreeProviderItem) => React.ReactNode | Node;
+    renderTrailing?: (item: ITreeProviderItem) => SlotContent;
     /** Optional per-row tooltip content. Falls back to the item's href. */
     getTooltip?: (item: ITreeProviderItem) => SlotText;
     /** Override root node label. When omitted, uses provider.displayName. */

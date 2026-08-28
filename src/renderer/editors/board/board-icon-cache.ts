@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { fs } from "../../api/fs";
 import { fpJoin } from "../../core/utils/file-path";
 
@@ -68,20 +67,6 @@ export function invalidateBoardIcon(boardRoot: string): void {
     pending.delete(boardRoot);
     notify();
     void resolveBoardIcon(boardRoot);
-}
-
-/** Re-render the calling component whenever any board icon resolves / invalidates,
- *  and kick a probe for this root if it hasn't been probed yet. */
-export function useBoardIcon(boardRoot: string | undefined): void {
-    const [, force] = useState(0);
-    useEffect(() => {
-        const cb = () => force((v) => v + 1);
-        listeners.add(cb);
-        return () => { listeners.delete(cb); };
-    }, []);
-    useEffect(() => {
-        if (boardRoot && !cache.has(boardRoot)) void resolveBoardIcon(boardRoot);
-    }, [boardRoot]);
 }
 
 /** Subscribe non-React owners to board icon probe/invalidation notifications. */

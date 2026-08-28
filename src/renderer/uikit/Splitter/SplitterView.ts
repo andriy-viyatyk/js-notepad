@@ -1,15 +1,10 @@
-import type React from "react";
-import {
-    applyRestProps,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import "./Splitter.css";
 
 export interface SplitterProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
     name?: string;
     orientation?: "vertical" | "horizontal";
     value: number;

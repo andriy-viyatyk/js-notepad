@@ -1,4 +1,4 @@
-import type React from "react";
+import type { NativeCSSProperties } from "../shared/dom-props";
 import { spacing, gap as gapTokens, radius } from "../tokens";
 import "./Panel.css";
 
@@ -84,7 +84,7 @@ export interface PanelElementAttributes {
     accent?: PanelStyleProps["accent"];
     scrollbar?: "hidden";
     className: string;
-    inlineStyle: React.CSSProperties;
+    inlineStyle: NativeCSSProperties;
 }
 
 const ALIGN_MAP: Record<Align, string> = {
@@ -133,13 +133,13 @@ function isScrollable(value?: Overflow): boolean {
     return value === "auto" || value === "scroll";
 }
 
-function compactStyle(style: React.CSSProperties): React.CSSProperties {
+function compactStyle(style: NativeCSSProperties): NativeCSSProperties {
     const out: Record<string, unknown> = {};
     for (const key in style) {
         const value = (style as Record<string, unknown>)[key];
         if (value !== undefined) out[key] = value;
     }
-    return out as React.CSSProperties;
+    return out as NativeCSSProperties;
 }
 
 export function resolvePanelAttributes({
@@ -201,7 +201,7 @@ export function resolvePanelAttributes({
     const padRight = paddingRight ?? paddingX ?? padding;
 
     // This object deliberately mixes the flex and overflow shorthands with their longhands.
-    const inlineStyle: React.CSSProperties = compactStyle({
+    const inlineStyle: NativeCSSProperties = compactStyle({
         flex: flexVal(flex),
         flexShrink: shrink === false ? 0 : undefined,
         flexWrap: wrap ? "wrap" : undefined,
@@ -260,7 +260,7 @@ export function resolvePanelAttributes({
     };
 }
 
-const STYLE_PROPERTIES: ReadonlyArray<readonly [keyof React.CSSProperties, string]> = [
+const STYLE_PROPERTIES: ReadonlyArray<readonly [keyof NativeCSSProperties, string]> = [
     ["flex", "flex"],
     ["flexShrink", "flex-shrink"],
     ["flexWrap", "flex-wrap"],

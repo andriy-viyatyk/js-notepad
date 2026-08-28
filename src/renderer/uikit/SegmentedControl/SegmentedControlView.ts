@@ -1,6 +1,6 @@
 import { isTraited, resolveTraited, TraitKey, TraitType, type Traited } from "../../core/traits/traits";
 import { KeyedList } from "../shared/keyed-list";
-import { applyRestProps, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import { ButtonView, type ButtonViewProps } from "../Button/ButtonView";
 import type { SlotContent } from "../shared/fill-slot";

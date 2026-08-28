@@ -3,7 +3,7 @@ import {
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { VanillaView } from "../shared/vanilla-view";
 import type { BreadcrumbProps } from "./Breadcrumb";

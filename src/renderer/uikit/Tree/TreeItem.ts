@@ -1,14 +1,12 @@
-import type React from "react";
-import { mountVanilla } from "../shared/mount";
+import type { ElementRef, NativeHTMLAttributes } from "../shared/dom-props";
 import type { SlotContent } from "../shared/fill-slot";
 import type { IconRef, SlotText } from "../shared/slots";
-import { TreeItemView } from "./TreeItemView";
 
 // --- Types ---
 
 export interface TreeItemProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onContextMenu"> {
-    ref?: React.Ref<HTMLDivElement>;
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onContextMenu"> {
+    ref?: ElementRef<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -88,10 +86,4 @@ export interface TreeItemProps
      * its action visible) is expressed by passing `"always"` for that row.
      */
     trailingVisibility?: "always" | "hover";
-}
-
-// --- Component ---
-
-export function TreeItem(props: TreeItemProps): React.ReactElement {
-    return mountVanilla(TreeItemView, props);
 }

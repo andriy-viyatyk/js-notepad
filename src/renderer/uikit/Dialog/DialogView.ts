@@ -5,7 +5,7 @@ import {
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type { DialogProps } from "./Dialog";
 

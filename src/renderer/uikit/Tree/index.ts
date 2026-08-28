@@ -5,6 +5,5 @@ export type {
     TreeRow,
     TreeItemRenderContext,
 } from "./types";
-export { TreeItem } from "./TreeItem";
 export type { TreeItemProps } from "./TreeItem";
 export type { SectionItemProps as TreeSectionItemProps } from "./SectionItem";

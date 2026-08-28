@@ -1,10 +1,10 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 // --- Types ---
 
 export interface ToolbarProps
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         "style" | "className" | "onKeyDown" | "onFocusCapture"
     > {
     onKeyDown?: (event: KeyboardEvent) => void;

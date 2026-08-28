@@ -50,13 +50,6 @@ class ToolStats extends TModel<ToolStatsState> {
         return Object.values(this.state.get().byId).sort((a, b) => b.calls - a.calls);
     }
 
-    /** Reactive `all` (re-renders on record). */
-    useAll(): ToolStat[] {
-        return this.state.use((s) =>
-            Object.values(s.byId).sort((a, b) => b.calls - a.calls),
-        );
-    }
-
     get(toolId: string): ToolStat | undefined {
         return this.state.get().byId[toolId];
     }

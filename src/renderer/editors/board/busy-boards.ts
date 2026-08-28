@@ -34,11 +34,6 @@ export function markBoardBusy(ownerId: string, boardRoot: string | undefined, bu
     recompute();
 }
 
-/** Reactive hook: normalized roots of all currently-busy boards in this window. */
-export function useBusyBoardRoots(): string[] {
-    return busyBoardsState.use((s) => s.roots);
-}
-
 /** Framework-neutral subscription to normalized busy board roots. */
 export function subscribeBusyBoardRoots(listener: () => void): () => void {
     return busyBoardsState.subscribe(listener, (s) => s.roots);

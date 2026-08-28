@@ -1,8 +1,8 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import type { NotificationProps, NotificationSeverity } from "./Notification";
 import { createIconElement } from "../shared/slots";
 import { applyTextAttributes, resolveTextAttributes } from "../Text/text-style";
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import { IconButtonView } from "../IconButton/IconButtonView";
@@ -66,7 +66,7 @@ export class NotificationView extends VanillaView<NotificationProps> {
     private messageElement: HTMLSpanElement | undefined;
     private closeSwap: SubtreeSwap<string> | undefined;
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: NotificationProps) {
         super(props, document.createElement("div"));
@@ -158,7 +158,7 @@ export class NotificationView extends VanillaView<NotificationProps> {
         mountedView?.mount();
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

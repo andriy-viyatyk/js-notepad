@@ -14,18 +14,18 @@ uikit/
   tokens.ts              ← design token constants
   index.ts               ← public exports
   Button/
-    Button.tsx
+    ButtonView.ts
     index.ts
   Input/
-    Input.tsx
+    InputView.ts
     index.ts
   ...
 ```
 
-Converted components use a co-located `Component.css` stylesheet imported by `Component.tsx`.
+Components use a co-located `Component.css` stylesheet imported by the owning `ComponentView.ts`.
 Plain CSS is scoped from the required `[data-type="component-name"]` root and uses the existing
-`data-part` vocabulary for stable internal regions. Existing components remain on Emotion until
-an explicit conversion task; do not mix Emotion and static CSS for the same converted subtree.
+`data-part` vocabulary for stable internal regions. All UIKit implementations are framework-free;
+do not add React faces or runtime-generated CSS.
 
 ### Which virtualization engine to use
 
@@ -81,7 +81,7 @@ emitted as `data-name="…"` on the same element that carries `data-type`. This 
 debug-inspection aid — it never affects styling, state, or behavior.
 
 ```tsx
-<Panel name="url-bar-wrapper" flex={1}>…</Panel>
+const panel = createPanelElement({ name: "url-bar-wrapper", flex: 1 });
 // → <div data-type="panel" data-name="url-bar-wrapper">
 ```
 
@@ -97,32 +97,13 @@ debug-inspection aid — it never affects styling, state, or behavior.
 
 **Authoring requirement:** every new UIKit primitive MUST accept `name?: string`
 and emit `data-name={name}` on the same element as its `data-type`. Pass
-`undefined` (not `""`) when unset — React then omits the attribute. Destructure
+`undefined` (not `""`) when unset, so the attribute is omitted. Destructure
 `name` before the rest spread so the attribute is emitted only once.
 
-### Style state via Emotion attribute selectors
+### Style state via static CSS attribute selectors
 
-```ts
-const Root = styled.button({
-    cursor: "pointer",
-    "&[data-disabled]": {
-        opacity: 0.4,
-        pointerEvents: "none",
-    },
-    '&[data-variant="danger"]': {
-        color: color.button.dangerFg,
-    },
-    '&[data-size="sm"]': {
-        height: height.controlSm,
-        fontSize: fontSize.sm,
-    },
-}, { label: "Button" });
-```
-
----
-
-Static CSS is the target form for new or converted components; the Emotion example above is the
-legacy form for components that have not been migrated.
+Put state selectors in the component's co-located stylesheet. Do not use Emotion or a runtime
+style generator.
 
 ```tsx
 import "./Button.css";
@@ -264,128 +245,46 @@ Does **not** apply to non-modal side panels or popovers that do not block backgr
 
 ---
 
-## Rule 6 — UI Descriptor pattern (`ComponentSet`)
+## Rule 6 — Native composition
 
-**Use when:** the list of child components is dynamic — built at runtime, driven by data, or constructed by a script that has no JSX.
-
-The utility component `ComponentSet` accepts a `ComponentItem[]` descriptor array and renders the items as a flat React fragment (no wrapper element). Container components (`Toolbar`, `Menu`, `StatusBar`) stay as pure layout containers — they know nothing about descriptors.
-
-```tsx
-// Dynamic children via ComponentSet — Toolbar is unchanged
-<Toolbar>
-    <ComponentSet descriptors={items} />
-</Toolbar>
-
-// Static children via plain JSX — always prefer when the list is known
-<Toolbar>
-    <Button label="Run" onClick={handleRun} />
-    <Separator />
-    <Toggle label="Wrap" checked={wordWrap} onChange={setWordWrap} />
-</Toolbar>
-```
-
-**`ComponentItem` — intersection type, not duplicated props:**
-
-Each variant is `{ type: "x" } & XProps`. The existing component props are the descriptor shape; only a `type` discriminant is added.
-
-```typescript
-// uikit/ComponentSet/types.ts
-export type ComponentItem =
-    | { type: "button"    } & ButtonProps
-    | { type: "toggle"    } & ToggleProps
-    | { type: "select"    } & SelectProps
-    | { type: "separator" }
-    | { type: "text"      } & TextProps
-```
-
-After `item.type === "button"`, TypeScript gives you full `ButtonProps`. Adding a new variant produces a compile error in `ComponentSet` if the registry is not updated.
-
-**`ComponentSet` implementation:**
-
-```tsx
-// uikit/ComponentSet/ComponentSet.tsx
-import React from "react";
-import { ComponentItem } from "./types";
-import { Button }    from "../Button";
-import { Toggle }    from "../Toggle";
-import { Select }    from "../Select";
-import { Separator } from "../Separator";
-import { Text }      from "../Text";
-
-const REGISTRY: Record<string, React.ComponentType<any>> = {
-    button:    Button,
-    toggle:    Toggle,
-    select:    Select,
-    separator: Separator,
-    text:      Text,
-};
-
-export function ComponentSet({ descriptors }: { descriptors: ComponentItem[] }) {
-    return (
-        <>
-            {descriptors.map((item, i) => {
-                const { type, ...props } = item;
-                const Component = REGISTRY[type];
-                return Component ? <Component key={i} {...props} /> : null;
-            })}
-        </>
-    );
-}
-```
-
-**Rules:**
-- `ComponentSet` renders a `<Fragment>` — never a wrapper `<div>`. The container's flex/grid layout applies directly to the rendered children.
-- The registry lives in `ComponentSet/ComponentSet.tsx` — not in the container's file and not in a global file.
-- New library components must be added to both `ComponentItem` and `REGISTRY` when they are implemented.
-- Do not use `ComponentSet` for static, known UI. `<Button onClick={fn}>Run</Button>` is always cleaner than a descriptor object.
+Dynamic children are created as native elements or `VanillaView` instances. Use `this.child(view)`
+for lifetime ownership, `KeyedList` for keyed collections, and `fillSlot` for a view-owned content
+region. Static DOM can be built directly with `document.createElement` and `append`; do not invent a
+React descriptor registry or wrapper component for native composition.
 
 ---
 
-## Rule 7 — No Emotion outside UIKit (mandatory in app code)
+## Rule 7 — Static CSS and native DOM (mandatory)
 
-Application code (everything outside `src/renderer/uikit/`) **must not** use Emotion or any
-inline style escape hatch when composing UIKit components.
+All renderer code **must not** use Emotion; the packages are not installed. UIKit props use the
+native contracts in `shared/dom-props.ts`, and component views apply them with DOM properties and
+`applyRestProps`. Runtime `style` and `className` are not part of the UIKit component contract.
 
-**Forbidden in app code:**
-- `import styled from "@emotion/styled"` — no `styled.div`, `styled(Component)`, etc.
-- `import { css } from "@emotion/css"` — no class generation
-- Passing `style={…}` to a UIKit component
-- Passing `className=…` to a UIKit component
-
-**The rule on UIKit component types:** UIKit components forbid `style` and `className` at
-the type level (`extends Omit<React.HTMLAttributes<…>, "style" | "className">`). Trying to
-pass them produces a TypeScript error.
-
-**Inside UIKit (`src/renderer/uikit/`)** Emotion is still used for component implementations.
-Internal helpers and primitive HTML elements (`<div style={{…}}>`) are also fine — the rule
-applies to *consumers* of UIKit, not to UIKit itself.
-
-**When a layout need can't be expressed by existing props:** extend the UIKit component's
-prop surface, do not work around the rule. The right answer is "Panel needs a new prop", not
+**When a layout need can't be expressed by existing props:** extend the native component's
+prop surface, do not work around the rule. The right answer is a new explicit prop, not
 "this one place needs `style=`".
 
 **Why:**
-- **Consistency.** Every screen in Persephone uses the same Panel/Button/Toolbar with the
+- **Consistency.** Every screen in Persephone uses the same native primitives with the
   same defaults. No one-off styling drift.
-- **JSON descriptors.** Scripts will eventually build UIs from descriptor objects
-  (`{ component: "Panel", direction: "row", gap: "sm" }`). A descriptor can carry props but
-  not Emotion — so anything achievable only through Emotion is unreachable from scripts.
-- **AI agent legibility.** With layout expressed in props, an agent can read intent from JSX
-  alone without consulting separate `styled.*` blocks.
+- **Inspectable contracts.** Explicit props and data attributes make intent legible to native views,
+  scripts, and agent tooling. Do not introduce a descriptor registry for UIKit composition.
+- **AI agent legibility.** With layout expressed in props, an agent can read intent from the view
+  contract and its data attributes without consulting generated styles.
 
 **When this rule may be relaxed:** when scripts need to ship custom styles into UIs, a curated
 escape hatch (e.g. `style?: Pick<CSSProperties, "color" | …>`) may be added for a future script UI
 API. Until then, no escape hatch.
 
-**Application chrome exception (`src/renderer/ui/`)**
+**Application chrome (`src/renderer/ui/`)**
 
 Files in `src/renderer/ui/` that render the Persephone application's one-of-a-kind chrome
-surfaces (page tab strip, sidebar, navigation bar, etc.) are not subject to the no-Emotion
-clause. Their visual layout is unique to Persephone, will not be reused elsewhere, and would
-distort the UIKit surface if every chrome quirk became a `Panel` prop or a new UIKit primitive.
+surfaces (page tab strip, sidebar, navigation bar, etc.) use their own co-located static CSS. Their
+visual layout is unique to Persephone, will not be reused elsewhere, and should not become a new
+UIKit primitive solely to express chrome-specific geometry.
 
-Such files MAY use `@emotion/styled`, `style={…}`, and `className=…` on their own local
-elements (plain `<div>`s, etc.) for chrome layout. They MUST still:
+Such files MUST use co-located static CSS. Runtime `style={…}` and `className=…` remain allowed
+only on their own local elements (plain `<div>`s, etc.) for chrome layout. They MUST still:
 
 - Use only UIKit components (`Button`, `IconButton`, `Tooltip`, `Divider`, `Panel`, …) for
   primitive rendering — no imports from `src/renderer/components/basic/` or
@@ -414,36 +313,33 @@ wrap one HTML element follow the strict Rule 7 contract.
 
 ## Rule 8 — Model-view architecture for complex components
 
-Simple components stay as plain function components with React hooks. Once a component
-grows past the small-and-readable threshold, migrate it to the model-view pattern documented
-in [`/doc/standards/model-view-pattern.md`](../../../doc/standards/model-view-pattern.md).
+UIKit components are native `VanillaView` classes. Keep small views direct and readable; once a
+component grows past the small-and-readable threshold, move stateful behavior into a model and
+keep DOM construction and event wiring in the view. Follow the model-view pattern documented in
+[`/doc/standards/model-view-pattern.md`](../../../doc/standards/model-view-pattern.md).
 
 ### Thresholds (from the standard doc)
 
 **Migrate to model-view when any of the following hold:**
 
-- More than 4–5 `useState()` hooks
-- More than 3 `useCallback()` hooks
-- The component function body is long and hard to follow at a glance
-- Hooks have many or cyclic dependencies that force `// eslint-disable react-hooks/exhaustive-deps`
-- Multiple `useEffect`s with overlapping responsibilities
+- State transitions or business logic make the view body hard to follow at a glance
+- Several controls share state or derived values
+- Effects, timers, subscriptions, or async work need explicit cancellation
 
 **Stay with plain hooks when:**
 
-- 1–2 simple `useState()` hooks
-- 1–2 `useCallback()` hooks
-- Body is short and presentational
-- The component is a thin wrapper over a primitive
+- It only creates a small DOM subtree and wires a few native events
+- Its state is a single, local DOM projection
+- It is a thin wrapper over another native view
 
 ### What the migration looks like
 
-The pattern moves all logic into a `TComponentModel` subclass; the View becomes a pure
-render function. Refs, handlers, computed values, side effects, and memos all live in the
-model. See the standard doc for the full pattern, including:
+The pattern moves state transitions and reusable logic into a model; the `VanillaView` owns DOM,
+native listeners, bindings, and disposal. See the standard doc for the full pattern, including:
 
 - `TComponentState` — the state primitive
 - `TComponentModel` — the base class with `init()`, `dispose()`, `effect()`, `memo()`
-- `useComponentModel(props, ModelClass, defaultState)` — the single React hook the View uses
+- `createComponentModelDriver(props, ModelClass, defaultState)` — the explicit native lifecycle driver
 
 ### Naming and file layout
 
@@ -451,9 +347,9 @@ Co-locate the model with the component. Inside the component's UIKit subfolder:
 
 ```
 uikit/ListBox/
-    ListBox.tsx           ← View (pure render)
+    ListBoxView.ts        ← Native view
     ListBoxModel.ts       ← Model (TComponentModel subclass)
-    ListBox.story.tsx
+    ListBox.story.ts
     index.ts
 ```
 
@@ -462,11 +358,10 @@ Model classes are suffixed `Model` (matching the rest of the codebase — `GridP
 
 ### Why this matters in UIKit specifically
 
-UIKit primitives are reused across the entire app. A component with 10+ `useCallback`s and
-tangled `useEffect` deps is harder to extend in follow-up tasks (the next consumer often
-needs one more prop, one more state slice, one more effect). The model-view split keeps
-each new feature additive — a new method on the model rather than a new closure with a new
-dependency that risks breaking the existing ones.
+UIKit primitives are reused across the entire app. A component with tangled state transitions,
+subscriptions, and async work is harder to extend in follow-up tasks. The model-view split keeps
+each new feature additive — a new method on the model rather than more lifecycle work hidden in a
+large DOM builder.
 
 It also unlocks alternative views over the same model later (e.g. a dense vs. comfortable
 ListBox skin) without touching the logic.
@@ -475,8 +370,7 @@ ListBox skin) without touching the logic.
 
 ## Rule 9 — Vanilla view authoring
 
-Components converted from React may expose a framework-free `VanillaView` alongside the
-existing React view. The detailed model contract is in
+Every UIKit component exposes a framework-free `VanillaView`. The detailed model contract is in
 [`/doc/standards/model-view-pattern.md`](../../../doc/standards/model-view-pattern.md); this
 section is the mandatory checklist for a class extending `VanillaView`.
 
@@ -493,8 +387,8 @@ exports from `uikit/index.ts`.
   constructor registers its cleanup with `own()` immediately; `onMount()` registers cleanup for
   resources it creates. This wording matches the deliberate create → claim → mount pattern used
   by `child()` and avoids treating ownership registration as child-DOM misuse.
-- Every view used by `mountVanilla` or a constructor slot declares a **public** constructor. The
-  base constructor is protected, so inheriting it is not a valid public constructor contract.
+- Every view used by a constructor slot declares a **public** constructor. The base constructor is
+  protected, so inheriting it is not a valid public constructor contract.
 - `mount()` is where child DOM and bindings are built. The owner attaches `root` before calling
   `mount()` when the view may measure itself. `update(props)` always stores the latest props;
   before mount it does not call `onUpdate`, and `onMount()` renders from the stored props.
@@ -640,8 +534,8 @@ For the internal case, the answer is **not** a state subscription:
 Why not a subscription **in that case**, concretely (all three points are about a state-driven
 *render pass*; none of them argues against `bind()` for a field that is simply a child's prop):
 `TOneState.update` dispatches **synchronously** (it is not a
-mirror of `state.use()`, which batches through `useSyncExternalStore`), unsubscribe replaces the
-listener array so an in-flight dispatch can still call a listener removed during that pass, and a
+`TOneState.update` dispatches synchronously, unsubscribe replaces the listener array so an in-flight
+dispatch can still call a listener removed during that pass, and a
 state-driven blanket repaint is the masked-defect machine described in
 [/doc/de-react.md](../../../doc/de-react.md) §6.1 — a prop missing from the signature would appear
 broken only until the user expanded a node, then fix itself.
@@ -672,18 +566,16 @@ assigns the seeded `activeIndex` in the same `state.update` as `loadedItems` for
 `openInto`/`closeInto` exist so a caller that must produce one write can compose draft mutators
 instead of calling two setters.
 
-#### React-valued slots inside a virtualized row
+#### Native slots inside a virtualized row
 
-`ListBox` keeps a `renderItem` prop returning `ReactNode`, and `ListItem`'s `label`, `trailing` and
-`tooltip` accept React values. **`icon` no longer does** — EPIC-064 narrowed `IconRef` to
-`IconName | Node`, so an icon is a registry name or a DOM node and never a React element; no call
-site in the tree passes React for an icon. The remaining React-valued slots are allowed, and are not
-a reopening of C3-1's rejected "React root per cell": the
-engine's cell contract is still `HTMLElement` and `VirtualGrid` never sees React. Four guard rails
-keep it from creeping:
+`ListBox` and `ListItem` use native `SlotContent` values: text, numbers, DOM nodes, or arrays of
+those values. **`icon` is also native** — an icon is a registry name or a DOM node and never a
+`IconName | Node`, so an icon is a registry name or a DOM node and never a framework element. The
+engine's cell contract is still `HTMLElement` and `VirtualGrid` receives only DOM. Four guard rails
+keep slot ownership safe:
 
 - Decide **per slot**, not per row: an `IconName` becomes a DOM `svg` with no root; only a genuine
-  React value goes through `fillSlot`. Never route strings through `fillSlot` for uniformity.
+  native value goes through `fillSlot`. Never route strings through `fillSlot` for uniformity.
 - A DOM icon node is **single-use**: appending it to a second host *moves* it and blanks the first.
   Build it at the point of use — never cache, memoise, hoist to module scope, or share one node.
   `tsc`, lint and the build are all blind to this, and the symptom is an icon disappearing somewhere
@@ -695,7 +587,7 @@ keep it from creeping:
 - Key the caller's subtree by the cell key, so a recycled element remounts it rather than letting
   one row's state bleed into another's.
 
-### Structural helpers and React boundaries
+### Structural helpers and native slots
 
 - Claim a child with `this.child(view)` exactly once. Ownership is enforced by the shared marker;
   an already-owned view throws. Use `this.listen` and `this.own` for cleanup, and register
@@ -705,12 +597,8 @@ keep it from creeping:
   then updates every record. `SubtreeSwap` owns one conditional root and inserts a replacement
   before disposing and detaching the old branch. Both helpers detach their managed nodes; this is
   deliberately different from `VanillaView.dispose()`.
-- `mountVanilla` is a React boundary with a module-level stable host component. It appends the
-  root before `mount()`, skips the redundant first `update`, and replaces the view only when the
-  constructor identity changes. Do not define the host inside `mountVanilla` or use a changing key.
 - `PopoverView`'s `contentView?: (host) => IOwnedView` keeps the floating root's children native
-  DOM. A native content view must use this seam; the `children` arm is React compatibility and
-  mounts a nested React root. The seam has two properties the prop's type does not show. **It never
+  DOM. A content view must use this seam. The seam has two properties the prop's type does not show. **It never
   appends what the factory returns** — `PopoverFloatingView.onMount` only claims it with `child()` and mounts it, so the
   factory attaches its own DOM (`host.append(view.root)`) or the dropdown renders empty. And **it is
   not an update channel**: `PopoverFloatingView.onUpdate` forwards nothing to the content view, so
@@ -732,15 +620,10 @@ keep it from creeping:
   `className` assignment, and `replaceChildren` (the resize handle is appended to that same root
   *after* the content mounts). Tag children instead. Name the three in the class comment — the
   failure mode is an attribute reverting one update later, not an exception.
-- `mountReact` is only a temporary seam when a vanilla view owns a React subtree with no vanilla
-  equivalent yet. The view owns the host element and the returned disposer owns the React root;
-  neither adapter is a substitute for converting an ordinary parent or child.
 - `fillSlot` **owns the host element it is given.** Call it again to change the content; never run
   the previous cleanup first, and never write to that host directly (`replaceChildren`, `append`,
-  `textContent`) behind its back. It caches per-host state so a React→React change re-renders the
-  existing root instead of building a new one — pre-clearing throws that away and remounts the
-  root on every update, which resets any state inside the slot. A superseded cleanup is a no-op on
-  its own, so there is nothing to clean up manually. When a view needs several nodes in one slot
+  `textContent`) behind its back. It replaces native content on each call and makes a superseded
+  cleanup a no-op. When a view needs several nodes in one slot
   (an icon plus a label), pass a `DocumentFragment`, so the children still land as direct children
   of the host and the host's own `gap` still applies.
 
@@ -756,7 +639,7 @@ keep it from creeping:
   transparent on several variants, so an empty element is invisible while still being hoverable
   and clickable. Check the DOM for the missing child before reading the stylesheet.
 
-See the PathInput pilot at `uikit/PathInput/PathInputView.tsx` for the complete working shape.
+See `uikit/PathInput/PathInputView.ts` for the complete working shape.
 
 ---
 
@@ -778,9 +661,8 @@ which fragment it descends from. It is gated by a container attribute:
 **The module is gone; there are now four independent per-component copies.** `ListItem.css` holds a
 hand-translated `rowSelectionBase` + `rowFocusSelectionOverride` scoped to `[data-type="list-item"]`;
 `TreeItem.css` holds the blurred base and `Tree.css` the focused override; `SelectableRow.css` and
-`CategoryList` hold their own; and `ui/sidebar/FolderItem.tsx` has the two fragments inlined into its
-own Emotion block, which is where the module finally died (its last consumer was app-layer, two
-epics away from conversion). Each copy is scoped to its own component root, so they cannot collide.
+`CategoryList` hold their own; and `ui/sidebar/FolderItem.css` carries the app-layer copy. Each
+Each copy is scoped to its own component root, so they cannot collide.
 The rule order *inside* each block is load-bearing, which is why a shared stylesheet was not worth
 the cross-file source-order dependency.
 
@@ -792,18 +674,17 @@ Second, `TreeItem.css` deliberately does **not** carry `ListItem`'s `:not([data-
 carve-out: Tree's override outranks its drop rule on specificity (0,5,0 against 0,2,0) rather than
 on source order, so adding the exclusion would change behaviour rather than preserve it.
 
-**For whoever converts `FolderItem`:** its stylesheet must land in `@layer app`, never `@layer
-uikit`. Unlayered Emotion currently outranks every layered rule regardless of specificity, so the
-row wins today by origin; in `uikit` it would fight `ListItem.css` on source order instead.
+`FolderItem.css` belongs in `@layer app`, never `@layer uikit`, because the row is app-owned rather
+than a reusable UIKit primitive.
 
 **How a container opts in:** set `data-focus-selection` **and** `tabIndex={0}` on the scroll
 container so `:focus-within` can trigger on click. `ListBox` does this for you via
 `selectionStyle="focus"` (works even with a custom `renderItem`); `Tree` via its `focusSelection`
 prop (or `keyboardNav`, which implies it). For a plain container you own, pass `tabIndex={0}` +
-`data-focus-selection=""` directly (a `Panel` forwards both via `...rest` — Rule 7 clean).
+`data-focus-selection=""` directly on the container.
 
 **The rows.** A row that rides a shared primitive (`ListItem`, `TreeItem`) already carries the
-focus-mode CSS. For a **bespoke** row in editor code that can't use Emotion (Rule 7), wrap the
+focus-mode CSS. For a **bespoke** row in editor code that should not duplicate selection CSS, wrap the
 row content in the **`SelectableRow`** primitive — a layout-neutral `<div>` that composes
 `rowSelectionBase` + `rowFocusSelectionOverride` verbatim and exposes `selected` / `active` props.
 It is content-height (no percentage height), so a single child provides the layout; give that
@@ -895,9 +776,8 @@ Use predictable, self-documenting names. An AI agent reading the prop should und
 
 ## Styling rules
 
-These rules describe the target for converted components. Existing Emotion implementations may
-keep the legacy form until their conversion task, but a converted subtree must not mix Emotion and
-plain CSS. Import `Component.css` from the owning component, wrap rules in `@layer uikit`, and
+All UIKit components use co-located static CSS. Import `Component.css` from the owning view, wrap
+rules in `@layer uikit`, and
 scope every selector from the component's `[data-type]` root. The startup layer order is
 `@layer base, uikit, app, editor;`. Use established `data-part` names for internal structure;
 do not rename them or replace state attributes with classes. Parent-owned descendant selectors are
@@ -916,10 +796,9 @@ handle, never a styling hook).
 
 **Direct vanilla views must import borrowed styles explicitly.** A view that constructs another
 converted component's DOM directly, or calls a shared attribute helper such as
-`applyTextAttributes()`, cannot rely on the React face's stylesheet import or on a type-only
+`applyTextAttributes()`, cannot rely on another module's import to load CSS or on a type-only
 component import to load CSS. Import the borrowed component stylesheet alongside the view's own
-stylesheet. This keeps direct-view bundles correct when the React face is not present in the
-module graph.
+stylesheet. This keeps direct-view bundles correct when the view is loaded independently.
 
 **The `[hidden]` counter-rule is required when a root sets `display`.** The browser's user-agent
 `[hidden]` rule can lose to an author `display` rule, so every converted root whose stylesheet sets
@@ -945,11 +824,11 @@ import { spacing, radius, fontSize, height, gap } from "../tokens";
 
 Never hardcode pixel values that exist in the token scale.
 
-### Emotion conventions
+### Static CSS conventions
 
-- One `styled.*` per logical DOM element
-- All interactive states (`:hover`, `[data-*]`) go inside the same `styled` definition — no scattered overrides elsewhere
-- Always include `{ label: 'ComponentName' }` as the second argument for DevTools readability
+- Put all interactive states (`:hover`, `[data-*]`) in the component stylesheet; avoid scattered
+  overrides elsewhere.
+- Keep selectors rooted at the component's `data-type` and use token variables for presentation.
 
 ---
 
@@ -964,11 +843,9 @@ Never hardcode pixel values that exist in the token scale.
 
 ## Component file template
 
-```tsx
-import React from "react";
-import styled from "@emotion/styled";
-import color from "../../theme/color";
-import { fontSize, height, spacing } from "../tokens";
+```ts
+import "./Button.css";
+import { VanillaView } from "../shared/vanilla-view";
 
 // --- Types ---
 
@@ -981,61 +858,22 @@ export interface ButtonProps {
     disabled?: boolean;
     variant?: "default" | "danger" | "ghost";
     size?: "sm" | "md" | "lg";
-    icon?: React.ReactNode;
+    icon?: string | Node;
 }
 
-// --- Styled ---
+export class ButtonView extends VanillaView<ButtonProps> {
+    public constructor(props: ButtonProps) {
+        super(props, document.createElement("button"));
+    }
 
-const Root = styled.button({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: spacing.sm,
-    cursor: "pointer",
-    border: "none",
-    background: "transparent",
+    protected onMount(): void {
+        this.root.dataset.type = "button";
+        this.root.textContent = this.props.label;
+        this.listen(this.root, "click", this.handleClick);
+    }
 
-    "&[data-disabled]": {
-        opacity: 0.4,
-        pointerEvents: "none",
-    },
-    '&[data-variant="danger"]': {
-        color: color.button.dangerFg,
-    },
-    '&[data-size="sm"]': {
-        height: height.controlSm,
-        fontSize: fontSize.sm,
-        padding: `0 ${spacing.sm}px`,
-    },
-    '&[data-size="md"]': {
-        height: height.controlMd,
-        fontSize: fontSize.base,
-        padding: `0 ${spacing.md}px`,
-    },
-}, { label: "Button" });
-
-// --- Component ---
-
-export function Button({
-    name,
-    label,
-    onClick,
-    disabled,
-    variant = "default",
-    size = "md",
-    icon,
-}: ButtonProps) {
-    return (
-        <Root
-            data-type="button"
-            data-name={name}
-            data-disabled={disabled || undefined}
-            data-variant={variant}
-            data-size={size}
-            onClick={disabled ? undefined : onClick}
-        >
-            {icon}
-            {label}
-        </Root>
-    );
+    private readonly handleClick = (): void => {
+        if (!this.props.disabled) this.props.onClick();
+    };
 }
 ```

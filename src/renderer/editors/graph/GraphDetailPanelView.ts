@@ -1,4 +1,3 @@
-import type React from "react";
 import { createComponentModelDriver, type ComponentModelDriver, TComponentModel } from "../../core/state/model";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
@@ -50,7 +49,7 @@ export interface GraphDetailPanelProps {
     onHighlightSet?: (ids: Set<string> | null) => void;
     onExternalHover?: (id: string) => void;
     onExpandNode?: (nodeId: string) => void;
-    containerRef?: React.RefObject<HTMLElement | null>;
+    containerRef?: { current: HTMLElement | null };
     expandRequest?: number;
     collapseRequest?: number;
 }

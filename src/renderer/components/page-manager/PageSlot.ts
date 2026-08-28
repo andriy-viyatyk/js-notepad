@@ -1,5 +1,4 @@
-import { type VanillaViewCtor } from "../../uikit/shared/mount";
-import type { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { VanillaView, VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 
 export type PageSlotStyle = (element: HTMLDivElement) => void;
 export interface PageSlotViewProps { pageId: string; }

@@ -52,20 +52,9 @@ class ToolsTrust {
         return this.state.get().paths.some((p) => fpNormalizeForCompare(p) === key);
     }
 
-    /** Reactive hook for views — re-renders when this toolset's registration flips. */
-    useIsTrusted(toolsetRoot: string): boolean {
-        const key = fpNormalizeForCompare(toolsetRoot);
-        return this.state.use((s) => s.paths.some((p) => fpNormalizeForCompare(p) === key));
-    }
-
     /** All registered toolset-root paths (sync, non-reactive). Call `load()` first. */
     listPaths(): string[] {
         return this.state.get().paths;
-    }
-
-    /** Reactive list of all registered toolset-root paths. */
-    useTrustedPaths(): string[] {
-        return this.state.use((s) => s.paths);
     }
 
     /**

@@ -3,7 +3,7 @@ import type { PathInputProps } from "../PathInput/PathInputModel";
 import { TagView } from "../Tag/TagView";
 import type { TagProps } from "../Tag/TagView";
 import { guard } from "../../core/utils/guard";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { claimViewOwnership, VanillaView } from "../shared/vanilla-view";
 import { KeyedList } from "../shared/keyed-list";
 import type { TagsInputProps } from "./TagsInput";

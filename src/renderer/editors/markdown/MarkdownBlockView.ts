@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { NativeCSSProperties } from "../../uikit/shared/dom-props";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -37,7 +37,7 @@ export interface MarkdownBlockProps {
     /** Additional CSS class on the root element. */
     className?: string;
     /** Inline style on the root element. */
-    style?: CSSProperties;
+    style?: NativeCSSProperties;
     /** Called when the number of search highlight matches changes. */
     onMatchCountChange?: (count: number) => void;
     commandQueue?: MarkdownEditor["typedQueue"];

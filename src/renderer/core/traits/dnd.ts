@@ -45,7 +45,7 @@ export function resolveTraits(typeId: string): TraitSet | undefined {
 // ── Visual feedback CSS class helpers ────────────────────────────────────────
 
 /** Prevent default to allow drop. Call from onDragOver and onDragEnter handlers. */
-export function allowDrop(e: React.DragEvent): void {
+export function allowDrop(e: DragEvent): void {
     if (hasTraitDragData(e.dataTransfer)) {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";

@@ -1,20 +1,14 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, NativeInputHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 // Owned by the view, not the shim: a vanilla parent may compose `InputView` directly (MultiListBox
 // does), and the stylesheet has to travel with the DOM rather than with the React face.
 import "./Input.css";
 
 export interface InputProps
-    extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "size" | "onKeyDown"> {
-    ref?: React.Ref<HTMLInputElement>;
+    extends Omit<NativeInputHTMLAttributes<HTMLInputElement>, "onChange" | "size" | "onKeyDown"> {
+    ref?: ElementRef<HTMLInputElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -80,7 +74,7 @@ export class InputView extends VanillaView<InputProps> {
      */
     private readonly appliedSlots = new Map<"start" | "end", SlotContent>();
     private refCleanup: (() => void) | undefined;
-    private previousRef: React.Ref<HTMLInputElement> | undefined;
+    private previousRef: ElementRef<HTMLInputElement> | undefined;
     private previousAutoFocus = false;
 
     public constructor(props: InputProps) {
@@ -222,7 +216,7 @@ export class InputView extends VanillaView<InputProps> {
         this.slotHosts.clear();
     }
 
-    private updateRef(ref: React.Ref<HTMLInputElement> | undefined): void {
+    private updateRef(ref: ElementRef<HTMLInputElement> | undefined): void {
         this.clearRef();
         this.refCleanup = bindRef(this.field, ref);
         this.previousRef = ref;

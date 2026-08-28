@@ -1,4 +1,4 @@
-import type React from "react";
+import type { ElementRef } from "../shared/dom-props";
 import { createComponentModelDriver } from "../../core/state/model";
 import { CheckIcon, ChevronRightIcon } from "../../theme/icons";
 import { InputView } from "../Input/InputView";
@@ -301,11 +301,11 @@ class MenuContentView extends VanillaView<MenuModel> {
     }
 }
 
-export class MenuView extends VanillaView<MenuProps & { ref?: React.Ref<HTMLDivElement> }> {
+export class MenuView extends VanillaView<MenuProps & { ref?: ElementRef<HTMLDivElement> }> {
     private readonly driver;
     private readonly popover: PopoverView;
 
-    public constructor(props: MenuProps & { ref?: React.Ref<HTMLDivElement> }) {
+    public constructor(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }) {
         super(props);
         this.root.style.display = "contents";
         this.driver = createComponentModelDriver(
@@ -323,17 +323,17 @@ export class MenuView extends VanillaView<MenuProps & { ref?: React.Ref<HTMLDivE
         this.popover.mount();
     }
 
-    protected onUpdate(props: MenuProps & { ref?: React.Ref<HTMLDivElement> }): void {
+    protected onUpdate(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }): void {
         this.driver.update(this.modelProps(props));
         this.popover.update(this.popoverProps(props));
     }
 
-    private modelProps(props: MenuProps & { ref?: React.Ref<HTMLDivElement> }): MenuProps {
+    private modelProps(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }): MenuProps {
         const { ref: _ref, ...modelProps } = props;
         return modelProps;
     }
 
-    private popoverProps(props: MenuProps & { ref?: React.Ref<HTMLDivElement> }): PopoverViewProps {
+    private popoverProps(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }): PopoverViewProps {
         const { items: _items, onClose: _onClose, ref, open, ...positionProps } = props;
         const showSearch = props.items.length > 20;
         return {

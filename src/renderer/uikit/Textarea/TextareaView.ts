@@ -1,15 +1,10 @@
-import type React from "react";
-import {
-    applyRestProps,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 
 export interface TextareaProps
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         // Rule 7 — forbid style/className on UIKit components.
         | "style" | "className"
         // Reimplemented with a string-value API instead of an event API.

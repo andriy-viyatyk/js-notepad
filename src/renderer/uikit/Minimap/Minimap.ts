@@ -1,8 +1,8 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 export interface MinimapProps
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         "style" | "className" | "onClick" | "onMouseEnter"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate

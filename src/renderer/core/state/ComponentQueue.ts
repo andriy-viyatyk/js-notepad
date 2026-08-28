@@ -1,5 +1,3 @@
-import { useEffect, useRef } from "react";
-
 export interface ComponentQueueEvent {
     readonly type: string;
 }
@@ -44,22 +42,6 @@ export class ComponentQueue<
         };
     }
 
-    /** React hook for the fire-and-forget channel. Handler is captured in a
-     *  ref so re-renders don't churn the subscription (and lose the drain).
-     *
-     *  Hook-shaped method on a non-component class — call only from React
-     *  function components or other hooks. `rules-of-hooks` doesn't model
-     *  this pattern (sees `useX` inside a class definition and treats the
-     *  class as a component), so the disable is intentional. */
-    /* eslint-disable react-hooks/rules-of-hooks */
-    use(handler: (event: E) => void): void {
-        const handlerRef = useRef(handler);
-        handlerRef.current = handler;
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `this` is a stable per-instance reference; exhaustive-deps classifies it as "complex expression" and refuses to verify
-        useEffect(() => this.subscribe((ev) => handlerRef.current(ev)), [this]);
-    }
-    /* eslint-enable react-hooks/rules-of-hooks */
-
     /**
      * Send a request, expect a reply. Resolves sync from the registered handler
      * if present; queues otherwise. Pending requests reject if `dispose()` runs
@@ -97,16 +79,6 @@ export class ComponentQueue<
             }
         };
     }
-
-    /** React hook for the request/reply channel. Same ref-stability pattern as `use`. */
-    /* eslint-disable react-hooks/rules-of-hooks -- hook-shaped class method; see `use()` above */
-    useRequest(handler: (req: Req) => unknown): void {
-        const handlerRef = useRef(handler);
-        handlerRef.current = handler;
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `this` is a stable per-instance reference; see `use()` above
-        useEffect(() => this.register((req) => handlerRef.current(req)), [this]);
-    }
-    /* eslint-enable react-hooks/rules-of-hooks */
 
     /** Clear both channels and reject any pending requests. Called by
      *  EditorModel.dispose so an editor that closes before its view mounts

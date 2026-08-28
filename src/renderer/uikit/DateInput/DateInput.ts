@@ -1,11 +1,11 @@
-import type React from "react";
+import type { ElementRef } from "../shared/dom-props";
 import type { InputProps } from "../Input/InputView";
 
 // --- Types ---
 
 export interface DateInputProps
     extends Omit<InputProps, "type" | "value" | "onChange" | "startSlot" | "endSlot" | "tone"> {
-    ref?: React.Ref<HTMLInputElement>;
+    ref?: ElementRef<HTMLInputElement>;
     /** Current value as an ISO `YYYY-MM-DD` string, or "" when unset. */
     value: string;
     /** Change handler — receives the ISO date string (empty string when cleared). */

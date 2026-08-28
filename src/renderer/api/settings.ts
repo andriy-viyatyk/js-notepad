@@ -215,11 +215,6 @@ class Settings implements ISettings {
         this.saveSettingsDebounced();
     }
 
-    /** React hook for reactive reading. Not exposed in script .d.ts. */
-    use<K extends AppSettingsKey>(key: K): AppSettingsState["settings"][K] {
-        return this.state.use((s) => s.settings[key]);
-    }
-
     get settingsFilePath(): string {
         return this.fileWatcher?.filePath || "";
     }

@@ -1,7 +1,4 @@
-import React from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
 import { createPanelElement, type PanelStyleProps } from "../../uikit/Panel/panel-style";
-import { mountReactHandle, type MountedReactRoot } from "../../uikit/shared/mount";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { errMessage } from "../../../shared/utils";
@@ -10,7 +7,7 @@ import { prepareStoryProps } from "./story-props";
 import type { AnyStory } from "./storyTypes";
 import { StorybookEditorModel, type PreviewBackground } from "./StorybookEditorModel";
 
-type PreviewArm = "react" | "vanilla" | "error";
+type PreviewArm = "vanilla" | "error";
 
 const PREVIEW_PROPS: PanelStyleProps = {
     name: "storybook-live-preview",
@@ -39,10 +36,6 @@ function warnUnexpectedProps(
     }
 }
 
-function hasStoryComponent(story: AnyStory): boolean {
-    return "component" in story && story.component !== undefined;
-}
-
 function hasStoryView(story: AnyStory): boolean {
     return "view" in story && story.view !== undefined;
 }
@@ -51,8 +44,6 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
     private readonly model: StorybookEditorModel;
     private storyId: string | undefined;
     private arm: PreviewArm | undefined;
-    private reactHost: HTMLDivElement | undefined;
-    private reactHandle: MountedReactRoot | undefined;
     private vanillaView: VanillaView<Record<string, unknown>> | undefined;
 
     public constructor(props: { model: StorybookEditorModel }) {
@@ -91,10 +82,8 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
             return;
         }
 
-        const component = hasStoryComponent(story);
-        const view = hasStoryView(story);
-        if (component === view) {
-            this.replaceWithMessage(story.id, `Story "${story.id}" must declare exactly one of component or view.`);
+        if (!hasStoryView(story)) {
+            this.replaceWithMessage(story.id, `Story "${story.id}" must declare a view.`);
             return;
         }
 
@@ -109,7 +98,7 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
         }
         warnUnexpectedProps(story, prepared.props, prepared.hasGeneratedChildren);
 
-        const nextArm: PreviewArm = view ? "vanilla" : "react";
+        const nextArm: PreviewArm = "vanilla";
         if (this.storyId !== story.id || this.arm !== nextArm) {
             const cleanupError = this.clearActiveContent();
             this.storyId = story.id;
@@ -119,23 +108,13 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
                 this.arm = "error";
                 return;
             }
-            if (nextArm === "vanilla") {
-                this.mountVanillaStory(story, prepared.props);
-            } else {
-                this.mountReactStory(story, prepared.props);
-            }
+            this.mountVanillaStory(story, prepared.props);
             return;
         }
 
         if (this.arm === "vanilla") {
             try {
                 this.vanillaView?.update(prepared.props);
-            } catch (error) {
-                this.replaceWithError(story.id, error);
-            }
-        } else if (this.arm === "react") {
-            try {
-                this.reactHandle?.render(this.reactElement(story, prepared.props));
             } catch (error) {
                 this.replaceWithError(story.id, error);
             }
@@ -156,31 +135,6 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
             this.showError(cleanupError ?? error);
             this.arm = "error";
         }
-    }
-
-    private mountReactStory(story: AnyStory, props: Record<string, unknown>): void {
-        const host = document.createElement("div");
-        host.style.display = "contents";
-        this.reactHost = host;
-        this.root.append(host);
-        try {
-            this.reactHandle = mountReactHandle(host, this.reactElement(story, props));
-        } catch (error) {
-            const cleanupError = this.clearActiveContent();
-            this.showError(cleanupError ?? error);
-            this.arm = "error";
-        }
-    }
-
-    private reactElement(story: AnyStory, props: Record<string, unknown>): React.ReactElement {
-        const Component = story.component;
-        return React.createElement(
-            EditorErrorBoundary,
-            {
-                key: story.id,
-                children: React.createElement(Component, props),
-            },
-        );
     }
 
     private replaceWithMessage(storyId: string | undefined, message: string): void {
@@ -224,17 +178,6 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
                 firstError = error;
             }
         }
-        if (this.reactHandle) {
-            const handle = this.reactHandle;
-            this.reactHandle = undefined;
-            try {
-                handle.dispose();
-            } catch (error) {
-                firstError ??= error;
-            }
-        }
-        this.reactHost?.remove();
-        this.reactHost = undefined;
         this.root.replaceChildren();
         return firstError;
     }

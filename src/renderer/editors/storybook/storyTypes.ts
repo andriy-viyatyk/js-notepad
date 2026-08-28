@@ -1,5 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 
 /**
  * Prop names the Storybook manages automatically. If a story declares any of
@@ -30,21 +29,12 @@ interface StoryBase<P> {
     defaultProps?: Partial<P>;
 }
 
-export type Story<P = Record<string, unknown>> =
-    | (StoryBase<P> & {
-        /** The React component to render. */
-        component: ComponentType<P>;
-        view?: never;
-        /** Optional sample children for layout containers. */
-        previewChildren?: () => ReactNode;
-    })
-    | (StoryBase<P> & {
-        /** The vanilla view constructor to render. */
-        component?: never;
-        view: VanillaViewCtor<P>;
-        /** Optional sample children for layout containers. */
-        previewChildren?: () => Node;
-    });
+export interface Story<P = Record<string, unknown>> extends StoryBase<P> {
+    /** The vanilla view constructor to render. */
+    view: VanillaViewCtor<P>;
+    /** Optional sample children for layout containers. */
+    previewChildren?: () => Node;
+}
 
 /** A story with its prop type erased. The registry is heterogeneous, so it cannot be
  * `Story<P>` for any single `P` — `Story` is invariant in `P` (it appears contravariantly

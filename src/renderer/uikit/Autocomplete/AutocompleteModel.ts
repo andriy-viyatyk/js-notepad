@@ -1,4 +1,4 @@
-import React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 import { TComponentModel } from "../../core/state/model";
 import type { IListBoxItem } from "../ListBox/types";
 import type { SlotContent } from "../shared/fill-slot";
@@ -9,7 +9,7 @@ import type { SlotText } from "../shared/slots";
 // =============================================================================
 
 export interface AutocompleteProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange" | "onSubmit"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange" | "onSubmit"> {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

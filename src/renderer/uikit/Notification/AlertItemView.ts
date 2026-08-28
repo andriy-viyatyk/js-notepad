@@ -1,12 +1,12 @@
-import React from "react";
+import type { ElementRef } from "../shared/dom-props";
 import type { AlertData } from "./AlertItem";
 import type { TMessageType } from "../../core/utils/types";
-import { bindRef } from "../shared/react-compat";
+import { bindRef } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import { NotificationView } from "./NotificationView";
 
 export interface AlertItemViewProps {
-    ref?: React.Ref<HTMLDivElement>;
+    ref?: ElementRef<HTMLDivElement>;
     name?: string;
     data: AlertData;
     top: number;
@@ -23,7 +23,7 @@ const AUTOCLOSE_SECONDS: Record<TMessageType, number> = {
 export class AlertItemView extends VanillaView<AlertItemViewProps> {
     private readonly notification: NotificationView;
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: AlertItemViewProps) {
         super(props, document.createElement("div"));
@@ -73,7 +73,7 @@ export class AlertItemView extends VanillaView<AlertItemViewProps> {
         this.root.style.right = `${props.right}px`;
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

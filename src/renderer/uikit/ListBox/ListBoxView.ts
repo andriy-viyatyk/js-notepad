@@ -1,14 +1,9 @@
-import type React from "react";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeCSSProperties, RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { createDepsGate, type DepsGate } from "../shared/deps-gate";
 import { nextElementId } from "../shared/element-id";
 import { fillSlot } from "../shared/fill-slot";
-import {
-    applyRestProps,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { SpinnerView } from "../Spinner/SpinnerView";
 import { applyCellStyle, VirtualGridView } from "../VirtualGrid";
@@ -468,7 +463,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
 }
 
 /** React adds `px` to a bare number in a style value; a DOM prop typed as a string cannot. */
-function cssLength(value: React.CSSProperties["height"]): string | undefined {
+function cssLength(value: NativeCSSProperties["height"]): string | undefined {
     if (value === undefined || value === null) return undefined;
     return typeof value === "number" ? `${value}px` : String(value);
 }

@@ -1,11 +1,6 @@
-import type { HTMLAttributes } from "react";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../../uikit/shared/dom-props";
+import type { NativeHTMLAttributes, RestPropsState } from "../../uikit/shared/dom-props";
 import * as monaco from "monaco-editor";
-import {
-    applyRestProps,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../../uikit/shared/react-compat";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 
 // =============================================================================
@@ -31,7 +26,7 @@ monaco.languages.setMonarchTokensProvider("json", {
     },
 });
 
-export interface ColorizedCodeProps extends HTMLAttributes<HTMLElement> {
+export interface ColorizedCodeProps extends NativeHTMLAttributes<HTMLElement> {
     /** Source code text to colorize. */
     code: string;
     /** Monaco language ID (e.g. "json", "javascript", "typescript"). */

@@ -1,11 +1,5 @@
-import React from "react";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { highlightInto } from "../shared/highlight";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
@@ -25,11 +19,12 @@ const defaultIndentSize = 16;
 /**
  * The tree row, and the single source of truth for its DOM.
  *
- * Two callers drive this class. `TreeView` builds one per pooled cell and calls `update()` as that
- * cell is re-pointed at different rows; `TreeItem.tsx` is a `mountVanilla` shim over the same class
- * for the five app-layer JSX call sites (four of them inside a `renderItem`). A second
- * implementation of a row with six state attributes, a four-way chevron column, N level guides and
- * three slots would drift, and nothing in the build would catch it.
+ * `TreeView` builds one per pooled cell and calls `update()` as that cell is re-pointed at
+ * different rows. It is the sole driver: the `TreeItem` React face that once wrapped this class for
+ * app-layer JSX callers was deleted in EPIC-074, and `TreeItem.ts` now holds only `TreeItemProps`.
+ * The class stays the single implementation because a second one — a row with six state attributes,
+ * a four-way chevron column, N level guides and three slots — would drift, and nothing in the build
+ * would catch it.
  *
  * **The root's child list is never rebuilt.** The four stable hosts are created once in `onMount`
  * and the indents are inserted *before* the chevron host, because `fillSlot` caches per-host state
@@ -75,7 +70,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
 
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: TreeItemProps) {
         super(props, document.createElement("div"));
@@ -375,7 +370,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         return { content: empty ? null : content, disabled: empty };
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

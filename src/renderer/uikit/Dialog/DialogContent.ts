@@ -1,12 +1,12 @@
-import type React from "react";
+import type { ElementRef, NativeHTMLAttributes } from "../shared/dom-props";
 import type { SlotContent } from "../shared/fill-slot";
 import type { IconRef } from "../shared/slots";
 
 // --- Types ---
 
 export interface DialogContentProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
-    ref?: React.Ref<HTMLDivElement>;
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
+    ref?: ElementRef<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

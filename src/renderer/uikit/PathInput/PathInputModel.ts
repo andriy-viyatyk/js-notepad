@@ -1,4 +1,4 @@
-import React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 import { TComponentModel } from "../../core/state/model";
 import { exceedsMaxDepth, getPathSuggestions, PathSuggestion } from "./suggestions";
 
@@ -8,7 +8,7 @@ import { exceedsMaxDepth, getPathSuggestions, PathSuggestion } from "./suggestio
 
 export interface PathInputProps
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         "style" | "className" | "onChange" | "onBlur"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate

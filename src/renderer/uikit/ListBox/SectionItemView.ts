@@ -1,11 +1,5 @@
-import React from "react";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type { SectionItemProps } from "./SectionItem";
 import "./SectionItem.css";
@@ -17,7 +11,7 @@ import "./SectionItem.css";
 export class SectionItemView extends VanillaView<SectionItemProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: SectionItemProps) {
         super(props, document.createElement("div"));
@@ -51,7 +45,7 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
         applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

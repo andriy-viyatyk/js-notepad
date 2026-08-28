@@ -1,9 +1,9 @@
-import React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 type Variant = "default" | "success" | "warning" | "danger";
 
 export interface ProgressBarProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className"> {
     name?: string;
     value?: number;
     max?: number;

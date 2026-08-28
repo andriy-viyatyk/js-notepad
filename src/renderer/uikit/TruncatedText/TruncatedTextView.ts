@@ -1,6 +1,6 @@
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type { TruncatedTextProps } from "./TruncatedText";
 

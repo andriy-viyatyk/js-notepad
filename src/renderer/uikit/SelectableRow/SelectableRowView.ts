@@ -1,12 +1,12 @@
-import React from "react";
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import "./SelectableRow.css";
 
 export interface SelectableRowProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "children"> {
-    ref?: React.Ref<HTMLDivElement>;
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "children"> {
+    ref?: ElementRef<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Never used for styling. */
     name?: string;
     /** True when this row is the current selection. */
@@ -20,7 +20,7 @@ export class SelectableRowView extends VanillaView<SelectableRowProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private contentCleanup: (() => void) | undefined;
     private refCleanup: () => void = () => undefined;
-    private boundRef: React.Ref<HTMLDivElement> | undefined;
+    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: SelectableRowProps) {
         super(props, document.createElement("div"));
@@ -64,7 +64,7 @@ export class SelectableRowView extends VanillaView<SelectableRowProps> {
         this.contentCleanup = fillSlot(this.root, children);
     }
 
-    private setRef(ref: React.Ref<HTMLDivElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

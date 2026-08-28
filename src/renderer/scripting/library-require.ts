@@ -14,7 +14,7 @@ let extensionsRegistered = false;
  */
 const MODULE_CONTEXT_PREFIX =
     "var __ctx=globalThis.__activeScriptContext__" +
-    ",app=__ctx?.app,page=__ctx?.page,io=__ctx?.io,ai=__ctx?.ai,React=__ctx?.React" +
+    ",app=__ctx?.app,page=__ctx?.page,io=__ctx?.io,ai=__ctx?.ai" +
     ",styledText=__ctx?.styledText,preventOutput=__ctx?.preventOutput" +
     ",require=__ctx?.customRequire||require" +
     ",console=__ctx?.console||console;\n";

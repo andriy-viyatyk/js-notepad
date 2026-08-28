@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { settings } from "../../api/settings";
 import { DEFAULT_PINNED_EDITORS } from "./tools-editors-registry";
 
@@ -65,10 +64,4 @@ export function movePin(dragIndex: number, hoverIndex: number): void {
     const [removed] = cur.splice(dragIndex, 1);
     cur.splice(hoverIndex, 0, removed);
     setPinnedStrings(cur);
-}
-
-/** Reactive decoded pinned list — re-renders on any pin change. */
-export function usePinnedRefs(): PinnedRef[] {
-    const raw = settings.use("pinned-editors") ?? DEFAULT_PINNED_EDITORS;
-    return useMemo(() => raw.map(decodePin), [raw]);
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import type { NativeCSSProperties, NativeHTMLAttributes } from "../shared/dom-props";
 import {
     TraitKey,
     Traited,
@@ -78,7 +78,7 @@ export interface ListItemRenderContext<T> {
 
 export interface ListBoxProps<T = IListBoxItem>
     extends Omit<
-        React.HTMLAttributes<HTMLDivElement>,
+        NativeHTMLAttributes<HTMLDivElement>,
         "style" | "className" | "onChange" | "onContextMenu"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
@@ -150,7 +150,7 @@ export interface ListBoxProps<T = IListBoxItem>
     /** Pixel height of each row. Default: 24. */
     rowHeight?: number;
     /** When set, the list grows to fit content up to this max height. */
-    growToHeight?: React.CSSProperties["height"];
+    growToHeight?: NativeCSSProperties["height"];
     /** Top/bottom whitespace padding inside the scroll container. */
     whiteSpaceY?: number;
     /**

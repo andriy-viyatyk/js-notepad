@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { readBoardManifest, boardUsageGroup, type BoardUsageGroup } from "./board-manifest";
 
 /**
@@ -62,24 +61,4 @@ export function invalidateBoardUsage(boardRoot: string): void {
     pending.delete(boardRoot);
     notify();
     void resolveBoardUsage(boardRoot);
-}
-
-/**
- * Whether a board is standalone (pinnable) — `undefined` while the manifest is still being
- * probed, then `true` for `file-editor` / `tool` boards and `false` for `file-viewer`.
- * Re-renders the caller when the probe resolves, and kicks a probe if this root is unprobed.
- */
-export function useBoardStandalone(boardRoot: string | undefined): boolean | undefined {
-    const [, force] = useState(0);
-    useEffect(() => {
-        const cb = () => force((v) => v + 1);
-        listeners.add(cb);
-        return () => { listeners.delete(cb); };
-    }, []);
-    useEffect(() => {
-        if (boardRoot && !cache.has(boardRoot)) void resolveBoardUsage(boardRoot);
-    }, [boardRoot]);
-
-    const group = getBoardUsageSync(boardRoot);
-    return group === undefined ? undefined : group !== "file-viewer";
 }

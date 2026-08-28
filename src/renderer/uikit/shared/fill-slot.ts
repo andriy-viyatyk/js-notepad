@@ -1,7 +1,14 @@
-import type React from "react";
-
-/** Native slot values are implemented here; the React arm remains in the type until Epic F. */
-export type SlotContent = string | Node | React.ReactNode;
+/** Values that can be rendered directly into a view-owned DOM slot. */
+export type NativeSlotContent =
+    | string
+    | number
+    | bigint
+    | boolean
+    | null
+    | undefined
+    | Node
+    | NativeSlotContent[];
+export type SlotContent = NativeSlotContent;
 
 interface ActiveNodeSlot {
     kind: "node";
@@ -54,10 +61,6 @@ function appendNativeSlot(parent: Node, slot: SlotContent): boolean {
 
 /**
  * Fill a view-owned DOM region with native text, nodes, fragments, or arrays of those values.
- *
- * React.ReactNode remains in the public type alias for Epic F's type-surface work, but no live
- * caller in the renderer supplies a React node here. Unsupported React-only values therefore
- * leave the host empty rather than creating a hidden runtime bridge.
  *
  * Callers must not run a previous cleanup before calling again: this function owns the transition,
  * and superseded cleanups become no-ops on their own.

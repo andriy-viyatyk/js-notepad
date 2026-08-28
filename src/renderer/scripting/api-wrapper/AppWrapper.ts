@@ -54,7 +54,7 @@ function createEventsProxy<T extends object>(target: T, releaseList: Array<() =>
  * have a getter here, enforced by the compile-time check at the bottom of this file.
  *
  * - Most sub-interfaces (settings, fs, ui, etc.) pass through directly —
- *   they are already safe (.d.ts hides internals like .use()).
+ *   they expose only the safe public .d.ts surface.
  * - `pages` is wrapped to return PageWrapper instances.
  * - `events` is wrapped to auto-track subscriptions for cleanup.
  */

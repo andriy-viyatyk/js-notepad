@@ -1,5 +1,4 @@
 const { ipcRenderer } = require("electron");
-import { KeyboardEvent } from "react";
 import {
     BrowserChannel,
     BrowserEvent,
@@ -75,7 +74,7 @@ export class BrowserWebviewModel {
     };
 
     /** Handle keyboard shortcuts on the root browser div (Ctrl+L, Ctrl+F). */
-    handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    handleKeyDown = (e: KeyboardEvent) => {
         if (e.ctrlKey && e.key === "l") {
             e.preventDefault();
             this.model.urlBar.focusUrlInput();

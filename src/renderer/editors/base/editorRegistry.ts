@@ -1,7 +1,7 @@
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
 import type { EditorConfig } from "./EditorConfig";
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 
 export interface AcceptanceInput {
     fileName?: string;

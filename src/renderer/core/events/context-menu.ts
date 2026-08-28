@@ -39,8 +39,6 @@ export type ContextMenuTargetKind =
     | "tree-provider-background"
     | "generic";
 
-type NativeMouseEventCarrier = MouseEvent | { nativeEvent: MouseEvent };
-
 /** Generic context-menu event carried through a native mouse-event expando. */
 export class ContextMenuEvent<T> extends BaseEvent {
     readonly targetKind: ContextMenuTargetKind;
@@ -56,13 +54,12 @@ export class ContextMenuEvent<T> extends BaseEvent {
 
     /** Get or create a ContextMenuEvent on the native mouse event. */
     static fromNativeEvent(
-        event: NativeMouseEventCarrier,
+        event: MouseEvent,
         targetKind: ContextMenuTargetKind,
     ): ContextMenuEvent<unknown> {
-        const nativeEvent = "nativeEvent" in event ? event.nativeEvent : event;
-        if (!nativeEvent.contextMenuEvent) {
-            nativeEvent.contextMenuEvent = new ContextMenuEvent(targetKind, null);
+        if (!event.contextMenuEvent) {
+            event.contextMenuEvent = new ContextMenuEvent(targetKind, null);
         }
-        return nativeEvent.contextMenuEvent;
+        return event.contextMenuEvent;
     }
 }

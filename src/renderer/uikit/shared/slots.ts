@@ -1,12 +1,12 @@
-import type React from "react";
 import type { SvgIconProps } from "../../theme/icons";
+import type { NativeSlotContent } from "./fill-slot";
 import { getIcon } from "../../theme/icon-registry";
 import type { IconName } from "../../theme/icon-registry";
 
 // A registry name or a freshly built DOM node. Admitting `Node` here lets callers hand over a
 // built SVG without an `as unknown as` cast at every site.
 export type IconRef = IconName | Node;
-export type SlotText = string | React.ReactNode;
+export type SlotText = NativeSlotContent;
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 

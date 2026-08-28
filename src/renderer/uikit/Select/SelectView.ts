@@ -1,13 +1,7 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { nextElementId } from "../shared/element-id";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { IconButtonView } from "../IconButton/IconButtonView";
 import { InputView } from "../Input/InputView";
@@ -20,7 +14,7 @@ import { defaultSelectState, SelectModel, type SelectProps } from "./SelectModel
 import "./Select.css";
 
 export type SelectViewProps<T = IListBoxItem> = SelectProps<T> & {
-    ref?: React.Ref<HTMLInputElement>;
+    ref?: ElementRef<HTMLInputElement>;
 };
 
 /**
@@ -75,7 +69,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
     private listView: ListBoxView<IListBoxItem> | undefined;
 
     private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: React.Ref<HTMLInputElement> | undefined;
+    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
     private callerRefCleanup: (() => void) | undefined;
 
     public constructor(props: SelectViewProps<T>) {

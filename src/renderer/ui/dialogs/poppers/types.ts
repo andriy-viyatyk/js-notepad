@@ -1,5 +1,5 @@
 import { TDialogModel } from "../../../core/state/model";
-import { PopoverPosition } from "../../../uikit/Popover/Popover";
+import type { PopoverPosition } from "../../../uikit/Popover/PopoverModel";
 import type { IDialogViewData } from "../dialog-view-registry";
 
 

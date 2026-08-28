@@ -1,10 +1,10 @@
-import type React from "react";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeInputHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 
 export interface SliderProps
     extends Omit<
-        React.InputHTMLAttributes<HTMLInputElement>,
+        NativeInputHTMLAttributes<HTMLInputElement>,
         "value" | "onChange" | "min" | "max" | "step" | "type" | "size" |
         "style" | "className"
     > {

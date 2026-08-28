@@ -9,7 +9,6 @@ import { AnyStory } from "./storyTypes";
 
 // Layout
 import { collapsiblePanelStackStory } from "../../uikit/CollapsiblePanelStack/CollapsiblePanelStack.story";
-import { panelStory }    from "../../uikit/Panel/Panel.story";
 import { spacerStory }   from "../../uikit/Spacer/Spacer.story";
 import { splitterStory } from "../../uikit/Splitter/Splitter.story";
 import { toolbarStory }  from "../../uikit/Toolbar/Toolbar.story";
@@ -24,7 +23,6 @@ import { labelStory }            from "../../uikit/Label/Label.story";
 import { checkboxStory }         from "../../uikit/Checkbox/Checkbox.story";
 import { dividerStory }          from "../../uikit/Divider/Divider.story";
 import { dotStory }              from "../../uikit/Dot/Dot.story";
-import { textStory }             from "../../uikit/Text/Text.story";
 import { segmentedControlStory } from "../../uikit/SegmentedControl/SegmentedControl.story";
 import { radioGroupStory }       from "../../uikit/RadioGroup/RadioGroup.story";
 import { sliderStory }           from "../../uikit/Slider/Slider.story";
@@ -65,9 +63,9 @@ import { dataGridStory }         from "../../uikit/DataGrid/DataGrid.story";
 import { gitTreeStory }          from "../../components/git-tree/GitTree.story";
 
 export const ALL_STORIES: AnyStory[] = [
-    collapsiblePanelStackStory, panelStory, spacerStory, splitterStory, toolbarStory,
+    collapsiblePanelStackStory, spacerStory, splitterStory, toolbarStory,
     breadcrumbStory,
-    buttonStory, iconButtonStory, splitButtonStory, inputStory, dateInputStory, labelStory, checkboxStory, dividerStory, dotStory, textStory,
+    buttonStory, iconButtonStory, splitButtonStory, inputStory, dateInputStory, labelStory, checkboxStory, dividerStory, dotStory,
     segmentedControlStory, radioGroupStory, sliderStory, progressBarStory, spinnerStory, textareaStory, pathInputStory,
     truncatedTextStory,
     tagStory, tagsInputStory,

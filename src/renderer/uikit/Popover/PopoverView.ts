@@ -12,7 +12,7 @@ import {
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView, type IOwnedView } from "../shared/vanilla-view";
 import {

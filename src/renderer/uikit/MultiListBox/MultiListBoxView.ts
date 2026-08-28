@@ -4,7 +4,7 @@ import {
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { createIconElement } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 import { InputView } from "../Input/InputView";

@@ -1,10 +1,10 @@
-import type React from "react";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { createIconElement } from "../shared/slots";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 
 export interface SpinnerProps
-    extends Omit<React.HTMLAttributes<HTMLSpanElement>, "style" | "className" | "color"> {
+    extends Omit<NativeHTMLAttributes<HTMLSpanElement>, "style" | "className" | "color"> {
     name?: string;
     size?: number;
     color?: string;

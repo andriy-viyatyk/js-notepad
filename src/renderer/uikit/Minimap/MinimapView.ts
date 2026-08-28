@@ -3,7 +3,7 @@ import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import { defaultMinimapState, MinimapModel, type MinimapState } from "./MinimapModel";
 import type { MinimapProps } from "./Minimap";

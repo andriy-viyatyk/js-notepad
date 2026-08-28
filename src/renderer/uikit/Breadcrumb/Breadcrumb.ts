@@ -1,7 +1,7 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 export interface BreadcrumbProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
     name?: string;
     rootLabel: string;
     value: string;

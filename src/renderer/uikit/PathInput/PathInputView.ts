@@ -1,4 +1,4 @@
-import React from "react";
+import type { ElementRef } from "../shared/dom-props";
 import { createComponentModelDriver } from "../../core/state/model";
 import { InputView } from "../Input/InputView";
 import type { InputProps } from "../Input/InputView";
@@ -10,7 +10,7 @@ import {
     clearRestListeners,
     createRestPropsState,
     RestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import {
     defaultPathInputState,
@@ -21,7 +21,7 @@ import type { PathSuggestion } from "./suggestions";
 import "./PathInput.css";
 
 export type PathInputViewProps = PathInputProps & {
-    ref?: React.Ref<HTMLInputElement>;
+    ref?: ElementRef<HTMLInputElement>;
 };
 
 interface RowMeta {
@@ -155,7 +155,7 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
     private readonly inputView: InputView;
     private suggestionContentView: PathSuggestionContentView | undefined;
     private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: React.Ref<HTMLInputElement> | undefined;
+    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
     private callerRefCleanup: (() => void) | undefined;
     private readonly restPropsState: RestPropsState = createRestPropsState();
 

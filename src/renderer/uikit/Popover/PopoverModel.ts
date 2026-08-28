@@ -1,4 +1,5 @@
-import type React from "react";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
+import type { SlotContent } from "../shared/fill-slot";
 import {
     flip,
     offset as floatingOffset,
@@ -29,7 +30,7 @@ export interface PopoverPosition {
 }
 
 export interface PopoverProps
-    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onKeyDown">,
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onKeyDown">,
         PopoverPosition {
     /** Optional debug label emitted as `data-name` on the popover's floating root.
      *  Use to disambiguate multiple instances in DOM inspector output. Never used for styling. */
@@ -73,7 +74,7 @@ export interface PopoverProps
      * popover height.
      */
     scroll?: boolean;
-    children?: React.ReactNode;
+    children?: SlotContent;
 }
 
 // =============================================================================

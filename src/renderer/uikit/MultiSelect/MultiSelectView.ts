@@ -1,13 +1,7 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { nextElementId } from "../shared/element-id";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { IconButtonView } from "../IconButton/IconButtonView";
 import { InputView } from "../Input/InputView";
@@ -21,7 +15,7 @@ import { defaultMultiSelectState, MultiSelectModel, type MultiSelectProps } from
 import "./MultiSelect.css";
 
 export type MultiSelectViewProps<T = IListBoxItem> = MultiSelectProps<T> & {
-    ref?: React.Ref<HTMLInputElement>;
+    ref?: ElementRef<HTMLInputElement>;
 };
 
 /**
@@ -69,7 +63,7 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
     private listView: MultiListBoxView<T> | undefined;
 
     private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: React.Ref<HTMLInputElement> | undefined;
+    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
     private callerRefCleanup: (() => void) | undefined;
 
     public constructor(props: MultiSelectViewProps<T>) {

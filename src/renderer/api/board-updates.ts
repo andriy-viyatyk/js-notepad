@@ -7,7 +7,6 @@
  * separate from the toast (BoardEditorModel) and the sidebar (TrustedBoardsList) so the two
  * surfaces agree on what "an update" is and how it is applied.
  */
-import { useMemo } from "react";
 import { compareVersions } from "../../shared/version-utils";
 import { fpNormalizeForCompare } from "../core/utils/file-path";
 import type { PublishedBoardArchive, PublishedBoardInfo } from "../../ipc/api-param-types";
@@ -66,33 +65,6 @@ export function listBoardUpdates(): BoardUpdate[] {
         .listInstalled()
         .map((e) => getBoardUpdate(e.root))
         .filter((u): u is BoardUpdate => !!u);
-}
-
-/**
- * Reactive map (normalized root → update) over BOTH the catalog and the install registry.
- * Drives the sidebar badge + context menu.
- */
-export function useBoardUpdates(): Map<string, BoardUpdate> {
-    const catalog = publishedBoards.useCatalog();
-    const installed = boardInstallRegistry.useInstalled();
-    return useMemo(() => {
-        const map = new Map<string, BoardUpdate>();
-        for (const inst of installed) {
-            const cat = catalog.find((b) => b.id === inst.id);
-            if (!cat) continue;
-            if (!publishedBoards.isCompatible(cat.minAppVersion)) continue;
-            // See getBoardUpdate: installed as `current`, catalog as `latest` (1 ⇒ newer).
-            if (compareVersions(inst.version, cat.version) <= 0) continue;
-            map.set(fpNormalizeForCompare(inst.root), {
-                root: inst.root,
-                id: inst.id,
-                installedVersion: inst.version,
-                latestVersion: cat.version,
-                entry: cat,
-            });
-        }
-        return map;
-    }, [catalog, installed]);
 }
 
 /** Open pages whose MAIN editor runs the board at `root` (includes content-host boards —

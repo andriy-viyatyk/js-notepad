@@ -11,6 +11,8 @@ export interface IOwnedView {
     dispose(): void;
 }
 
+export type VanillaViewCtor<P> = new (props: P) => VanillaView<P>;
+
 type Cleanup = () => void;
 
 // Ownership is deliberately not inferred from DOM containment. A view can be

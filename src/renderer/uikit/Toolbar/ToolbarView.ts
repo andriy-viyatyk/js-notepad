@@ -4,7 +4,7 @@ import {
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
-} from "../shared/react-compat";
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type { ToolbarProps } from "./Toolbar";
 import { applyToolbarAttributes } from "./toolbar-style";

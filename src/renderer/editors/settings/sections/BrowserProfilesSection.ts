@@ -130,7 +130,7 @@ class ProfileHeaderView extends VanillaView<ProfileHeaderProps> {
 
         const colorDot = this.child(new DotView({
             size: "md", color: props.color, bordered: true, onClick: props.name
-                ? (event) => this.openColorMenu(event.currentTarget)
+                ? (event) => this.openColorMenu(event.currentTarget as Element)
                 : undefined,
             title: props.name ? "Change color" : undefined,
         }));

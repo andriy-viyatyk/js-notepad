@@ -10,8 +10,6 @@ import { debounce } from "../../../shared/utils";
 import { libraryService, ScriptPanelEntry } from "../../api/library-service";
 import { settings } from "../../api/settings";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
-import { mountVanilla } from "../../uikit/shared/mount";
-import { ScriptPanelView } from "./ScriptPanelView";
 
 const nodefs = require("fs") as typeof import("fs");
 import { fpJoin } from "../../core/utils/file-path";
@@ -333,12 +331,4 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
             pagesModel.addEmptyPageWithNavPanel(scriptPanelDir);
         }
     };
-}
-
-interface ScriptPanelProps {
-    model: TextFileModel;
-}
-
-export function ScriptPanel({ model }: ScriptPanelProps) {
-    return mountVanilla(ScriptPanelView, { model });
 }

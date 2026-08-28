@@ -1,5 +1,5 @@
 import type { TDialogModel, TModel } from "../../core/state/model";
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
+import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 
 export interface ViewProps<M extends TModel<T>, T = unknown> {
     model: M;

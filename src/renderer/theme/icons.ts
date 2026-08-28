@@ -1,10 +1,28 @@
-import type { SVGProps } from "react";
+import type { ElementRef, NativeCSSProperties } from "../uikit/shared/dom-props";
 import { themeState } from "./theme-state";
 
-export type SvgIconProps = Omit<SVGProps<SVGSVGElement>, "children"> & {
+type NativeSVGAttributeValue = string | number | boolean | undefined;
+
+export type NativeSVGProps = {
     viewBox?: string;
+    width?: string | number;
+    height?: string | number;
+    className?: string;
+    color?: string;
+    style?: NativeCSSProperties | string;
+    ref?: ElementRef<SVGSVGElement>;
     title?: string;
+    opacity?: NativeSVGAttributeValue;
+    fill?: NativeSVGAttributeValue;
+    stroke?: NativeSVGAttributeValue;
+    strokeWidth?: NativeSVGAttributeValue;
+    strokeLinecap?: NativeSVGAttributeValue;
+    strokeLinejoin?: NativeSVGAttributeValue;
+    preserveAspectRatio?: NativeSVGAttributeValue;
+    [key: `data-${string}`]: NativeSVGAttributeValue;
 };
+
+export type SvgIconProps = NativeSVGProps;
 
 export type SvgIconDomBuilder = (props?: SvgIconProps) => SVGElement;
 

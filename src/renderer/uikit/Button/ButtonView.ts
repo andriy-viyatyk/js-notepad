@@ -1,14 +1,14 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, NativeButtonHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
 import type { SlotContent } from "../shared/fill-slot";
 
-export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title" | "onKeyDown" | "children"> {
-    ref?: React.Ref<HTMLButtonElement>;
+export interface ButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onKeyDown" | "children"> {
+    ref?: ElementRef<HTMLButtonElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -54,7 +54,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
     private childrenCleanup: (() => void) | undefined;
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: (() => void) = () => undefined;
-    private boundRef: React.Ref<HTMLButtonElement> | undefined;
+    private boundRef: ElementRef<HTMLButtonElement> | undefined;
 
     public constructor(props: ButtonViewProps) {
         super(props, document.createElement("button"));
@@ -175,7 +175,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
         return { iconHost: this.iconHost, childrenHost: this.childrenHost };
     }
 
-    private setRef(ref: React.Ref<HTMLButtonElement> | undefined): void {
+    private setRef(ref: ElementRef<HTMLButtonElement> | undefined): void {
         if (ref === this.boundRef) return;
         this.refCleanup();
         this.boundRef = ref;

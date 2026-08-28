@@ -9,6 +9,6 @@ export const autoloadService = {
     dispose: () => autoloadRunner.dispose(),
     markNeedsReload: () => autoloadRunner.markNeedsReload(),
     get isLoaded() { return autoloadRunner.isLoaded; },
-    /** Reactive state — use in React components via `autoloadService.state.use()`. */
+    /** Reactive state — subscribe directly when a view needs live updates. */
     state: autoloadRunner.state,
 };

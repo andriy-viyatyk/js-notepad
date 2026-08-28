@@ -1,4 +1,3 @@
-import type React from "react";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { TraitSet, traited, type Traited } from "../../core/traits/traits";
 import { TraitTypeId, type TraitDragPayload } from "../../core/traits";
@@ -362,7 +361,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     private readonly onOsDragStart = (
         node: TreeProviderNode,
         _level: number,
-        event: React.DragEvent,
+        event: DragEvent,
     ): boolean => {
         const href = node.data.href;
         if (!href || href === this.props.provider.rootPath) return false;

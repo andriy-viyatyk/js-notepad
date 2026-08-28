@@ -9,7 +9,7 @@ import type { ScriptContext } from "./ScriptContext";
  * `ui` is NOT included — it's a lazy getter on globalThis (stack-based per context).
  */
 const SCRIPT_PREFIX =
-    "var app=this.app,page=this.page,io=this.io,ai=this.ai,React=this.React" +
+    "var app=this.app,page=this.page,io=this.io,ai=this.ai" +
     ",styledText=this.styledText,preventOutput=this.preventOutput" +
     ",require=this.customRequire" +
     ",console=this.console;\n";

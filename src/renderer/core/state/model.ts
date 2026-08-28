@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { IState, TComponentState } from "./state";
 
 /**
@@ -230,42 +229,6 @@ function createModel<T, M extends TModel<T>>(
         return new model(modelState, defaultState);
     }
     return model;
-}
-
-export function useModel<T, M extends TModel<T>>(
-    model:
-        | M
-        | ModelConstructor<T, M>,
-    modelState:
-        | IState<T>
-        | (new (defaultState: T) => IState<T>) = TComponentState,
-    defaultState?: T
-): M {
-    const modelRef = useRef<M>(undefined);
-    if (!modelRef.current) {
-        modelRef.current = createModel(model, modelState, defaultState);
-    }
-
-    return modelRef.current;
-}
-
-export function useComponentModel<T, P, M extends TComponentModel<T, P>>(
-    props: P,
-    model:
-        | M
-        | ComponentModelConstructor<T, P, M>,
-    defaultState?: T
-): M {
-    const controlModel = useModel(model, TComponentState, defaultState);
-    controlModel.setPropsInternal(props);
-    controlModel.isFirstUse = false;
-
-    useEffect(() => {
-        controlModel._initInternal();
-        return () => controlModel.onUnmountInternal();
-    }, [controlModel]);
-
-    return controlModel;
 }
 
 export interface ComponentModelDriver<T, P, M extends TComponentModel<T, P>> {

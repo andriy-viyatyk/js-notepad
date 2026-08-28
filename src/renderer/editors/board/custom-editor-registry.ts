@@ -152,14 +152,6 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
             .entries.filter((e) => matchesBoardMasks(fileName, e.fileMasks, e.folderMasks));
     }
 
-    /** Reactive variant for the switch widget — re-renders when trust/masks change. */
-    useBoardsForFile(fileName: string): CustomEditorMatch[] {
-        return this.state.use((s) => {
-            if (!fileName) return [];
-            return s.entries.filter((e) => matchesBoardMasks(fileName, e.fileMasks, e.folderMasks));
-        });
-    }
-
     dispose(): void {
         this.pathsSub?.();
         this.pathsSub = undefined;

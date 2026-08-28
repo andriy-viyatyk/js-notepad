@@ -1,7 +1,6 @@
 const https = require("https");
 const http = require("http");
 
-import { useEffect, useRef, useState } from "react";
 import { fs } from "../../api/fs";
 
 // =============================================================================
@@ -159,48 +158,6 @@ export function onFaviconReady(hostname: string, callback: () => void): () => vo
     };
 }
 
-/**
- * React hook: preload favicons for a list of items with href.
- * Returns a version number that increments when new favicons become available,
- * causing the consuming component to re-render.
- * Uses getFaviconPathSync for rendering (fast, from memory cache).
- */
-export function useFavicons(links: Array<{ href: string }>): number {
-    const [version, setVersion] = useState(0);
-    const unsubs = useRef<Array<() => void>>([]);
-
-    useEffect(() => {
-        // Collect unique hostnames from the current links
-        const hostnames = new Set<string>();
-        for (const link of links) {
-            const h = getHostname(link.href);
-            if (h) hostnames.add(h);
-        }
-
-        // For each hostname, check if it's in memory cache.
-        // If not, load from disk (async) and subscribe for pending fetches.
-        for (const hostname of hostnames) {
-            if (memoryCache.has(hostname)) continue;
-
-            // Async disk check — populates memory cache
-            getFaviconPath(hostname).then((path) => {
-                if (path) setVersion((v) => v + 1);
-            });
-
-            // Subscribe for when a pending fetch completes (e.g. browser is fetching)
-            unsubs.current.push(
-                onFaviconReady(hostname, () => setVersion((v) => v + 1)),
-            );
-        }
-
-        return () => {
-            for (const unsub of unsubs.current) unsub();
-            unsubs.current = [];
-        };
-    }, [links]);
-
-    return version;
-}
 
 // =============================================================================
 // Internal helpers

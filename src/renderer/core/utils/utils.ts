@@ -1,4 +1,4 @@
-import { SetStateAction } from "react";
+type SetStateAction<S> = S | ((previous: S) => S);
 
 export const isNullOrUndefined = (v: unknown) => v === null || v === undefined;
 

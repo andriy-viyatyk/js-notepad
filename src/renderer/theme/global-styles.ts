@@ -1,14 +1,13 @@
-import { css, Global } from "@emotion/react";
 import color from "./color";
 import { resolveColor } from "./themes";
 import { themeState } from "./theme-state";
 
-function buildGlobalStyles() {
+function buildGlobalStyles(): string {
     const arrowColor = encodeURIComponent(
         resolveColor("--color-text-light")
     );
 
-    return css`
+    return `
         body {
             background-color: ${color.background.default};
             color: ${color.text.default};
@@ -154,7 +153,21 @@ function buildGlobalStyles() {
     `;
 }
 
-export function GlobalStyles() {
-    themeState.use((s) => s.id);
-    return <Global styles={buildGlobalStyles()} />;
+export function installGlobalStyles(): () => void {
+    const style = document.createElement("style");
+    style.dataset.name = "global-styles";
+    document.head.append(style);
+    style.textContent = buildGlobalStyles();
+
+    const unsubscribe = themeState.subscribe(
+        () => {
+            style.textContent = buildGlobalStyles();
+        },
+        (s) => s.id
+    );
+
+    return () => {
+        unsubscribe();
+        style.remove();
+    };
 }

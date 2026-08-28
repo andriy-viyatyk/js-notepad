@@ -1,14 +1,8 @@
-import React from "react";
+import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { ElementRef, RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { nextElementId } from "../shared/element-id";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
-import {
-    applyRestProps,
-    bindRef,
-    clearRestListeners,
-    createRestPropsState,
-    type RestPropsState,
-} from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { InputView } from "../Input/InputView";
 import { ListBoxView } from "../ListBox/ListBoxView";
@@ -26,7 +20,7 @@ import "./Autocomplete.css";
 import "../Spacer/Spacer.css";
 
 export type AutocompleteViewProps = AutocompleteProps & {
-    ref?: React.Ref<HTMLInputElement>;
+    ref?: ElementRef<HTMLInputElement>;
 };
 
 interface AutocompleteContentProps {
@@ -172,7 +166,7 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
     private contentView: AutocompleteContentView | undefined;
 
     private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: React.Ref<HTMLInputElement> | undefined;
+    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
     private callerRefCleanup: (() => void) | undefined;
 
     public constructor(props: AutocompleteViewProps) {

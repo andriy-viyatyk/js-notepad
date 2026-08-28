@@ -9,8 +9,6 @@ export type {
 } from "./CollapsiblePanelStack";
 export type { MinimapProps } from "./Minimap";
 export type { ImageViewportProps, ImageViewportModel } from "./ImageViewport";
-export { Panel } from "./Panel";
-export type { PanelProps } from "./Panel";
 export type { SpacerProps } from "./Spacer/SpacerView";
 export type { SplitterProps } from "./Splitter/SplitterView";
 export type { ToolbarProps } from "./Toolbar";
@@ -31,8 +29,6 @@ export type { LabelProps } from "./Label";
 export type { CheckboxProps } from "./Checkbox/CheckboxView";
 export type { DividerProps } from "./Divider";
 export type { DotProps, DotColor } from "./Dot/DotView";
-export { Text } from "./Text";
-export type { TextProps } from "./Text";
 export type { SegmentedControlProps } from "./SegmentedControl/SegmentedControlView";
 export { RADIO_KEY } from "./RadioGroup";
 export type { RadioGroupProps, IRadio } from "./RadioGroup";
@@ -46,8 +42,7 @@ export type { TagsInputProps } from "./TagsInput";
 
 // Overlay
 export { overlayRegistry } from "./shared/overlayRegistry";
-export { Popover } from "./Popover";
-export type { PopoverProps, PopoverPosition } from "./Popover";
+export type { PopoverProps, PopoverPosition } from "./Popover/PopoverModel";
 export { attachTooltip } from "./Tooltip/attach-tooltip";
 export type { TooltipOptions, TooltipAttachment } from "./Tooltip/attach-tooltip";
 // Dialog and DialogContent are native-only; their public props remain type exports.
@@ -78,7 +73,6 @@ export type {
     TreeItemRenderContext,
     TreeRow,
 } from "./Tree/types";
-export { TreeItem } from "./Tree";
 export type { TreeItemProps, TreeSectionItemProps } from "./Tree";
 
 // VirtualGrid is the framework-free virtualization contract. VirtualGridView handles fixed-height

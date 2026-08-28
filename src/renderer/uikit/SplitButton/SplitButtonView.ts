@@ -5,7 +5,7 @@ import type { IconButtonProps } from "../IconButton/IconButtonView";
 import { openMenu, type MenuHandle } from "../Menu/attach-menu";
 import type { MenuItem } from "../Menu/types";
 import type { SlotContent } from "../shared/fill-slot";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
+import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import type { SplitButtonProps } from "./SplitButton";
 import "./SplitButton.css";

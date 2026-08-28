@@ -562,6 +562,27 @@ export default tseslint.config(
                 paths: [{
                     name: "av-grid",
                     message: "EPIC-057 C4-1: import from uikit/DataGrid, not from av-grid directly.",
+                }, {
+                    name: "react",
+                    message: "EPIC-074 F-h: React is confined to editors/draw/**, where @excalidraw/excalidraw requires it as a peer dependency. Nothing else may import React.",
+                }, {
+                    name: "react-dom",
+                    message: "EPIC-074 F-h: React is confined to editors/draw/**, where @excalidraw/excalidraw requires it as a peer dependency. Nothing else may import React.",
+                }],
+                patterns: ["av-grid/*", "react-dom/*"],
+            }],
+        },
+    },
+
+    // Flat-config overrides replace rule options, so this draw exemption re-states the av-grid
+    // restriction to keep EPIC-057 C4-1 enforced inside the one legitimate React island.
+    {
+        files: ["src/renderer/editors/draw/**/*.ts", "src/renderer/editors/draw/**/*.tsx"],
+        rules: {
+            "no-restricted-imports": ["error", {
+                paths: [{
+                    name: "av-grid",
+                    message: "EPIC-057 C4-1: import from uikit/DataGrid, not from av-grid directly.",
                 }],
                 patterns: ["av-grid/*"],
             }],

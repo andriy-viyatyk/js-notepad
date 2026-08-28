@@ -56,7 +56,7 @@ export class PageModel implements IPageHost {
     /** Stable page UUID — tab identity, React key, cache key. Never changes. */
     readonly id: string;
 
-    /** Reactive page-level state. UI uses `page.state.use()` for re-render. */
+    /** Reactive page-level state. UI subscribes directly for re-rendering. */
     readonly state = new TOneState<IPageState>({ ...defaultPageState });
 
     /**

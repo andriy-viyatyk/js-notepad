@@ -47,7 +47,7 @@ export const P_VAR_SOURCES: Record<string, string> = {
 /**
  * The application's monospace stack, as one definition.
  *
- * `GlobalStyles` sets it on `body` through `--p-font-family`, and av-grid's `--avg-font-family`
+ * `global-styles` sets it on `body` through `--p-font-family`, and av-grid's `--avg-font-family`
  * falls back to the same variable. Without it the grid renders in a system sans stack, because
  * av-grid's own root sets `font-family` rather than inheriting it.
  */

@@ -10,9 +10,10 @@
  *
  * ## Two prop tiers, and why
  *
- * `mountVanilla`'s host calls `view.update(props)` on **every** parent render
- * (`shared/mount.tsx`), and a JSX caller builds a new props object each time. Pushing all of it
- * into `setOptions` would hand av-grid fresh `rows` / `columns` array identities constantly.
+ * `VanillaView.update(props)` has no prop-equality gate, so a parent view re-pushes the whole
+ * props object on every one of its own updates, typically with fresh object and array literals.
+ * Pushing all of it into `setOptions` would hand av-grid new `rows` / `columns` identities
+ * constantly.
  *
  *  • **Callbacks** are bound once, at `create()`, as stable trampolines that read `this.props`
  *    live. Their identity is never re-pushed — an inline arrow in JSX changes identity on every
