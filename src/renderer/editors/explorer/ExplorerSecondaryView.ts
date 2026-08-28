@@ -25,7 +25,7 @@ import type {
 } from "../../components/tree-provider/TreeProviderViewModel";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
-import type { IconButtonProps } from "../../uikit/IconButton/IconButton";
+import type { IconButtonProps } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createIconElement } from "../../uikit/shared/slots";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";

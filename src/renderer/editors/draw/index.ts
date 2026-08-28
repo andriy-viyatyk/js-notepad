@@ -1,8 +1,6 @@
-import { createElement } from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
 import { TComponentState } from "../../core/state/state";
 import { DrawEditor, defaultDrawEditorState } from "./DrawEditor";
-import { DrawBody } from "./DrawBody";
+import { DrawBodyView } from "./DrawBodyView";
 import { TextChromeView } from "../base/TextChromeView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { openMenu, type MenuHandle, type MenuItem } from "../../uikit/Menu";
@@ -335,17 +333,10 @@ class DrawToolbarView extends VanillaView<{ model: DrawEditor }> {
     }
 }
 
-function drawBodyElement(model: DrawEditor) {
-    return createElement(
-        EditorErrorBoundary,
-        null,
-        createElement(DrawBody, { model }),
-    );
-}
-
 export class DrawEditorView extends VanillaView<{ model: EditorModel }> {
     private model: DrawEditor | undefined;
     private toolbar: DrawToolbarView | undefined;
+    private body: DrawBodyView | undefined;
     private chrome: TextChromeView | undefined;
 
     public constructor(props: { model: EditorModel }) {
@@ -355,36 +346,41 @@ export class DrawEditorView extends VanillaView<{ model: EditorModel }> {
     protected onMount(): void {
         const model = requireDrawModel(this.props.model);
         const toolbar = this.child(new DrawToolbarView({ model }));
+        const body = this.child(new DrawBodyView({ model }));
         const chrome = this.child(new TextChromeView({
             model: this.props.model,
             rightToolbarContributions: toolbar.root,
-            children: drawBodyElement(model),
+            children: body.root,
         }));
 
         this.model = model;
         this.toolbar = toolbar;
+        this.body = body;
         this.chrome = chrome;
-        this.root.append(toolbar.root, chrome.root);
+        this.root.append(toolbar.root, body.root, chrome.root);
         toolbar.mount();
+        body.mount();
         chrome.mount();
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireDrawModel(props.model);
-        this.model = model;
-        this.toolbar?.update({ model });
-        this.chrome?.update({
+        if (model !== this.model) {
+            throw new Error("Draw view received a different model instance.");
+        }
+        const body = this.body;
+        const toolbar = this.toolbar;
+        const chrome = this.chrome;
+        if (!body || !toolbar || !chrome) return;
+        body.update({ model });
+        toolbar.update({ model });
+        chrome.update({
             model: props.model,
-            rightToolbarContributions: this.toolbar?.root,
-            children: drawBodyElement(model),
+            rightToolbarContributions: toolbar.root,
+            children: body.root,
         });
     }
 
-    protected onDispose(): void {
-        this.model = undefined;
-        this.toolbar = undefined;
-        this.chrome = undefined;
-    }
 }
 
 export const drawModule: EditorModule = {

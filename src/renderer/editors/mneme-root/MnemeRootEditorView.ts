@@ -1,7 +1,7 @@
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { TextareaView } from "../../uikit/Textarea/TextareaView";
-import type { TextareaProps } from "../../uikit/Textarea/Textarea";
+import type { TextareaProps } from "../../uikit/Textarea/TextareaView";
 import { SelectView } from "../../uikit/Select/SelectView";
 import type { SelectViewProps } from "../../uikit/Select/SelectView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
@@ -18,7 +18,7 @@ import {
     type MnemeSearchMode,
 } from "./MnemeRootEditorModel";
 import { resultsToMarkdown } from "./results-to-markdown";
-import type { IListBoxItem } from "../../uikit/ListBox";
+import type { IListBoxItem } from "../../uikit/ListBox/types";
 import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";
 import "../../uikit/Textarea/Textarea.css";

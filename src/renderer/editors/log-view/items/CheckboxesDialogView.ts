@@ -1,5 +1,5 @@
 import { CheckboxView } from "../../../uikit/Checkbox/CheckboxView";
-import type { CheckboxProps } from "../../../uikit/Checkbox/Checkbox";
+import type { CheckboxProps } from "../../../uikit/Checkbox/CheckboxView";
 import { createPanelElement } from "../../../uikit/Panel/panel-style";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import type { CheckboxesEntry } from "../logTypes";

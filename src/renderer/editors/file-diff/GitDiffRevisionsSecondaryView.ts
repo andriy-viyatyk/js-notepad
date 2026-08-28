@@ -5,7 +5,7 @@ import {
 } from "../../ui/secondary-views/SideBarPanelHeaderView";
 import { FileDiffEditor, type FileDiffEditorState } from "./FileDiffEditor";
 import { GitTreeView } from "../../components/git-tree/GitTreeView";
-import type { GitTreeProps, GitTreeSideSelect } from "../../components/git-tree/GitTree";
+import type { GitTreeProps, GitTreeSideSelect } from "../../components/git-tree/GitTreeView";
 import { syntheticCommitRow, type GitCommitRow } from "../../components/git-tree/swimlane-layout";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";

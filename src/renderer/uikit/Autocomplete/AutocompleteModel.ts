@@ -1,6 +1,6 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
-import { IListBoxItem } from "../ListBox";
+import type { IListBoxItem } from "../ListBox/types";
 import type { SlotContent } from "../shared/fill-slot";
 import type { SlotText } from "../shared/slots";
 

@@ -4,7 +4,7 @@ import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { ListBoxView } from "../../uikit/ListBox/ListBoxView";
-import type { IListBoxItem } from "../../uikit/ListBox/ListBox";
+import type { IListBoxItem } from "../../uikit/ListBox/types";
 import type { ListBoxModel } from "../../uikit/ListBox/ListBoxModel";
 import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";

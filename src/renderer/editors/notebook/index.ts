@@ -7,7 +7,7 @@ import type { BreadcrumbProps } from "../../uikit/Breadcrumb/Breadcrumb";
 import { ButtonView, type ButtonViewProps } from "../../uikit/Button/ButtonView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
-import type { InputProps } from "../../uikit/Input/Input";
+import type { InputProps } from "../../uikit/Input/InputView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";

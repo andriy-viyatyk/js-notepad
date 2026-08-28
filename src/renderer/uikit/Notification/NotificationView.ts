@@ -6,7 +6,7 @@ import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import { IconButtonView } from "../IconButton/IconButtonView";
-import type { IconButtonProps } from "../IconButton/IconButton";
+import type { IconButtonProps } from "../IconButton/IconButtonView";
 import "./Notification.css";
 import "../Text/Text.css";
 import "../IconButton/IconButton.css";

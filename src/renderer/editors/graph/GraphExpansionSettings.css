@@ -1,0 +1,13 @@
+@layer editor {
+    .graph-expansion-settings .graph-expansion-label {
+        width: 72px;
+        flex-shrink: 0;
+        font-size: 11px;
+        opacity: 0.8;
+    }
+
+    .graph-expansion-settings > [data-type="text"] {
+        font-size: 10px;
+        padding-top: 2px;
+    }
+}

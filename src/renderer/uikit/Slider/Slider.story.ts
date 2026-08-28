@@ -1,4 +1,4 @@
-import type { SliderProps } from "./Slider";
+import type { SliderProps } from "./SliderView";
 import { SliderView } from "./SliderView";
 import type { Story } from "../../editors/storybook/storyTypes";
 

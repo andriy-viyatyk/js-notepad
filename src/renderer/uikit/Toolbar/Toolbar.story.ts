@@ -1,10 +1,9 @@
-import React from "react";
-import { Button } from "../Button/Button";
-import { IconButton } from "../IconButton/IconButton";
-import { SegmentedControl } from "../SegmentedControl/SegmentedControl";
-import { Spacer } from "../Spacer/Spacer";
-import { Text } from "../Text/Text";
+import { ButtonView, type ButtonViewProps } from "../Button/ButtonView";
+import { IconButtonView, type IconButtonViewProps } from "../IconButton/IconButtonView";
+import { SegmentedControlView, type SegmentedControlViewProps } from "../SegmentedControl/SegmentedControlView";
+import { SpacerView, type SpacerProps } from "../Spacer/SpacerView";
 import { createIconElement, type IconRef } from "../shared/slots";
+import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { ToolbarView } from "./ToolbarView";
 import type { ToolbarProps } from "./Toolbar";
@@ -18,6 +17,11 @@ function createContentsHost(): HTMLDivElement {
 
 class ToolbarDemoView extends VanillaView<ToolbarProps> {
     private toolbarView: ToolbarView | undefined;
+    private demoLabel: HTMLSpanElement | undefined;
+    private buttonView: ButtonView | undefined;
+    private iconButtonView: IconButtonView | undefined;
+    private spacerView: SpacerView | undefined;
+    private segmentedView: SegmentedControlView | undefined;
     private saveIcon: IconRef | undefined;
     private picked = "default";
 
@@ -31,44 +35,69 @@ class ToolbarDemoView extends VanillaView<ToolbarProps> {
         this.toolbarView = toolbarView;
         this.root.append(toolbarView.root);
         toolbarView.mount();
+
+        this.demoLabel = createTextElement("Demo:", { size: "sm", color: "light" });
+        this.buttonView = this.child(new ButtonView(this.buttonProps()));
+        this.iconButtonView = this.child(new IconButtonView(this.iconButtonProps()));
+        this.spacerView = this.child(new SpacerView(this.spacerProps()));
+        this.segmentedView = this.child(new SegmentedControlView(this.segmentedProps(this.props.background)));
+        toolbarView.root.append(
+            this.demoLabel,
+            this.buttonView.root,
+            this.iconButtonView.root,
+            this.spacerView.root,
+            this.segmentedView.root,
+        );
+        this.buttonView.mount();
+        this.iconButtonView.mount();
+        this.spacerView.mount();
+        this.segmentedView.mount();
     }
 
     protected onUpdate(props: ToolbarProps): void {
         this.toolbarView?.update(this.toolbarProps(props));
+        this.buttonView?.update(this.buttonProps());
+        this.iconButtonView?.update(this.iconButtonProps());
+        this.spacerView?.update(this.spacerProps());
+        this.segmentedView?.update(this.segmentedProps(props.background));
     }
 
     private toolbarProps(props: ToolbarProps): ToolbarProps {
         return {
             ...props,
-            children: this.createChildren(props.background),
+            children: null,
         };
     }
 
-    private createChildren(background: ToolbarProps["background"]): React.ReactNode {
-        return React.createElement(
-            React.Fragment,
-            null,
-            React.createElement(Text, { size: "sm", color: "light" }, "Demo:"),
-            React.createElement(Button, null, "Action"),
-            React.createElement(IconButton, { icon: this.saveIcon ?? "save", "aria-label": "Save" }),
-            React.createElement(Spacer),
-            React.createElement(SegmentedControl, {
-                items: [
-                    { value: "default", label: "Default" },
-                    { value: "light", label: "Light" },
-                    { value: "dark", label: "Dark" },
-                ],
-                value: this.picked,
-                onChange: this.onPicked,
-                size: "sm",
-                background,
-            }),
-        );
+    private buttonProps(): ButtonViewProps {
+        return { children: "Action" };
+    }
+
+    private iconButtonProps(): IconButtonViewProps {
+        return { icon: this.saveIcon ?? "save", "aria-label": "Save" };
+    }
+
+    private spacerProps(): SpacerProps {
+        return {};
+    }
+
+    private segmentedProps(background: ToolbarProps["background"]): SegmentedControlViewProps {
+        return {
+            items: [
+                { value: "default", label: "Default" },
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+            ],
+            value: this.picked,
+            onChange: this.onPicked,
+            size: "sm",
+            background,
+        };
     }
 
     private readonly onPicked = (value: string): void => {
         this.picked = value;
-        this.toolbarView?.update(this.toolbarProps(this.props));
+        this.segmentedView?.update(this.segmentedProps(this.props.background));
     };
 }
 

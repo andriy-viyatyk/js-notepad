@@ -5,11 +5,25 @@ import { fillSlot } from "../shared/fill-slot";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
-import type { IconButtonProps } from "./IconButton";
 // Owned by the view, not the shim: a vanilla parent may compose `IconButtonView` directly (`Select`
 // does, for its chevron), and it imports `IconButton` type-only — which erases at compile time — so
 // the stylesheet has to travel with the DOM rather than with the React face. Matches `InputView`.
 import "./IconButton.css";
+
+export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
+    ref?: React.Ref<HTMLButtonElement>;
+    name?: string;
+    title?: string;
+    onClick?: (event: MouseEvent) => void;
+    // DOM Node icons support registry-excluded language icons.
+    icon: IconRef;
+    size?: "sm" | "md";
+    variant?: "default" | "chip";
+    active?: boolean;
+    warning?: boolean;
+    hideUntilParentHover?: boolean;
+    strikethrough?: boolean;
+}
 
 export type IconButtonViewProps = IconButtonProps;
 

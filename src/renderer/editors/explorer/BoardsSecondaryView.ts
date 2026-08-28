@@ -13,7 +13,7 @@ import { fpBasename, fpNormalizeForCompare } from "../../core/utils/file-path";
 import { removePin } from "../../ui/sidebar/pinned-items";
 import { errMessage } from "../../../shared/utils";
 import type { MenuItem } from "../../uikit/Menu";
-import type { IconButtonProps } from "../../uikit/IconButton/IconButton";
+import type { IconButtonProps } from "../../uikit/IconButton/IconButtonView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { SplitButtonView } from "../../uikit/SplitButton/SplitButtonView";
 import { ButtonView } from "../../uikit/Button/ButtonView";

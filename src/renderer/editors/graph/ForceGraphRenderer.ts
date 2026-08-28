@@ -337,7 +337,7 @@ export class ForceGraphRenderer {
     // Canvas event handlers (bound for React)
     // =========================================================================
 
-    onClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
+    onClick = (event: MouseEvent): void => {
         // Close any open popup menu on left-click
         closeAppPopupMenu();
 
@@ -371,14 +371,14 @@ export class ForceGraphRenderer {
         this.setActiveId(node?.id ?? "");
     };
 
-    onContextMenu = (event: React.MouseEvent<HTMLCanvasElement>): void => {
+    onContextMenu = (event: MouseEvent): void => {
         event.preventDefault();
         event.stopPropagation();
         const node = this.findNodeAt(event);
         this.onContextMenuAction?.(node?.id ?? "", event.clientX, event.clientY);
     };
 
-    onMouseMove = (event: React.MouseEvent<HTMLCanvasElement>): void => {
+    onMouseMove = (event: MouseEvent): void => {
         this._lastClientX = event.clientX;
         this._lastClientY = event.clientY;
 
@@ -403,7 +403,7 @@ export class ForceGraphRenderer {
         }
     };
 
-    onDblClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
+    onDblClick = (event: MouseEvent): void => {
         const node = this.findNodeAt(event);
         if (node) {
             this.onDoubleClick?.(node.id);
@@ -605,11 +605,11 @@ export class ForceGraphRenderer {
     }
 
     /** Check if there is a node at the given mouse event position (for auto-collapse decisions). */
-    hasNodeAt(event: React.MouseEvent<HTMLCanvasElement>): boolean {
+    hasNodeAt(event: MouseEvent): boolean {
         return this.findNodeAt(event) !== undefined;
     }
 
-    private findNodeAt(event: React.MouseEvent<HTMLCanvasElement>): GraphNode | undefined {
+    private findNodeAt(event: MouseEvent): GraphNode | undefined {
         if (!this.canvas) return undefined;
         const rect = this.canvas.getBoundingClientRect();
         return this.findNode(event.clientX - rect.left, event.clientY - rect.top);
@@ -621,7 +621,7 @@ export class ForceGraphRenderer {
     }
 
     /** Hit-test the "+" badge on a node. Returns the node that owns the badge, or undefined. */
-    private findBadgeAt(event: React.MouseEvent<HTMLCanvasElement>): GraphNode | undefined {
+    private findBadgeAt(event: MouseEvent): GraphNode | undefined {
         if (!this.canvas || this.transform.k <= 0.5) return undefined;
         const rect = this.canvas.getBoundingClientRect();
         const tx = this.transform.invertX(event.clientX - rect.left);

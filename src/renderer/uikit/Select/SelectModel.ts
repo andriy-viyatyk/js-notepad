@@ -1,8 +1,8 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
-import { IListBoxItem, LIST_ITEM_KEY } from "../ListBox";
-import type { InputProps } from "../Input";
+import { IListBoxItem, LIST_ITEM_KEY } from "../ListBox/types";
+import type { InputProps } from "../Input/InputView";
 import type { SlotText } from "../shared/slots";
 
 // =============================================================================

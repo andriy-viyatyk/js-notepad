@@ -2,7 +2,7 @@ import * as monaco from "monaco-editor";
 
 import { TModel } from "../../core/state/model";
 import type { TextFileModel } from "./TextEditorModel";
-import type { IListBoxItem } from "../../uikit/ListBox";
+import type { IListBoxItem } from "../../uikit/ListBox/types";
 import { TComponentState } from "../../core/state/state";
 import { fs } from "../../api/fs";
 import { parseObject } from "../../core/utils/parse-utils";

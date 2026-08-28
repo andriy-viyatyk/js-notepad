@@ -3,7 +3,7 @@ import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { MultiListBoxView } from "./MultiListBoxView";
 import type { MultiListBoxProps } from "./MultiListBox";
-import type { IListBoxItem } from "../ListBox";
+import type { IListBoxItem } from "../ListBox/types";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface DemoProps {

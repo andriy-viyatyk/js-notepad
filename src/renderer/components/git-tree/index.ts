@@ -1,4 +1,9 @@
-export { GitTree, type GitTreeProps, type GitTreeSideSelect, type GitColumnLayout } from "./GitTree";
+export {
+    GitTreeView,
+    type GitTreeProps,
+    type GitTreeSideSelect,
+    type GitColumnLayout,
+} from "./GitTreeView";
 export { GitTreeModel, GIT_TREE_PAGE, type GitTreeState } from "./GitTreeModel";
 export { GitChangesModel, type GitChangesState } from "./GitChangesModel";
 export { GitBranchesModel, type GitBranchesState } from "./GitBranchesModel";

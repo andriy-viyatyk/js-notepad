@@ -1,11 +1,11 @@
 import { libraryService } from "../../api/library-service";
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
-import type { IconButtonProps } from "../../uikit/IconButton/IconButton";
+import type { IconButtonProps } from "../../uikit/IconButton/IconButtonView";
 import { SelectView, type SelectViewProps } from "../../uikit/Select/SelectView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { SplitterView } from "../../uikit/Splitter/SplitterView";
-import type { SplitterProps } from "../../uikit/Splitter/Splitter";
+import type { SplitterProps } from "../../uikit/Splitter/SplitterView";
 import { VanillaView, type IOwnedView } from "../../uikit/shared/vanilla-view";
 import { EditorToolbarView } from "../base/EditorToolbarView";
 import { MonacoEditorHostView } from "../shared/MonacoEditorHostView";

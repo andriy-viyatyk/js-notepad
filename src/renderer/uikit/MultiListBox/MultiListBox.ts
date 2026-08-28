@@ -1,7 +1,7 @@
 import type React from "react";
 import type { Traited } from "../../core/traits/traits";
 import type { SlotText } from "../shared/slots";
-import type { IListBoxItem } from "../ListBox";
+import type { IListBoxItem } from "../ListBox/types";
 
 // =============================================================================
 // Types

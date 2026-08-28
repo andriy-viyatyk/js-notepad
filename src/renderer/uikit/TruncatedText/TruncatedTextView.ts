@@ -1,4 +1,3 @@
-import React from "react";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
@@ -11,10 +10,6 @@ function getTextFromSlotContent(children: SlotContent): string {
     if (children instanceof Node) return children.textContent ?? "";
     if (typeof children === "string" || typeof children === "number") return String(children);
     if (Array.isArray(children)) return children.map(getTextFromSlotContent).join("");
-    if (React.isValidElement(children)) {
-        const inner = (children.props as { children?: React.ReactNode }).children;
-        if (inner != null) return getTextFromSlotContent(inner);
-    }
     return "";
 }
 

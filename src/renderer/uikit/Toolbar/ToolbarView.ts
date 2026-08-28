@@ -1,5 +1,4 @@
-import React from "react";
-import { mountReactHandle, type MountedReactRoot } from "../shared/mount";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import {
     applyRestProps,
     clearRestListeners,
@@ -30,7 +29,7 @@ function findFocusable(element: Element): HTMLElement | null {
 
 export class ToolbarView extends VanillaView<ToolbarProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
-    private reactHandle: MountedReactRoot | undefined;
+    private childrenCleanup: (() => void) | undefined;
     private activeIndex = 0;
     private observer: MutationObserver | undefined;
 
@@ -40,23 +39,20 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
 
     protected onMount(): void {
         this.applyProps(this.props);
-        this.reactHandle = mountReactHandle(
-            this.root,
-            React.createElement(React.Fragment, null, this.props.children),
-        );
+        this.childrenCleanup = fillSlot(this.root, this.props.children as SlotContent);
         this.listen(this.root, "keydown", this.onKeyDown);
         this.listen(this.root, "focusin", this.onFocusIn, { capture: true });
         this.observer = new MutationObserver(() => this.applyRovingTabIndex());
         this.observer.observe(this.root, { childList: true, subtree: true });
         this.own(() => this.observer?.disconnect());
-        this.own(() => this.reactHandle?.dispose());
+        this.own(() => this.childrenCleanup?.());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
         queueMicrotask(() => this.applyRovingTabIndex());
     }
 
     protected onUpdate(props: ToolbarProps): void {
         this.applyProps(props);
-        this.reactHandle?.render(React.createElement(React.Fragment, null, props.children));
+        this.childrenCleanup = fillSlot(this.root, props.children as SlotContent);
         this.applyRovingTabIndex();
     }
 

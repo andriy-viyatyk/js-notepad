@@ -3,10 +3,10 @@ import { createPanelElement, type PanelStyleProps } from "../../uikit/Panel/pane
 import { ToolbarView } from "../../uikit/Toolbar/ToolbarView";
 import type { ToolbarProps } from "../../uikit/Toolbar/Toolbar";
 import { SegmentedControlView } from "../../uikit/SegmentedControl/SegmentedControlView";
-import type { ISegment, SegmentedControlProps } from "../../uikit/SegmentedControl/SegmentedControl";
+import type { ISegment, SegmentedControlProps } from "../../uikit/SegmentedControl/SegmentedControlView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { SplitterView } from "../../uikit/Splitter/SplitterView";
-import type { SplitterProps } from "../../uikit/Splitter/Splitter";
+import type { SplitterProps } from "../../uikit/Splitter/SplitterView";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import {

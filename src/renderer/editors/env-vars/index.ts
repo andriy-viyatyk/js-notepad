@@ -1,8 +1,6 @@
-import { createElement } from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
 import { TComponentState } from "../../core/state/state";
 import { EnvVarsEditor, defaultEnvVarsEditorState } from "./EnvVarsEditor";
-import { EnvVarsBody } from "./EnvVarsBody";
+import { EnvVarsBodyView } from "./EnvVarsBodyView";
 import { TextChromeView } from "../base/TextChromeView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorModule } from "../base/editorRegistry";
@@ -14,37 +12,46 @@ function requireEnvVarsModel(model: EditorModel): EnvVarsEditor {
 }
 
 export class EnvVarsEditorView extends VanillaView<{ model: EditorModel }> {
-    private readonly chrome: TextChromeView;
+    private model: EnvVarsEditor | undefined;
+    private body: EnvVarsBodyView | undefined;
+    private chrome: TextChromeView | undefined;
 
     public constructor(props: { model: EditorModel }) {
-        const model = requireEnvVarsModel(props.model);
-        const chrome = new TextChromeView({
-            model: props.model,
-            children: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(EnvVarsBody, { model }),
-            ),
-        });
-        super(props, chrome.root);
-        this.chrome = this.child(chrome);
+        super(props, createContentsRoot());
     }
 
     protected onMount(): void {
-        this.chrome.mount();
+        const model = requireEnvVarsModel(this.props.model);
+        this.model = model;
+        const body = this.child(new EnvVarsBodyView({ model }));
+        const chrome = this.child(new TextChromeView({
+            model: this.props.model,
+            children: body.root,
+        }));
+        this.body = body;
+        this.chrome = chrome;
+        this.root.append(body.root, chrome.root);
+        body.mount();
+        chrome.mount();
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireEnvVarsModel(props.model);
-        this.chrome.update({
-            model: props.model,
-            children: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(EnvVarsBody, { model }),
-            ),
-        });
+        if (model !== this.model) {
+            throw new Error("Env Vars view received a different model instance.");
+        }
+        const body = this.body;
+        const chrome = this.chrome;
+        if (!body || !chrome) return;
+        body.update({ model });
+        chrome.update({ model: props.model, children: body.root });
     }
+}
+
+function createContentsRoot(): HTMLSpanElement {
+    const root = document.createElement("span");
+    root.style.display = "contents";
+    return root;
 }
 
 export const envVarsModule: EditorModule = {

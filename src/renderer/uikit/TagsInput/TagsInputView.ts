@@ -1,7 +1,7 @@
 import { PathInputView } from "../PathInput/PathInputView";
 import type { PathInputProps } from "../PathInput/PathInputModel";
 import { TagView } from "../Tag/TagView";
-import type { TagProps } from "../Tag/Tag";
+import type { TagProps } from "../Tag/TagView";
 import { guard } from "../../core/utils/guard";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { claimViewOwnership, VanillaView } from "../shared/vanilla-view";

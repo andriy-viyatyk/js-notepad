@@ -1,6 +1,6 @@
 import { TComponentState } from "../../../core/state/state";
 import { ButtonView } from "../../../uikit/Button/ButtonView";
-import type { ButtonProps } from "../../../uikit/Button/Button";
+import type { ButtonProps } from "../../../uikit/Button/ButtonView";
 import { SubtreeSwap } from "../../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { DefaultBrowserSectionModel, defaultDefaultBrowserSectionState, type DefaultBrowserSectionState } from "./DefaultBrowserSectionModel";

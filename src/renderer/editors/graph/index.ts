@@ -1,8 +1,6 @@
-import { createElement } from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
 import { TComponentState } from "../../core/state/state";
 import { GraphEditor, defaultGraphEditorState } from "./GraphEditor";
-import { GraphBody } from "./GraphBody";
+import { GraphBodyView } from "./GraphBodyView";
 import { TextChromeView } from "../base/TextChromeView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -142,16 +140,9 @@ class GraphFooterView extends VanillaView<{ model: GraphEditor }> {
     };
 }
 
-function graphBodyElement(model: GraphEditor, canvasRefSetter: (canvas: HTMLCanvasElement | null) => void) {
-    return createElement(
-        EditorErrorBoundary,
-        null,
-        createElement(GraphBody, { model, canvasRefSetter }),
-    );
-}
-
 export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
     private model: GraphEditor | undefined;
+    private body: GraphBodyView | undefined;
     private toolbar: GraphToolbarView | undefined;
     private footer: GraphFooterView | undefined;
     private chrome: TextChromeView | undefined;
@@ -163,6 +154,7 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
 
     protected onMount(): void {
         const model = requireGraphModel(this.props.model);
+        const body = this.child(new GraphBodyView({ model, canvasRefSetter: this.setCanvas }));
         const toolbar = this.child(new GraphToolbarView({
             model,
             getCanvas: this.getCanvas,
@@ -172,14 +164,16 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
             model: this.props.model,
             rightToolbarContributions: toolbar.root,
             footerContributions: footer.root,
-            children: graphBodyElement(model, this.setCanvas),
+            children: body.root,
         }));
 
         this.model = model;
+        this.body = body;
         this.toolbar = toolbar;
         this.footer = footer;
         this.chrome = chrome;
-        this.root.append(toolbar.root, footer.root, chrome.root);
+        this.root.append(body.root, toolbar.root, footer.root, chrome.root);
+        body.mount();
         toolbar.mount();
         footer.mount();
         chrome.mount();
@@ -187,20 +181,24 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireGraphModel(props.model);
-        this.model = model;
+        if (model !== this.model) {
+            throw new Error("Graph view received a different model instance.");
+        }
+        this.body?.update({ model, canvasRefSetter: this.setCanvas });
         this.toolbar?.update({ model, getCanvas: this.getCanvas });
         this.footer?.update({ model });
         this.chrome?.update({
             model: props.model,
             rightToolbarContributions: this.toolbar?.root,
             footerContributions: this.footer?.root,
-            children: graphBodyElement(model, this.setCanvas),
+            children: this.body?.root,
         });
     }
 
     protected onDispose(): void {
         this.canvas = null;
         this.model = undefined;
+        this.body = undefined;
         this.toolbar = undefined;
         this.footer = undefined;
         this.chrome = undefined;

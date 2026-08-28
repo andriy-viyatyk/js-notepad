@@ -7,7 +7,7 @@ import {
 import type { GridModelCapability } from "../../../uikit/VirtualGrid";
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../../uikit/Panel/panel-style";
 import { SplitterView } from "../../../uikit/Splitter/SplitterView";
-import type { SplitterProps } from "../../../uikit/Splitter/Splitter";
+import type { SplitterProps } from "../../../uikit/Splitter/SplitterView";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { LinksListView } from "../LinksListView";
 import type { LinksListProps } from "../LinksList";

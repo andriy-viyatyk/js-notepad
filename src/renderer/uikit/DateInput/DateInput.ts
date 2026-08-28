@@ -1,5 +1,5 @@
 import type React from "react";
-import type { InputProps } from "../Input/Input";
+import type { InputProps } from "../Input/InputView";
 
 // --- Types ---
 

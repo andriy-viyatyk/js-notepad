@@ -8,10 +8,52 @@ import {
     type RestPropsState,
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
-import type { InputProps } from "./Input";
 // Owned by the view, not the shim: a vanilla parent may compose `InputView` directly (MultiListBox
 // does), and the stylesheet has to travel with the DOM rather than with the React face.
 import "./Input.css";
+
+export interface InputProps
+    extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "size" | "onKeyDown"> {
+    ref?: React.Ref<HTMLInputElement>;
+    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
+     *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
+    name?: string;
+    /** Change handler — receives the string value directly, not the event. */
+    onChange?: (value: string) => void;
+    onKeyDown?: (event: KeyboardEvent) => void;
+    /** Control height. Default: "md". */
+    size?: "sm" | "md";
+    /**
+     * Visual variant. `"default"` renders the standard chrome (dark background, gray border).
+     * `"ghost"` renders transparent background and border at rest, with a gray border on hover
+     * and a blue border on focus — for inline-edit fields embedded in list/grid rows. Default:
+     * `"default"`.
+     */
+    variant?: "default" | "ghost";
+    /**
+     * Text tone. `"default"` uses the theme text colour. `"accent"` paints the input text in
+     * `color.misc.blue` — use for inputs whose value carries "filter is active" semantics
+     * (search boxes, etc.). Default: `"default"`.
+     */
+    tone?: "default" | "accent";
+    /**
+     * Content rendered inside the input chrome, before the text. A DOM `Node` is appended directly
+     * with no React root — that is how a vanilla parent supplies a composed view's root
+     * (`Select` passes its chevron `IconButtonView`'s root here).
+     */
+    startSlot?: SlotContent;
+    /** Content rendered inside the input chrome, after the text. See `startSlot`. */
+    endSlot?: SlotContent;
+    /** When true, paints a red border (`color.error.border`) — for required/validated
+     *  fields whose current value is rejected. Persists through focus. Default: false. */
+    invalid?: boolean;
+    /** Fixed width — number → px, string passes through. Default: fills parent (100%). */
+    width?: number | string;
+    /** Minimum width — number → px, string passes through. */
+    minWidth?: number | string;
+    /** Maximum width — number → px, string passes through. */
+    maxWidth?: number | string;
+}
 
 export function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;

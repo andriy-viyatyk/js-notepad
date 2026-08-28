@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { MultiSelectView, type MultiSelectViewProps } from "./MultiSelectView";
-import type { IListBoxItem } from "../ListBox";
+import type { IListBoxItem } from "../ListBox/types";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface DemoProps {

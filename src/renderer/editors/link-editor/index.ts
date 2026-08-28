@@ -4,7 +4,7 @@ import { BreadcrumbView } from "../../uikit/Breadcrumb/BreadcrumbView";
 import { ButtonView, type ButtonViewProps } from "../../uikit/Button/ButtonView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
-import type { InputProps } from "../../uikit/Input";
+import type { InputProps } from "../../uikit/Input/InputView";
 import { openMenu, type MenuHandle, type MenuItem } from "../../uikit/Menu";
 import type { IconName } from "../../theme/icon-registry";
 import { VanillaView } from "../../uikit/shared/vanilla-view";

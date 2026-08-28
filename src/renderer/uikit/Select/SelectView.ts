@@ -14,8 +14,8 @@ import { InputView } from "../Input/InputView";
 import { ListBoxView } from "../ListBox/ListBoxView";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import type { IListBoxItem, ListBoxProps } from "../ListBox/types";
-import type { IconButtonProps } from "../IconButton/IconButton";
-import type { InputProps } from "../Input/Input";
+import type { IconButtonProps } from "../IconButton/IconButtonView";
+import type { InputProps } from "../Input/InputView";
 import { defaultSelectState, SelectModel, type SelectProps } from "./SelectModel";
 import "./Select.css";
 

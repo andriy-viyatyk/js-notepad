@@ -11,50 +11,37 @@ export type { MinimapProps } from "./Minimap";
 export type { ImageViewportProps, ImageViewportModel } from "./ImageViewport";
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
-export { Spacer } from "./Spacer";
-export type { SpacerProps } from "./Spacer";
-export { Splitter } from "./Splitter";
-export type { SplitterProps } from "./Splitter";
+export type { SpacerProps } from "./Spacer/SpacerView";
+export type { SplitterProps } from "./Splitter/SplitterView";
 export type { ToolbarProps } from "./Toolbar";
 
 // Bootstrap components
-export { Autocomplete } from "./Autocomplete";
-export type { AutocompleteProps } from "./Autocomplete";
+export type { AutocompleteProps } from "./Autocomplete/AutocompleteModel";
 export type { BreadcrumbProps } from "./Breadcrumb";
-export { Button } from "./Button";
-export type { ButtonProps } from "./Button";
-export { IconButton } from "./IconButton";
-export type { IconButtonProps } from "./IconButton";
+export type { ButtonProps } from "./Button/ButtonView";
+export type { IconButtonProps } from "./IconButton/IconButtonView";
 export { getIcon } from "../theme/icon-registry";
 export type { IconName } from "../theme/icon-registry";
 export { createIconElement, isIconName } from "./shared/slots";
 export type { IconRef, SlotText } from "./shared/slots";
 export type { SplitButtonProps } from "./SplitButton";
-export { Input } from "./Input";
-export type { InputProps } from "./Input";
+export type { InputProps } from "./Input/InputView";
 export type { DateInputProps } from "./DateInput";
 export type { LabelProps } from "./Label";
-export { Checkbox } from "./Checkbox";
-export type { CheckboxProps } from "./Checkbox";
+export type { CheckboxProps } from "./Checkbox/CheckboxView";
 export type { DividerProps } from "./Divider";
-export { Dot } from "./Dot";
-export type { DotProps, DotColor } from "./Dot";
+export type { DotProps, DotColor } from "./Dot/DotView";
 export { Text } from "./Text";
 export type { TextProps } from "./Text";
-export { SegmentedControl } from "./SegmentedControl";
-export type { SegmentedControlProps } from "./SegmentedControl";
+export type { SegmentedControlProps } from "./SegmentedControl/SegmentedControlView";
 export { RADIO_KEY } from "./RadioGroup";
 export type { RadioGroupProps, IRadio } from "./RadioGroup";
-export { Slider } from "./Slider";
-export type { SliderProps } from "./Slider";
+export type { SliderProps } from "./Slider/SliderView";
 export type { ProgressBarProps } from "./ProgressBar";
-export { Spinner } from "./Spinner";
-export type { SpinnerProps } from "./Spinner";
-export { Textarea } from "./Textarea";
-export type { TextareaProps } from "./Textarea";
+export type { SpinnerProps } from "./Spinner/SpinnerView";
+export type { TextareaProps } from "./Textarea/TextareaView";
 export type { PathInputProps } from "./PathInput/PathInputModel";
-export { Tag } from "./Tag";
-export type { TagProps } from "./Tag";
+export type { TagProps } from "./Tag/TagView";
 export type { TagsInputProps } from "./TagsInput";
 
 // Overlay
@@ -72,20 +59,18 @@ export { createProgress, showProgress, notifyProgress, addScreenLock, removeScre
 export type { ProgressHandle } from "./Progress";
 
 // Menus
-export { WithMenu, openMenu } from "./Menu";
-export type { MenuProps, WithMenuProps, MenuItem, MenuAttachOptions, MenuHandle } from "./Menu";
+export { openMenu } from "./Menu";
+export type { MenuProps, MenuItem, MenuAttachOptions, MenuHandle } from "./Menu";
 
 // Lists
 export type { CategoryListProps } from "./CategoryList";
-export { SelectableRow } from "./SelectableRow";
-export type { SelectableRowProps } from "./SelectableRow";
-export { ListBox, LIST_ITEM_KEY } from "./ListBox";
-export type { ListBoxProps, IListBoxItem, ListItemRenderContext } from "./ListBox";
-export type { ListItemProps, SectionItemProps } from "./ListBox";
+export { LIST_ITEM_KEY } from "./ListBox/types";
+export type { ListBoxProps, IListBoxItem, ListItemRenderContext } from "./ListBox/types";
+export type { ListItemProps } from "./ListBox/ListItem";
+export type { SectionItemProps } from "./ListBox/SectionItem";
 export type { MultiListBoxProps } from "./MultiListBox";
 export type { MultiSelectProps } from "./MultiSelect/MultiSelectModel";
-export { Select } from "./Select";
-export type { SelectProps, ItemsSource, SelectItemsResult } from "./Select";
+export type { SelectProps, ItemsSource, SelectItemsResult } from "./Select/SelectModel";
 export { TREE_ITEM_KEY } from "./Tree/types";
 export type {
     TreeProps,

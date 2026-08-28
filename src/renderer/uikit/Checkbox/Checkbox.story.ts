@@ -1,4 +1,4 @@
-import type { CheckboxProps } from "./Checkbox";
+import type { CheckboxProps } from "./CheckboxView";
 import { CheckboxView } from "./CheckboxView";
 import type { Story } from "../../editors/storybook/storyTypes";
 

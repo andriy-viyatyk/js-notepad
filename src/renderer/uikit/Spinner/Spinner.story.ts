@@ -1,4 +1,4 @@
-import type { SpinnerProps } from "./Spinner";
+import type { SpinnerProps } from "./SpinnerView";
 import { SpinnerView } from "./SpinnerView";
 import type { Story } from "../../editors/storybook/storyTypes";
 

@@ -1,6 +1,6 @@
 import { VanillaView } from "../shared/vanilla-view";
 import { InputView } from "../Input/InputView";
-import type { InputProps } from "../Input/Input";
+import type { InputProps } from "../Input/InputView";
 import type { DateInputProps } from "./DateInput";
 import "../Input/Input.css";
 

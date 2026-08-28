@@ -1,7 +1,7 @@
 import { createPanelElement } from "../Panel/panel-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { SpacerView } from "./SpacerView";
-import type { SpacerProps } from "./Spacer";
+import type { SpacerProps } from "./SpacerView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface SpacerDemoViewProps {

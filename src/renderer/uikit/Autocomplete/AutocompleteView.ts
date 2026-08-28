@@ -14,7 +14,7 @@ import { InputView } from "../Input/InputView";
 import { ListBoxView } from "../ListBox/ListBoxView";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import type { IListBoxItem, ListBoxProps } from "../ListBox/types";
-import type { InputProps } from "../Input/Input";
+import type { InputProps } from "../Input/InputView";
 import {
     AutocompleteModel,
     defaultAutocompleteState,

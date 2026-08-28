@@ -10,7 +10,7 @@ import { VanillaView } from "../shared/vanilla-view";
 import { InputView } from "../Input/InputView";
 import { ListBoxView } from "../ListBox/ListBoxView";
 import type { IListBoxItem, ListBoxProps } from "../ListBox/types";
-import type { InputProps } from "../Input/Input";
+import type { InputProps } from "../Input/InputView";
 import { defaultMultiListBoxState, MultiListBoxModel } from "./MultiListBoxModel";
 import type { MultiListBoxProps } from "./MultiListBox";
 import "./MultiListBox.css";

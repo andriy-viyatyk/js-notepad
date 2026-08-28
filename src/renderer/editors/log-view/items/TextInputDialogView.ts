@@ -1,5 +1,5 @@
 import { InputView } from "../../../uikit/Input/InputView";
-import type { InputProps } from "../../../uikit/Input/Input";
+import type { InputProps } from "../../../uikit/Input/InputView";
 import { createPanelElement } from "../../../uikit/Panel/panel-style";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import type { TextInputEntry } from "../logTypes";

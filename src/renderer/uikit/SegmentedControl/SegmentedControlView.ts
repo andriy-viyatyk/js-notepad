@@ -1,9 +1,28 @@
-import { isTraited, resolveTraited, TraitKey, TraitType } from "../../core/traits/traits";
+import { isTraited, resolveTraited, TraitKey, TraitType, type Traited } from "../../core/traits/traits";
 import { KeyedList } from "../shared/keyed-list";
 import { applyRestProps, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { ButtonView, type ButtonViewProps } from "../Button/ButtonView";
-import type { SegmentedControlProps, ISegment } from "./SegmentedControl";
+import type { SlotContent } from "../shared/fill-slot";
+import type { IconRef } from "../shared/slots";
+
+export interface ISegment {
+    value: string;
+    label?: SlotContent;
+    icon?: IconRef;
+    title?: string;
+    disabled?: boolean;
+}
+
+export interface SegmentedControlProps {
+    name?: string;
+    items: ISegment[] | Traited<unknown[]>;
+    value: string;
+    onChange: (value: string) => void;
+    size?: "sm" | "md";
+    background?: "default" | "light" | "dark";
+    disabled?: boolean;
+}
 
 export type SegmentedControlViewProps = SegmentedControlProps;
 

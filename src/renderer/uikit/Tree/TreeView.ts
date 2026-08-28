@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { createDepsGate, type DepsGate } from "../shared/deps-gate";
 import { nextElementId } from "../shared/element-id";
@@ -413,16 +413,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 
         if (kind === "custom") {
             const node = this.props.renderItem?.(this.renderContext(row, id, p.row));
-            if (node instanceof Node) {
-                record.slotCleanup = fillSlot(wrapper, node);
-                return wrapper;
-            }
-            // Keyed by cell coordinate, exactly as React's `<div key={key}>` was: a scroll must
-            // unmount the outgoing row's subtree rather than let its state bleed into the incoming
-            // one. The array is what makes the key meaningful — a lone child is not keyed.
-            record.slotCleanup = fillSlot(wrapper, [
-                React.createElement(React.Fragment, { key: p.key }, node),
-            ]);
+            record.slotCleanup = fillSlot(wrapper, node);
         }
 
         return wrapper;

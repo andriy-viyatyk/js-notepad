@@ -8,7 +8,7 @@ import { InputView } from "../../uikit/Input/InputView";
 import { SelectView } from "../../uikit/Select/SelectView";
 import type { IListBoxItem } from "../../uikit/ListBox/types";
 import { SegmentedControlView } from "../../uikit/SegmentedControl/SegmentedControlView";
-import type { ISegment } from "../../uikit/SegmentedControl/SegmentedControl";
+import type { ISegment } from "../../uikit/SegmentedControl/SegmentedControlView";
 import { TagView } from "../../uikit/Tag/TagView";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { KeyedList } from "../../uikit/shared/keyed-list";

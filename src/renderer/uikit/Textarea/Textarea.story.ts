@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { TextareaView } from "./TextareaView";
-import type { TextareaProps } from "./Textarea";
+import type { TextareaProps } from "./TextareaView";
 import "./Textarea.css";
 import type { Story } from "../../editors/storybook/storyTypes";
 

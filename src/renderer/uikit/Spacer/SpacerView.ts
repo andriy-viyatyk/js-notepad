@@ -1,6 +1,10 @@
-import type { SpacerProps } from "./Spacer";
 import { VanillaView } from "../shared/vanilla-view";
 import "./Spacer.css";
+
+export interface SpacerProps {
+    name?: string;
+    size?: number | string;
+}
 
 export class SpacerView extends VanillaView<SpacerProps> {
     public constructor(props: SpacerProps) {

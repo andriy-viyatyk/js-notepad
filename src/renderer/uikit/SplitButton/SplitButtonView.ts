@@ -1,7 +1,7 @@
 import { ButtonView } from "../Button/ButtonView";
-import type { ButtonProps } from "../Button/Button";
+import type { ButtonProps } from "../Button/ButtonView";
 import { IconButtonView } from "../IconButton/IconButtonView";
-import type { IconButtonProps } from "../IconButton/IconButton";
+import type { IconButtonProps } from "../IconButton/IconButtonView";
 import { openMenu, type MenuHandle } from "../Menu/attach-menu";
 import type { MenuItem } from "../Menu/types";
 import type { SlotContent } from "../shared/fill-slot";

@@ -5,7 +5,7 @@ import { getTraitDragData, hasTraitDragData, LINK, resolveTraits } from "../../c
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../uikit/Panel/panel-style";
 import { SplitterView } from "../../uikit/Splitter/SplitterView";
 import { createTextElement } from "../../uikit/Text/text-style";
-import type { SplitterProps } from "../../uikit/Splitter/Splitter";
+import type { SplitterProps } from "../../uikit/Splitter/SplitterView";
 import type { GridModelCapability } from "../../uikit/VirtualGrid";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { LinkItem, LinkViewMode } from "./linkTypes";

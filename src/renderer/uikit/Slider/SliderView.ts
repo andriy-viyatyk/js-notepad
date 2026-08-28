@@ -1,6 +1,24 @@
+import type React from "react";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
-import type { SliderProps } from "./Slider";
+
+export interface SliderProps
+    extends Omit<
+        React.InputHTMLAttributes<HTMLInputElement>,
+        "value" | "onChange" | "min" | "max" | "step" | "type" | "size" |
+        "style" | "className"
+    > {
+    name?: string;
+    value: number;
+    onChange: (value: number) => void;
+    min: number;
+    max: number;
+    step?: number;
+    size?: "sm" | "md";
+    disabled?: boolean;
+    width?: number | string;
+    showProgress?: boolean;
+}
 
 const ACTIVE_COLOR = "var(--color-border-active, currentColor)";
 const DEFAULT_COLOR = "var(--color-border-default, currentColor)";

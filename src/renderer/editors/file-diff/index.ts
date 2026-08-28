@@ -1,43 +1,11 @@
-import { createElement } from "react";
-import { EditorErrorBoundary } from "../../ui/app/EditorErrorBoundary";
 import { TComponentState } from "../../core/state/state";
 import { FileDiffEditor, defaultFileDiffEditorState } from "./FileDiffEditor";
-import { FileDiffBody } from "./FileDiffBody";
-import { RevisionPicker } from "./RevisionPicker";
+import { FileDiffBodyView } from "./FileDiffBodyView";
+import { FileDiffToolbarView } from "./FileDiffToolbarView";
 import { TextChromeView } from "../base/TextChromeView";
-import { Panel } from "../../uikit/Panel";
-import { Text } from "../../uikit/Text";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
-
-function FileDiffToolbarBits({ model }: { model: FileDiffEditor }) {
-    const { from, to, hasStaged } = model.state.use((s) => ({
-        from: s.from,
-        to: s.to,
-        hasStaged: s.hasStaged,
-    }));
-    return createElement(
-        Panel,
-        { align: "center", gap: "xs" },
-        createElement(Text, { size: "sm", color: "light" }, "From"),
-        createElement(RevisionPicker, {
-            side: "from",
-            picker: model.fileTree,
-            value: from,
-            showStaged: hasStaged,
-            onPick: model.setFrom,
-        }),
-        createElement(Text, { size: "sm", color: "light" }, "\u2192"),
-        createElement(RevisionPicker, {
-            side: "to",
-            picker: model.fileTree,
-            value: to,
-            showStaged: hasStaged,
-            onPick: model.setTo,
-        }),
-    );
-}
 
 function requireFileDiffModel(model: EditorModel): FileDiffEditor {
     if (!(model instanceof FileDiffEditor)) throw new Error("File Diff view received an invalid model.");
@@ -45,45 +13,49 @@ function requireFileDiffModel(model: EditorModel): FileDiffEditor {
 }
 
 export class FileDiffEditorView extends VanillaView<{ model: EditorModel }> {
-    private readonly chrome: TextChromeView;
+    private model: FileDiffEditor | undefined;
+    private body: FileDiffBodyView | undefined;
+    private toolbar: FileDiffToolbarView | undefined;
+    private chrome: TextChromeView | undefined;
 
     public constructor(props: { model: EditorModel }) {
-        const model = requireFileDiffModel(props.model);
-        const chrome = new TextChromeView({
-            model: props.model,
-            children: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(FileDiffBody, { model }),
-            ),
-            toolbarContributions: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(FileDiffToolbarBits, { model }),
-            ),
-        });
-        super(props, chrome.root);
-        this.chrome = this.child(chrome);
+        super(props, createContentsRoot());
     }
 
     protected onMount(): void {
-        this.chrome.mount();
+        const model = requireFileDiffModel(this.props.model);
+        this.model = model;
+        const body = this.child(new FileDiffBodyView({ model }));
+        const toolbar = this.child(new FileDiffToolbarView({ model }));
+        const chrome = this.child(new TextChromeView({
+            model: this.props.model,
+            children: body.root,
+            toolbarContributions: toolbar.root,
+        }));
+        this.body = body;
+        this.toolbar = toolbar;
+        this.chrome = chrome;
+        this.root.append(body.root, toolbar.root, chrome.root);
+        body.mount();
+        toolbar.mount();
+        chrome.mount();
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireFileDiffModel(props.model);
-        this.chrome.update({
+        if (model !== this.model) {
+            throw new Error("File Diff view received a different model instance.");
+        }
+        const body = this.body;
+        const toolbar = this.toolbar;
+        const chrome = this.chrome;
+        if (!body || !toolbar || !chrome) return;
+        body.update({ model });
+        toolbar.update({ model });
+        chrome.update({
             model: props.model,
-            children: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(FileDiffBody, { model }),
-            ),
-            toolbarContributions: createElement(
-                EditorErrorBoundary,
-                null,
-                createElement(FileDiffToolbarBits, { model }),
-            ),
+            children: body.root,
+            toolbarContributions: toolbar.root,
         });
     }
 }
@@ -96,3 +68,9 @@ export const fileDiffModule: EditorModule = {
 
 export { FileDiffEditor, defaultFileDiffEditorState };
 export type { FileDiffEditorState, RevSel } from "./FileDiffEditor";
+
+function createContentsRoot(): HTMLSpanElement {
+    const root = document.createElement("span");
+    root.style.display = "contents";
+    return root;
+}

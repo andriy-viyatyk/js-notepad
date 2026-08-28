@@ -1,6 +1,6 @@
 import { VanillaView } from "../shared/vanilla-view";
 import { SegmentedControlView } from "./SegmentedControlView";
-import type { ISegment, SegmentedControlProps } from "./SegmentedControl";
+import type { ISegment, SegmentedControlProps } from "./SegmentedControlView";
 import "./SegmentedControl.css";
 import type { Story } from "../../editors/storybook/storyTypes";
 

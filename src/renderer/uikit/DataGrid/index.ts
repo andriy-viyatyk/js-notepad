@@ -17,7 +17,6 @@
  * Import from `"../../uikit/DataGrid"`, not from `"../../uikit"`.
  */
 
-export { DataGrid } from "./DataGrid";
 export { DataGridView } from "./DataGridView";
 
 export type {

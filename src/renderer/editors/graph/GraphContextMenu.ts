@@ -1,11 +1,18 @@
-import { createElement, type ReactNode } from "react";
 import type { MenuItem } from "../../uikit";
 import type { NodePropertyLink } from "./types";
 
 /** Open-link icon (matches the Links editor OpenLinkIcon). */
-const openLinkIcon: ReactNode = createElement("svg", { width: 16, height: 16, viewBox: "0 0 24 24" },
-    createElement("path", { d: "M14 4l6 5-6 5V10c-5 0-9 2-11 7 1-7 5-11 11-12V4z", fill: "currentColor" }),
-);
+function createOpenLinkIconElement(): SVGSVGElement {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M14 4l6 5-6 5V10c-5 0-9 2-11 7 1-7 5-11 11-12V4z");
+    path.setAttribute("fill", "currentColor");
+    svg.append(path);
+    return svg;
+}
 
 // =============================================================================
 // Context menu action interface
@@ -52,14 +59,14 @@ export function buildNodeContextMenu(
     if (nodeLinks && nodeLinks.links.length > 0) {
         const { links, onOpen } = nodeLinks;
         if (links.length === 1) {
-            items.push({ label: `Open ${links[0].propertyKey}`, icon: openLinkIcon, onClick: () => onOpen(links[0].href) });
+            items.push({ label: `Open ${links[0].propertyKey}`, icon: createOpenLinkIconElement(), onClick: () => onOpen(links[0].href) });
         } else {
             items.push({
                 label: "Open link...",
-                icon: openLinkIcon,
+                icon: createOpenLinkIconElement(),
                 items: links.map((link) => ({
                     label: `Open ${link.propertyKey}`,
-                    icon: openLinkIcon,
+                    icon: createOpenLinkIconElement(),
                     onClick: () => onOpen(link.href),
                 })),
             });

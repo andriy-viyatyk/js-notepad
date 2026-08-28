@@ -1,7 +1,7 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { Traited } from "../../core/traits/traits";
-import { IListBoxItem } from "../ListBox";
+import type { IListBoxItem } from "../ListBox/types";
 import type { SlotText } from "../shared/slots";
 
 // =============================================================================

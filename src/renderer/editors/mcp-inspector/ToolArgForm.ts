@@ -1,13 +1,13 @@
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { CheckboxView } from "../../uikit/Checkbox/CheckboxView";
-import type { CheckboxProps } from "../../uikit/Checkbox/Checkbox";
+import type { CheckboxProps } from "../../uikit/Checkbox/CheckboxView";
 import { InputView } from "../../uikit/Input/InputView";
-import type { InputProps } from "../../uikit/Input/Input";
+import type { InputProps } from "../../uikit/Input/InputView";
 import { SelectView } from "../../uikit/Select/SelectView";
 import type { SelectViewProps } from "../../uikit/Select/SelectView";
 import { TextareaView } from "../../uikit/Textarea/TextareaView";
-import type { TextareaProps } from "../../uikit/Textarea/Textarea";
+import type { TextareaProps } from "../../uikit/Textarea/TextareaView";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";

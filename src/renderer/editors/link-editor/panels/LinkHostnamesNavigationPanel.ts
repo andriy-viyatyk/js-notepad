@@ -4,7 +4,7 @@ import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from
 import "../../../uikit/Panel/Panel.css";
 import "../../../uikit/Splitter/Splitter.css";
 import { SplitterView } from "../../../uikit/Splitter/SplitterView";
-import type { SplitterProps } from "../../../uikit/Splitter/Splitter";
+import type { SplitterProps } from "../../../uikit/Splitter/SplitterView";
 import { CategoryListView } from "../../../uikit/CategoryList/CategoryListView";
 import type { CategoryListProps } from "../../../uikit/CategoryList/CategoryList";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";

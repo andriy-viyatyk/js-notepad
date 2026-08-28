@@ -1,2 +1,2 @@
-export { SegmentedControl, SEGMENT_KEY } from "./SegmentedControl";
-export type { SegmentedControlProps, ISegment } from "./SegmentedControl";
+export { SEGMENT_KEY } from "./SegmentedControlView";
+export type { SegmentedControlProps, ISegment } from "./SegmentedControlView";

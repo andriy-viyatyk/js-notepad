@@ -31,7 +31,7 @@
  * hitting and a hover repaint of this column costs one string comparison per cell.
  */
 import type { CellRenderer } from "../../uikit/DataGrid";
-import type { GitTreeSideSelect } from "./GitTree";
+import type { GitTreeSideSelect } from "./GitTreeView";
 import type { GitCommitRow } from "./swimlane-layout";
 
 /** The side-select column's key. Not a row field — the column is `isStatusColumn` with a `render`. */

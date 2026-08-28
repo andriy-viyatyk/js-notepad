@@ -1,0 +1,196 @@
+@layer editor {
+    .graph-body {
+        box-sizing: border-box;
+        display: flex;
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .graph-body-branch,
+    .graph-body-content {
+        display: flex;
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .graph-body-content {
+        position: relative;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .graph-body-loading {
+        display: flex;
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-graph-bg);
+    }
+
+    .graph-body-error {
+        flex: 0 0 auto;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .graph-body-error[hidden],
+    .graph-body-search-info[hidden],
+    .graph-body-selection-info[hidden],
+    .graph-body-tabs[hidden],
+    .graph-body-panel[hidden],
+    .graph-body-empty-hint[hidden],
+    .graph-body-search-status[hidden] {
+        display: none;
+    }
+
+    .graph-body-canvas {
+        display: block;
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        background: var(--color-graph-bg);
+    }
+
+    .graph-body-empty-hint {
+        position: absolute;
+        top: 48px;
+        right: 0;
+        left: 0;
+        display: flex;
+        justify-content: center;
+        pointer-events: none;
+        color: var(--color-graph-label-text);
+        opacity: 0.5;
+        font-size: 12px;
+    }
+
+    .graph-body-toolbar {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        width: fit-content;
+        max-width: 80%;
+        background: var(--color-graph-bg);
+        border: 1px solid var(--color-border-default);
+        border-radius: 4px;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+    }
+
+    .graph-body-toolbar[data-active],
+    .graph-body-toolbar[data-hovered],
+    .graph-body-toolbar[data-focus-within] {
+        opacity: 1;
+    }
+
+    .graph-body-toolbar[data-active] { border-color: var(--color-graph-node-highlight); }
+
+    .graph-body-toolbar-row,
+    .graph-body-tabs,
+    .graph-body-search-status {
+        display: flex;
+        align-items: center;
+    }
+
+    .graph-body-toolbar-row {
+        gap: 4px;
+        padding: 2px;
+    }
+
+    .graph-body-search-info,
+    .graph-body-selection-info {
+        flex-shrink: 0;
+        color: var(--color-graph-label-text);
+        white-space: nowrap;
+        font-size: 11px;
+    }
+
+    .graph-body-selection-info {
+        color: var(--color-graph-node-highlight);
+        cursor: pointer;
+        border: 0;
+        padding: 0;
+        background: transparent;
+    }
+
+    .graph-body-tabs {
+        border-bottom: 1px solid var(--color-border-default);
+        background: var(--color-bg-dark);
+    }
+
+    .graph-body-tab {
+        padding: 3px 8px;
+        color: var(--color-graph-label-text);
+        background: transparent;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        font-size: 11px;
+    }
+
+    .graph-body-tab[data-active] { border-bottom-color: var(--color-graph-node-highlight); }
+
+    .graph-body-panel,
+    .graph-body-search-branch,
+    .graph-body-search-results,
+    .graph-body-search-empty {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .graph-body-panel { height: auto; min-height: 0; }
+    .graph-body-search-branch { height: auto; min-height: 0; }
+
+    .graph-body-search-rows {
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .graph-body-search-results {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .graph-body-search-row {
+        padding: 3px 8px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--color-border-default);
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .graph-body-search-row[data-selected] { background: var(--color-bg-selection); }
+    .graph-body-search-row[data-hidden] { opacity: 0.5; }
+    .graph-body-search-title { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .graph-body-search-property { overflow: hidden; font-style: italic; text-overflow: ellipsis; white-space: nowrap; }
+    .graph-body-search-key { opacity: 0.6; }
+    .graph-body-search-empty { padding: 8px; opacity: 0.5; text-align: center; font-size: 11px; }
+
+    .graph-body-search-status {
+        justify-content: space-between;
+        gap: 6px;
+        padding: 3px 8px;
+        color: var(--color-graph-label-text);
+        border-top: 1px solid var(--color-border-default);
+        font-size: 11px;
+    }
+
+    .graph-body-search-status [data-type="button"] { padding: 0; }
+}

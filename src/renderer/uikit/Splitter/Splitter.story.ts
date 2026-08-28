@@ -1,7 +1,7 @@
 import { applyPanelAttributes, createPanelElement, resolvePanelAttributes, type PanelStyleProps } from "../Panel/panel-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { SplitterView } from "./SplitterView";
-import type { SplitterProps } from "./Splitter";
+import type { SplitterProps } from "./SplitterView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 type SplitterBackground = "default" | "light" | "dark" | "overlay";

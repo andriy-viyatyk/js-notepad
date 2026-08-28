@@ -1,6 +1,6 @@
 import { createPanelElement } from "../Panel/panel-style";
 import { VanillaView } from "../shared/vanilla-view";
-import type { SelectableRowProps } from "./SelectableRow";
+import type { SelectableRowProps } from "./SelectableRowView";
 import { SelectableRowView } from "./SelectableRowView";
 import type { Story } from "../../editors/storybook/storyTypes";
 

@@ -5,7 +5,7 @@ import type { IContentHost } from "./IContentHost";
 import { ContentHostFooterView } from "./ContentHostFooterView";
 import { PageToolbarView } from "./PageToolbarView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
-import type { IconButtonProps } from "../../uikit/IconButton/IconButton";
+import type { IconButtonProps } from "../../uikit/IconButton/IconButtonView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { fillSlot, type SlotContent } from "../../uikit/shared/fill-slot";
 import { VanillaView } from "../../uikit/shared/vanilla-view";

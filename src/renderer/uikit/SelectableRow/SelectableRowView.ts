@@ -2,8 +2,19 @@ import React from "react";
 import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
-import type { SelectableRowProps } from "./SelectableRow";
 import "./SelectableRow.css";
+
+export interface SelectableRowProps
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "children"> {
+    ref?: React.Ref<HTMLDivElement>;
+    /** Optional debug label emitted as `data-name` on the root element. Never used for styling. */
+    name?: string;
+    /** True when this row is the current selection. */
+    selected?: boolean;
+    /** True when this row is the keyboard-active / highlighted row. */
+    active?: boolean;
+    children: SlotContent;
+}
 
 export class SelectableRowView extends VanillaView<SelectableRowProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();

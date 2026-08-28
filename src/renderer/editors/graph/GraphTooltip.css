@@ -1,0 +1,78 @@
+@layer editor {
+    .graph-tooltip {
+        position: fixed;
+        z-index: 10;
+        pointer-events: auto;
+        user-select: text;
+        cursor: text;
+        background-color: var(--color-bg-default);
+        color: var(--color-graph-label-text);
+        border: 1px solid var(--color-border-default);
+        border-radius: 4px;
+        padding: 6px 8px;
+        font-size: 12px;
+        max-width: 400px;
+        box-shadow: 0 2px 8px var(--color-shadow-default);
+        line-height: 1.4;
+    }
+
+    .graph-tooltip[hidden] {
+        display: none;
+    }
+
+    .graph-tooltip-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .graph-tooltip-header-content {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .graph-tooltip-badge {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--color-graph-node-special);
+        margin-bottom: 2px;
+    }
+
+    .graph-tooltip-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .graph-tooltip-id {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-bottom: 4px;
+    }
+
+    .graph-tooltip-properties {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1px 8px;
+        font-size: 11px;
+        border-top: 1px solid var(--color-border-default);
+        padding-top: 4px;
+        margin-top: 2px;
+    }
+
+    .graph-tooltip-property-key {
+        opacity: 0.7;
+    }
+
+    .graph-tooltip-property-value {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .graph-tooltip-link {
+        color: var(--color-graph-node-special);
+        cursor: pointer;
+        text-decoration: none;
+    }
+}

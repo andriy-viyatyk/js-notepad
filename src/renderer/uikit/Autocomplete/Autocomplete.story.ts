@@ -3,7 +3,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { AutocompleteView, type AutocompleteViewProps } from "./AutocompleteView";
-import type { IListBoxItem } from "../ListBox";
+import type { IListBoxItem } from "../ListBox/types";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 const COMMON_HEADERS = [

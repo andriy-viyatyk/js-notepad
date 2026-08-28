@@ -10,8 +10,11 @@ import { editorRegistry } from "./editorRegistry";
 import { BOARD_INFO_EDITOR_ID } from "../board-info/board-info-id";
 import { isTextFileModel, type TextFileEditorModelState, type TextFileModel } from "../text/TextEditorModel";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
-import { SegmentedControlView, type SegmentedControlViewProps } from "../../uikit/SegmentedControl/SegmentedControlView";
-import type { ISegment } from "../../uikit/SegmentedControl/SegmentedControl";
+import {
+    SegmentedControlView,
+    type ISegment,
+    type SegmentedControlViewProps,
+} from "../../uikit/SegmentedControl/SegmentedControlView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { fillSlot, type SlotContent } from "../../uikit/shared/fill-slot";
 import { VanillaView } from "../../uikit/shared/vanilla-view";

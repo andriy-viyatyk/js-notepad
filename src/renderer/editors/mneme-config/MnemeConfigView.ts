@@ -4,7 +4,7 @@ import { ButtonView } from "../../uikit/Button/ButtonView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { DotView } from "../../uikit/Dot/DotView";
-import type { DotColor } from "../../uikit/Dot/Dot";
+import type { DotColor } from "../../uikit/Dot/DotView";
 import { EditorToolbarView } from "../base/EditorToolbarView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { pagesModel } from "../../api/pages";

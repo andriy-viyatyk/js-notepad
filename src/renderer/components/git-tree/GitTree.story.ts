@@ -2,7 +2,7 @@ import { applyPanelAttributes, createPanelElement, resolvePanelAttributes } from
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { GitTreeView } from "./GitTreeView";
 import { GitTreeModel } from "./GitTreeModel";
-import type { GitTreeProps, GitTreeSideSelect } from "./GitTree";
+import type { GitTreeProps, GitTreeSideSelect } from "./GitTreeView";
 import type { GitCommitRow } from "./swimlane-layout";
 import type { GitCommit } from "../../../ipc/git-ipc";
 import type { Story } from "../../editors/storybook/storyTypes";

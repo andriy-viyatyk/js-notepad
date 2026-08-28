@@ -1,7 +1,7 @@
 import { createPanelElement } from "../Panel/panel-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { DotView } from "./DotView";
-import type { DotColor, DotProps } from "./Dot";
+import type { DotColor, DotProps } from "./DotView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface DotDemoViewProps {

@@ -1,0 +1,14 @@
+@layer editor {
+    .graph-tuning-sliders .graph-tuning-label {
+        width: 52px;
+        flex-shrink: 0;
+        font-size: 11px;
+    }
+
+    .graph-tuning-sliders .graph-tuning-value {
+        width: 32px;
+        flex-shrink: 0;
+        font-size: 11px;
+        text-align: right;
+    }
+}

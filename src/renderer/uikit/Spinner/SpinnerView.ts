@@ -1,7 +1,14 @@
+import type React from "react";
 import { createIconElement } from "../shared/slots";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
-import type { SpinnerProps } from "./Spinner";
+
+export interface SpinnerProps
+    extends Omit<React.HTMLAttributes<HTMLSpanElement>, "style" | "className" | "color"> {
+    name?: string;
+    size?: number;
+    color?: string;
+}
 
 export class SpinnerView extends VanillaView<SpinnerProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();

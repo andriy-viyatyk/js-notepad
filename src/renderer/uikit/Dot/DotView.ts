@@ -1,8 +1,29 @@
+import type React from "react";
 import color from "../../theme/color";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
-import type { DotColor, DotProps } from "./Dot";
 import "./Dot.css";
+
+export type DotColor =
+    | "success"
+    | "warning"
+    | "error"
+    | "info"
+    | "neutral"
+    | "active";
+
+export interface DotProps
+    extends Omit<
+        React.HTMLAttributes<HTMLSpanElement>,
+        "style" | "className" | "color" | "children"
+    > {
+    name?: string;
+    size?: "xs" | "sm" | "md" | "lg" | number;
+    color: DotColor | string;
+    bordered?: boolean;
+    selected?: boolean;
+    hideUntilParentHover?: boolean;
+}
 
 const SIZE_MAP = { xs: 6, sm: 8, md: 12, lg: 18 } as const;
 

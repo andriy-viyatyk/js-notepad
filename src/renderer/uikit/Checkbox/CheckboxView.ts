@@ -1,8 +1,21 @@
+import type React from "react";
 import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/react-compat";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { createIconElement } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
-import type { CheckboxProps } from "./Checkbox";
+
+export interface CheckboxProps
+    extends Omit<React.HTMLAttributes<HTMLLabelElement>, "onChange" | "children"> {
+    /** Optional debug label emitted as `data-name` on the root element. */
+    name?: string;
+    /** Checked state (controlled). */
+    checked: boolean;
+    /** Change handler — receives the new boolean value. */
+    onChange: (checked: boolean) => void;
+    /** Disables interaction. */
+    disabled?: boolean;
+    children?: SlotContent;
+}
 
 export class CheckboxView extends VanillaView<CheckboxProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();

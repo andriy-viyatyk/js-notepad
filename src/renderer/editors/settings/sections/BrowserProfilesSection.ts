@@ -7,7 +7,7 @@ import { ButtonView } from "../../../uikit/Button/ButtonView";
 import { DotView } from "../../../uikit/Dot/DotView";
 import { IconButtonView } from "../../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../../uikit/Input/InputView";
-import type { InputProps } from "../../../uikit/Input/Input";
+import type { InputProps } from "../../../uikit/Input/InputView";
 import { KeyedList } from "../../../uikit/shared/keyed-list";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { openMenu, type MenuHandle } from "../../../uikit/Menu/attach-menu";

@@ -1,7 +1,7 @@
 import React from "react";
 import { createComponentModelDriver } from "../../core/state/model";
 import { InputView } from "../Input/InputView";
-import type { InputProps } from "../Input/Input";
+import type { InputProps } from "../Input/InputView";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import { KeyedList } from "../shared/keyed-list";
 import {

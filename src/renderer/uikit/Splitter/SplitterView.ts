@@ -1,3 +1,4 @@
+import type React from "react";
 import {
     applyRestProps,
     clearRestListeners,
@@ -5,8 +6,22 @@ import {
     type RestPropsState,
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
-import type { SplitterProps } from "./Splitter";
 import "./Splitter.css";
+
+export interface SplitterProps
+    extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    name?: string;
+    orientation?: "vertical" | "horizontal";
+    value: number;
+    onChange: (value: number) => void;
+    side?: "before" | "after";
+    min?: number;
+    max?: number;
+    disabled?: boolean;
+    border?: "before" | "after" | "none";
+    background?: "default" | "light" | "dark" | "overlay";
+    hoverBackground?: "default" | "light" | "dark" | "overlay";
+}
 
 export class SplitterView extends VanillaView<SplitterProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();

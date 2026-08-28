@@ -1,7 +1,7 @@
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { InputView } from "../../uikit/Input/InputView";
-import type { InputProps } from "../../uikit/Input/Input";
+import type { InputProps } from "../../uikit/Input/InputView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 

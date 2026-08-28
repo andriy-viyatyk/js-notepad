@@ -6,7 +6,7 @@ import { GraphConnectivityModel } from "./GraphConnectivityModel";
 import { GraphDataModel } from "./GraphDataModel";
 import { GraphGroupModel } from "./GraphGroupModel";
 import { GraphPositionHints } from "./GraphGroupActionsModel";
-import { buildMarkdown } from "./GraphTooltip";
+import { buildMarkdown } from "./GraphTooltipView";
 import { GraphVisibilityModel } from "./GraphVisibilityModel";
 import { GraphData, GraphLink, GraphNode, linkIds } from "./types";
 

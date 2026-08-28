@@ -7,7 +7,7 @@ import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from
 import { createTextElement } from "../../uikit/Text/text-style";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { SplitterView } from "../../uikit/Splitter/SplitterView";
-import type { SplitterProps } from "../../uikit/Splitter/Splitter";
+import type { SplitterProps } from "../../uikit/Splitter/SplitterView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import type { MenuItem } from "../../uikit/Menu";

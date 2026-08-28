@@ -1,6 +1,6 @@
 import { settings } from "../../../api/settings";
 import { TextareaView } from "../../../uikit/Textarea/TextareaView";
-import type { TextareaProps } from "../../../uikit/Textarea/Textarea";
+import type { TextareaProps } from "../../../uikit/Textarea/TextareaView";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { createSectionRoot, panel, text } from "./settings-native";
 import "../../../uikit/Textarea/Textarea.css";

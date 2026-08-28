@@ -3,7 +3,7 @@ import { TextChromeView } from "../base/TextChromeView";
 import { ButtonView, type ButtonViewProps } from "../../uikit/Button/ButtonView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
-import type { InputProps } from "../../uikit/Input/Input";
+import type { InputProps } from "../../uikit/Input/InputView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { showColumnsOptions } from "./components/ColumnsOptions";
 import { showCsvOptions } from "./components/CsvOptions";

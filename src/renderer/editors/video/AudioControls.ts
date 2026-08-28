@@ -1,7 +1,7 @@
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { SliderView } from "../../uikit/Slider/SliderView";
-import type { SliderProps } from "../../uikit/Slider/Slider";
+import type { SliderProps } from "../../uikit/Slider/SliderView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import "../../uikit/IconButton/IconButton.css";
 import "../../uikit/Panel/Panel.css";

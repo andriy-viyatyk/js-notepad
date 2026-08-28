@@ -1,21 +1,7 @@
-import React from "react";
-import { mountReactHandle, MountedReactRoot } from "./mount";
+import type React from "react";
 
-/** A temporary subtree slot used while a component still has React callers. */
+/** Native slot values are implemented here; the React arm remains in the type until Epic F. */
 export type SlotContent = string | Node | React.ReactNode;
-
-interface ActiveReactSlot {
-    kind: "react";
-    /**
-     * Layout-transparent element that owns the React root. The root is never
-     * mounted on the host itself: `root.unmount()` clears its container, and a
-     * deferred unmount would then wipe whatever the next `fillSlot` call wrote.
-     * Detaching this element first makes that impossible.
-     */
-    container: HTMLElement;
-    handle: MountedReactRoot;
-    generation: number;
-}
 
 interface ActiveNodeSlot {
     kind: "node";
@@ -32,116 +18,66 @@ interface ActiveEmptySlot {
     generation: number;
 }
 
-type ActiveSlot = ActiveReactSlot | ActiveNodeSlot | ActiveTextSlot | ActiveEmptySlot;
+type ActiveSlot = ActiveNodeSlot | ActiveTextSlot | ActiveEmptySlot;
 
 const activeSlots = new WeakMap<HTMLElement, ActiveSlot>();
 
-function isReactEmpty(slot: SlotContent): boolean {
-    return slot == null || slot === false;
+function isEmptySlot(slot: SlotContent): boolean {
+    return slot == null || typeof slot === "boolean";
 }
 
-/** True when the slot needs a React root rather than a plain DOM write. */
-function needsReactRoot(slot: SlotContent): slot is Exclude<SlotContent, string | Node> {
-    return !isReactEmpty(slot) && typeof slot !== "string" && !(slot instanceof Node);
+function isTextSlot(slot: SlotContent): boolean {
+    return typeof slot === "string" || typeof slot === "number" || typeof slot === "bigint";
 }
 
-function asReactElement(slot: React.ReactNode): React.ReactElement {
-    return React.createElement(React.Fragment, null, slot);
-}
-
-/**
- * `display: contents` keeps the wrapper out of layout, so React-rendered
- * children remain flex/grid items of the host exactly as they were before the
- * wrapper existed (Button's `gap` between icon and label depends on this).
- */
-function createReactContainer(): HTMLElement {
-    const container = document.createElement("span");
-    container.dataset.part = "react-slot";
-    container.style.display = "contents";
-    return container;
-}
-
-/**
- * Detach the React container immediately and unmount after the current commit.
- * React's later deletions target the detached container, which still parents
- * its own nodes, so the unmount cannot touch the host.
- */
-function releaseReactSlot(slot: ActiveReactSlot): void {
-    slot.container.remove();
-    queueMicrotask(() => slot.handle.dispose());
+/** Append the native subset of SlotContent without creating a React root. */
+function appendNativeSlot(parent: Node, slot: SlotContent): boolean {
+    if (isEmptySlot(slot)) return true;
+    if (slot instanceof Node) {
+        parent.appendChild(slot);
+        return true;
+    }
+    if (isTextSlot(slot)) {
+        parent.appendChild(document.createTextNode(String(slot)));
+        return true;
+    }
+    if (Array.isArray(slot)) {
+        const fragment = document.createDocumentFragment();
+        for (const child of slot) {
+            if (!appendNativeSlot(fragment, child)) return false;
+        }
+        parent.appendChild(fragment);
+        return true;
+    }
+    return false;
 }
 
 /**
- * Fill a view-owned DOM region with text, a native node, or a temporary React
- * subtree. React-to-React changes reuse the same root; any other change
- * releases the root before the new content is written.
+ * Fill a view-owned DOM region with native text, nodes, fragments, or arrays of those values.
  *
- * Callers must NOT run the previous cleanup before calling again — this
- * function owns the transition, and pre-clearing it discards the state that
- * makes root reuse possible. Superseded cleanups become no-ops on their own.
+ * React.ReactNode remains in the public type alias for Epic F's type-surface work, but no live
+ * caller in the renderer supplies a React node here. Unsupported React-only values therefore
+ * leave the host empty rather than creating a hidden runtime bridge.
+ *
+ * Callers must not run a previous cleanup before calling again: this function owns the transition,
+ * and superseded cleanups become no-ops on their own.
  */
 export function fillSlot(host: HTMLElement, slot: SlotContent): () => void {
-    const previous = activeSlots.get(host);
-    const generation = (previous?.generation ?? 0) + 1;
-
-    if (needsReactRoot(slot)) {
-        const element = asReactElement(slot);
-
-        if (previous?.kind === "react") {
-            previous.generation = generation;
-            previous.handle.render(element);
-            return () => {
-                if (
-                    activeSlots.get(host) !== previous
-                    || previous.generation !== generation
-                ) return;
-                activeSlots.delete(host);
-                releaseReactSlot(previous);
-                host.replaceChildren();
-            };
-        }
-
-        host.replaceChildren();
-        const container = createReactContainer();
-        host.append(container);
-        const active: ActiveReactSlot = {
-            kind: "react",
-            container,
-            handle: mountReactHandle(container, element),
-            generation,
-        };
-        activeSlots.set(host, active);
-        return () => {
-            if (
-                activeSlots.get(host) !== active
-                || active.generation !== generation
-            ) return;
-            activeSlots.delete(host);
-            releaseReactSlot(active);
-            host.replaceChildren();
-        };
-    }
-
-    if (previous?.kind === "react") {
-        releaseReactSlot(previous);
-    }
+    const generation = (activeSlots.get(host)?.generation ?? 0) + 1;
     host.replaceChildren();
 
-    let active: ActiveSlot;
-    if (isReactEmpty(slot)) {
-        active = { kind: "empty", generation };
-    } else if (typeof slot === "string") {
-        host.textContent = slot;
-        active = { kind: "text", generation };
-    } else {
-        host.append(slot as Node);
-        active = { kind: "node", generation };
+    const active: ActiveSlot = isEmptySlot(slot)
+        ? { kind: "empty", generation }
+        : isTextSlot(slot)
+            ? { kind: "text", generation }
+            : { kind: "node", generation };
+
+    if (!isEmptySlot(slot) && !appendNativeSlot(host, slot)) {
+        active.kind = "empty";
     }
     activeSlots.set(host, active);
 
-    if (isReactEmpty(slot)) {
-        return () => undefined;
-    }
+    if (active.kind === "empty") return () => undefined;
 
     return () => {
         if (

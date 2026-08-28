@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { TagView } from "./TagView";
-import type { TagProps } from "./Tag";
+import type { TagProps } from "./TagView";
 import color from "../../theme/color";
 import type { Story } from "../../editors/storybook/storyTypes";
 
