@@ -1,6 +1,9 @@
 # Roadmap: De-React
 
-**Status:** Proposed — not scheduled
+**Status:** **Complete** — the programme finished 2026-08-28 with Epic F
+([EPIC-074](epics/completed.md)). React is confined to `src/renderer/editors/draw/`, where
+`@excalidraw/excalidraw` requires it, and `npm run lint` fails if anything else imports it.
+Every epic below is closed; the per-epic close records are kept in place as the programme's history.
 **Created:** 2026-08-16
 
 Replace React with direct DOM manipulation across the renderer, the way VSCode is built, without

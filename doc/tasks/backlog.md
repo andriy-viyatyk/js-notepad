@@ -153,6 +153,30 @@ written; the doc carries the research notes.
 
 ## Architecture Improvements
 
+### A content-host editor's module failure is still a silent no-op
+
+US-1185 guarded the three silent `createEditorFromFile` call sites, but only **no-host** file editors
+(those declaring `newEditorModel`: image, archive, video, category, git-tree, mneme-root, board,
+toolset) load their editor module inside that call. `buildEditorById` returns a plain `TextFileModel`
+host early for **any** editor registered `hasContentHost: true`, *without loading the module at all* —
+it is resolved later, in `attachEditorToPage` or the view layer. So a module failure for env-vars,
+file-diff or the text editors surfaces on a path nothing guards, and that is the common case. This is
+the **third** silent path in the family (US-1163 covered standalone pages, US-1185 covered no-host
+files); it is uncovered, and finding it cost two wrong probes because breaking a content-host editor
+looks exactly like a failed fix. Worth closing so the class is finished rather than two-thirds done.
+
+### `ToolbarView` lets a caller append into its root, then wipes it
+
+`ToolbarView.onUpdate` calls `fillSlot(this.root, props.children)`, and `fillSlot` opens with an
+unconditional `replaceChildren()` — so anything a caller appended directly into the toolbar's root is
+destroyed by the first prop change. **Both** of its callers did exactly that: `Toolbar.story.ts` (live
+defect, fixed as US-1187) and `StorybookEditorView.ts:81`, which escapes only because it never calls
+`this.toolbar.update(...)` — latent, and one future `update()` from an empty application toolbar. Two
+of two callers making the same mistake reads as an under-documented contract rather than carelessness.
+Options: document it on `ToolbarProps.children`, or make `ToolbarView` refuse/absorb a manual append
+so the hazard cannot be hit. Cheap either way, and it removes a trap rather than a bug.
+
+
 ### Smoke-test the script `app` surface at runtime
 
 The project has no test framework, so nothing exercises `app.*` through the real script path
@@ -586,6 +610,28 @@ Either resolve through the same board-aware path, or document the limitation on 
 ---
 
 ## Technical Debt
+
+### Two residuals from closed De-React entries *(2026-08-28)*
+
+Both are what survived re-measuring [US-1091 and US-1132](../active-work.md) after the De-React
+programme closed. Neither is a defect; both are questions or cosmetics, which is why they are here
+rather than on the dashboard.
+
+- [ ] **Rename `data-part="react-slot"`.** The name is now a lie: `DialogView.ts:73` and
+  `TagView.ts:124` stamp it on a permanently native host, and nothing in the app renders React
+  outside `editors/draw/`. Three stylesheets select on it — `uikit/ListBox/ListItem.css:111,113`,
+  `uikit/Panel/Panel.css:68`, `uikit/Tree/TreeItem.css:133` — so it is a coordinated rename, not a
+  one-line change. `children-slot` or `slot` would say what it is. Purely a readability fix; the
+  De-React root-counting instrument it used to mislead is retired, and `data-react-root` (written
+  only by `editors/draw/react-island.ts:22`) is the marker that means anything.
+- [ ] **Decide whether `ListBoxView`'s `rowViews` retention on eviction is correct.** It looks
+  deliberate: `releaseCell` (`:405-414`) removes a view on a *kind change* and its comment says
+  "never on eviction", because a recycled wrapper keeps its view (`:383`), and re-adding listeners
+  on recycle "would stack an unbounded set on every pooled cell". So a view outlives an eviction on
+  purpose. The open question is whether a wrapper that leaves the pool entirely — rather than being
+  recycled — takes its view out of `rowViews` with it, or whether the set grows with scroll distance
+  until teardown disposes it at `:104`/`:246`. Answer it by scrolling a long list and reading
+  `rowViews.size`; if it tracks the pool it is fine as written and deserves a comment saying so.
 
 ### Panel roots with caller-overridden `data-type`
 

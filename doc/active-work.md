@@ -9,18 +9,202 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
-  - [ ] US-1173: **interactive verification pass for EPIC-073's converted surfaces.** Every one of
-    these was conceded as *could not reach with the available instrument* rather than *not allowed*,
-    and EPIC-073 shipped two defects that passed every structural check — so this is the pass that
-    would have caught them. Ordered by value: (1) **open a dialog** and confirm commit plus the focus
-    pass — `DialogCommitSignal` was replaced by a native scheduled focus pass and no dialog was ever
-    opened; (2) **popover resize**, reachable *only* through `uikit/Popover/Popover.story.ts` because
-    no application caller sets `resizable` — which also means that path has no app consumer at all
-    and Epic F may want to know; (3) **graph interaction** — node select → detail panel, hover
-    tooltip positioning, legend contents, expansion/tuning sliders, search highlighting via
-    `highlightInto`; (4) **rest-client's Monaco hosts**, both behind a `SegmentedControlView` switch a
-    synthetic click cannot drive, plus sending a request (needs network); (5) **av-grid editing** in
-    `env-vars` and `file-diff`, and file-diff's revision pick and readOnly rule; (6) the **four
+  - [ ] **US-1173 — Interactive verification pass for the converted UI**
+
+    **Second pass of 2026-08-28 — eight more items cleared and one new defect found and fixed
+    (US-1186).** Run on a renderer reloaded first, because it had been up 5.4 hours through many HMR
+    edits and this pass turns on negative results. *Verified:* (a) **a dialog commits and its focus
+    pass runs** — the acceptance criterion EPIC-067 created when it replaced `DialogCommitSignal`
+    with a native scheduled focus pass and never opened a dialog. `app.ui.input` opened with
+    `document.activeElement` already on its field (the only `<input>` in the document), accepted
+    18 characters of real CDP typing, and Enter resolved the promise as
+    `{ value: "committed-by-probe", button: "OK" }`, then tore the dialog down completely (0 inputs,
+    OK/Cancel gone). (b) **`event.key` in a keyboard handler** — the WebIDL brand-check case the
+    deleted React proxy was written to work around: Enter mapping to the OK button *is* that handler
+    reading `event.key`, so it is cleared by the same evidence rather than needing its own probe.
+    (c) **av-grid editing, end to end** — in `env-vars`, a cell editor opened, took real
+    character-by-character CDP typing, committed on Enter, and the change travelled
+    `onEdit → scheduleApply` all the way into the serialized JSON (`"ALPHA": "EDITED-BY-PROBE"`,
+    page marked modified). (d) **graph interaction**, all five sub-items: `select()` produced
+    "1 selected" plus a detail panel; the legend expands with real contents (Selection/Level/Shape);
+    the three tuning sliders render and a change to 120 *survived* the re-render, which is the proof
+    the model accepted it rather than the view ignoring it; search highlighting activated
+    ("Search highlighting is active" + Clear); and **both** graph av-grids render real data
+    (Properties: `Owner/platform`, `Notes/root of the graph`; Links: `api/API/2/circle/backend`).
+    (e) **Branch disposal on tab switch** — moving Properties → Links left the Properties grid
+    absent, so the branch is destroyed rather than retained. (f) **rest-client's Monaco hosts** —
+    HEADERS → JSON produced a live 1323×329 Monaco with colorized tokens. (g) **file-diff** renders a
+    real `monaco-diff-editor` (3 Monaco instances) with both revision pickers, and **the revision
+    pick works**: the From picker's popover listed real commits and picking `4bf1b81` retitled the
+    picker, closed the popover, and kept the diff live. React roots measured **0** on every one of
+    these surfaces.
+
+    **The defect this pass was for.** Item (f) is also where it broke: BODY → `raw` moved the control
+    and the language button but left the body panel on "This request has no body." Root-caused to
+    `RequestBuilderView.sync()` never updating its `bodyContent` child, fixed, and re-verified on a
+    fresh reload — see **US-1186**. It is the third defect in this programme of the shape *a
+    correctly-created element that never receives an update*, after EPIC-068's uncalled
+    `changeMapFor()` and EPIC-067's directly-assigned `pipe`. All three were invisible to typecheck,
+    lint, build and root counts, and all three showed up as **absence**.
+
+    **Recorded as statically verified, not observed:** file-diff's readOnly rule. The left side is
+    `originalEditable: false` unconditionally and the right is
+    `readOnly: revision.kind !== "unstaged"` (`FileDiffBodyView.ts:314`), reaching Monaco's options
+    directly at `:124`. The behavioural test was declined rather than faked — it would mean typing
+    real input into a tracked repo file's working copy (the probe target was `active-work.md` itself),
+    and Monaco does not respond to synthetic keys.
+
+    **Instrument note for the next pass.** Two false negatives came from checking in the same tick as
+    the action: av-grid opens its cell editor *asynchronously*, so a same-script `querySelector`
+    found nothing and looked exactly like a broken editor. **Re-read state in a separate
+    `execute_script` call before believing a negative.** Also: there are **two** `[data-name="page-editor"]`
+    hosts in the DOM and the first is the inactive one — select by `offsetHeight > 0`, or every
+    geometry reading is 0×0. And `browser_type`/`browser_click` return an a11y snapshot whose size
+    tracks the active page's text: 265k characters on a markdown page, ~4k on an editor page. Verify
+    with `execute_script` and treat the snapshot as a side effect.
+
+    **Graph hover tooltip — cleared by the user, 2026-08-28.** The one graph sub-item no instrument
+    here could reach: the tooltip is drawn against the canvas, so there is no element to assert on and
+    hit-testing a node needs a real mouse-move at real coordinates. The user hovered a node and
+    confirmed the tooltip shows as expected. **That closes graph interaction entirely** — the other
+    five sub-items were verified programmatically in the pass above. Worth recording as a boundary
+    rather than a gap: `pageId: "app"` drives clicks, typing and keys, but a canvas-rendered
+    hover overlay stays outside every instrument in this list.
+
+    **The four repointed stories — cleared 2026-08-28, and they were not clean.** The blocker was
+    only ever *opening* Storybook: the scripting facade rejects `addEditorPage("storybook-view")` and
+    exposes no `showStorybookPage`, but once the user opened the editor the story list is ordinary
+    DOM and `pageId: "app"` drives it. **The bar was raised past "does it render":** for each story
+    a control was driven and the rendered element re-read, because US-1186 had just shown that
+    rendering proves nothing about whether props still arrive. **Button** `default/md → danger/md`;
+    **IconButton** `md → sm` (box 24×24, icon intact); **SegmentedControl** selection moved to
+    Log View with `aria-checked` *and* the roving `tabindex` both correct (so the roving-focus host
+    survived repointing); **Spacer** 145px flex-grow → **64px fixed** (`flexBasis: 64px`,
+    `flexGrow: 0`) driven by real CDP typing into its number control. **Toolbar** — the fifth and the
+    one rewritten from building React elements to composing all four views natively — mounted with
+    all four parts and then **emptied itself** on the first control change. Fixed as **US-1187**.
+    React roots measured **0** on all five.
+
+    Two things this closes that are worth stating plainly. Storybook is **not** unreachable — it is
+    unreachable *to open*, which is a much smaller claim than the one this entry carried for two
+    epics; and story-only surfaces are where defects survive longest, since 4 of the 5 were fine and
+    the broken one was the only story that had been *rewritten* rather than repointed.
+
+    **The browser pass ran 2026-08-28 — eight of ten surfaces verified, one defect found and fixed
+    (US-1188), and two boundaries established that are worth more than the checks.** EPIC-072
+    conceded ten surfaces as *could not reach with the available instrument*. Verified live:
+    (1) **HTTPS navigation and redirects** in one shot — typing a `github.com/.../raw/...` URL into
+    the converted URL bar left the bar reading `raw.githubusercontent.com/...`, so the cross-host
+    redirect was followed *and* `did-navigate` propagated back into the view; (2) **the full
+    navigation state machine** — back disabled to enabled to disabled and forward the inverse, with
+    the URL bar tracking each step; (3) **URL suggestions**, which open on focus in *navigation* mode
+    (17 items) and close on blur. Note the earlier "empty dropdown" was **not** a defect: in *search*
+    mode the list is `searchEntries` (past search terms), and this profile has none; (4) **downloads**
+    — a real download through `will-download` produced the button, the popup (322x402), its header,
+    clear action and list, with the new entry present; (5) **bookmarks** — drawer, splitter, toolbar,
+    editor host and footer all render (and see US-1188); (6) **incognito** — renders with 11 toolbar
+    children and a live webview, and correctly has **no** bookmarks drawer (no bookmarks store in
+    incognito); (7) **tab drag-and-drop** — the active tab moved index 2 to 0 with all three
+    handshake signals firing (`data-dragging`, the `application/persephone-trait` payload in a real
+    `DataTransfer`, `data-drop-target`) and both transient states cleaned up. **This retires the
+    assumption that synthetic events cannot drive HTML5 DnD**; (8) the **`@floating-ui/dom` hover
+    preview** — `position: fixed`, `visibility: visible`, `opacity: 1`, 140x28 at (30,132), i.e.
+    immediately right of the 33px tab strip and aligned to the hovered tab; (9) **close-other and
+    close-below** — 3 tabs to 1 in each case, from a context menu offering exactly
+    `Close Tab / Close Other Tabs / Close Tabs Below / Inspect`; and (10) **Tor status and reconnect**
+    — the info dialog renders all its states, and after navigating a Tor page the live session is
+    established: the "No live Tor session" line clears, IP and Location populate, and
+    "Could not verify" clears, i.e. it confirmed traffic exiting through Tor. React roots measured
+    **0** on every surface.
+
+    **Two surfaces are recorded as *not reachable*, and the reasons are precise rather than
+    hand-waved.** (a) **Tor pages deliberately refuse browser automation** — `browser_navigate`
+    returns *"Active browser page is in Tor mode. Browser automation is disabled for privacy
+    protection."* That is **not allowed by design**, the state EPIC-072's C4 asked to distinguish, and
+    it is not worth retrying. (b) **Last-tab replacement.** `closeTab`'s `tabs.length <= 1` branch
+    (`BrowserTabsModel.ts:114`) creates a blank tab, but the context menu **disables** Close Tab /
+    Close Other / Close Below when only one tab remains — correct behaviour, verified — so that branch
+    is reachable only from the tab's own close button, which needs the panel at 100px or more
+    (`CLOSE_BUTTON_THRESHOLD`), which needs a real splitter drag. Which brings the sharpest finding:
+
+    **`SplitterView`'s drag cannot be driven synthetically, and now we know exactly why — this
+    corrects the pointer-capture note from earlier today.** `setPointerCapture(1)` **succeeds** (no
+    throw), but `hasPointerCapture(1)` immediately returns **false**: the capture is only *pending*
+    until the browser dispatches a real pointer event. `SplitterView.onPointerMove` gates on
+    `hasPointerCapture` and so is immune, while `PopoverView`'s resize handle only *calls* capture and
+    therefore *was* drivable. **So the rule is not "pointer-capture drags are drivable" — it is
+    "handlers that call capture are drivable; handlers that check it are not."** US-1110's original
+    concession was right about `SplitterView` for a reason nobody had identified. The diagnostic tell
+    is unchanged and did the work here: a state attribute flips on pointerdown while geometry never
+    moves.
+
+    **Instrument corrections from this pass, both of which nearly produced false results:**
+    - **`offsetParent` is `null` for `position: fixed` elements**, so the "visible" flag used
+      throughout this pass under-reports fixed overlays. The hover preview read as invisible and was
+      fully visible. Test `getComputedStyle` plus `getBoundingClientRect` for overlays, never
+      `offsetParent`.
+    - **Menus, popovers and cell editors open asynchronously.** A same-tick `querySelector` after
+      dispatching `contextmenu` throws on `null`; re-reading in a *separate* `execute_script` call
+      finds the menu. Same lesson as the av-grid cell editor.
+
+    **A data boundary that had to be set mid-pass, and is now a standing rule.**
+    `browser_snapshot` / `browser_hover` / `browser_type` against `pageId: "app"` serialise the
+    **entire application UI**, including sidebars — so a single hover call pulled a large volume of
+    the user's real bookmarks, browsing history and download filenames into the transcript, some of
+    it personal and some clinically named. **Those tools must not be used while a browser, bookmarks
+    or link-editor surface is open;** use `execute_script` with targeted, count-only queries. The
+    verifications above deliberately record geometry and counts and never content, and the
+    `evergreen` profile was not touched at any point.
+
+    **Everything this entry has ever listed is now verified or recorded as unreachable with a
+    reason.** **US-1164 closed with this pass** (2026-08-28). The only residue is the two items
+    above, and both are one manual action for the user: widen the tab strip past 100px and click a
+    tab's close button on the last remaining tab. **This entry is ready to close** — it is a
+    verification task, not a fix, so it is left open pending the user's call rather than closed
+    unilaterally.
+
+    **Pass of 2026-08-28 — four items cleared, one premise falsified, one new defect (US-1182).**
+    The instrument the whole programme lacked turned out to already exist: the `browser_*` MCP tools
+    accept `pageId: "app"` and drive Persephone's own window with real CDP input plus screenshots,
+    added **2026-07-05 in US-810** — six weeks before this roadmap was written. *Verified:* (a) the
+    **theme switch** through Settings → Theme — bg `#1f1f1f → #272822`, the native stylesheet's
+    content hash changed, still **exactly one** `<style data-name="global-styles">` tag (so the
+    subscription rebuilds rather than appends), and all four scrollbar-arrow data URIs recoloured to
+    Monokai's `#75715e`; switching back returned the hash to the *identical* baseline, so the round
+    trip neither accumulates nor drifts. EPIC-074's deferred acceptance criterion is **met**. (b) a
+    **rest-prop listener fires** — the markdown page's `SegmentedControl` routes `onClick` through
+    `ButtonView`'s rest props, and clicking "Text Editor" took visible `.markdown-block` 2 → 0 and
+    `.monaco-editor` 0 → 1. (c) **`aria-expanded` serialises** as the string `"false"` — 36 elements
+    carry it, including two closed `Select` inputs, none absent or `""`; `aria-checked` likewise.
+    **Method note, learned the hard way — reload before filing.** This pass produced one defect
+    report (US-1182) that a single `location.reload()` dissolved: after hours of HMR the settings
+    section held a stale module instance whose handler called a dead event channel, which is
+    indistinguishable from a broken listener from outside. **Verify negative results on a freshly
+    reloaded renderer before recording them.** Positive results survive staleness; negative ones do
+    not. Everything marked verified above was either re-confirmed after the reload or is positive.
+
+    **Premise falsified:** this entry claimed a `SegmentedControlView` "switch a synthetic click
+    cannot drive". A plain `dispatchEvent(new MouseEvent("click"))` drives it correctly. That claim is
+    why EPIC-073 conceded the rest-client Monaco hosts as unreachable, so *that concession rested on a
+    measurement that was never made.* **Still open:** dialog commit/focus, graph interaction,
+    av-grid editing, the four repointed stories, `event.key`, and the browser pass — plus the
+    storybook itself, which turns out to be unreachable from a script: the scripting facade rejects
+    `addEditorPage("storybook-view")` by design and exposes no `showStorybookPage`, so story-based
+    checks need UI navigation.
+
+    Every one of these was conceded as *could not reach with the available instrument* rather than
+    *not allowed*, and EPIC-073 shipped two defects that passed every structural check — so this is
+    the pass that would have caught them. Ordered by value: (1) **open a dialog** and confirm commit
+    plus the focus pass — `DialogCommitSignal` was replaced by a native scheduled focus pass and no
+    dialog was ever opened; (2) **popover resize** — reachable in the **grid editor's column-options
+    popover**, which sets `resizable: true` at `editors/grid/components/ColumnsOptions.ts:437`.
+    *(This entry previously said the path was story-only with no application caller and might
+    therefore be dead code. That was wrong — corrected 2026-08-28. It is a live surface, and an
+    easier one to reach than the story.)* (3) **graph interaction** — node select → detail panel,
+    hover tooltip positioning, legend contents, expansion/tuning sliders, search highlighting via
+    `highlightInto`; (4) **rest-client's Monaco hosts**, both behind a `SegmentedControlView` switch
+    a synthetic click cannot drive, plus sending a request (needs network); (5) **av-grid editing**
+    in `env-vars` and `file-diff`, and file-diff's revision pick and readOnly rule; (6) the **four
     repointed stories**, which compile but were never rendered; (7) **`PopoverView`'s board, browser
     and grid call sites** — hover preview, downloads popup, column options — of which only the
     file-diff picker was exercised. Also still open from EPIC-072: the browser's network-dependent
@@ -28,62 +212,133 @@ Overview of all active and planned epics and tasks.
     through the UI** (Settings → Theme, which calls `applyTheme` directly), confirming the native
     stylesheet rebuilds and the scrollbar-arrow data URIs recolour — argued sound by inspection but
     never observed, and note that `app.settings.set("theme", …)` does **not** apply a theme
-    in-session, so it is the wrong trigger; (b) **a rest-prop listener firing** after the React event
-    proxy's removal — the `Dot` story forwards `onClick` through `applyRestProps`; (c)
-    **`aria-expanded` still serialising** as the string `"false"` on a closed `Select` or `PathInput`,
-    not absent; (d) **`event.key` in a keyboard handler** — the WebIDL brand-check case the deleted
-    proxy was originally written to work around, reachable by typing in the browser URL bar or a
-    `TagsInput`.
-  - [ ] US-1164: the browser toolbar's **download** and **Tor info** buttons rendered after
-    **Close Tab** instead of before **Page Menu** (user-reported, fixed 2026-08-27 in
-    `BrowserView.ts:292`). An EPIC-072 conversion defect: `BrowserToolbarView` appended
-    `this.controls` in *construction* order and then patched the DOM with two `insertBefore`
-    calls, the second of which targeted `downloads.root` — already stranded past `close` — and so
-    dragged `torInfo` down with it. Two buttons were misplaced, not one; only `downloads` was
-    visible because `torInfo` renders in Tor mode only. Fixed by spelling the left-to-right DOM
-    order out once (`this.controls` keeps its construction order because `sync()` indexes into it
-    positionally). Verified live: 11 toolbar children in the React original's order, `close` last.
-    **Left unreviewed deliberately** — it is the second EPIC-072 defect found by a human opening
-    the UI rather than by any instrument, and both were *relationships between* correctly-created
-    elements, which no marker or root count can see. The toolbar was in the reachable region and
-    was still wrong, which strengthens the argument for the interactive browser pass that epic
-    conceded (navigation, downloads, bookmarks, Tor, incognito, suggestions, drag-and-drop, hover
-    preview). Close this entry with that pass, not on its own.
-  - [ ] US-1131 **(largely DELIVERED in EPIC-071 as US-1142 — this entry now tracks only the two residual gaps)**: the `VanillaView` lifecycle guard exists. `eslint.config.mjs` carries a local plugin enforcing four clauses — no listeners/subscriptions, no timers, no layout measurement in a constructor (all three measured at a **zero** baseline before enabling), plus Class A: no synchronous constructor dereference of a field whose only assignment is in `onMount`/`onUpdate` — and one narrow Class B rule (a field claimed from `this.child(...)` must be assigned in exactly one method). `VanillaView.mount()` now disposes and rethrows on a failed `onMount()`, skipping `onDispose()` on the half-built view, and `PageSlot.renderNative` performs construction inside its rollback scope — which covers EPIC-070's mount-failure constraint. EPIC-071 also established that the premise was wrong: the "four violations of one rule" were **three** violations of **two** rules, and `MermaidBodyView` (US-1055) is **not a defect** — the rule sentence was stricter than the codebase's own deliberate create → claim → mount pattern, which 157 constructor `this.child(...)` calls follow. The rule text in `uikit/CLAUDE.md` was narrowed to match. **Two gaps remain.** (1) The clauses cover a *constructor* only: `this.listen()` inside a method called repeatedly is the same no-early-release defect through another door, and EPIC-071's close review found it three times in new code (fixed there by delegation). Measure a "no `this.listen()` outside `onMount()` or the constructor" rule before the next conversion epic. (2) The rules match `extends VanillaView` **directly**; there are no indirect subclasses today, so coverage is complete by accident of the current tree, and the first `class X extends SomeOtherView` silently leaves the guard's scope. EPIC-067 already met that shape (`ContentHostFooterView extends EditorToolbarView`, removed because *a footer contains a toolbar; it is not one*). The cheap closure is a fifth rule forbidding any class from extending a `VanillaView` subclass — zero baseline today, and it makes the direct match complete by construction.
-  - [ ] US-1153: two EPIC-071 surfaces that closed **unverified**, carried forward so they are not lost with the epic. (a) **`mneme-root` was never rendered** — its route (`explorer-open-mneme`) works, but exercising it displays the user's live customer notes, and EPIC-071's rule was that no verification step may cause customer work data to be read or recorded. It has green `tsc`/ESLint/`build-prod` and a converted body with zero React imports, and **no runtime evidence at all** — the only surface in that epic's cut in that state. (b) **`link-editor`'s tiles view mode** and its list↔tiles teardown were never exercised: the list mode verifies at 0 React roots on a populated file, but the switch did not respond to synthetic input, so neither the tiles body nor the branch disposal has runtime evidence. The teardown is the part that matters — it is EPIC-068's persistent-child hazard, and the one branch in that epic whose disposal was not observed (contrast `tools-hub`, where visiting four tabs in sequence proved teardown for free). Both need a short interactive pass; neither is known to be broken.
-  - [ ] US-1163: opening an editor whose module fails to load is a **silent no-op**. Found by a
-    deliberate-throw probe in EPIC-072/US-1160: `PagesLifecycleModel.showEditorPage:574` →
-    `editorRegistry.createEditor:155` → `loadModule:210` rejects, the exception propagates to the
-    caller, and the user gets **no page, no message, and nothing reported** — clicking the entry
-    simply does nothing. Pre-existing, and *not* the path US-1160 fixed: `createEditor` needs the
-    module to build the editor model, so it loads and fails before `AsyncEditorView` is ever reached
-    (which is why US-1160's added `.catch()` is defence-in-depth rather than a live-bug fix). The app
-    stays usable, so this is milder than a stuck spinner, but a failed open should say so. Fix at the
-    `showEditorPage`/`createEditor` layer — a `guard()`-style report is probably enough; note
-    `RenderEditorView.ts:29` already uses `guard("Failed to dispose editor", …)` as precedent.
-  - [ ] US-1152: two pre-existing secondary-view rebinding defects, surfaced by EPIC-071's close review but **not caused by it** — both files are untouched by that epic, and `LinkCategoryPanel.ts`'s only change there was swapping a React tooltip for the native builder. (a) `link-editor/panels/LinkCategoryPanel.ts:47-60` and `LinkCategorySecondaryView.ts:51-64` bind to the current editor/page/host state but never replace those subscriptions when `onUpdate()` retargets the panel to a different `LinkEditor` — so selection changes in the new editor do not refresh the category tree, the header does not refresh on page/host change, and the old editor's sources keep invoking callbacks against the new view's state. It also never re-checks a provider that becomes available after an initial `null`. (b) `mneme-root/MnemeTreeSecondaryView.ts:77-82,94-127` re-calls `bindModelState()`/`bindPageState()` when `mnemeModel` changes, but `bind()` stores each unsubscribe only in the view's final disposer list, so every previous model and page stays subscribed for the view's lifetime; identity guards suppress most stale DOM writes but the callbacks still run. (c) `link-editor/panels/LinkTagsSecondaryView.ts:61-78`, `LinkTagsPanel.ts:27-40` and `LinkHostnamesNavigationPanel.ts:51-73` have the identical defect — they bind to the initial editor's `state` and their `onUpdate()` refreshes child props and snapshots without replacing those subscriptions, so a reused panel shows a correct one-time snapshot and then stops tracking, while the old editor's callbacks keep firing. **That makes five files in one class**, all pre-existing and all in secondary views, which is why it should be fixed as a pattern rather than five times: the shape is *a view that accepts a replaceable model but binds as if the model were fixed.* All are the same class as **US-1132** and share its cause — *`bind()` is only for state that outlives the view* (EPIC-068), and `own()` has no early-release API. Fix by retaining explicit unsubscribe handles and replacing them on identity change. Worth doing together with US-1132 and the `releaseChild` audit.
-  - [ ] US-1132: three pre-existing `uikit/` lifecycle findings from EPIC-069's close review, none in code that epic added: `ListBoxView` retains obsolete entries in `rowViews` (added at `:329`/`:335`, removed only at `:424`); `DataGridView` omits `releaseChild()` on replaced branches; `ToolbarView` reuses a single-use DOM `IconRef` — worth investigating alongside the nested React root EPIC-069 measured in `ToolbarView`, which may share a cause.
-  - [ ] US-1109: the interaction behind US-1108 is a general trap worth removing rather than
-    documenting once. `DataGridView.invalidatePushed()` discards the baseline that makes "this option
-    disappeared" detectable, and `collectValues` drops `undefined`, so **any** consumer that maps a
-    cleared value to `undefined` silently loses the clear. Options: have `invalidatePushed` retain the
-    key set (not the values) so a disappearance is still representable, or stop dropping `undefined`
-    in `collectValues` and let the union diff carry it. The second is closer to the shim's stated
+    in-session, so it is the wrong trigger; (b) **a rest-prop listener firing** after the React
+    event proxy's removal — the `Dot` story forwards `onClick` through `applyRestProps`; (c)
+    **`aria-expanded` still serialising** as the string `"false"` on a closed `Select` or
+    `PathInput`, not absent; (d) **`event.key` in a keyboard handler** — the WebIDL brand-check case
+    the deleted proxy was originally written to work around, reachable by typing in the browser URL
+    bar or a `TagsInput`.
+  - [ ] **US-1131 — Two gaps in the VanillaView lifecycle lint rules**
+
+    **(largely DELIVERED in EPIC-071 as US-1142 — this entry now tracks only the two residual
+    gaps)**: the `VanillaView` lifecycle guard exists. `eslint.config.mjs` carries a local plugin
+    enforcing four clauses — no listeners/subscriptions, no timers, no layout measurement in a
+    constructor (all three measured at a **zero** baseline before enabling), plus Class A: no
+    synchronous constructor dereference of a field whose only assignment is in `onMount`/`onUpdate`
+    — and one narrow Class B rule (a field claimed from `this.child(...)` must be assigned in
+    exactly one method). `VanillaView.mount()` now disposes and rethrows on a failed `onMount()`,
+    skipping `onDispose()` on the half-built view, and `PageSlot.renderNative` performs construction
+    inside its rollback scope — which covers EPIC-070's mount-failure constraint. EPIC-071 also
+    established that the premise was wrong: the "four violations of one rule" were **three**
+    violations of **two** rules, and `MermaidBodyView` (US-1055) is **not a defect** — the rule
+    sentence was stricter than the codebase's own deliberate create → claim → mount pattern, which
+    157 constructor `this.child(...)` calls follow. The rule text in `uikit/CLAUDE.md` was narrowed
+    to match. **Two gaps remain.** (1) The clauses cover a *constructor* only: `this.listen()`
+    inside a method called repeatedly is the same no-early-release defect through another door, and
+    EPIC-071's close review found it three times in new code (fixed there by delegation). Measure a
+    "no `this.listen()` outside `onMount()` or the constructor" rule before the next conversion
+    epic. (2) The rules match `extends VanillaView` **directly**; there are no indirect subclasses
+    today, so coverage is complete by accident of the current tree, and the first `class X extends
+    SomeOtherView` silently leaves the guard's scope. EPIC-067 already met that shape
+    (`ContentHostFooterView extends EditorToolbarView`, removed because *a footer contains a
+    toolbar; it is not one*). The cheap closure is a fifth rule forbidding any class from extending
+    a `VanillaView` subclass — zero baseline today, and it makes the direct match complete by
+    construction.
+
+    **(3) A third clause candidate, added 2026-08-28 from the US-1173 verification batch, which
+    produced three defects of one shape.** US-1186 (a rest-client child never updated, so the BODY
+    type switch did nothing), US-1188 (the bookmarks drawer opened invisible because a props object
+    captured before `mount()` overwrote a recovery the child wrote during it) and EPIC-067's `pipe`
+    regression are all the same class: **the parent's idea of its children's props diverges from the
+    model's actual state, and nothing type-checks the difference.** Every gate stayed green for all
+    three and the symptom in each case was *absence*, which no root count or marker can measure.
+    A 77-site sweep for the obvious shape — `const x = this.child(new X(...))` never retained, in a
+    class that has an update path — found almost all of them benign (dividers, spacers, per-row views
+    held in collections, static-literal props; two high-risk singletons were checked and cleared).
+    **So "not retained" is the wrong detector.** The signal that actually found US-1186 is
+    **asymmetry: a `sync()`/`onUpdate()` that explicitly updates every claimed child but one.** That
+    is mechanically checkable — enumerate the claimed children of a class, enumerate the ones its
+    update path touches, and report the difference — and it is the cheapest of the three clauses to
+    baseline. A companion rule worth measuring at the same time: **a props object read after an
+    `await` or after a child's `mount()` must be re-read from state, not captured beforehand.**
+  - [ ] **US-1153 — Mneme tree and link-editor tiles were never rendered**
+
+    Two EPIC-071 surfaces that closed **unverified**, carried forward so they are not lost with the
+    epic. (a) **`mneme-root` was never rendered** — its route (`explorer-open-mneme`) works, but
+    exercising it displays the user's live customer notes, and EPIC-071's rule was that no
+    verification step may cause customer work data to be read or recorded. It has green
+    `tsc`/ESLint/`build-prod` and a converted body with zero React imports, and **no runtime
+    evidence at all** — the only surface in that epic's cut in that state. (b) **`link-editor`'s
+    tiles view mode** and its list↔tiles teardown were never exercised: the list mode verifies at 0
+    React roots on a populated file, but the switch did not respond to synthetic input, so neither
+    the tiles body nor the branch disposal has runtime evidence. The teardown is the part that
+    matters — it is EPIC-068's persistent-child hazard, and the one branch in that epic whose
+    disposal was not observed (contrast `tools-hub`, where visiting four tabs in sequence proved
+    teardown for free). Both need a short interactive pass; neither is known to be broken.
+  - [ ] **US-1152 — Five secondary views stop tracking when reused for another editor**
+
+    Two pre-existing secondary-view rebinding defects, surfaced by EPIC-071's close review but **not
+    caused by it** — both files are untouched by that epic, and `LinkCategoryPanel.ts`'s only change
+    there was swapping a React tooltip for the native builder. (a)
+    `link-editor/panels/LinkCategoryPanel.ts:47-60` and `LinkCategorySecondaryView.ts:51-64` bind to
+    the current editor/page/host state but never replace those subscriptions when `onUpdate()`
+    retargets the panel to a different `LinkEditor` — so selection changes in the new editor do not
+    refresh the category tree, the header does not refresh on page/host change, and the old editor's
+    sources keep invoking callbacks against the new view's state. It also never re-checks a provider
+    that becomes available after an initial `null`. (b)
+    `mneme-root/MnemeTreeSecondaryView.ts:77-82,94-127` re-calls
+    `bindModelState()`/`bindPageState()` when `mnemeModel` changes, but `bind()` stores each
+    unsubscribe only in the view's final disposer list, so every previous model and page stays
+    subscribed for the view's lifetime; identity guards suppress most stale DOM writes but the
+    callbacks still run. (c) `link-editor/panels/LinkTagsSecondaryView.ts:61-78`,
+    `LinkTagsPanel.ts:27-40` and `LinkHostnamesNavigationPanel.ts:51-73` have the identical defect —
+    they bind to the initial editor's `state` and their `onUpdate()` refreshes child props and
+    snapshots without replacing those subscriptions, so a reused panel shows a correct one-time
+    snapshot and then stops tracking, while the old editor's callbacks keep firing. **That makes
+    five files in one class**, all pre-existing and all in secondary views, which is why it should
+    be fixed as a pattern rather than five times: the shape is *a view that accepts a replaceable
+    model but binds as if the model were fixed.* All are the same class as **US-1132** and share its
+    cause — *`bind()` is only for state that outlives the view* (EPIC-068), and `own()` has no
+    early-release API. Fix by retaining explicit unsubscribe handles and replacing them on identity
+    change. Worth doing together with US-1132 and the `releaseChild` audit.
+  - [ ] **US-1109 — A cleared DataGrid value can vanish silently**
+
+    The interaction behind US-1108 is a general trap worth removing rather than documenting once.
+    `DataGridView.invalidatePushed()` discards the baseline that makes "this option disappeared"
+    detectable, and `collectValues` drops `undefined`, so **any** consumer that maps a cleared value
+    to `undefined` silently loses the clear. Options: have `invalidatePushed` retain the key set
+    (not the values) so a disappearance is still representable, or stop dropping `undefined` in
+    `collectValues` and let the union diff carry it. The second is closer to the shim's stated
     exclusion-not-allow-list design but changes what reaches `create()`, so it needs the story
     harness run over all five `DataGrid` consumers. No other consumer has the `|| undefined`
     coercion today, so this is latent rather than live.
-  - [ ] US-1111: `editors/text/ScriptPanel.ts:16` uses `const nodefs = require("fs")` directly,
-    against `CLAUDE.md`'s no-direct-`fs` rule — seven call sites, all reading and writing script
-    library files. Pre-existing (it was `ScriptPanel.tsx:23` before EPIC-067) and it lives in the
-    model rather than the converted view, so it was explicitly excluded from that epic's scope and
-    raised again by its close review. Move to `app.fs`, or add it to the documented exception list in
+  - [ ] **US-1111 — ScriptPanel bypasses app.fs with require("fs")**
+
+    `editors/text/ScriptPanel.ts:16` uses `const nodefs = require("fs")` directly, against
+    `CLAUDE.md`'s no-direct-`fs` rule — seven call sites, all reading and writing script library
+    files. Pre-existing (it was `ScriptPanel.tsx:23` before EPIC-067) and it lives in the model
+    rather than the converted view, so it was explicitly excluded from that epic's scope and raised
+    again by its close review. Move to `app.fs`, or add it to the documented exception list in
     `coding-style.md` with the reason — the `writeFileSync`/`existsSync`/`mkdirSync` calls are
     synchronous inside user actions, so the async `app.fs` port is a behaviour change, not a rename.
-  - [ ] US-1091: `data-part="react-slot"` is stamped unconditionally by `uikit/Dialog/DialogView.tsx:87` and `uikit/Tag/TagView.tsx:88`, before either view picks its native or React arm — so a host holding plain DOM carries the React marker and the De-React programme's Rule 4 instrument counts roots that do not exist. `fill-slot.ts` stamps it only on its real React container, so the defect is limited to those two views; `data-react-root` (set only by `mountReactHandle`, deleted on dispose) is the reliable marker. Measured in EPIC-065: `EditLinkDialog` open reported 1 root under the both-markers instrument and 0 under `data-react-root`. Fix: stamp the marker only on the React branch. Deferred out of EPIC-065 to avoid putting unreviewed `uikit/` changes inside a closed epic. Counterpart to EPIC-063 E5-3, which added the marker because a root was *invisible* — same lesson, opposite direction.
-  - [x] US-1055 **(CLOSED as not-a-defect by EPIC-071 — see US-1131)**: EPIC-071 measured this and the premise does not hold. `MermaidBodyView` and its `MermaidLoadingView` do create → claim via `this.child(...)` → hand the child root to `createPanelElement` → `mount()` in `onMount()`, exactly like ~75 other classes; nothing reads an uncreated field and nothing is claimed twice. The rule *sentence* was stricter than the codebase's own documented pattern, and has been narrowed in `uikit/CLAUDE.md`. The programme had been carrying this as a "known live violation" since EPIC-060. Original report: `mermaid/MermaidBodyView.ts` builds its child DOM in the constructor, against `uikit/CLAUDE.md:496-502` ("the constructor … must not create child DOM"; `mount()` is where child DOM is built). Found by EPIC-060's close review, which fixed the same violation in the five views it owned; this one is from EPIC-059 and was left out of scope. Move child creation and attachment into `onMount()`, keeping exactly-once child mounts and FIFO cleanup ordering. Low risk, but it is the file every later editor conversion copies — see [`doc/tasks/epic60-review.md`](tasks/epic60-review.md).
-  - [ ] US-1050: `unregister_toolset` MCP tool — the agent can `create_toolset` (with a user confirmation prompt) but has no way to unregister/remove one; cleaning up a scratch toolset required reaching into the internal `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation prompt like registration (unregistering is less dangerous than registering — probably no prompt, but flag it).
-  - [ ] US-1041: `SearchChannel.cancel` should carry a search id — the main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot cancel its own worker without risking another view's search
+  - [ ] **US-1050 — Add an unregister_toolset MCP tool**
+
+    The agent can `create_toolset` (with a user confirmation prompt) but has no way to
+    unregister/remove one; cleaning up a scratch toolset required reaching into the internal
+    `toolsTrust.untrust` via `execute_script`. Add an MCP tool (in
+    `src/renderer/api/mcp/tool-commands.ts` beside `refresh_toolset`) that unregisters a toolset by
+    root path; folder deletion stays the agent's own fs call. Decide whether it needs a confirmation
+    prompt like registration (unregistering is less dangerous than registering — probably no prompt,
+    but flag it).
+  - [ ] **US-1041 — SearchChannel.cancel needs a search id**
+
+    The main process cancels per window (`event.sender.id`), so a disposed FileSearch view cannot
+    cancel its own worker without risking another view's search
   - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
+
+
+
+
 
 ## Planned
 

@@ -82,6 +82,7 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
     private live = false;
     private headersView: SegmentedControlView | undefined;
     private bodyTypeView: SegmentedControlView | undefined;
+    private bodyContent: BodyContentView | undefined;
     private methodButton: ButtonView | undefined;
     private methodText: HTMLSpanElement | undefined;
     private urlInput: TextareaView | undefined;
@@ -132,7 +133,8 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
         const bodyTypeView = this.child(new SegmentedControlView(this.bodyTypeProps()));
         bodyHeader.append(createTextElement("Body", { size: "xs", variant: "uppercased", color: "light", bold: true }), bodyTypeView.root, this.bodyLanguageHost);
         this.bodyTypeView = bodyTypeView;
-        const bodyContent = this.child(new BodyContentView({ vm: this.props.vm, request: this.props.request, onMonacoChange: this.handleMonacoBodyChange }));
+        const bodyContent = this.child(new BodyContentView(this.bodyContentProps()));
+        this.bodyContent = bodyContent;
         this.bodyPanel.append(bodyHeader, bodyContent.root);
         this.splitRoot.append(this.headersPanel, splitter.root, this.bodyPanel);
         this.root.append(urlBar, this.splitRoot);
@@ -154,6 +156,7 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
         this.methodMenu = undefined;
         this.bodyLanguageMenu = undefined;
         this.methodButton = undefined; this.urlInput = undefined; this.sendButton = undefined;
+        this.bodyContent = undefined;
     }
 
     private readonly sync = (state: RequestBuilderState): void => {
@@ -169,6 +172,11 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
         this.sendButton?.update(this.sendProps());
         this.headersView?.update(this.headersViewProps(state));
         this.bodyTypeView?.update(this.bodyTypeProps());
+        // Load-bearing: `child()` registers ownership for disposal only, it does not
+        // propagate updates. Without this, `BodyContentView.sync()` never runs after mount,
+        // so the body panel stays frozen on whichever `bodyType` the file had when it was
+        // opened while the type control and language button both move (US-1186).
+        this.bodyContent?.update(this.bodyContentProps());
         this.syncHeaders(state);
         this.syncLanguage();
     };
@@ -207,6 +215,7 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
     private sendProps(): ButtonProps { return { name: "rest-send", variant: "primary", disabled: this.props.state.executing || !this.props.request.url, onClick: this.props.vm.sendRequest, children: this.props.state.executing ? "Sending..." : "Send" }; }
     private headersViewProps(state: RequestBuilderState = this.driver.model.state.get()): SegmentedControlProps { return { name: "headers-view", size: "sm", value: state.headersView, onChange: (value) => value === "json" ? this.switchToJsonView() : this.switchToTableView(), items: [{ value: "table", label: "Table" }, { value: "json", label: "JSON" }] }; }
     private bodyTypeProps(): SegmentedControlProps { return { name: "body-type-select", size: "sm", value: this.props.request.bodyType, onChange: (value) => this.props.vm.updateBodyType(this.props.request.id, value as BodyType), items: BODY_TYPES.map(({ type, label }) => ({ value: type, label })) }; }
+    private bodyContentProps(): BodyContentProps { return { vm: this.props.vm, request: this.props.request, onMonacoChange: this.handleMonacoBodyChange }; }
     private headersCopyProps(): IconButtonProps { return { name: "headers-copy", size: "sm", icon: "copy", title: "Copy headers as JSON", onClick: this.copyHeaders }; }
 
     private syncHeaders(state: RequestBuilderState): void {

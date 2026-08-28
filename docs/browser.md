@@ -195,7 +195,7 @@ Click the **"Open Links" button** on the toolbar to open a sliding bookmarks pan
 - **Right-click a bookmark** for a context menu: **Open in New Tab**, Edit, Open in Default Browser, browser profiles, Open in Incognito, Copy URL, Pin/Unpin, Delete
 - **Hover a link** to see a rich tooltip with title, URL, and thumbnail image
 - Drawer closes automatically after clicking a link
-- Resizable width; Collections/Tags/Hostnames panels on the left side of the drawer
+- Opens at a usable width the first time and can be resized; Collections/Tags/Hostnames panels are on the left side of the drawer
 - Press `Escape` to close
 
 ### Context Menu Bookmarking

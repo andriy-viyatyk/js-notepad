@@ -23,6 +23,7 @@ class ToolbarDemoView extends VanillaView<ToolbarProps> {
     private spacerView: SpacerView | undefined;
     private segmentedView: SegmentedControlView | undefined;
     private saveIcon: IconRef | undefined;
+    private contents: Node[] | undefined;
     private picked = "default";
 
     public constructor(props: ToolbarProps) {
@@ -41,13 +42,19 @@ class ToolbarDemoView extends VanillaView<ToolbarProps> {
         this.iconButtonView = this.child(new IconButtonView(this.iconButtonProps()));
         this.spacerView = this.child(new SpacerView(this.spacerProps()));
         this.segmentedView = this.child(new SegmentedControlView(this.segmentedProps(this.props.background)));
-        toolbarView.root.append(
+        // Handed to ToolbarView as `children` rather than appended into its root.
+        // `ToolbarView.onUpdate` calls `fillSlot(this.root, props.children)`, and `fillSlot`
+        // starts with an unconditional `replaceChildren()` — so anything appended directly is
+        // wiped by the first prop change. Appending looked correct only because mount's
+        // fillSlot runs before the append and nothing had updated yet (US-1187).
+        this.contents = [
             this.demoLabel,
             this.buttonView.root,
             this.iconButtonView.root,
             this.spacerView.root,
             this.segmentedView.root,
-        );
+        ];
+        toolbarView.update(this.toolbarProps(this.props));
         this.buttonView.mount();
         this.iconButtonView.mount();
         this.spacerView.mount();
@@ -65,7 +72,9 @@ class ToolbarDemoView extends VanillaView<ToolbarProps> {
     private toolbarProps(props: ToolbarProps): ToolbarProps {
         return {
             ...props,
-            children: null,
+            // `null` until onMount has built the four child views. Re-passing the same stable
+            // nodes on every update is what fillSlot expects; it re-appends them in order.
+            children: this.contents ?? null,
         };
     }
 

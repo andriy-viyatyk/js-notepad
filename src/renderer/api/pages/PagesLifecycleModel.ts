@@ -25,6 +25,8 @@ import type { BoardEditorModel } from "../../editors/board";
 import type { HubTab } from "../../editors/tools-hub";
 import { PageModel } from "./PageModel";
 import { navigatePageTo, type NavigatePageToOptions } from "./PageNavigator";
+import { guard } from "../../core/utils/guard";
+import { fpBasename } from "../../core/utils/file-path";
 
 import type { ILink } from "../../api/types/io.tree";
 import { buildLinkEditorContent } from "../../editors/link-editor/link-open";
@@ -377,7 +379,19 @@ export class PagesLifecycleModel {
             return existingPage;
         }
 
-        const editor = await this.createEditorFromFile(filePath, pipe, options?.target);
+        // A failed editor-module load rejects out of `createEditorFromFile`, and every
+        // caller here reaches it from a user action (explorer click, link, drop). Left
+        // unguarded the rejection escaped into an un-awaited promise and the click did
+        // nothing at all — US-1163's shape, one path over. `undefined` is already this
+        // method's "did not open" answer, so no caller changes.
+        const editor = await guard(`Failed to open ${fpBasename(filePath)}`, () =>
+            this.createEditorFromFile(filePath, pipe, options?.target));
+        if (!editor) {
+            // `createEditorFromFile` assigns the pipe to the editor it builds; that
+            // editor is being discarded, so the pipe would otherwise leak.
+            pipe?.dispose();
+            return undefined;
+        }
         if (options?.sourceLink) {
             editor.state.update((s) => { s.sourceLink = options.sourceLink; });
         }
@@ -507,14 +521,20 @@ export class PagesLifecycleModel {
         let existingFirst = this.model.query.findPageByFilePath(firstPath);
         let existingSecond = this.model.query.findPageByFilePath(secondPath);
 
+        // Either side can fail to build; report and abort rather than grouping a
+        // half-built comparison (US-1163's shape).
         if (!existingFirst) {
             const pipe = this.createPipeFromPath(firstPath);
-            const editor = await this.createEditorFromFile(firstPath, pipe);
+            const editor = await guard(`Failed to open ${fpBasename(firstPath)}`, () =>
+                this.createEditorFromFile(firstPath, pipe));
+            if (!editor) { pipe?.dispose(); return; }
             existingFirst = this.addPage(wrap(editor));
         }
         if (!existingSecond) {
             const pipe = this.createPipeFromPath(secondPath);
-            const editor = await this.createEditorFromFile(secondPath, pipe);
+            const editor = await guard(`Failed to open ${fpBasename(secondPath)}`, () =>
+                this.createEditorFromFile(secondPath, pipe));
+            if (!editor) { pipe?.dispose(); return; }
             existingSecond = this.addPage(wrap(editor));
         }
 
@@ -733,27 +753,40 @@ export class PagesLifecycleModel {
     /** Create a no-host editor by registry id on a (possibly fixed-id) page.
      *  `addPage` dedupes by page id, so a second call with the same fixed id
      *  focuses the existing singleton instead of duplicating it. */
+    /**
+     * Open a standalone editor page, reporting a failed module load to the user.
+     *
+     * `createEditor` loads the editor module before it can build the model, so a
+     * module that fails to load rejects *here* — before `AsyncEditorView` exists to
+     * show the error. Without the guard the rejection escaped into every caller's
+     * un-awaited promise and the user got no page, no message and nothing logged:
+     * clicking the entry simply did nothing (US-1163). Returns `undefined` on
+     * failure, so callers that use the page must check it.
+     */
     private showEditorPage = async (
         editorId: string,
-        pageId?: string,
-    ): Promise<PageModel> => {
-        const model = await editorRegistry.createEditor(editorId);
-        return this.addPage(model, pageId ? new PageModel(pageId) : undefined);
-    };
+        pageId?: string | (() => Promise<string>),
+    ): Promise<PageModel | undefined> =>
+        guard(`Failed to open "${editorId}"`, async () => {
+            // Resolved inside the guard on purpose: each caller's page-id constant
+            // comes from the editor's own module, so that import fails for exactly
+            // the same reasons `createEditor` does — and it runs first. Guarding
+            // only `createEditor` would leave the dominant path silent.
+            const resolvedId = typeof pageId === "function" ? await pageId() : pageId;
+            const model = await editorRegistry.createEditor(editorId);
+            return this.addPage(model, resolvedId ? new PageModel(resolvedId) : undefined);
+        });
 
     showAboutPage = async (): Promise<void> => {
-        const { ABOUT_PAGE_ID } = await import("../../editors/about");
-        await this.showEditorPage("about-view", ABOUT_PAGE_ID);
+        await this.showEditorPage("about-view", async () => (await import("../../editors/about")).ABOUT_PAGE_ID);
     };
 
     showSettingsPage = async (): Promise<void> => {
-        const { SETTINGS_PAGE_ID } = await import("../../editors/settings");
-        await this.showEditorPage("settings-view", SETTINGS_PAGE_ID);
+        await this.showEditorPage("settings-view", async () => (await import("../../editors/settings")).SETTINGS_PAGE_ID);
     };
 
     showMnemeConfigPage = async (): Promise<void> => {
-        const { MNEME_CONFIG_PAGE_ID } = await import("../../editors/mneme-config");
-        await this.showEditorPage("mneme-config", MNEME_CONFIG_PAGE_ID);
+        await this.showEditorPage("mneme-config", async () => (await import("../../editors/mneme-config")).MNEME_CONFIG_PAGE_ID);
     };
 
     /** Browser opening lives in editors/browser/browser-pages.ts so this
@@ -790,16 +823,14 @@ export class PagesLifecycleModel {
     };
 
     showStorybookPage = async (): Promise<void> => {
-        const { STORYBOOK_PAGE_ID } = await import("../../editors/storybook");
-        await this.showEditorPage("storybook-view", STORYBOOK_PAGE_ID);
+        await this.showEditorPage("storybook-view", async () => (await import("../../editors/storybook")).STORYBOOK_PAGE_ID);
     };
 
     showToolsHubPage = async (opts?: { tab?: HubTab }): Promise<void> => {
-        const { TOOLS_HUB_PAGE_ID } = await import("../../editors/tools-hub");
         // showEditorPage dedupes by id → returns the existing hub page if already
         // open; set the tab on whichever editor actually ends up live (new or existing).
-        const result = await this.showEditorPage("tools-hub-view", TOOLS_HUB_PAGE_ID);
-        if (opts?.tab) {
+        const result = await this.showEditorPage("tools-hub-view", async () => (await import("../../editors/tools-hub")).TOOLS_HUB_PAGE_ID);
+        if (result && opts?.tab) {
             const editor = result.mainEditorInstance as unknown as { setTab?: (t: HubTab) => void };
             editor.setTab?.(opts.tab);
         }

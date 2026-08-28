@@ -21,7 +21,7 @@ import { openMenu, type MenuHandle } from "../../uikit/Menu/attach-menu";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
 import color from "../../theme/color";
 import { BrowserTabsPanelView } from "./BrowserTabsPanel";
-import { BookmarksDrawerView } from "./BookmarksDrawer";
+import { BookmarksDrawerView, type BookmarksDrawerProps } from "./BookmarksDrawer";
 import { TorStatusOverlayView } from "./TorStatusOverlay";
 import { UrlSuggestionsDropdownView } from "./UrlSuggestionsDropdown";
 import { DownloadButtonView } from "./DownloadButton";
@@ -465,8 +465,13 @@ export class BrowserEditorView extends VanillaView<{ model: BrowserEditor }> {
     private syncDrawer(state: BrowserEditorState): void {
         const bookmarks = this.model.tabs.bookmarks;
         if (!state.bookmarksReady || !bookmarks || !state.bookmarksOpen) { this.drawerView = undefined; this.drawerSwap.clear(); return; }
-        const props = { open: true, bookmarks, width: state.bookmarksWidth, onChangeWidth: (width: number) => this.model.state.update((s) => { s.bookmarksWidth = width; }), onClose: this.model.bookmarksUI.handleCloseBookmarks };
-        let created: BookmarksDrawerView | undefined; this.drawerSwap.set("drawer", () => { created = new BookmarksDrawerView(props); this.drawerView = created; return created; }); created?.mount(); this.drawerView?.update(props);
+        // Built fresh on each use rather than captured once: the drawer's own `sync()` recovers a
+        // zero width by calling `onChangeWidth` *during* `mount()`, so a props object captured
+        // before mount still says `width: 0` and the `update()` below would overwrite the recovery.
+        // `bookmarksWidth` defaults to 0, so that made the first open on any new browser page render
+        // a 0px-wide, invisible drawer that only a close-and-reopen fixed (US-1188).
+        const drawerProps = (): BookmarksDrawerProps => ({ open: true, bookmarks, width: this.model.state.get().bookmarksWidth, onChangeWidth: (width: number) => this.model.state.update((s) => { s.bookmarksWidth = width; }), onClose: this.model.bookmarksUI.handleCloseBookmarks });
+        let created: BookmarksDrawerView | undefined; this.drawerSwap.set("drawer", () => { created = new BookmarksDrawerView(drawerProps()); this.drawerView = created; return created; }); created?.mount(); this.drawerView?.update(drawerProps());
     }
     private syncSuggestions(state: BrowserEditorState): void {
         const items = this.model.urlBar.suggestionsItems; const open = state.suggestionsOpen && items.length > 0;

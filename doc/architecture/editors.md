@@ -84,6 +84,16 @@ All editors flow through the same path — there is no longer a content-view bra
 
 **Error protection:** `AsyncEditorView` catches native editor construction, mount, update, and module-load failures and displays `NativeEditorErrorView` with the error message and optional stack.
 
+There are two distinct module-load boundaries on the file-open path. Standalone (no-host)
+editors load their `newEditorModel(filePath)` implementation while `buildEditorById` is
+constructing the model; user-action callers that own a transient content pipe must guard that
+operation and dispose the pipe when construction is abandoned. Text-bearing/content-host editors
+are different: their synchronous attach step constructs from the registry's warmed module cache,
+while the native editor `View` is loaded and mounted later by `AsyncEditorView`. A registry-cache
+miss can therefore fail during synchronous `attachEditorToPage`, while a later view-module failure
+is reported by the native error host. A guard around `createEditorFromFile` cannot be treated as
+coverage for either later boundary; each caller or view owner must handle the boundary it owns.
+
 The graph, rest-client, env-vars, and file-diff editor bodies are native `VanillaView`s. The draw
 editor is native around its vendor boundary: `DrawBodyView` owns the chrome, model bindings, and
 teardown, while `ExcalidrawIsland.tsx` is the named React island required by the Excalidraw

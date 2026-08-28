@@ -7,6 +7,8 @@ import { editorRegistry } from "./editorRegistry";
 import { parseBoardEditorId, customEditorRegistry } from "../board/custom-editor-registry";
 import { BOARD_INFO_EDITOR_ID } from "../board-info/board-info-id";
 import type { PageModel } from "../../api/pages/PageModel";
+import { guard } from "../../core/utils/guard";
+import { fpBasename } from "../../core/utils/file-path";
 
 // ============================================================================
 // editor-switch — the switch-widget "open this file in editor X" transition.
@@ -30,11 +32,13 @@ async function rebuildEditorOverFile(
     if (!released) return; // Cancel → stay on the current editor
     const { pagesModel } = await import("../../api/pages");
     const { attachEditorToPage } = await import("../../api/pages/PagesLifecycleModel");
-    const built = await pagesModel.lifecycle.createEditorFromFile(
-        filePath,
-        undefined,
-        newEditorId,
-    );
+    // A failed module load for the target editor rejects here. Unguarded, the user
+    // answered the release prompt and then nothing happened at all (US-1163's shape).
+    // `confirmRelease` is a predicate and disposes nothing, so aborting leaves the
+    // existing editor installed and usable — the toast explains why it stayed.
+    const built = await guard(`Failed to open ${fpBasename(filePath)}`, () =>
+        pagesModel.lifecycle.createEditorFromFile(filePath, undefined, newEditorId));
+    if (!built) return;
     if (
         built.state.get().type === "textFile"
         && parseBoardEditorId(newEditorId) === null

@@ -358,13 +358,22 @@ Some pages are **singletons** — they should exist as a single instance and be 
 | `mcp-ui-log` | `log-view` | MCP `ui_push` log — shared between MCP handler and script execution |
 | `mcp-server-log` | `log-view` | MCP server incoming request log — logs every incoming MCP command with method, params, result, error, duration. Capped at 200 entries. Opened by clicking the MCP indicator in the title bar. |
 
-### Pre-existing singleton pages
+### Standalone singleton pages
 
-About and Settings pages use a similar pattern with hardcoded IDs directly in their modules:
+About, Settings, Mneme Config, Storybook, and Tools & Editors pages use a similar pattern with
+hardcoded IDs directly in their modules:
 - `ABOUT_PAGE_ID = "about-page"` in `AboutPage.ts`
 - `SETTINGS_PAGE_ID = "settings-page"` in `SettingsPage.ts`
 
-These work as singletons through the same `addPage()` deduplication — each `showXPage()` method builds its editor via `editorRegistry.createEditor(id)` and attaches it to a `PageModel` constructed with the fixed page ID.
+These work as singletons through the same `addPage()` deduplication. Each `showXPage()` method
+passes a lazy page-ID loader to the lifecycle model, which resolves it and constructs the editor
+inside one `guard(...)` call. This keeps failures in either the editor module import or
+`editorRegistry.createEditor()` on the same user-visible failure path. A failed standalone open
+therefore leaves the page list unchanged and reports the failure as a notification; the helper's
+result is `undefined` in that case, so callers must check before using the page.
+
+The page-ID loader is intentional: the ID constant often lives in the same lazily loaded module as
+the editor, and importing it before entering the guard would leave that first failure unreported.
 
 ### When to use well-known pages
 

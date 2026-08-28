@@ -196,6 +196,8 @@ The right panel shows the contents of the selected folder:
 | About | Opens the About page (version info, update check) |
 | Settings | Opens the Settings page (themes, preferences) |
 
+If a standalone page cannot be opened because its editor fails to load, Persephone reports the failure with an error notification instead of silently doing nothing.
+
 ### Tools & Editors
 
 The **Tools & Editors** entry appears between Recent Files and Script Library. It opens as a slide-out panel with a **Pinned** rail at the top and a row of tabs below it:

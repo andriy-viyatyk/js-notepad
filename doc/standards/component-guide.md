@@ -36,6 +36,17 @@ call `mount()` exactly once before inserting or returning its root; and a conver
 sets `display` needs a same-layer `<root-selector>[hidden] { display: none; }` counter-rule so
 `.hidden = ...` remains effective. The full lifecycle and styling details live in `uikit/CLAUDE.md`.
 
+When a parent composes a dynamic native child, `child()` establishes ownership only; it does not
+forward later model or prop changes. Retain children whose rendered output can change and update
+each of them from current state in the parent's `sync()`/`onUpdate()` path. Reviewing the update
+calls for sibling asymmetry is a useful check; an unretained local child by itself is not evidence
+of a defect when its props are static or it is held in another collection.
+
+Views that expose a native `children` slot own that host. Pass the child nodes through the slot and
+retain stable nodes when the slot may be refilled; do not append directly into the other view's
+root. A slot implementation may replace all direct children during an update, which would remove
+anything appended behind its contract.
+
 The icon registry is the neutral boundary for reusable components. `IconName` is derived from the
 single registry record in `src/renderer/theme/icon-registry.ts`. Use
 `createIconElement(name, props?)` for a registry icon. For an icon component that is not in the

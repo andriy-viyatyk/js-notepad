@@ -368,6 +368,10 @@ conversion complete, inspect the original JSX and exercise each interaction path
   JSX. Use root adoption or `display: contents` where a wrapper would break a flex chain, and set
   `min-height: 0` on nested flex panels that must shrink. A view that measures its own root must
   retain a real box instead; `display: contents` has no box for `ResizeObserver` or geometry reads.
+- **Repeat fill layout on `display: contents` branches.** A `display: contents` wrapper cannot be
+  a flex item, so every mutually exclusive child branch that must fill the host must carry its own
+  `flex: 1` and `min-height: 0`. Do not put the declaration only on the wrapper or on one branch;
+  the missing branch is the one that will collapse when it renders.
 - **Make teardown order explicit.** Capture state from an owner while child views are still ready;
   do not reach through a child during `onDispose`. Clear ownership/bookkeeping before teardown that
   may throw, and contain or report child failures so one cell cannot abort the enclosing paint.

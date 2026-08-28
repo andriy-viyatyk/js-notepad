@@ -40,6 +40,16 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Git change lists now fill and resize with the panel** — With many changed files, the **Unstaged** list could leave empty space below it, and the splitter between the **Unstaged** and **Staged** lists could move down but not back up. The lists now fill their panes, and dragging the splitter in either direction makes them grow or shrink with the available space. Content that exceeds a panel's bounds now stays inside the panel and scrolls instead of spilling outside.
 
+- **Editor failures now report an error** — If a built-in editor cannot load, Persephone now shows an error notification instead of silently opening nothing. This applies to standalone pages such as About, Settings, Mneme configuration, Storybook, and Tools & Editors, as well as files opened from File Explorer, clicked links, drag-and-drop, or either side of a comparison; file errors name the file and the app continues running.
+
+- **Environment Variables error states use the full editor area** — When an encrypted environment-variables file is locked or the file is invalid, the message is centred in the available editor space and the footer stays at the bottom of the window.
+
+- **Markdown checklists no longer break into narrow columns** — Checklist items now keep their text in normal inline flow, including entries containing bold, italic, or code formatting, while the checkbox remains in the list gutter.
+
+- **Rest Client body choices update immediately** — Changing a request's **BODY** type (none, form-data, x-www-form-urlencoded, raw, or binary) used to leave the body area showing the type selected when the request was opened, so a new request could stay stuck on "This request has no body." The body area now switches immediately, including the raw editor.
+
+- **The Browser bookmarks drawer opens at a usable width** — The first time you opened the bookmarks drawer on a newly opened browser page, it could appear as a zero-width sliver and be effectively invisible. It now opens at a usable width the first time.
+
 ---
 
 ## Version 4.0.22

@@ -380,6 +380,7 @@ views. Do not register a replaced record view with `this.child()`.
 - [ ] Row added to the `EDITORS` table in `register-editors.ts`; matcher added to `EDITOR_MATCHERS` in `editor-matchers.ts` if the editor matches files/languages
 - [ ] The row's `load` keeps a literal `import("./…")` — preserves code splitting
 - [ ] Error states and loading states are handled in the native `View` (`AsyncEditorView` supplies the shared loading and native error host)
+- [ ] File-open failures are covered at the correct boundary: guard standalone `newEditorModel(filePath)` calls and dispose any abandoned transient pipe; handle synchronous content-host attach failures and rely on the native error host for the later `View` module load
 - [ ] (Optional) Scripting facade added with type declaration
 
 ## Examples

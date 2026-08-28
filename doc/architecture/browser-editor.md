@@ -34,6 +34,15 @@ implementation and resource cleanup live in the relevant sub-model. Views read
 tab-scoped data through `model.tabs` and the browser page still exposes the same
 facade and IPC contracts.
 
+### Browser toolbar order
+
+`BrowserToolbarView` spells out its left-to-right DOM order in one append operation:
+Home, Back, Forward, Reload, URL bar, Bookmarks, Tor info, Downloads, Page Menu, DevTools,
+and Close Tab. The `controls` array may retain a different construction/index order because
+`sync()` updates those views positionally; changing the visual order must not silently change
+those indexes. The Tor-info control remains in the DOM when Tor is inactive but is hidden and
+zero-sized, preserving the same layout contract in both modes.
+
 ### Tab Reordering
 
 Internal browser tabs support drag-and-drop reordering through native HTML5 drag events and the shared trait system. Each tab in `BrowserTabsPanelView` carries the `BrowserTab` trait; on drop, `BrowserTabsModel.moveTab(fromId, toId)` splices the tab from its source position and inserts it at the target position. Since webviews are rendered through `PageManagerView` with stable native DOM placeholders, reordering the `state.tabs` array doesn't cause webview reloads. If a tab is dragged into a different group (see Tab Grouping below), it receives a new group ID.
@@ -681,6 +690,9 @@ A right-anchored native overlay that renders the Link Editor with Categories/Tag
 
 - Initial width = 60% of browser page, max 90%, resizable via Splitter
 - Width persisted in component state
+- The parent builds drawer props at use time. The drawer may recover a zero initial width during
+  `mount()` by writing the measured width back to browser state, so a post-mount update must read
+  the current state rather than reuse a pre-mount props snapshot.
 - Portal refs passed via `LinkEditorProps` (`toolbarRefFirst`, `toolbarRefLast`, `footerRefLast`) — each consumer provides its own portal targets so multiple LinkEditor instances don't conflict
 - Closes on Escape, backdrop click, or link click navigation
 
