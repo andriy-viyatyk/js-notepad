@@ -6,12 +6,11 @@ import type { IListBoxItem } from "../../uikit/ListBox/types";
 import { TComponentState } from "../../core/state/state";
 import { fs } from "../../api/fs";
 import { parseObject } from "../../core/utils/parse-utils";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 import { libraryService, ScriptPanelEntry } from "../../api/library-service";
 import { settings } from "../../api/settings";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
 
-const nodefs = require("fs") as typeof import("fs");
 import { fpJoin } from "../../core/utils/file-path";
 
 export interface ScriptPanelState {
@@ -197,7 +196,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
     };
 
     /** Select a library script (loads file content) or switch back to ad-hoc (null). */
-    selectScript = (dropdown: ScriptDropdownEntry | null) => {
+    selectScript = async (dropdown: ScriptDropdownEntry | null) => {
         if (!dropdown || !dropdown.entry) {
             // Switch to ad-hoc — always enable save (acts as "save as")
             this.state.update((s) => {
@@ -209,7 +208,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
 
         const entry = dropdown.entry;
         try {
-            const content = nodefs.readFileSync(entry.path, "utf-8");
+            const content = await fs.read(entry.path, "utf-8");
             this.state.update((s) => {
                 s.content = content;
                 s.selectedScript = entry.path;
@@ -235,11 +234,11 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         if (state.selectedScript) {
             // Selected library script — overwrite directly
             try {
-                nodefs.writeFileSync(state.selectedScript, state.content, "utf-8");
+                await fs.write(state.selectedScript, state.content, "utf-8");
                 this.state.update((s) => { s.dirty = false; });
             } catch (err) {
                 const { ui } = await import("../../api/ui");
-                ui.notify(`Failed to save script: ${err.message}`, "error");
+                ui.notify(`Failed to save script: ${errMessage(err)}`, "error");
             }
             return;
         }
@@ -268,12 +267,12 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         const filePath = fpJoin(scriptPanelDir, scriptName + ".ts");
 
         // Create folder if needed
-        if (!nodefs.existsSync(scriptPanelDir)) {
-            nodefs.mkdirSync(scriptPanelDir, { recursive: true });
+        if (!(await fs.exists(scriptPanelDir))) {
+            await fs.mkdir(scriptPanelDir);
         }
 
         // Check if file already exists
-        if (nodefs.existsSync(filePath)) {
+        if (await fs.exists(filePath)) {
             const { showConfirmationDialog } = await import("../../ui/dialogs/ConfirmationDialog");
             const confirmResult = await showConfirmationDialog({
                 message: `Script "${scriptName}" already exists in "${folder}/". Overwrite?`,
@@ -285,14 +284,14 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         }
 
         try {
-            nodefs.writeFileSync(filePath, state.content, "utf-8");
+            await fs.write(filePath, state.content, "utf-8");
             this.state.update((s) => {
                 s.selectedScript = filePath;
                 s.dirty = false;
             });
         } catch (err) {
             const { ui } = await import("../../api/ui");
-            ui.notify(`Failed to save script: ${err.message}`, "error");
+            ui.notify(`Failed to save script: ${errMessage(err)}`, "error");
         }
     };
 
@@ -311,7 +310,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         const scriptPanelDir = libraryPath ? fpJoin(libraryPath, "script-panel") : "";
         const { selectedScript } = this.state.get();
 
-        if (selectedScript && nodefs.existsSync(selectedScript)) {
+        if (selectedScript && await fs.exists(selectedScript)) {
             const page = await pagesModel.openFile(selectedScript);
             if (page && scriptPanelDir) {
                 const { ExplorerEditor, getDefaultExplorerEditorState } =

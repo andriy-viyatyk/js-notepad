@@ -17,6 +17,7 @@ import { app, ipcMain, WebContents } from "electron";
 import {
     SearchChannel,
     SearchRequest,
+    SearchCancel,
     SearchResultBatch,
     SearchProgress,
     SearchComplete,
@@ -161,7 +162,14 @@ export function initSearchHandlers(): void {
         worker.postMessage({ type: "search", request });
     });
 
-    ipcMain.on(SearchChannel.cancel, (event) => {
-        terminateSearch(event.sender.id);
+    // Scoped by search id, not by sender: a window runs one search at a time, but a view that
+    // was disposed after its search was replaced would otherwise terminate the *replacement*.
+    // A stale or unknown id is a silent no-op — it only means that search already ended.
+    // Optional-chained because a malformed message must not throw in the main process.
+    ipcMain.on(SearchChannel.cancel, (event, cancel: SearchCancel | undefined) => {
+        const active = activeSearches.get(event.sender.id);
+        if (cancel?.searchId && active?.searchId === cancel.searchId) {
+            terminateSearch(event.sender.id);
+        }
     });
 }

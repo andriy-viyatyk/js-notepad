@@ -264,7 +264,7 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Open folder in new panel** — Right-click any folder and choose **Open in New Panel** to open it in a new File Explorer tab alongside the current editor
 - **Open Terminal here** — Right-click any folder (including the tree's root) and choose **Open Terminal here** to launch a terminal window with that folder as its working directory. Windows only. See [Open Terminal here](#open-terminal-here) below for details and configuration.
 - **Auto-reveal current file** — When the Explorer panel is active (expanded), navigating to a file automatically expands its parent folders and scrolls the tree to show the file. When the Search panel is active instead, the file is highlighted in the tree without expanding folders.
-- **Search files by name** — Press `Ctrl+F` within the panel to search files by name (filters the tree to matching entries)
+- **Search files by name** — Press `Ctrl+F` within the panel to search files by name (filters the tree to matching entries). Clearing the search restores folders that were expanded before searching, including expansions restored when the panel was opened.
 - **Search in file contents** — Click the **Search** icon in the Explorer panel header to open a content-search panel scoped to the root folder. You can also right-click any folder in the tree and choose **Search in Folder** to search only within that folder.
   - Runs in the background, so the app stays responsive even while searching a large folder. Results stream in as they're found — no need to wait for the whole search to finish.
   - Results appear progressively in a collapsible "Search" panel below the Explorer tree, grouped by file with matched lines

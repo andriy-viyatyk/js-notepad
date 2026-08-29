@@ -368,6 +368,13 @@ class ColumnsOptionsContentView extends VanillaView<undefined> {
         outerPanel.append(headerPanel);
 
         const gridView = this.child(new DataGridView<EditColumnRow>(this.gridProps()));
+        // A definite height base. `[data-type="data-grid"]` is `flex: 1 1 auto`, so the host's
+        // basis is its *content* — and av-grid's own root is `height: 100%`, which cannot resolve
+        // against an indefinite parent. It therefore falls back to the scroll area's initial
+        // ~51px, the host grows to fill the popover around it, and the grid never re-measures:
+        // the popover looks right and the columns list is a sliver. `height: 0` makes the base
+        // definite while the inherited `flex-grow: 1` still fills the panel (US-1191).
+        gridView.root.style.height = "0";
         outerPanel.append(gridView.root);
         this.root.append(outerPanel);
         gridView.mount();

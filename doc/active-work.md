@@ -8,17 +8,21 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+Marker convention: `[ ]` = open · `[ ] **implemented**` = code is in and gated, awaiting a
+batched `/review`, `/document`, `/userdoc` pass · `[x]` = reviewed and done. Standalone tasks are
+reviewed in batches by user decision (2026-08-29), the same deferred model epics use.
+
 - *(no epic)*
   - [ ] [US-1131: Close the remaining gaps in the VanillaView lifecycle lint rules](tasks/US-1131-vanillaview-lint-gaps/README.md)
-  - [ ] [US-1109: A cleared DataGrid value can vanish silently](tasks/US-1109-datagrid-cleared-value/README.md)
-  - [ ] [US-1111: ScriptPanel bypasses app.fs with require("fs")](tasks/US-1111-scriptpanel-require-fs/README.md)
-  - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
-  - [ ] [US-1041: SearchChannel.cancel needs a search id](tasks/US-1041-search-cancel-id/README.md)
-  - [ ] [US-1039: Tree search clear does not restore expansion after a zero-match search](tasks/US-1039-tree-search-clear-restore/README.md)
 
 ## Planned
 
-*(nothing scheduled — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
+- *(no epic)*
+  - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
+    — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29): the
+    De-React fallout is being cleared first.
+
+Recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md).
 
 ---
 

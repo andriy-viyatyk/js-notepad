@@ -153,6 +153,35 @@ written; the doc carries the research notes.
 
 ## Architecture Improvements
 
+### Two more callers of `getExpandedMap()` have US-1039's hint-only blind spot
+
+Surfaced by the `/review` pass on US-1039 (2026-08-29) and verified against source, but
+deliberately **not** fixed there — widening a batch under review defeats the point of reviewing it.
+
+`TreeModel.getExpandedMap()` returns `{ ...state.expanded }`, i.e. **explicit toggles only**. A tree
+whose expansion came from the `defaultExpandedValues` hint — every restored or freshly-built tree
+the user has not clicked in — reports an empty map. `buildTree` merges hint ∪ state to compensate
+(`TreeProviderViewModel.ts:310-327`) and US-1039 gave `setSearchText` the same treatment via
+`expandedResolver`. Two callers still take the raw map:
+
+1. **`getState()` (`:514`) — state persistence, and the more serious of the two.** It saves
+   `expandedPaths` from the raw map, so a tree restored from saved state and never clicked in would
+   persist an **empty** expansion, losing it on the next launch. Note the counter-evidence before
+   acting: repeated renderer reloads during US-1039 restored the full expansion every time, so
+   either `getState()` is not called on that path or something else repopulates it. **Establish
+   whether it actually fires before treating this as live** — it is a code-shape hazard with no
+   observed symptom yet.
+2. **`getExpandedPaths()` (`:685`) — shallow (1-2 character) search.** `filterTreeShallow` uses the
+   expanded-path set to decide what to show, so on a hint-only tree it behaves as though nothing is
+   expanded. This **matches an observation during US-1039**: a shallow search on a freshly reloaded
+   tree collapsed the view to the root. Likely live, and cheap to fix with the same resolver.
+
+The fix for both is the one already used twice: resolve through `expandedResolver` instead of
+reading `getExpandedMap()` directly. Worth doing together so the class is finished rather than
+three-quarters done — and worth considering whether `getExpandedMap()` itself should return the
+effective map, which would remove the trap instead of patching its fourth and fifth exits.
+
+
 ### A content-host editor's module failure is still a silent no-op
 
 US-1185 guarded the three silent `createEditorFromFile` call sites, but only **no-host** file editors

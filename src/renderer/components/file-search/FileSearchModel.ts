@@ -11,6 +11,7 @@ import { debounce } from "../../../shared/utils";
 import {
     SearchChannel,
     SearchRequest,
+    SearchCancel,
     SearchResultBatch,
     SearchProgress,
     SearchComplete,
@@ -248,7 +249,8 @@ export class FileSearchModel {
     private cancelSearch = () => {
         if (this.disposed) return;
         if (this.currentSearchId) {
-            ipcRenderer.send(SearchChannel.cancel);
+            const cancel: SearchCancel = { searchId: this.currentSearchId };
+            ipcRenderer.send(SearchChannel.cancel, cancel);
             this.currentSearchId = null;
             this.state.update((s) => {
                 s.isSearching = false;
@@ -371,17 +373,18 @@ export class FileSearchModel {
 
     dispose = () => {
         if (this.disposed) return;
-        // Mark the model inert before the debounce or a stale input callback can call either
-        // path. SearchChannel.cancel has no search id and must never cancel another live view's
-        // search after this model has gone away.
+        const searchId = this.currentSearchId;
         this.disposed = true;
         this.currentSearchId = null;
-        // Deliberately NOT calling cancelSearch(): the main process cancels by
-        // `event.sender.id` (`main/search-service.ts:164-166`), i.e. per window rather than per
-        // search, so a cancel sent from a disposed view would terminate whatever search that window
-        // is currently running — possibly another view's. The cost is that this view's worker runs
-        // to completion. Cancelling precisely would need the cancel message to carry a search id;
-        // tracked as US-1041.
+        // Cancel carries this view's own search id (US-1041), so disposal can stop its worker
+        // instead of letting it walk a tree nobody is watching. Safe even if another view has
+        // since replaced this search: the main process compares ids and no-ops on a mismatch.
+        // Sent directly rather than through cancelSearch(), which early-returns once disposed
+        // and would touch state a disposed model must leave alone.
+        if (searchId) {
+            const cancel: SearchCancel = { searchId };
+            ipcRenderer.send(SearchChannel.cancel, cancel);
+        }
         this.ipcListeners.forEach(({ channel, handler }) => {
             ipcRenderer.removeListener(channel, handler);
         });

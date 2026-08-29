@@ -85,6 +85,13 @@ const CALLBACK_KEY_SET: ReadonlySet<string> = new Set<string>(CALLBACK_KEYS);
  */
 const INITIAL_ONLY_KEYS: ReadonlySet<string> = new Set<string>(["selected", "onGrid"]);
 
+/**
+ * Stands in for an invalidated key's previous value. A module-private `Symbol` is used because it
+ * cannot equal any prop a consumer supplies, so every retained key is guaranteed to differ from
+ * whatever the next owner passes — or from `undefined` when the next owner passes nothing.
+ */
+const INVALIDATED_VALUE = Symbol("DataGridView invalidated value");
+
 export class DataGridView<R = any> extends VanillaView<DataGridProps<R>> {
     /** The live instance, or `undefined` before mount and after dispose. */
     grid: DataGridInstance<R> | undefined;
@@ -197,11 +204,14 @@ export class DataGridView<R = any> extends VanillaView<DataGridProps<R>> {
 
     /**
      * Forget the previous occupant's value baseline before a recycled host is re-pointed.
-     * Equality against that invisible occupant is not meaningful: the next update must push
-     * every value the new owner supplies, including equal-looking rows or columns.
+     * Equality against that invisible occupant is not meaningful: the next update must push every
+     * value the new owner supplies, including equal-looking rows or columns. Retaining the keys
+     * also makes an omitted value-tier option an explicit clear for the new owner.
      */
     invalidatePushed(): void {
-        this.pushed = {};
+        this.pushed = Object.fromEntries(
+            Object.keys(this.pushed).map((key) => [key, INVALIDATED_VALUE]),
+        );
     }
 
     protected onDispose(): void {

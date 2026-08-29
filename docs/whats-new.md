@@ -36,6 +36,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Grid search now clears completely** — Emptying the toolbar search could leave the grid filtered by the last search term. Clearing it now restores all rows immediately.
 
+- **The Edit Columns popover now shows the full grid** — The column-management popover could show its grid as a narrow sliver, making the list of columns difficult to use. It now fills the available popover area so you can see and edit the column options normally.
+
+- **File Explorer search restores expanded folders** — Clearing a tree search could leave folders collapsed when their expansion had been restored from saved state. Clearing the search now brings those previously expanded folders back.
+
 - **Script panels over Grid editors stay usable** — The script panel now appears the first time you open it, and dragging its splitter keeps both the panel and the grid visible and accessible as either side grows or shrinks.
 
 - **Git change lists now fill and resize with the panel** — With many changed files, the **Unstaged** list could leave empty space below it, and the splitter between the **Unstaged** and **Staged** lists could move down but not back up. The lists now fill their panes, and dragging the splitter in either direction makes them grow or shrink with the available space. Content that exceeds a panel's bounds now stays inside the panel and scrolls instead of spilling outside.

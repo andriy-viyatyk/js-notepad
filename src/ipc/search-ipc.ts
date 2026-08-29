@@ -38,6 +38,10 @@ export interface SearchRequest {
     excludePatterns: string[];
 }
 
+export interface SearchCancel {
+    searchId: string;
+}
+
 // One matched file within a batch
 export interface SearchFileResult {
     filePath: string;        // absolute path

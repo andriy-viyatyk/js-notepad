@@ -69,12 +69,10 @@ function gridProps(props: GridBodyViewProps, onGrid: DataGridProps["onGrid"]): D
         rows,
         getRowKey,
         rowNoun: "row",
-        // `state.search` verbatim, NOT `|| undefined`: an empty box is the value "no search", not
-        // an absent option. `DataGridView.collectValues` drops `undefined` entries, and
-        // `updateDataGrid` calls `invalidatePushed()` first, so a cleared box would appear in
-        // neither the old baseline nor the new values — the delta would omit `searchString`
-        // entirely, `AVGrid.setOptions` would never see the key, and the grid would stay filtered
-        // on the last non-empty term. Typing hid it: a non-empty value is always present.
+        // `state.search` verbatim: the empty string is the value "no search", not an absent
+        // option. US-1109 removed the trap that made this load-bearing — `invalidatePushed()`
+        // now retains its key set, so a cleared option is representable either way — but the
+        // semantic reason stands on its own.
         searchString: state.search,
         highlightString: editorConfig?.highlightText,
         filters: state.filters,
@@ -98,6 +96,10 @@ function gridProps(props: GridBodyViewProps, onGrid: DataGridProps["onGrid"]): D
         onVisibleRowsChange: model.onVisibleRowsChange,
         onGetOptions: model.onGetOptions,
         onGridContextMenu: showGridContextMenu,
+        // Conditional, so an embedded-to-non-embedded repoint now pushes `growToHeight:
+        // undefined` after US-1109. That is inert: av-grid's `setOptions` forwards only
+        // className/rowHeight/fitToWidth/overscan*/whiteSpaceY to its render layer, so a late
+        // growToHeight never reaches the object that sizes the grid.
         growToHeight: maxEditorHeight !== undefined
             ? `${maxEditorHeight}px`
             : undefined,

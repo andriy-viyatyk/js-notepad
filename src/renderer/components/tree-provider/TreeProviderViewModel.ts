@@ -611,10 +611,26 @@ export class TreeProviderViewModel extends TComponentModel<
         if (wasDeep !== isDeep) {
             keyDelta = 1;
             if (isDeep) {
-                const map = this.treeModel?.getExpandedMap() ?? {};
-                this.savedExpandMap = Object.fromEntries(
-                    Object.entries(map).map(([k, v]) => [String(k), v as boolean]),
+                // Capture the EFFECTIVE expansion, not just Tree's explicit toggles.
+                // `getExpandedMap()` returns only `state.expanded`, which is empty for a tree
+                // whose expansion came from the `initialExpandMap` hint — i.e. every restored
+                // or freshly-built tree the user has not clicked in yet. Saving the raw map
+                // there stores `{}`, so clearing the search restores nothing and the tree
+                // collapses to its root (US-1039). `buildTree` already merges the two the same
+                // way (`:310-327`); `expandedResolver` is that rule, so reuse it rather than
+                // restate it. Order matters: it reads `initialExpandMap`, which is cleared below.
+                const stateMap = Object.fromEntries(
+                    Object.entries(this.treeModel?.getExpandedMap() ?? {})
+                        .map(([k, v]) => [String(k), !!v]),
                 );
+                const isExpanded = this.expandedResolver(stateMap);
+                const keys = new Set<string>([
+                    ...Object.keys(stateMap),
+                    ...Object.keys(this.initialExpandMap ?? {}),
+                ]);
+                const effective: Record<string, boolean> = {};
+                for (const key of keys) effective[key] = isExpanded(key);
+                this.savedExpandMap = effective;
                 this.initialExpandMap = undefined;
             } else {
                 this.initialExpandMap = this.savedExpandMap ?? undefined;
