@@ -289,15 +289,21 @@ application-specific state.
 ## Binding and direct DOM work
 
 Use `bind(state, selector, apply)` for a state-to-DOM projection that must remain synchronized. The
-initial application is immediate and the callback is guarded after disposal. Do not use `bind` as
-a replacement for all DOM work: structure, input/event feedback, root attributes, focus, and
-layout-sensitive reads remain explicit view code. View fields hold DOM references; models receive
-view-owned refs through explicit commands or setters and never query the document.
+initial application is immediate and the callback is guarded after disposal. It returns an
+idempotent release handle; a binding to a fixed source may rely on the view's final cleanup, while
+a replaceable source must retain the handle and call it before binding the replacement. Release
+the old source first, then subscribe to the new one so the new source's current value is applied
+immediately. A callback should capture its source identity and ignore an already-dispatched
+notification from a source that has since been released. Repeatedly calling `bind()` for a changing
+source without releasing the prior handle stacks subscriptions.
 
-Use `bind()` only when the observed state source outlives the view. When the source object can
-change, keep the disposer in a replaceable field: unsubscribe the old source, subscribe to the new
-one, and immediately apply the new source's current value. Repeatedly calling `bind()` for a changing
-source stacks subscriptions because `own()` releases them only when the view is disposed.
+Selectors must read only the reactive state argument. Do not reach through the model to a lazy
+getter or a directly-assigned field: those values are not dependencies observed by the state
+subscription. If a derived value is needed, derive it from the state snapshot in the selector (or
+use a helper that accepts that snapshot) so every reactive input participates in comparison. Do not
+use `bind` as a replacement for all DOM work: structure, input/event feedback, root attributes,
+focus, and layout-sensitive reads remain explicit view code. View fields hold DOM references; models
+receive view-owned refs through explicit commands or setters and never query the document.
 
 ```typescript
 protected onMount(): void {

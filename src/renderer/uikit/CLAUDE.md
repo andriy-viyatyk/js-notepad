@@ -401,9 +401,15 @@ exports from `uikit/index.ts`.
   order, then `onDispose()`. It attempts the complete cleanup snapshot and rethrows the first
   error afterward. Registration order is load-bearing. It makes the view inert but does not remove
   `root`; the adapter or structural helper that attached the root owns detachment.
-- `bind()` is legal from `onMount()` onward. It applies once immediately, then subscribes. Its
-  apply callback must tolerate the disposed view because a state notification may still visit a
-  listener removed during that same notification pass.
+- `bind()` is legal from `onMount()` onward. It applies once immediately, then subscribes, and
+  returns an idempotent release handle. A binding to a fixed state source may rely on final view
+  disposal; when the source can be replaced, retain the handle and release it before binding the
+  replacement. Capture the source identity in the apply callback and ignore a callback that was
+  already in flight when the handle was released. The selector must read only the reactive state
+  argument — never a lazy getter or directly-assigned model field — so every value it returns is a
+  dependency observed by the state subscription. The apply callback must tolerate the disposed
+  view because a state notification may still visit a listener removed during that same notification
+  pass.
 
 ### DOM, events, and state
 

@@ -12,6 +12,8 @@ export interface LinkTagsPanelProps {
 
 export class LinkTagsPanelView extends VanillaView<LinkTagsPanelProps> {
     private categoryList: CategoryListView | undefined;
+    private editorBinding: (() => void) | undefined;
+    private boundEditor: LinkEditor | undefined;
 
     public constructor(props: LinkTagsPanelProps) {
         super(props, createPanelElement({
@@ -29,15 +31,25 @@ export class LinkTagsPanelView extends VanillaView<LinkTagsPanelProps> {
         this.categoryList = categoryList;
         this.root.append(categoryList.root);
         categoryList.mount();
-        this.bind(
-            this.props.vm.state,
-            (state) => ({ tags: state.tags, selectedTag: state.selectedTag }),
-            this.updateCategoryList,
-        );
+        this.bindEditorState(this.props.vm);
     }
 
-    protected onUpdate(_props: LinkTagsPanelProps): void {
+    protected onUpdate(props: LinkTagsPanelProps): void {
+        if (props.vm !== this.boundEditor) this.bindEditorState(props.vm);
         this.categoryList?.update(this.categoryProps());
+    }
+
+    private bindEditorState(editor: LinkEditor): void {
+        this.editorBinding?.();
+        this.boundEditor = editor;
+        this.editorBinding = this.bind(
+            editor.state,
+            (state) => ({ tags: state.tags, selectedTag: state.selectedTag }),
+            () => {
+                if (this.boundEditor !== editor) return;
+                this.updateCategoryList();
+            },
+        );
     }
 
     protected onDispose(): void {

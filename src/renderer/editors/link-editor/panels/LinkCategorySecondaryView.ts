@@ -15,6 +15,10 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
     private categoryPanel: LinkCategoryPanelView | undefined;
     private saveButton: IconButtonView | undefined;
     private header: SideBarPanelHeaderHandle | undefined;
+    private pageBinding: (() => void) | undefined;
+    private hostBinding: (() => void) | undefined;
+    private boundPageState: NonNullable<LinkEditor["page"]>["state"] | undefined;
+    private boundHostState: NonNullable<LinkEditor["host"]>["state"] | undefined;
 
     public constructor(props: SecondaryViewProps) {
         super(props, createPanelElement({
@@ -53,12 +57,7 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
             title: "Collections",
         });
 
-        if (editor.page?.state) {
-            this.bind(editor.page.state, () => editor.isMain, () => this.updateHeader());
-        }
-        if (editor.host) {
-            this.bind(editor.host.state, (state) => state.modified, () => this.updateHeader());
-        }
+        this.syncHeaderBindings(editor, true);
         this.own(() => this.saveButton?.dispose());
         this.own(() => this.header?.dispose());
         this.updateHeader();
@@ -66,7 +65,9 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
 
     protected onUpdate(props: SecondaryViewProps): void {
         if (props.model instanceof LinkEditor) {
+            const editorChanged = props.model !== this.editor;
             this.editor = props.model;
+            this.syncHeaderBindings(props.model, editorChanged);
             this.categoryPanel?.update({ vm: props.model });
         }
         this.updateHeader();
@@ -77,6 +78,32 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
         this.saveButton = undefined;
         this.header = undefined;
         this.editor = undefined;
+    }
+
+    private syncHeaderBindings(editor: LinkEditor, force: boolean): void {
+        const pageState = editor.page?.state;
+        if (force || pageState !== this.boundPageState) {
+            this.pageBinding?.();
+            this.pageBinding = undefined;
+            this.boundPageState = pageState;
+            if (pageState) {
+                this.pageBinding = this.bind(pageState, () => editor.isMain, () => {
+                    if (this.editor === editor) this.updateHeader();
+                });
+            }
+        }
+
+        const hostState = editor.host?.state;
+        if (force || hostState !== this.boundHostState) {
+            this.hostBinding?.();
+            this.hostBinding = undefined;
+            this.boundHostState = hostState;
+            if (hostState) {
+                this.hostBinding = this.bind(hostState, (state) => state.modified, () => {
+                    if (this.editor === editor) this.updateHeader();
+                });
+            }
+        }
     }
 
     private readonly showMain = (): void => {

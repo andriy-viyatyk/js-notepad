@@ -26,6 +26,8 @@ type MnemeTreeState = Pick<
 export default class MnemeTreeSecondaryView extends VanillaView<SecondaryViewProps> {
     private mnemeModel: MnemeRootEditorModel;
     private readonly initialTreeState: TreeProviderViewSavedState | undefined;
+    private modelStateBinding: (() => void) | undefined;
+    private pageStateBinding: (() => void) | undefined;
     private closeButton: IconButtonView | undefined;
     private header: SideBarPanelHeaderHandle | undefined;
     private rootTag: TagView | undefined;
@@ -91,7 +93,8 @@ export default class MnemeTreeSecondaryView extends VanillaView<SecondaryViewPro
     }
 
     private bindModelState(model: MnemeRootEditorModel): void {
-        this.bind(
+        this.modelStateBinding?.();
+        this.modelStateBinding = this.bind(
             model.state,
             (state) => ({
                 rootName: state.rootName,
@@ -108,8 +111,10 @@ export default class MnemeTreeSecondaryView extends VanillaView<SecondaryViewPro
     }
 
     private bindPageState(model: MnemeRootEditorModel): void {
+        this.pageStateBinding?.();
+        this.pageStateBinding = undefined;
         if (!model.page?.state) return;
-        this.bind(
+        this.pageStateBinding = this.bind(
             model.page.state,
             () => model.isMain,
             () => {

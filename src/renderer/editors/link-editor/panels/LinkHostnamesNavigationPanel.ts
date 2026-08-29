@@ -30,6 +30,8 @@ export default class LinkHostnamesNavigationPanelView extends VanillaView<LinkEd
     private bottomHeight: number | undefined;
     private resizeObserver: ResizeObserver | undefined;
     private resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    private editorBinding: (() => void) | undefined;
+    private boundEditor: LinkEditor | undefined;
 
     public constructor(editor: LinkEditor) {
         super(editor, createPanelElement({
@@ -53,8 +55,21 @@ export default class LinkHostnamesNavigationPanelView extends VanillaView<LinkEd
         this.topPanel.append(this.categoryList.root);
         this.root.append(this.topPanel);
         this.categoryList.mount();
-        this.bind(
-            this.props.state,
+        this.bindEditorState(this.props);
+        this.installResizeObserver();
+    }
+
+    protected onUpdate(editor: LinkEditor): void {
+        if (editor !== this.boundEditor) this.bindEditorState(editor);
+        this.categoryList?.update(this.categoryProps());
+        this.applyState(this.snapshot(editor));
+    }
+
+    private bindEditorState(editor: LinkEditor): void {
+        this.editorBinding?.();
+        this.boundEditor = editor;
+        this.editorBinding = this.bind(
+            editor.state,
             (state) => ({
                 selectedHostname: state.selectedHostname,
                 links: state.data.links,
@@ -62,14 +77,11 @@ export default class LinkHostnamesNavigationPanelView extends VanillaView<LinkEd
                 allTags: state.tags,
                 hostnames: state.hostnames,
             }),
-            this.applyState,
+            (state) => {
+                if (this.boundEditor !== editor) return;
+                this.applyState(state);
+            },
         );
-        this.installResizeObserver();
-    }
-
-    protected onUpdate(editor: LinkEditor): void {
-        this.categoryList?.update(this.categoryProps());
-        this.applyState(this.snapshot(editor));
     }
 
     protected onDispose(): void {

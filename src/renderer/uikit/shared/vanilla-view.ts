@@ -148,6 +148,32 @@ export abstract class VanillaView<P> implements IOwnedView {
     }
 
     /**
+     * Register a cleanup that can also be released early, and return the
+     * release handle. Calling it runs the cleanup once and removes it from
+     * `disposers`, so a view that re-registers on every model change does not
+     * accumulate dead entries for its lifetime. The handle is idempotent, and
+     * `dispose()` snapshots and clears `disposers` before running them, so a
+     * release triggered during disposal safely finds nothing to remove.
+     *
+     * This is the owned-resource counterpart of `releaseChild()`. Its absence
+     * is what made US-1152: five secondary views re-bound to a replacement
+     * model with no way to drop the previous subscription.
+     */
+    private ownReleasable(dispose: Cleanup): Cleanup {
+        this.assertActive();
+        let released = false;
+        const release: Cleanup = () => {
+            if (released) return;
+            released = true;
+            const index = this.disposers.indexOf(release);
+            if (index !== -1) this.disposers.splice(index, 1);
+            dispose();
+        };
+        this.disposers.push(release);
+        return release;
+    }
+
+    /**
      * Add a typed DOM listener and register its matching removal operation.
      * The wrapper remains safe even if the browser has already captured the
      * handler in an event dispatch when dispose() removes it.
@@ -209,12 +235,22 @@ export abstract class VanillaView<P> implements IOwnedView {
      * this.bind(model.state, s => s.title, value => {
      *     this.titleElement.textContent = value;
      * });
+     *
+     * Returns a release handle. A view bound to a fixed model can ignore it —
+     * the binding is disposed with the view either way. A view whose model can
+     * be *replaced* must retain it and call it before binding the replacement,
+     * or the old model keeps invoking callbacks against the reused view.
+     *
+     * The selector must read only reactive state. A plain field reached through
+     * the model (a lazy getter, a directly-assigned property) is never observed:
+     * the selector re-runs on state dispatch, so nothing re-evaluates it when
+     * that field changes.
      */
     protected bind<T, R>(
         state: IState<T>,
         selector: (state: T) => R,
         apply: (value: R) => void,
-    ): void {
+    ): () => void {
         if (!this.mounted) {
             throw new Error("VanillaView.bind() must be called from mount() or later.");
         }
@@ -229,7 +265,7 @@ export abstract class VanillaView<P> implements IOwnedView {
 
         guardedApply(selector(state.get()));
         const unsubscribe = state.subscribe(guardedApply, selector);
-        this.own(unsubscribe);
+        return this.ownReleasable(unsubscribe);
     }
 
     /** Subclasses build child DOM and install bindings here. */

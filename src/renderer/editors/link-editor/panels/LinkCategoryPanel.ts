@@ -24,6 +24,8 @@ function selectedHref(editor: LinkEditor): string | undefined {
 
 export class LinkCategoryPanelView extends VanillaView<LinkCategoryPanelProps> {
     private treeProviderView: TreeProviderViewImpl | undefined;
+    private editorBinding: (() => void) | undefined;
+    private boundEditor: LinkEditor | undefined;
 
     public constructor(props: LinkCategoryPanelProps) {
         super(props, createPanelElement({
@@ -36,34 +38,55 @@ export class LinkCategoryPanelView extends VanillaView<LinkCategoryPanelProps> {
     }
 
     protected onMount(): void {
-        const provider = this.props.vm.treeProvider;
-        if (!provider) return;
+        this.bindEditorState(this.props.vm);
+        this.syncTree(this.props.vm);
+    }
 
-        const treeProviderView = this.child(new TreeProviderViewImpl(this.treeProps(provider)));
-        this.treeProviderView = treeProviderView;
-        this.root.append(treeProviderView.root);
-        treeProviderView.mount();
+    protected onUpdate(props: LinkCategoryPanelProps): void {
+        if (props.vm !== this.boundEditor) this.bindEditorState(props.vm);
+        this.syncTree(props.vm);
+    }
 
-        this.bind(
-            this.props.vm.state,
+    private bindEditorState(editor: LinkEditor): void {
+        this.editorBinding?.();
+        this.boundEditor = editor;
+        this.editorBinding = this.bind(
+            editor.state,
             (state) => ({
                 selectedLinkId: state.selectedLinkId,
                 selectedCategory: state.selectedCategory,
                 links: state.data.links,
             }),
-            this.updateTreeSelection,
+            () => {
+                if (this.boundEditor !== editor) return;
+                this.syncTree(editor);
+            },
         );
     }
 
-    protected onUpdate(props: LinkCategoryPanelProps): void {
-        const provider = props.vm.treeProvider;
-        if (provider) this.treeProviderView?.update(this.treeProps(provider));
+    private syncTree(editor: LinkEditor): void {
+        const provider = editor.treeProvider;
+        if (!provider) {
+            const treeProviderView = this.treeProviderView;
+            this.treeProviderView = undefined;
+            if (treeProviderView) this.releaseChild(treeProviderView);
+            return;
+        }
+
+        if (!this.treeProviderView) {
+            const treeProviderView = this.child(new TreeProviderViewImpl(this.treeProps(editor, provider)));
+            this.treeProviderView = treeProviderView;
+            this.root.append(treeProviderView.root);
+            treeProviderView.mount();
+            return;
+        }
+
+        this.treeProviderView.update(this.treeProps(editor, provider));
     }
 
-    private treeProps(provider: LinkEditor["treeProvider"]): ConstructorParameters<typeof TreeProviderViewImpl>[0] {
+    private treeProps(editor: LinkEditor, provider: LinkEditor["treeProvider"]): ConstructorParameters<typeof TreeProviderViewImpl>[0] {
         if (!provider) throw new Error("Link category tree provider is unavailable.");
 
-        const editor = this.props.vm;
         return {
             provider,
             showLinks: true,
@@ -114,15 +137,6 @@ export class LinkCategoryPanelView extends VanillaView<LinkCategoryPanelProps> {
         });
     };
 
-    private readonly updateTreeSelection = (): void => {
-        const tree = this.treeProviderView;
-        const provider = this.props.vm.treeProvider;
-        if (!tree || !provider) return;
-        tree.update({
-            ...this.treeProps(provider),
-            selectedHref: selectedHref(this.props.vm),
-        });
-    };
 }
 
 export const LinkCategoryPanel = LinkCategoryPanelView;

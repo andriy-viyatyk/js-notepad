@@ -34,6 +34,8 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
     private bottomHeight: number | undefined;
     private resizeObserver: ResizeObserver | undefined;
     private resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    private editorBinding: (() => void) | undefined;
+    private boundEditor: LinkEditor | undefined;
 
     public constructor(editor: LinkEditor) {
         super(editor, createPanelElement({
@@ -58,8 +60,22 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
         this.root.append(this.topPanel);
         this.categoryPanel.mount();
 
-        this.bind(
-            this.props.state,
+        this.bindEditorState(this.props);
+
+        this.installResizeObserver();
+    }
+
+    protected onUpdate(editor: LinkEditor): void {
+        if (editor !== this.boundEditor) this.bindEditorState(editor);
+        this.categoryPanel?.update({ vm: editor });
+        this.applyState(this.snapshot(editor));
+    }
+
+    private bindEditorState(editor: LinkEditor): void {
+        this.editorBinding?.();
+        this.boundEditor = editor;
+        this.editorBinding = this.bind(
+            editor.state,
             (state) => ({
                 selectedTag: state.selectedTag,
                 links: state.data.links,
@@ -67,15 +83,11 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
                 allTags: state.tags,
                 tags: state.tags,
             }),
-            this.applyState,
+            (state) => {
+                if (this.boundEditor !== editor) return;
+                this.applyState(state);
+            },
         );
-
-        this.installResizeObserver();
-    }
-
-    protected onUpdate(editor: LinkEditor): void {
-        this.categoryPanel?.update({ vm: editor });
-        this.applyState(this.snapshot(editor));
     }
 
     protected onDispose(): void {
