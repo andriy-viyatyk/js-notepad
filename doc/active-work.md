@@ -6,6 +6,14 @@ Overview of all active and planned epics and tasks.
 - Task details tracked in [`/doc/tasks/completed.md`](tasks/completed.md) after completion
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
+**Ongoing programme — post-De-React refactoring.** [`de-react-refactoring.md`](de-react-refactoring.md)
+is the high-level plan for the work that follows the De-React migration: ten proposals (R1–R10)
+covering the React-era shapes that survived the migration, plus vanilla-world patterns worth
+adopting. It is a **living plan**, not a task document — epics are cut from it one at a time and
+listed below. Suggested split: **Epic A** core contracts (R1, R3, R10.1-3) → **Epic B** the props
+pump (R2, R6, R10.4-6) → **Epic C** targeted fixes (R4, R5, R7, R8), with R9 standalone. Re-measure
+its figures when cutting an epic; the sweep behind them dates from 2026-08-29.
+
 ## Active
 
 Marker convention: `[ ]` = open · `[ ] **implemented**` = code is in and gated, awaiting a
@@ -15,6 +23,15 @@ reviewed in batches by user decision (2026-08-29), the same deferred model epics
 *(nothing in progress)*
 
 ## Planned
+
+- **EPIC-075** — [Post-De-React Epic A: core contracts](epics/EPIC-075.md)
+  - [ ] US-1192: Detox the settings sections — stop driving models through their internals
+  - [ ] US-1193: Delete the hooks-emulation surface from `TComponentModel`
+  - [ ] US-1194: Retire `isFirstUse` / `oldProps`
+  - [ ] US-1195: Extract `DisposableStore`; give models disposal parity
+  - [ ] US-1196: One event primitive — `Emitter<T>`, one teardown shape
+  - [ ] US-1197: `ownSubscription` — route every subscription through ownership
+  - [ ] US-1198: `core/utils/scheduling.ts` — named, disposable deferrals
 
 - *(no epic)*
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
