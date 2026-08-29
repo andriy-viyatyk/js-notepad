@@ -12,8 +12,7 @@ Marker convention: `[ ]` = open · `[ ] **implemented**` = code is in and gated,
 batched `/review`, `/document`, `/userdoc` pass · `[x]` = reviewed and done. Standalone tasks are
 reviewed in batches by user decision (2026-08-29), the same deferred model epics use.
 
-- *(no epic)*
-  - [ ] [US-1131: Close the remaining gaps in the VanillaView lifecycle lint rules](tasks/US-1131-vanillaview-lint-gaps/README.md)
+*(nothing in progress)*
 
 ## Planned
 
@@ -21,6 +20,12 @@ reviewed in batches by user decision (2026-08-29), the same deferred model epics
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
     — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29): the
     De-React fallout is being cleared first.
+  - [ ] [US-1131: Close the remaining gaps in the VanillaView lifecycle lint rules](tasks/US-1131-vanillaview-lint-gaps/README.md)
+    — tooling, not a defect: the guard itself shipped as US-1142 in EPIC-071 and this is the
+    residue. Deferred by user decision (2026-08-29). It now carries **five** clause candidates,
+    two with measured baselines — clause 3's 77-site sweep showing "not retained" is the wrong
+    detector, and clause 5's 0-vs-95 precision measurement — so it gets cheaper to land as the
+    evidence accumulates, but nothing depends on it.
 
 Recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md).
 
