@@ -249,8 +249,14 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
         return { items: audioItems, currentIndex };
     }
 
-    /** Play the next (or random) track from the source provider. */
-    async playNext(): Promise<void> {
+    /**
+     * Play the next (or random) track from the source provider.
+     *
+     * An arrow property, like every other handler this editor hands to its
+     * view: `VideoView` passes it unbound as both `onNext` and `onEnded`, and
+     * a prototype method loses its receiver there (US-1190).
+     */
+    playNext = async (): Promise<void> => {
         const result = await this.getSiblingTracks();
         if (!result || result.items.length <= 1) return;
 

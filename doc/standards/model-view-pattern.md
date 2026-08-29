@@ -139,6 +139,13 @@ type MyViewState = typeof defaultMyViewState;
 
 ### Step 2: Create Model Class
 
+Handlers that a model hands to a view as callbacks must be arrow properties, not prototype
+methods. A view commonly stores and invokes such a callback as a bare reference; a prototype
+method then loses its model receiver when it reads `this`. This is a recurring De-React conversion
+hazard: React's inline callback (`onNext={() => model.playNext()}`) preserves the receiver, while
+the equivalent native callback prop (`onNext: model.playNext`) does not. Keep value-producing
+getters as getters; this rule applies to methods used as callbacks.
+
 ```typescript
 interface MyViewProps {
     data: SomeData;

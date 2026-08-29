@@ -104,6 +104,34 @@ it. That is the argument for the lint clause over more documentation.
 pattern — `EditorModel.ts:210-214` documents `isMain` as deriving from page state and instructs
 views to subscribe to `editor.page?.state` for it. The rule must not fire on this shape.
 
+### (5) Bare callback references can lose their model receiver
+
+A class method handed to a view as a bare callback reference must be an arrow property. A
+prototype method loses its `this` receiver when the view later invokes the reference, while an
+inline React callback such as `onNext={() => model.playNext()}` hides that distinction during a
+De-React conversion. This is a candidate lint clause: baseline callback props and event/listener
+registrations first, then flag method references that require the owning instance to remain bound.
+The rule must allow intentional receiver-free callbacks and should focus on class methods passed
+across a model/view boundary rather than banning prototype methods categorically.
+
+**Baseline measured 2026-08-29, which settles the detector shape.** Two sweeps over
+`src/renderer`, resolving each referenced name against whether it is declared anywhere as an arrow
+property or only as a prototype method:
+
+- **Narrow** — a prop named `on[A-Z]*` assigned a bare `this.model.<prototype method>` reference:
+  **0** hits after the fix, and it would have found **exactly** US-1190 before it. Precision 1.0,
+  recall 1.0 on the only known instance.
+- **Widened** — *any* prop name, any receiver: **95** candidates, essentially all noise. They are
+  data properties whose names collide with some unrelated method elsewhere in the codebase
+  (`error`, `items`, `refs`, `status`, `rows`).
+
+**So the clause must key on the prop being callback-typed, not on the name of the referenced
+method.** Name-matching across the codebase is the wrong axis and produces a 95:1 noise ratio.
+The strongest available signal is the declared type of the prop being assigned — a function type
+in the target's props interface — with the `on[A-Z]*` naming convention as a cheap proxy that
+already achieves a clean baseline. This clause is therefore the **cheapest of the five to land**:
+zero existing violations, so it can be turned on as an error with no remediation backlog.
+
 ## Implementation plan
 
 1. Read the existing local plugin in `eslint.config.mjs` and the rule text in
