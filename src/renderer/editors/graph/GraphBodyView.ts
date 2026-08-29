@@ -440,6 +440,7 @@ class GraphContentView extends VanillaView<GraphContentProps> {
         this.expandAllButton.mount();
         this.clearButton.mount();
         this.searchInput.mount();
+        this.searchElement = this.searchInput.inputElement;
         this.detail.mount();
         this.legend.mount();
         this.sync(this.props);
@@ -534,7 +535,7 @@ class GraphContentView extends VanillaView<GraphContentProps> {
 
     private settingsProps(): IconButtonProps { return { name: "graph-settings", size: "sm", icon: "settings", active: this.props.bodyState.toolbarPanel === "settings", title: "Force tuning", onClick: () => undefined }; }
     private groupingProps(): IconButtonProps { return { name: "graph-toggle-grouping", size: "sm", icon: "graph-group", strikethrough: this.props.projection.groupingEnabled, disabled: !this.props.editor.hasGroups, title: this.props.projection.groupingEnabled ? "Disable grouping" : "Enable grouping", onClick: () => undefined }; }
-    private searchProps(): InputProps { return { name: "graph-search", ref: (element) => { this.searchElement = element; }, size: "sm", width: 130, placeholder: "Search nodes...", value: this.props.projection.searchQuery, onChange: (value) => this.props.editor.setSearchQuery(value), onKeyDown: this.handleSearchKeyDown, onFocus: () => { if ((this.props.editor.state.get().searchResults?.length ?? 0) > 0) this.props.setToolbarPanel("results"); }, endSlot: this.props.projection.searchQuery ? this.clearButton.root : undefined }; }
+    private searchProps(): InputProps { return { name: "graph-search", size: "sm", width: 130, placeholder: "Search nodes...", value: this.props.projection.searchQuery, onChange: (value) => this.props.editor.setSearchQuery(value), onKeyDown: this.handleSearchKeyDown, onFocus: () => { if ((this.props.editor.state.get().searchResults?.length ?? 0) > 0) this.props.setToolbarPanel("results"); }, endSlot: this.props.projection.searchQuery ? this.clearButton.root : undefined }; }
     private searchElement: HTMLInputElement | null = null;
 
     private detailProps(): GraphDetailPanelProps { return { nodes: this.props.projection.selectedNodes.filter((node) => !node.isGroup), linkedNodes: this.props.projection.linkedNodes, onUpdateProps: (id, patch) => this.props.editor.mutationModel.updateNodeProps(id, patch), onBatchUpdateProps: (ids, patch) => this.props.editor.mutationModel.batchUpdateNodeProps(ids, patch), onRenameNode: (oldId, newId) => this.props.editor.mutationModel.renameNode(oldId, newId), onApplyLinks: (id, rows, original) => this.props.editor.mutationModel.applyLinkedNodesUpdate(id, rows, original), onApplyProperties: (id, set, remove) => this.props.editor.mutationModel.applyPropertiesUpdate(id, set, remove), onBatchApplyProperties: (ids, set, remove) => this.props.editor.mutationModel.batchApplyPropertiesUpdate(ids, set, remove), onPanelDirtyChange: (dirty) => { this.panelDirty = dirty; }, onPanelExpandedChange: (expanded) => { this.panelExpanded = expanded; }, onHighlightSet: (ids) => this.props.editor.setHighlightSet(ids), onExternalHover: (id) => this.props.editor.setExternalHover(id), onExpandNode: (id) => this.props.editor.expandNode(id), containerRef: this.containerRef, expandRequest: this.props.bodyState.expandRequest, collapseRequest: this.props.bodyState.collapseRequest }; }

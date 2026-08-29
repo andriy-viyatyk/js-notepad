@@ -138,19 +138,16 @@ export class BrowserBookmarksUIModel {
         this.dispose();
 
         // Track changes in the link editor (add/remove/edit bookmarks)
-        this.bookmarksSub = this.subscriptions.add(bm.linkEditor.state.subscribe(() => {
-            this.updateIsBookmarked();
-        }));
+        this.bookmarksSub = this.subscriptions.add(bm.linkEditor.state.subscribe(
+            () => this.updateIsBookmarked(),
+            (state) => state.data.links,
+        ));
 
         // Track urlInput changes to re-check isBookmarked
-        let prevUrlInput = this.model.state.get().urlInput;
-        this.urlTrackingSub = this.subscriptions.add(this.model.state.subscribe(() => {
-            const current = this.model.state.get().urlInput;
-            if (current !== prevUrlInput) {
-                prevUrlInput = current;
-                this.updateIsBookmarked();
-            }
-        }));
+        this.urlTrackingSub = this.subscriptions.add(this.model.state.subscribe(
+            () => this.updateIsBookmarked(),
+            (state) => state.urlInput,
+        ));
 
         this.updateIsBookmarked();
     };

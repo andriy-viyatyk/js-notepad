@@ -99,8 +99,7 @@ export class MermaidEditor
         // A fresh host follows later app-theme changes until the first
         // explicit editor toggle writes the HS1 slot.
         this.registerHostSubscription(
-            themeState.subscribe(() => {
-                    const isDark = themeState.get().isDark;
+            themeState.subscribe((isDark: boolean) => {
                     if (this._host?.getEditorState<MermaidViewSettings>(this.editorId)?.lightMode !== undefined) {
                         return;
                     }
@@ -113,7 +112,9 @@ export class MermaidEditor
                             this._syncingTheme = false;
                         }
                     }
-                }),
+                },
+                (state) => state.isDark,
+            ),
         );
 
         // Content changes retrigger the debounced render.

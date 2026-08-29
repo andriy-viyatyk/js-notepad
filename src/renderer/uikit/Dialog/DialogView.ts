@@ -1,7 +1,6 @@
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import {
     applyRestProps,
-    bindRef,
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
@@ -50,8 +49,6 @@ export class DialogView extends VanillaView<DialogProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private childrenHost: HTMLSpanElement | undefined;
     private childrenCleanup: (() => void) | undefined;
-    private refCleanup: (() => void) | undefined;
-    private boundRef: DialogProps["ref"];
     private previousFocus: HTMLElement | null = null;
     private focusApplied = false;
 
@@ -65,7 +62,8 @@ export class DialogView extends VanillaView<DialogProps> {
             document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
         this.applyProps(this.props);
-        this.setRef(this.props.ref);
+        applyRestProps(this.root, this.getRestProps(this.props), this.restPropsState);
+        this.root.dataset.position = this.props.position ?? "center";
         this.listen(this.root, "click", this.onClick);
         this.listen(this.root, "keydown", this.onKeyDown);
 
@@ -79,13 +77,11 @@ export class DialogView extends VanillaView<DialogProps> {
         this.runFocusPass();
 
         this.own(() => this.childrenCleanup?.());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
     protected onUpdate(props: DialogProps): void {
         this.applyProps(props);
-        this.setRef(props.ref);
         if (this.childrenHost) {
             const children = props.children;
             const nativeChildren = getNativeChildren(children);
@@ -111,8 +107,7 @@ export class DialogView extends VanillaView<DialogProps> {
             children: _children,
             onKeyDown: _onKeyDown,
             onClick: _onClick,
-            ref: _ref,
-            ...rest
+            ..._rest
         } = props;
 
         // Preserve the legacy rest-wins behavior for general attributes. Position is
@@ -121,22 +116,21 @@ export class DialogView extends VanillaView<DialogProps> {
         setOptionalDataAttribute(this.root, "data-name", name);
         this.root.dataset.position = position;
         this.root.tabIndex = -1;
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
-        this.root.dataset.position = position;
         this.root.classList.add("dialog-shell");
     }
 
-    private setRef(ref: DialogProps["ref"]): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup?.();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root as HTMLDivElement, ref);
-    }
-
-    private clearRef(): void {
-        this.refCleanup?.();
-        this.refCleanup = undefined;
-        this.boundRef = undefined;
+    private getRestProps(props: DialogProps): Record<string, unknown> {
+        const {
+            name: _name,
+            position: _position,
+            onBackdropClick: _onBackdropClick,
+            autoFocus: _autoFocus,
+            children: _children,
+            onKeyDown: _onKeyDown,
+            onClick: _onClick,
+            ...rest
+        } = props;
+        return rest as Record<string, unknown>;
     }
 
     private readonly runFocusPass = (): void => {

@@ -13,7 +13,7 @@ import {
 } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
 import { ui } from "../../api/ui";
-import type { ImageViewportModel } from "../../uikit/ImageViewport";
+import type { ImageViewportModel } from "../../uikit/ImageViewport/ImageViewport";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -218,7 +218,6 @@ class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
 
 export class MermaidEditorView extends VanillaView<{ model: EditorModel }> {
     private model: MermaidEditor | undefined;
-    private imageModel: ImageViewportModel | null = null;
     private body: MermaidBodyView | undefined;
     private toolbar: MermaidToolbarBitsView | undefined;
     private chrome: TextChromeView | undefined;
@@ -232,11 +231,10 @@ export class MermaidEditorView extends VanillaView<{ model: EditorModel }> {
         this.model = model;
         const body = this.child(new MermaidBodyView({
             model,
-            imageModelSetter: this.setImageModel,
         }));
         const toolbar = this.child(new MermaidToolbarBitsView({
             model,
-            getImageModel: this.getImageModel,
+            getImageModel: () => body.imageModel,
         }));
         const chrome = this.child(new TextChromeView({
             model: this.props.model,
@@ -259,8 +257,8 @@ export class MermaidEditorView extends VanillaView<{ model: EditorModel }> {
         const toolbar = this.toolbar;
         const chrome = this.chrome;
         if (!body || !toolbar || !chrome) return;
-        body.update({ model, imageModelSetter: this.setImageModel });
-        toolbar.update({ model, getImageModel: this.getImageModel });
+        body.update({ model });
+        toolbar.update({ model, getImageModel: () => body.imageModel });
         chrome.update({
             model: props.model,
             children: body.root,
@@ -269,18 +267,12 @@ export class MermaidEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onDispose(): void {
-        this.setImageModel(null);
         this.model = undefined;
         this.body = undefined;
         this.toolbar = undefined;
         this.chrome = undefined;
     }
 
-    private readonly getImageModel = (): ImageViewportModel | null => this.imageModel;
-
-    private readonly setImageModel = (model: ImageViewportModel | null): void => {
-        this.imageModel = model;
-    };
 }
 
 export const mermaidModule: EditorModule = {

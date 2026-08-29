@@ -80,7 +80,6 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         this.queryInput = this.child(new InputView({
             value: state.query,
             placeholder: "Search...",
-            ref: this.setQueryField,
             onChange: this.model.setQuery,
             onKeyDown: this.onQueryKeyDown,
             tone: "accent",
@@ -122,6 +121,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         this.root.append(this.inputArea, this.statusHost, this.resultsHost);
 
         this.queryInput.mount();
+        this.queryField = this.queryInput.inputElement;
         this.includeInput.mount();
         this.excludeInput.mount();
         this.filterButton.mount();
@@ -162,10 +162,6 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         this.live = false;
     }
 
-    private readonly setQueryField = (field: HTMLInputElement | null): void => {
-        this.queryField = field ?? undefined;
-    };
-
     private readonly onQueryKeyDown = (event: KeyboardEvent): void => {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -182,7 +178,6 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         this.queryInput.update({
             value: state.query,
             placeholder: "Search...",
-            ref: this.setQueryField,
             onChange: this.model.setQuery,
             onKeyDown: this.onQueryKeyDown,
             tone: "accent",

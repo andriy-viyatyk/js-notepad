@@ -26,6 +26,7 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.updateContent(this.props.children);
         this.listen(this.root, "mouseenter", () => {
@@ -53,11 +54,15 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
     }
 
     private applyProps(props: TruncatedTextViewProps): void {
-        const { name, children: _children, ...rest } = props;
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+        const { name, children: _children, ..._rest } = props;
         this.root.dataset.type = "truncated-text";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
+    }
+
+    private applyConstructionRestProps(props: TruncatedTextViewProps): void {
+        const { name: _name, children: _children, ...rest } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     /**

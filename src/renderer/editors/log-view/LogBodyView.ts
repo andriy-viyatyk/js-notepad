@@ -3,7 +3,7 @@ import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { VirtualFlexGridView, type VirtualFlexCellFunc, type VirtualFlexGridProps } from "../../uikit/VirtualGrid/VirtualFlexGridView";
-import type { GridModelCapability, Percent } from "../../uikit/VirtualGrid/types";
+import type { Percent } from "../../uikit/VirtualGrid/types";
 import type { LogEntry } from "./logTypes";
 import type { LogViewEditor, LogViewEditorState } from "./LogViewEditor";
 import { LogEntryWrapperView } from "./LogEntryWrapper";
@@ -44,7 +44,6 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
     private readonly isAtBottom = { value: true };
     private previousEntryCount = 0;
     private scrollTimers: ReturnType<typeof setTimeout>[] = [];
-    private gridModel: GridModelCapability | null = null;
     private readonly grid: VirtualFlexGridView;
     private stateUnsubscribe: (() => void) | undefined;
     private queueUnsubscribe: (() => void) | undefined;
@@ -92,8 +91,6 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         return cell;
     };
 
-    private readonly onGridModel = (model: GridModelCapability | null): void => { this.gridModel = model; };
-
     public constructor(props: LogBodyViewProps) {
         super(props, createPanelElement({ name: "log-view-root", direction: "column", flex: 1, overflow: "hidden", minHeight: 0 }));
         this.editor = props.model;
@@ -119,7 +116,6 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
 
     protected onDispose(): void {
         this.clearScrollTimers();
-        this.gridModel = null;
         const records = [...this.cellRecords];
         this.cellRecords.clear();
         for (const record of records) {
@@ -133,7 +129,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.projection = next;
         this.applyProjection(next);
         if (previous.entries !== next.entries || previous.entryCount !== next.entryCount) this.applyRowsAndAutoScroll(next.entryCount);
-        if (previous.showTimestamps !== next.showTimestamps) this.gridModel?.update({ all: true });
+        if (previous.showTimestamps !== next.showTimestamps) this.grid.gridModel?.update({ all: true });
     };
 
     private readonly handleQueue = (event: { type: "focus" | "scrollToBottom" }): void => {
@@ -154,7 +150,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
 
     private applyRowsAndAutoScroll(count: number): void {
         this.clearScrollTimers();
-        this.gridModel?.update({ all: true });
+        this.grid.gridModel?.update({ all: true });
         if (count > this.previousEntryCount && this.isAtBottom.value && count > 0) {
             this.previousEntryCount = count;
             this.scheduleScrollToBottom();
@@ -165,7 +161,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.clearScrollTimers();
         const count = this.previousEntryCount;
         if (count <= 0) return;
-        const scrollToEnd = (): void => { void this.gridModel?.scrollToRow(count - 1, "bottom"); };
+        const scrollToEnd = (): void => { void this.grid.gridModel?.scrollToRow(count - 1, "bottom"); };
         scrollToEnd();
         this.scrollTimers = [setTimeout(scrollToEnd, 50), setTimeout(scrollToEnd, 150), setTimeout(scrollToEnd, 300)];
     }
@@ -191,7 +187,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
     private entryProps(entry: LogEntry, index: number) { return { vm: this.editor, entry, index, showTimestamp: this.projection.showTimestamps }; }
 
     private gridProps(): VirtualFlexGridProps {
-        return { name: "log-flex-grid", rowCount: () => this.projection.entryCount, columnCount: 2, columnWidth, renderCell: this.renderCell, fitToWidth: true, minRowHeight: 18, getInitialRowHeight: this.getInitialRowHeight, preferMinHeightForNewRows: true, onModel: this.onGridModel };
+        return { name: "log-flex-grid", rowCount: () => this.projection.entryCount, columnCount: 2, columnWidth, renderCell: this.renderCell, fitToWidth: true, minRowHeight: 18, getInitialRowHeight: this.getInitialRowHeight, preferMinHeightForNewRows: true };
     }
 
     private renderCellFailure(cell: HTMLElement, error: unknown): void { cell.replaceChildren(createTextElement(`This log entry failed to render: ${errMessage(error)}`, { color: "error", preWrap: true })); }

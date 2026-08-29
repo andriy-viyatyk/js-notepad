@@ -314,10 +314,13 @@ export class MnemeRootEditorView extends VanillaView<MnemeRootEditorViewProps> {
 
     private subscribeToModel(model: MnemeRootEditorModel): void {
         this.stateSubscription?.();
-        this.stateSubscription = this.ownSubscription(model.state.subscribe(() => {
-            if (!this.live || this.model !== model) return;
-            this.sync(projectState(model.state.get()));
-        }));
+        this.stateSubscription = this.ownSubscription(model.state.subscribe(
+            (state) => {
+                if (!this.live || this.model !== model) return;
+                this.sync(state);
+            },
+            projectState,
+        ));
     }
 
     private replaceModelSubscription(model: MnemeRootEditorModel): void {

@@ -1,10 +1,18 @@
 # De-React Refactoring Proposals
 
-**Status:** Accepted — the high-level plan for the post-De-React refactoring programme. Epic A's
-core-contract work (R1, R3, and R10.1–3) is implemented; the remaining proposals are forward work.
-**Epics cut so far:** [EPIC-075](epics/EPIC-075.md) — Epic A, core contracts (R1, R3, R10.1-3),
-**completed 2026-08-29** (see [completed.md](epics/completed.md)). Next: **Epic B** — the props
-pump (R2, R6, R10.4-6), which is also where `memo()`/`IMemo` are removed.
+**Status:** Accepted — the high-level plan for the post-De-React refactoring programme. Epic A
+(R1, R3, R10.1–3) and Epic B (R2, R6's pump half, R10.4–6) are complete; R4, R5, R7, R8, R9 and
+R6's type half remain forward work.
+**Epics cut so far:**
+[EPIC-075](epics/EPIC-075.md) — Epic A, core contracts (R1, R3, R10.1-3), **completed 2026-08-29**
+(see [completed.md](epics/completed.md)) ·
+[EPIC-076](epics/EPIC-076.md) — Epic B, the props pump (R2, the pump-entangled half of R6, and
+R10.4-6), **completed 2026-08-30** (see [completed.md](epics/completed.md)); `memo()`/`IMemo` are
+gone, as are `ElementRef`/`bindRef` and every component `ref?:` channel. Epic B re-measured
+the figures below and **withdrew three of them as non-comparable** (the `onClick`-closure, props-builder,
+and `last*`-guard counts) — see [EPIC-076 §B-2](epics/EPIC-076.md) for the corrected baseline and
+its instruments before reusing any number on this page. Next after it: **Epic C** — targeted fixes
+(R4, R5, R7, R8) plus R6's remaining type-narrowing half.
 **Tracked on:** [active-work.md](active-work.md)
 **Date:** 2026-08-29
 **Scope:** Post-migration review of the whole renderer (uikit, ui, components, editors, core/state), looking for React-era artifacts that survived the De-React migration, plus vanilla-world patterns worth adopting.
@@ -47,6 +55,12 @@ resources.
 ---
 
 ## R2. Kill the props pump — children subscribe, parents stop re-pushing
+
+> **Status:** Implemented in [EPIC-076](epics/EPIC-076.md) (Epic B), completed 2026-08-30 —
+> US-1199 through US-1203B and US-1207. Read that epic's §B-2 before reusing the counts below: three are withdrawn, the
+> `(s) => s` sweep is narrowed to **global** state only (most of the 22 sites are a model binding
+> its own small state, which is correct), and step 4's equality gate inside `update()` is
+> **rejected** — it would mask the call sites the conversion needs to find.
 
 **Problem.** `VanillaView.update(props)` has no equality gate, and the codebase treats it as a render call. Counts: **311** `.update({...})` calls in editors alone (54 literally `.update({ model })`), **~40** private `xxxProps()` builder methods in uikit, **22** more in ui/components, **218** inline `onClick: () => ...` closures re-allocated per pump. Canonical offenders:
 
@@ -124,6 +138,14 @@ handle, and every census site is owned or has an explicit exception rationale.
 
 ## R6. Retire the React-types emulation layer in uikit
 
+> **Status:** Split. The **pump-entangled half** — the `ElementRef`/`bindRef`/`onModel` channels,
+> the 20 `memo()` chains, and `applyRestProps` running on the update path — is cut as
+> [EPIC-076](epics/EPIC-076.md) US-1204 through US-1206. The **type half** — narrowing the 21
+> `Omit<NativeHTMLAttributes<…>>` contracts and shrinking `dom-props.ts` — is deferred to Epic C,
+> where R7 opens the same 40 components. Rationale in EPIC-076 §B-3: the two halves are
+> independent, and splitting there lets Epic B close on a behavioural property rather than a
+> type-shape opinion.
+
 **Problem.** `uikit/shared/dom-props.ts` (241 lines) is a hand-rolled `@types/react`:
 
 - `NativeHTMLAttributes` re-declares 22 camelCase `on*` handlers, `tabIndex`, `children?: NativeSlotContent` — React spellings on native DOM. The `Omit<NativeHTMLAttributes<…>, "style" | "className">` incantation repeats **33 times**.
@@ -192,7 +214,11 @@ constructor-wide `postCreate` timer listed below has since been removed):
 
 Items 1–3 are implemented in Epic A; items 4–6 remain forward-looking and could be small standalone USs.
 
-> Items 1–3 are implemented in [EPIC-075](epics/EPIC-075.md). Items 4–6 belong with Epic B or later.
+> Items 1–3 are implemented in [EPIC-075](epics/EPIC-075.md). Items 4–6 are cut as
+> [EPIC-076](epics/EPIC-076.md): R10.4 is US-1205 (derive-on-write — note that no `cached(fn)`
+> helper exists today and one gets added only if a real site needs it), R10.5 and R10.6 are
+> US-1200. R10.6's *type-system* narrowing stays deferred past Epic B: it cannot be done while
+> ~400 call sites still pass data through `update()`.
 
 1. **One event primitive.** `Emitter<T>` / `Event<T>` in `core/state/events.ts` provide the listener-array primitive; `Subscription` is built on it, and `EventChannel` / `ComponentQueue` retain their distinct dispatch semantics while returning the same `() => void` teardown shape.
 2. **`DisposableStore` as a shared utility.** `core/utils/DisposableStore.ts` backs `VanillaView` and model ownership with early release, ordered cleanup, and first-error propagation after the full sweep.
@@ -219,3 +245,7 @@ Items 1–3 are implemented in Epic A; items 4–6 remain forward-looking and co
 | 10 | R10 patterns | S–M each | Low | Emitter + DisposableStore + scheduling are the valuable three |
 
 A sensible epic split: **EPIC A — core contracts** (R1, R3, R10.1-3), **EPIC B — the pump** (R2, R6, R10.4-6), **EPIC C — targeted fixes** (R4, R5, R7, R8), **standalone** (R9).
+
+**As actually cut:** A = [EPIC-075](epics/EPIC-075.md), done. B = [EPIC-076](epics/EPIC-076.md),
+planned — R2 + R10.4-6 + only the pump-entangled half of R6; R6's type narrowing moved to C so
+it lands beside R7, which opens the same components. C therefore = R4, R5, R7, R8, and R6-types.

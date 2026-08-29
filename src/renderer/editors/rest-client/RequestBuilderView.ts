@@ -21,7 +21,7 @@ import type { TextareaProps } from "../../uikit/Textarea/TextareaView";
 import { TextareaView } from "../../uikit/Textarea/TextareaView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";
 import { MonacoEditorHostView } from "../shared/MonacoEditorHostView";
-import type { RestClientSource, RestClientViewState, RestRequest, BodyType, FormDataEntry } from "./restClientTypes";
+import type { RestClientSource, RestClientViewState, RestRequest, RestHeader, BodyType, FormDataEntry } from "./restClientTypes";
 import { RAW_LANGUAGES } from "./restClientTypes";
 import { COMMON_HEADERS, HTTP_METHODS, METHOD_COLORS } from "./httpConstants";
 import { KeyValueEditorView } from "./KeyValueEditorView";
@@ -253,10 +253,13 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
 interface HeadersBranchProps { vm: RestClientSource; request: RestRequest; json: string; onJsonChange: (value: string) => void; }
 class HeadersTableView extends VanillaView<HeadersBranchProps> {
     private readonly editor: KeyValueEditorView;
-    public constructor(props: HeadersBranchProps) { const root = createPanelElement({ name: "headers-scroll", direction: "column", flex: 1, overflowY: "auto", minHeight: 0, paddingX: "md", paddingBottom: "sm" }); const editor = new KeyValueEditorView({ items: props.request.headers, onUpdate: (index, changes) => props.vm.updateHeader(props.request.id, index, changes), onDelete: (index) => props.vm.deleteHeader(props.request.id, index), onToggle: (index) => props.vm.toggleHeader(props.request.id, index), keyOptions: COMMON_HEADERS, keyPlaceholder: "Header name", valuePlaceholder: "Value" }); super(props, root); this.editor = editor; }
+    public constructor(props: HeadersBranchProps) { const root = createPanelElement({ name: "headers-scroll", direction: "column", flex: 1, overflowY: "auto", minHeight: 0, paddingX: "md", paddingBottom: "sm" }); super(props, root); this.editor = new KeyValueEditorView({ items: props.request.headers, onUpdate: this.handleUpdate, onDelete: this.handleDelete, onToggle: this.handleToggle, keyOptions: COMMON_HEADERS, keyPlaceholder: "Header name", valuePlaceholder: "Value" }); }
     protected onMount(): void { this.root.append(this.editor.root); this.editor.mount(); }
-    protected onUpdate(props: HeadersBranchProps): void { this.editor.update({ items: props.request.headers, onUpdate: (index, changes) => props.vm.updateHeader(props.request.id, index, changes), onDelete: (index) => props.vm.deleteHeader(props.request.id, index), onToggle: (index) => props.vm.toggleHeader(props.request.id, index), keyOptions: COMMON_HEADERS, keyPlaceholder: "Header name", valuePlaceholder: "Value" }); }
+    protected onUpdate(props: HeadersBranchProps): void { this.editor.setItems(props.request.headers); }
     protected onDispose(): void { this.editor.dispose(); }
+    private readonly handleUpdate = (index: number, changes: Partial<RestHeader>): void => { this.props.vm.updateHeader(this.props.request.id, index, changes); };
+    private readonly handleDelete = (index: number): void => { this.props.vm.deleteHeader(this.props.request.id, index); };
+    private readonly handleToggle = (index: number): void => { this.props.vm.toggleHeader(this.props.request.id, index); };
 }
 class HeadersJsonView extends VanillaView<HeadersBranchProps> {
     private readonly host: MonacoEditorHostView;
@@ -302,17 +305,20 @@ class BinaryBodyView extends VanillaView<BodyContentProps> {
 }
 class FormUrlEncodedView extends VanillaView<BodyContentProps> {
     private readonly editor: KeyValueEditorView;
-    public constructor(props: BodyContentProps) { const editor = new KeyValueEditorView({ items: props.request.formData, onUpdate: (index, changes) => props.vm.updateFormData(props.request.id, index, changes), onDelete: (index) => props.vm.deleteFormData(props.request.id, index), onToggle: (index) => props.vm.toggleFormData(props.request.id, index), keyPlaceholder: "Key", valuePlaceholder: "Value" }); super(props, createPanelElement({ name: "body-content", direction: "column", flex: 1, overflow: "hidden", minHeight: 0 }, [createPanelElement({ name: "body-content-scroll", direction: "column", flex: 1, overflowY: "auto", minHeight: 0, paddingX: "md", paddingBottom: "sm" }, [editor.root])])); this.editor = editor; }
+    public constructor(props: BodyContentProps) { const scroll = createPanelElement({ name: "body-content-scroll", direction: "column", flex: 1, overflowY: "auto", minHeight: 0, paddingX: "md", paddingBottom: "sm" }); super(props, createPanelElement({ name: "body-content", direction: "column", flex: 1, overflow: "hidden", minHeight: 0 }, [scroll])); this.editor = new KeyValueEditorView({ items: props.request.formData, onUpdate: this.handleUpdate, onDelete: this.handleDelete, onToggle: this.handleToggle, keyPlaceholder: "Key", valuePlaceholder: "Value" }); scroll.append(this.editor.root); }
     protected onMount(): void { this.editor.mount(); }
-    protected onUpdate(props: BodyContentProps): void { this.editor.update({ items: props.request.formData, onUpdate: (index, changes) => props.vm.updateFormData(props.request.id, index, changes), onDelete: (index) => props.vm.deleteFormData(props.request.id, index), onToggle: (index) => props.vm.toggleFormData(props.request.id, index), keyPlaceholder: "Key", valuePlaceholder: "Value" }); }
+    protected onUpdate(props: BodyContentProps): void { this.editor.setItems(props.request.formData); }
     protected onDispose(): void { this.editor.dispose(); }
+    private readonly handleUpdate = (index: number, changes: Partial<RestHeader>): void => { this.props.vm.updateFormData(this.props.request.id, index, changes); };
+    private readonly handleDelete = (index: number): void => { this.props.vm.deleteFormData(this.props.request.id, index); };
+    private readonly handleToggle = (index: number): void => { this.props.vm.toggleFormData(this.props.request.id, index); };
 }
 class RawBodyView extends VanillaView<BodyContentProps> {
     private readonly host: MonacoEditorHostView;
     private readonly setHost: (host: MonacoEditorHostView | undefined) => void;
     public constructor(props: BodyContentProps, setHost: (host: MonacoEditorHostView | undefined) => void) { const host = new MonacoEditorHostView({ initialValue: props.request.body, language: props.request.bodyLanguage, options: BODY_EDITOR_OPTIONS, onMount: setHost, onChange: props.onMonacoChange }); super(props, createPanelElement({ name: "body-content", direction: "column", flex: 1, overflow: "hidden", minHeight: 0 }, [host.root])); this.host = host; this.setHost = setHost; }
     protected onMount(): void { this.own(() => this.host.dispose()); this.host.mount(); }
-    protected onUpdate(props: BodyContentProps): void { this.host.update({ language: props.request.bodyLanguage, options: BODY_EDITOR_OPTIONS, onChange: props.onMonacoChange }); }
+    protected onUpdate(props: BodyContentProps): void { this.host.setLanguage(props.request.bodyLanguage); }
     protected onDispose(): void { this.setHost(undefined); }
 }
 

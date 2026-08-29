@@ -106,8 +106,7 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
         // A fresh host follows later app-theme changes until the first
         // explicit editor toggle writes the HS1 slot.
         this.registerHostSubscription(
-            themeState.subscribe(() => {
-                    const isDark = themeState.get().isDark;
+            themeState.subscribe((isDark: boolean) => {
                     if (this._host?.getEditorState<DrawViewSettings>(this.editorId)?.darkMode !== undefined) {
                         return;
                     }
@@ -119,7 +118,9 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
                             this._syncingTheme = false;
                         }
                     }
-                }),
+                },
+                (state) => state.isDark,
+            ),
         );
 
         // Content changes retrigger parse (own updateFromExcalidraw writes

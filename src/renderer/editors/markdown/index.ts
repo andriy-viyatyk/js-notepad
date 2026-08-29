@@ -183,10 +183,10 @@ export class MarkdownEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
-        this.model = requireMarkdownModel(props.model);
-        this.body.update({ model: this.model });
-        this.backButton.update({ model: this.model });
-        this.toolbar.update({ model: this.model });
+        const model = requireMarkdownModel(props.model);
+        if (model !== this.model) {
+            throw new Error("Markdown view received a different model instance.");
+        }
         this.chrome.update({
             model: props.model,
             children: this.body.root,

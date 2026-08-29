@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { highlightInto } from "../shared/highlight";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
@@ -52,8 +52,6 @@ export class ListItemView extends VanillaView<ListItemProps> {
     private labelOwner: "slot" | "text" = "text";
 
     private tooltip: TooltipAttachment | undefined;
-    private refCleanup: () => void = () => undefined;
-    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: ListItemProps) {
         super(props, document.createElement("div"));
@@ -91,18 +89,16 @@ export class ListItemView extends VanillaView<ListItemProps> {
         this.tooltip = attachTooltip(this.root, this.tooltipOptions(this.props));
 
         this.applyProps(this.props);
-        this.setRef(this.props.ref);
+        this.applyConstructionRestProps(this.props);
 
         this.own(() => this.tooltip?.dispose());
         this.own(() => this.clearSlots());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
     protected onUpdate(props: ListItemProps): void {
         this.applyProps(props);
         this.tooltip?.update(this.tooltipOptions(props));
-        this.setRef(props.ref);
     }
 
     private applyProps(props: ListItemProps): void {
@@ -131,7 +127,6 @@ export class ListItemView extends VanillaView<ListItemProps> {
             checkbox,
             dropActive,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            ref: _ref,
             ...rest
         } = props;
 
@@ -174,8 +169,34 @@ export class ListItemView extends VanillaView<ListItemProps> {
             !!checkbox,
         );
 
+    }
+
+    private applyConstructionRestProps(props: ListItemProps): void {
+        const {
+            name: _name,
+            id: _id,
+            icon: _icon,
+            iconElement: _iconElement,
+            rowClass: _rowClass,
+            label: _label,
+            searchText: _searchText,
+            selected: _selected,
+            active: _active,
+            disabled: _disabled,
+            tooltip: _tooltip,
+            tooltipDelayShow: _tooltipDelayShow,
+            trailing: _trailing,
+            trailingElement: _trailingElement,
+            drag: _drag,
+            variant: _variant,
+            selectionStyle: _selectionStyle,
+            showSelectionIcon: _showSelectionIcon,
+            checkbox: _checkbox,
+            dropActive: _dropActive,
+            ...rest
+        } = props;
         // Residual props come last, matching the JSX order: a caller-supplied role or aria-* wins.
-        applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     /**
@@ -296,19 +317,6 @@ export class ListItemView extends VanillaView<ListItemProps> {
             disabled: empty,
             delayShow: props.tooltipDelayShow,
         };
-    }
-
-    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root, ref);
-    }
-
-    private clearRef(): void {
-        this.refCleanup();
-        this.refCleanup = () => undefined;
-        this.boundRef = undefined;
     }
 
     private clearSlots(): void {

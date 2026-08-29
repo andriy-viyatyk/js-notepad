@@ -6,7 +6,7 @@ import {
     VirtualFlexGridView,
     type VirtualFlexCellFunc,
 } from "../../uikit/VirtualGrid/VirtualFlexGridView";
-import type { GridModelCapability, Percent } from "../../uikit/VirtualGrid";
+import type { Percent } from "../../uikit/VirtualGrid";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { ExpandedNoteView, type ExpandedNoteViewProps } from "./ExpandedNoteView";
 import { NoteItemView } from "./NoteItemView";
@@ -103,9 +103,6 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         const note = this.projection.filteredNotes[row];
         return note ? this.editor.getNoteHeight(note.id) : undefined;
     };
-    private readonly onGridModel = (model: GridModelCapability | null): void => {
-        this.gridModel = model;
-    };
     private readonly renderCell: VirtualFlexCellFunc = (params) => {
         const note = this.projection.filteredNotes[params.row];
         if (!note) return undefined;
@@ -171,7 +168,6 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
     private projection: NotebookProjection;
     private previousProjection: NotebookProjection | undefined;
     private grid: VirtualFlexGridView | undefined;
-    private gridModel: GridModelCapability | null = null;
     private expandedView: ExpandedNoteView | undefined;
     private expandedNoteId: string | undefined;
     private expandedTarget: HTMLElement | null = null;
@@ -229,7 +225,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
             || previous.tags !== next.tags
             || previous.searchText !== next.searchText
             || previous.filteredNotes !== next.filteredNotes;
-        if (cellsChanged) this.gridModel?.update({ all: true });
+        if (cellsChanged) this.grid?.gridModel?.update({ all: true });
         this.previousProjection = previous;
         this.syncExpandedOverlay();
     };
@@ -285,7 +281,6 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         if (this.grid) {
             this.releaseChild(this.grid);
             this.grid = undefined;
-            this.gridModel = null;
         }
         this.cellRecords.clear();
         for (const view of this.ownedNoteViews) view.dispose();
@@ -304,7 +299,6 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
             minRowHeight: 100,
             maxRowHeight: 800,
             getInitialRowHeight: this.getInitialRowHeight,
-            onModel: this.onGridModel,
         };
     }
 

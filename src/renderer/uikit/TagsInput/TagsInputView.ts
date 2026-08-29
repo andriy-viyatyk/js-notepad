@@ -30,6 +30,7 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
     protected onMount(): void {
         this.inputSlot = document.createElement("div");
         this.applyRootProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.syncInput(this.props);
 
         this.tagsList = new KeyedList(this.root, {
@@ -171,7 +172,7 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
             readOnly,
             "aria-label": ariaLabel,
             children: _children,
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "tags-input";
@@ -183,7 +184,26 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
         else delete this.root.dataset.readonly;
         if (ariaLabel === undefined) this.root.removeAttribute("aria-label");
         else this.root.setAttribute("aria-label", ariaLabel);
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         this.root.classList.add("tags-input-root");
+    }
+
+    private applyConstructionRestProps(props: TagsInputProps): void {
+        const {
+            name: _name,
+            value: _value,
+            onChange: _onChange,
+            items: _items,
+            separator: _separator,
+            maxDepth: _maxDepth,
+            placeholder: _placeholder,
+            tagVariant: _tagVariant,
+            size: _size,
+            disabled: _disabled,
+            readOnly: _readOnly,
+            "aria-label": _ariaLabel,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

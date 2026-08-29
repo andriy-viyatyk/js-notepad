@@ -51,7 +51,10 @@ export class MermaidOutputView extends VanillaView<MermaidOutputViewProps> {
     }
 
     protected onMount(): void {
-        this.own(themeState.subscribe(() => this.startRender()));
+        this.own(themeState.subscribe(
+            () => this.startRender(),
+            (state) => state.isDark,
+        ));
         this.root.append(this.panel);
         this.header.mount();
         this.openButton.mount();

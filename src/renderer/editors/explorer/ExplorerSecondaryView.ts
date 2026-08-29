@@ -221,6 +221,7 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
             this.treeProviderView = tree;
             this.root.append(tree.root);
             tree.mount();
+            this.treeProviderModel = tree.model;
         }
         this.updateHeader(this.props);
     }
@@ -236,9 +237,6 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
             onItemDoubleClick: this.handleItemDoubleClick,
             onContextMenu: this.handleContextMenu,
             renderTrailing: this.renderTrailingAction,
-            onModel: (model: TreeProviderViewModel | null) => {
-                this.treeProviderModel = model ?? undefined;
-            },
         };
     }
 

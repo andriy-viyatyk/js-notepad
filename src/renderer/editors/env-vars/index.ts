@@ -43,7 +43,6 @@ export class EnvVarsEditorView extends VanillaView<{ model: EditorModel }> {
         const body = this.body;
         const chrome = this.chrome;
         if (!body || !chrome) return;
-        body.update({ model });
         chrome.update({ model: props.model, children: body.root });
     }
 }

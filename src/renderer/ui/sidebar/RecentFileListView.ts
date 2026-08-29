@@ -4,7 +4,7 @@ import { recent } from "../../api/recent";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import { FileListView } from "../../components/file-list/FileListView";
-import type { FileListItem, FileListModel, FileListProps } from "../../components/file-list/FileList";
+import type { FileListItem, FileListProps } from "../../components/file-list/FileList";
 import type { MenuItem } from "../../uikit/Menu";
 import { api } from "../../../ipc/renderer/api";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -12,7 +12,6 @@ import { createIconElement } from "../../uikit/shared/slots";
 
 export interface RecentFileListProps {
     onClose?: () => void;
-    onModel?: (model: FileListModel | null) => void;
 }
 
 export class RecentFileListView extends VanillaView<RecentFileListProps> {
@@ -27,7 +26,6 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
             items: [],
             onClick: (item) => holder.view?.openItem(item),
             getContextMenu: (item) => holder.view?.getContextMenu(item),
-            onModel: (model) => holder.view?.props.onModel?.(model),
         };
         const fileList = new FileListView(fileListProps);
         super(props, fileList.root);
@@ -41,20 +39,23 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
         void this.loadRecentFiles();
     }
 
-    protected onUpdate(props: RecentFileListProps): void {
-        this.fileList.update(this.fileListProps(props));
+    protected onUpdate(): void {
+        this.fileList.update(this.fileListProps());
+    }
+
+    public get model() {
+        return this.fileList.model;
     }
 
     public async reload(): Promise<void> {
         await this.loadRecentFiles();
     }
 
-    private fileListProps(props: RecentFileListProps): FileListProps {
+    private fileListProps(): FileListProps {
         return {
             items: this.items(),
             onClick: (item) => this.openItem(item),
             getContextMenu: (item) => this.getContextMenu(item),
-            onModel: (model) => props.onModel?.(model),
         };
     }
 
@@ -63,7 +64,7 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
         await recent.load();
         if (!this.live || loadId !== this.loadId) return;
         this.files = recent.files;
-        this.fileList.update(this.fileListProps(this.props));
+        this.fileList.update(this.fileListProps());
     }
 
     private items(): FileListItem[] {
@@ -101,7 +102,7 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
                     await recent.remove(filePath);
                     if (!this.live) return;
                     this.files = recent.files;
-                    this.fileList.update(this.fileListProps(this.props));
+                    this.fileList.update(this.fileListProps());
                 },
             },
         ];

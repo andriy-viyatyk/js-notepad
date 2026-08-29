@@ -65,6 +65,7 @@ export interface ILinkSource {
     readonly state: {
         get(): ILinkSourceSnapshot;
         subscribe(listener: () => void): () => void;
+        subscribe<R>(listener: (value: R) => void, selector: (state: ILinkSourceSnapshot) => R): () => void;
     };
     addLink(link?: Partial<LinkItem>): LinkItem;
     importLinks(

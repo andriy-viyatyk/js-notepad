@@ -76,7 +76,10 @@ export class EnvVarsEditor extends TextHostEditorModel<EnvVarsEditorState> {
         );
 
         // TD4 — state subscription → debounced serialize-back.
-        this.registerHostSubscription(this.state.subscribe(() => this.onDataChangedDebounced()));
+        this.registerHostSubscription(this.state.subscribe(
+            () => this.onDataChangedDebounced(),
+            (state) => ({ data: state.data, status: state.status }),
+        ));
 
         this.loadData(host.state.get().content ?? "");
 

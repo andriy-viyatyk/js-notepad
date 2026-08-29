@@ -91,9 +91,7 @@ export interface TreeProviderViewProps {
     multiSelect?: boolean;
 }
 
-export interface TreeProviderViewModelProps extends TreeProviderViewProps {
-    onModel: ((model: TreeProviderViewModel | null) => void) | undefined;
-}
+export type TreeProviderViewModelProps = TreeProviderViewProps;
 
 export interface TreeProviderViewState {
     tree: TreeProviderNode | null;
@@ -148,10 +146,6 @@ export class TreeProviderViewModel extends TComponentModel<
     private previousProvider: ITreeProvider | undefined;
     private previousShowLinks: boolean | undefined;
     private previousSelectedHref: string | undefined;
-
-    init() {
-        this.props.onModel?.(this);
-    }
 
     setProps = () => {
         const props = this.props;
@@ -275,9 +269,8 @@ export class TreeProviderViewModel extends TComponentModel<
     dispose = () => {
         this.watchSubscription?.();
         this.watchSubscription = undefined;
-        // Keep props.onModel?.(null) as the last statement: child views must dispose before the
-        // host notification.
-        this.props.onModel?.(null);
+        // The host owns Tree/search children and VanillaView disposes them before this driver.
+        // Keep the model handoff clear only after those children have released their resources.
     };
 
     private initializeTree = async () => {

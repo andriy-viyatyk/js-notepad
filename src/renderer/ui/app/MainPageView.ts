@@ -84,7 +84,11 @@ export class MainPageView extends VanillaView<object> {
         this.autoloadButton.mount();
         this.bind(app.window.state, (state): MainPageState => state, (state) => this.updateIndicators(state));
         this.bind(autoloadService.state, (state) => state.needsReload, (visible) => { this.autoloadWrap.style.display = visible ? "" : "none"; });
-        this.bind(mnemeStatusModel.state, (state) => state, (state) => this.updateMneme(state));
+        this.bind(
+            mnemeStatusModel.state,
+            (state) => ({ enabled: state.enabled, running: state.running, modelReady: state.modelReady }),
+            (state) => this.updateMneme(state),
+        );
         this.bindMenuGlyphToTheme();
         this.own(() => this.snipMenu?.dispose());
     }

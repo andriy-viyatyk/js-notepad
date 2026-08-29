@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, NativeInputHTMLAttributes, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState, setRestProp } from "../shared/dom-props";
+import type { NativeInputHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 // Owned by the view, not the shim: a vanilla parent may compose `InputView` directly (MultiListBox
@@ -8,7 +8,6 @@ import "./Input.css";
 
 export interface InputProps
     extends Omit<NativeInputHTMLAttributes<HTMLInputElement>, "onChange" | "size" | "onKeyDown"> {
-    ref?: ElementRef<HTMLInputElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -73,8 +72,6 @@ export class InputView extends VanillaView<InputProps> {
      * is always a new object, so a genuinely-changed subtree always has a new identity.
      */
     private readonly appliedSlots = new Map<"start" | "end", SlotContent>();
-    private refCleanup: (() => void) | undefined;
-    private previousRef: ElementRef<HTMLInputElement> | undefined;
     private previousAutoFocus = false;
 
     public constructor(props: InputProps) {
@@ -82,30 +79,30 @@ export class InputView extends VanillaView<InputProps> {
         this.field = document.createElement("input");
     }
 
+    public get inputElement(): HTMLInputElement {
+        return this.field;
+    }
+
     protected onMount(): void {
         this.root.append(this.field);
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.updateSlots(this.props);
-        this.updateRef(this.props.ref);
         this.listen(this.field, "input", this.handleInput);
         this.listen(this.field, "keydown", this.handleKeyDown);
 
         this.own(() => this.clearSlots());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.field, this.restPropsState));
     }
 
     protected onUpdate(props: InputProps): void {
         this.applyProps(props);
+        this.updateTargetedRestProps(props);
         this.updateSlots(props);
-        if (props.ref !== this.previousRef) {
-            this.updateRef(props.ref);
-        }
     }
 
     protected onDispose(): void {
         this.clearSlots();
-        this.clearRef();
         clearRestListeners(this.field, this.restPropsState);
     }
 
@@ -125,15 +122,12 @@ export class InputView extends VanillaView<InputProps> {
             width,
             minWidth,
             maxWidth,
-            ref: _ref,
             value,
             defaultValue,
             checked,
             autoFocus,
-            ...rest
+            ..._rest
         } = props;
-
-        applyRestProps(this.field, rest as Record<string, unknown>, this.restPropsState);
 
         this.root.dataset.type = "input";
         this.setOptionalDataset("name", name);
@@ -172,6 +166,47 @@ export class InputView extends VanillaView<InputProps> {
             this.field.focus();
         }
         this.previousAutoFocus = Boolean(autoFocus);
+    }
+
+    private applyConstructionRestProps(props: InputProps): void {
+        const {
+            name,
+            onChange: _onChange,
+            onKeyDown: _onKeyDown,
+            size: _size,
+            variant: _variant,
+            tone: _tone,
+            disabled: _disabled,
+            readOnly: _readOnly,
+            startSlot: _startSlot,
+            endSlot: _endSlot,
+            invalid: _invalid,
+            width: _width,
+            minWidth: _minWidth,
+            maxWidth: _maxWidth,
+            value: _value,
+            defaultValue: _defaultValue,
+            checked: _checked,
+            autoFocus: _autoFocus,
+            ...rest
+        } = props;
+        void name;
+        applyRestProps(this.field, rest as Record<string, unknown>, this.restPropsState);
+    }
+
+    private updateTargetedRestProps(props: InputProps): void {
+        const rest = props as Record<string, unknown>;
+        setRestProp(this.field, "placeholder", rest.placeholder, this.restPropsState);
+        setRestProp(this.field, "autoComplete", rest.autoComplete, this.restPropsState);
+        setRestProp(this.field, "aria-label", rest["aria-label"], this.restPropsState);
+        setRestProp(this.field, "aria-labelledby", rest["aria-labelledby"], this.restPropsState);
+        setRestProp(this.field, "aria-haspopup", rest["aria-haspopup"], this.restPropsState);
+        setRestProp(this.field, "aria-expanded", rest["aria-expanded"], this.restPropsState);
+        setRestProp(this.field, "aria-autocomplete", rest["aria-autocomplete"], this.restPropsState);
+        setRestProp(this.field, "aria-controls", rest["aria-controls"], this.restPropsState);
+        setRestProp(this.field, "onFocus", rest.onFocus, this.restPropsState);
+        setRestProp(this.field, "onBlur", rest.onBlur, this.restPropsState);
+        setRestProp(this.field, "onContextMenu", rest.onContextMenu, this.restPropsState);
     }
 
     private updateSlots(props: InputProps): void {
@@ -214,17 +249,6 @@ export class InputView extends VanillaView<InputProps> {
         this.appliedSlots.clear();
         for (const host of this.slotHosts.values()) host.remove();
         this.slotHosts.clear();
-    }
-
-    private updateRef(ref: ElementRef<HTMLInputElement> | undefined): void {
-        this.clearRef();
-        this.refCleanup = bindRef(this.field, ref);
-        this.previousRef = ref;
-    }
-
-    private clearRef(): void {
-        this.refCleanup?.();
-        this.refCleanup = undefined;
     }
 
     private setOptionalDataset(key: string, value: string | undefined): void {

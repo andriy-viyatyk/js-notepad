@@ -1,4 +1,4 @@
-import type { ElementRef, NativeHTMLAttributes } from "../shared/dom-props";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 import type { SlotContent } from "../shared/fill-slot";
 import type { IconRef } from "../shared/slots";
 
@@ -6,7 +6,6 @@ import type { IconRef } from "../shared/slots";
 
 export interface DialogContentProps
     extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
-    ref?: ElementRef<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

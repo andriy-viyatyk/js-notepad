@@ -92,7 +92,10 @@ export class ThemeSectionView extends VanillaView<Record<string, never>> {
             this.createGrid(lightThemes),
         );
         this.applySelection(themeState.get().id);
-        this.own(themeState.subscribe(() => this.applySelection(themeState.get().id)));
+        this.own(themeState.subscribe(
+            (themeId: string) => this.applySelection(themeId),
+            (state) => state.id,
+        ));
     }
 
     protected onDispose(): void {

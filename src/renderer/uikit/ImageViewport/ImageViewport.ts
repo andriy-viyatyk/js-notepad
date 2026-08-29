@@ -29,7 +29,6 @@ export type ImageViewportState = typeof defaultImageViewportState;
 
 export interface ImageViewportModelProps {
     src: string;
-    onModel: ((model: ImageViewportModel | null) => void) | undefined;
 }
 
 export class ImageViewportModel extends TComponentModel<ImageViewportState, ImageViewportModelProps> {
@@ -254,18 +253,15 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
         // Add wheel listener with passive: false to allow preventDefault
         this.containerRef?.addEventListener("wheel", this.handleWheel, { passive: false });
 
-        this.props.onModel?.(this);
     }
 
     dispose() {
         window.removeEventListener("resize", this.handleResize);
         this.containerRef?.removeEventListener("wheel", this.handleWheel);
-        this.props.onModel?.(null);
     }
 }
 
 export interface ImageViewportProps {
     src: string;
     alt?: string;
-    onModel?: (model: ImageViewportModel | null) => void;
 }

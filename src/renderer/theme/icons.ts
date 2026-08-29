@@ -1,4 +1,4 @@
-import type { ElementRef, NativeCSSProperties } from "../uikit/shared/dom-props";
+import type { NativeCSSProperties } from "../uikit/shared/dom-props";
 import { themeState } from "./theme-state";
 
 type NativeSVGAttributeValue = string | number | boolean | undefined;
@@ -10,7 +10,6 @@ export type NativeSVGProps = {
     className?: string;
     color?: string;
     style?: NativeCSSProperties | string;
-    ref?: ElementRef<SVGSVGElement>;
     title?: string;
     opacity?: NativeSVGAttributeValue;
     fill?: NativeSVGAttributeValue;
@@ -91,7 +90,6 @@ function createSvgElement(viewBox: string, body: string, props: SvgIconProps = {
         height = 24,
         title,
         color,
-        ref: _ref,
         style,
         ...otherProps
     } = props;

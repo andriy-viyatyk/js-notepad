@@ -248,15 +248,15 @@ export class GridEditorView extends VanillaView<{ model: EditorModel }> {
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireGridModel(props.model);
-        this.model = model;
+        if (model !== this.model) {
+            throw new Error("Grid view received a different model instance.");
+        }
         const body = this.body;
         const toolbar = this.toolbar;
         const searchInput = this.searchInput;
         const chrome = this.chrome;
         if (!body || !toolbar || !searchInput || !chrome) return;
         body.update({ model, onModel: this.onGridModel });
-        toolbar.update({ model, getGridModel: this.getGridModel });
-        searchInput.update({ model });
         chrome.update({
             model: props.model,
             children: body.root,

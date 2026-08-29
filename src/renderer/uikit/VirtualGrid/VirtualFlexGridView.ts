@@ -14,7 +14,6 @@ export type VirtualFlexCellFunc = (p: VirtualFlexCellParams) => HTMLElement | un
 
 export interface VirtualFlexGridProps
     extends Omit<VirtualGridProps, "renderCell" | "onView"> {
-    onModel?: (model: GridModelCapability | null) => void;
     minRowHeight?: number;
     maxRowHeight?: number;
     renderCell: VirtualFlexCellFunc;
@@ -97,9 +96,13 @@ export class VirtualFlexGridView extends VanillaView<VirtualFlexGridProps> {
         return this.grid?.scrollElement;
     }
 
+    /** The stable inner grid capability, available after this wrapper has mounted. */
+    get gridModel(): GridModelCapability | null {
+        return this.grid?.model ?? null;
+    }
+
     private readonly onGridView = (view: VirtualGridView | null): void => {
         this.measurement.setGridModel(view?.model ?? null);
-        this.props.onModel?.(view?.model ?? null);
     };
 
     public constructor(props: VirtualFlexGridProps) {
@@ -149,7 +152,6 @@ export class VirtualFlexGridView extends VanillaView<VirtualFlexGridProps> {
     private gridOptions(props: VirtualFlexGridProps): VirtualGridProps {
         const {
             renderCell: _renderCell,
-            onModel: _onModel,
             minRowHeight: _minRowHeight,
             maxRowHeight: _maxRowHeight,
             getInitialRowHeight: _getInitialRowHeight,

@@ -31,6 +31,7 @@ export class SliderView extends VanillaView<SliderProps> {
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.listen(this.root, "input", this.handleInput);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
@@ -43,9 +44,8 @@ export class SliderView extends VanillaView<SliderProps> {
     private applyProps(props: SliderProps): void {
         const {
             name, value, onChange: _onChange, min, max, step = 1, size = "md",
-            disabled, width, showProgress, children: _children, ...rest
+            disabled, width, showProgress, children: _children, ..._rest
         } = props;
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         const input = this.root as HTMLInputElement;
         input.type = "range";
         input.min = String(min);
@@ -77,6 +77,24 @@ export class SliderView extends VanillaView<SliderProps> {
                 `linear-gradient(to right, ${ACTIVE_COLOR} ${clamped}%, ${DEFAULT_COLOR} ${clamped}%)`,
             );
         }
+    }
+
+    private applyConstructionRestProps(props: SliderProps): void {
+        const {
+            name: _name,
+            value: _value,
+            onChange: _onChange,
+            min: _min,
+            max: _max,
+            step: _step,
+            size: _size,
+            disabled: _disabled,
+            width: _width,
+            showProgress: _showProgress,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     private readonly handleInput = (event: Event): void => {

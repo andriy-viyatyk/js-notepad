@@ -338,7 +338,7 @@ The pattern moves state transitions and reusable logic into a model; the `Vanill
 native listeners, bindings, and disposal. See the standard doc for the full pattern, including:
 
 - `TComponentState` — the state primitive
-- `TComponentModel` — the base class with `init()`, `dispose()`, and `memo()`
+- `TComponentModel` — the base class with `init()`, `dispose()`, and derive-on-write model fields
 - `createComponentModelDriver(props, ModelClass, defaultState)` — the explicit native lifecycle driver
 
 ### Naming and file layout
@@ -429,6 +429,20 @@ exports from `uikit/index.ts`.
   methods, `setProps`, view lifecycle hooks, or cancellable async work. Keep prop-to-state seeding
   behind an identity guard in `setProps`, because prop pumping runs on every update.
 
+### The props-pump convention
+
+Props are construction-time configuration. Live data belongs in a child-owned `bind()` to the
+relevant model state or in a targeted setter; `update(props)` is not a render pass. Store every
+update-path `onX` callback as a bound field created once. A construction-time menu or toolbar
+descriptor may use an inline arrow because it is built once, but update-path callback identity must
+not churn.
+
+Selectors must return direct state references, primitives, or plain objects of those values — never a
+fresh array. Use `KeyedList` for dynamic collections and `SubtreeSwap` for one conditional child.
+The full convention, including `compareSelection` semantics, the small-model whole-state exception,
+and the rejected `VanillaView.update()` equality gate, is in
+[`/doc/standards/model-view-pattern.md`](../../../doc/standards/model-view-pattern.md#the-props-pump-convention).
+
 #### The one exemption from the state primitives
 
 `uikit/VirtualGrid/VirtualGridModel.ts` uses **no state primitive at all** — plain fields, and one
@@ -460,11 +474,11 @@ Five rules, each of which has already bitten:
   slot silently degenerates into "always repaint".
 - **Gate after the pump, prime at the end of `onMount`.** Gating first compares a stale signature;
   never priming makes the first update repaint everything for nothing.
-- **Compare a `memo`'s output only when the memo genuinely derives something.** When its only
-  dependency is a prop, the prop *is* the signal — compare that instead and skip evaluating the
-  memo inside change detection. When its output is a normalised primitive, comparing the output is
-  better than comparing the prop. `ListBoxModel.resolved` is the first case, `selectedKey` the
-  second, `TreeModel.rows` the third.
+- **Compare the actual derived output at its ownership boundary.** When an output is derived only
+  from a prop, the prop *is* the signal and identity-check that input before deriving. When the
+  output is a normalized primitive or collection, maintain it synchronously and compare the plain
+  field or direct reference that the consumer reads. `ListBoxModel.resolved`, `selectedKey`, and
+  `TreeModel.rows` follow this rule.
 - **Do not put reactive state in the signature.** A state change does not pump props in a vanilla
   driver, so a state slot is dead code. State-driven arms belong in `bind()`, and consequences of
   the model's own mutations belong at the mutation site.
@@ -473,16 +487,16 @@ Five rules, each of which has already bitten:
   passes `value` — that predicate is the only slot that can carry the change. A stable bound method
   means checking a row moves no slot at all: the gate reports no change and the row keeps its old
   DOM until an unrelated input moves, so it self-heals on the next mouse move and reads as a
-  rendering glitch rather than a missing repaint. Memoize the predicate on the selection
-  (`MultiListBoxModel.isSelected`). A `revision` counter is not the fix — it is a proxy for a signal
+  rendering glitch rather than a missing repaint. Keep the predicate identity stable and carry the
+  changing selection set as an explicit repaint signal (`MultiListBoxModel.isSelected` plus
+  `selectedKeys`). A `revision` counter is not the fix — it is a proxy for a signal
   that already has a channel, and a forgotten bump has no compiler or runtime signal at all.
 
-#### Never read state or a `memo()` from inside a `state.update` producer
+#### Never read a state-derived field from inside a `state.update` producer
 
 Immer runs the producer against the *previous* state, and `this.state.get()` still returns it — so a
-memo consulted there is computed from pre-write values, and a guard read from `this.state` compares
-against them too. The failure is silent: the producer writes a plausible value that is one step
-stale.
+derived field or guard consulted there can therefore be computed from pre-write values, and the
+failure is silent: the producer writes a plausible value that is one step stale.
 
 Compute from explicit values **before** the update and assign the result inside the producer; read
 the guards from the **draft**, which is the state being committed. `SelectModel.seedIndex` takes both
@@ -525,24 +539,22 @@ For the internal case, the answer is **not** a state subscription:
   checkable. A submodel gets a narrow entry point (`mutateState`) rather than touching `state`.
 - **The consequence of a state write is to re-run the render pass, not to repaint the cells.** Root
   attributes can be state-derived, and `aria-activedescendant` is the worked example: its bounds
-  check reads `rows.length` *and* its value reads `rows.value[i].value`, so a `collapseAll()` with a
+  check reads `rows.length` *and* its value reads `rows[i].value`, so a `collapseAll()` with a
   high `activeIndex` must *remove* the attribute and an in-range collapse must *rewrite* it. A
   grid-only repaint leaves the root pointing at an id that is no longer in the DOM.
 - Keep `applyRestProps` off the state path. It removes and re-adds every `on*` listener on every
   call, rest props cannot have changed on a state write, and reinstalling the root's listeners
   during a drag is a hazard rather than churn.
 - Re-prime the `DepsGate` from the state path. Immer gives the mutated slice a new identity, so a
-  derived memo's output is a new object and the next props pump would otherwise repaint a second
+  eagerly derived output has a new identity and the next props pump would otherwise repaint a second
   time. Priming is safe there precisely because that path just painted everything.
 
 Why not a subscription **in that case**, concretely (all three points are about a state-driven
 *render pass*; none of them argues against `bind()` for a field that is simply a child's prop):
-`TOneState.update` dispatches **synchronously** (it is not a
-`TOneState.update` dispatches synchronously, unsubscribe replaces the listener array so an in-flight
-dispatch can still call a listener removed during that pass, and a
-state-driven blanket repaint is the masked-defect machine described in
-[/doc/de-react.md](../../../doc/de-react.md) §6.1 — a prop missing from the signature would appear
-broken only until the user expanded a node, then fix itself.
+`TOneState.update` dispatches synchronously, and unsubscribe replaces the listener array so an
+in-flight dispatch can still call a listener removed during that pass, and a
+state-driven blanket repaint masks missing prop dependencies: a prop missing from the signature
+would appear broken only until the user expanded a node, then fix itself.
 
 #### Scrolling after a change that resizes the content
 

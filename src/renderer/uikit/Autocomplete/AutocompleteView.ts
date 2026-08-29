@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { nextElementId } from "../shared/element-id";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
@@ -8,6 +8,7 @@ import { InputView } from "../Input/InputView";
 import { ListBoxView } from "../ListBox/ListBoxView";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import type { IListBoxItem, ListBoxProps } from "../ListBox/types";
+import type { VirtualGridLayout } from "../VirtualGrid";
 import type { InputProps } from "../Input/InputView";
 import {
     AutocompleteModel,
@@ -19,9 +20,7 @@ import "./Autocomplete.css";
 // instantiating `SpacerView`, so nothing in this module's graph would pull the rule in.
 import "../Spacer/Spacer.css";
 
-export type AutocompleteViewProps = AutocompleteProps & {
-    ref?: ElementRef<HTMLInputElement>;
-};
+export type AutocompleteViewProps = AutocompleteProps;
 
 interface AutocompleteContentProps {
     header: SlotContent;
@@ -82,25 +81,58 @@ class AutocompleteContentView extends VanillaView<AutocompleteContentProps> {
         this.sync(props);
     }
 
+    public setHeaderSlots(header: SlotContent, headerAction: SlotContent): void {
+        this.syncHeader(header, headerAction);
+    }
+
+    public setItems(items: ListBoxProps<IListBoxItem>["items"]): void {
+        this.list?.setItems(items);
+    }
+
+    public setActiveIndex(activeIndex: ListBoxProps<IListBoxItem>["activeIndex"]): void {
+        this.list?.setActiveIndex(activeIndex);
+    }
+
+    public setEmptyMessage(emptyMessage: ListBoxProps<IListBoxItem>["emptyMessage"]): void {
+        this.list?.setEmptyMessage(emptyMessage);
+    }
+
+    public setLayout(layout: VirtualGridLayout): void {
+        this.list?.setLayout(layout);
+    }
+
     private sync(props: AutocompleteContentProps): void {
         const list = this.list;
         if (!list) return;
 
-        const present = props.header != null && props.header !== false;
+        this.syncHeader(props.header, props.headerAction);
+        list.setItems(props.list.items);
+        list.setEmptyMessage(props.list.emptyMessage);
+        list.setLayout({
+            rowHeight: props.list.rowHeight,
+            growToHeight: typeof props.list.growToHeight === "number"
+                ? `${props.list.growToHeight}px`
+                : props.list.growToHeight,
+            fitToWidth: true,
+            whiteSpaceY: props.list.whiteSpaceY,
+        });
+        list.setActiveIndex(props.list.activeIndex);
+    }
+
+    private syncHeader(header: SlotContent, headerAction: SlotContent): void {
+        const present = header != null && header !== false;
         if (present) {
             const headerHost = this.headerHost;
             const actionHost = this.actionHost;
             if (!headerHost || !actionHost) return;
 
             const row = this.headerRow ?? this.createHeaderRow();
-            if (!row.isConnected) this.root.insertBefore(row, list.root);
-            this.headerCleanup = fillSlot(headerHost, props.header);
-            this.actionCleanup = fillSlot(actionHost, props.headerAction);
+            if (!row.isConnected && this.list) this.root.insertBefore(row, this.list.root);
+            this.headerCleanup = fillSlot(headerHost, header);
+            this.actionCleanup = fillSlot(actionHost, headerAction);
         } else if (this.headerRow?.isConnected) {
             this.headerRow.remove();
         }
-
-        this.list.update(props.list);
     }
 
     /**
@@ -165,9 +197,6 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
      */
     private contentView: AutocompleteContentView | undefined;
 
-    private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
-    private callerRefCleanup: (() => void) | undefined;
 
     public constructor(props: AutocompleteViewProps) {
         super(props, document.createElement("div"));
@@ -182,7 +211,6 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
 
         this.own(() => this.driver.dispose());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
-        this.own(() => this.callerRefCleanup?.());
     }
 
     /** The live model, for the story and for tests. */
@@ -194,9 +222,8 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
         this.input = this.child(new InputView(this.inputProps()));
         this.root.append(this.input.root);
         this.input.mount();
-        if (this.inputElement) {
-            this.listen(this.inputElement, "keydown", this.handleInputKeyDown);
-        }
+        this.model.setInputRef(this.input.inputElement);
+        this.listen(this.input.inputElement, "keydown", this.handleInputKeyDown);
 
         // `PopoverView`'s own root is `display: contents`; the floating branch lives in the overlay
         // layer, so this append contributes no box.
@@ -205,6 +232,7 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
         this.popover.mount();
 
         this.applyRoot(this.props);
+        applyRestProps(this.root, this.restProps(this.props), this.restPropsState);
         this.driver.mount();
 
         // Applies once immediately, which seeds the first sync; then fires on every state write.
@@ -218,7 +246,6 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
     protected onUpdate(props: AutocompleteViewProps): void {
         this.driver.update(this.modelProps(props));
         this.applyRoot(props);
-        this.syncCallerRef(false);
         this.syncChildren();
     }
 
@@ -235,7 +262,6 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
 
         // No inline size: the width trio is forwarded to the inner Input, which is what the React
         // implementation did. `Autocomplete.css`'s `width: 100%` owns the root.
-        applyRestProps(root, this.restProps(props), this.restPropsState);
     }
 
     // -----------------------------------------------------------------------
@@ -252,10 +278,10 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
         this.root.dataset.state = this.model.state.get().open ? "open" : "closed";
 
         input.update(this.inputProps());
-        popover.update(this.popoverProps());
+        this.syncPopover(popover);
 
         if (this.model.popoverOpen) {
-            this.contentView?.update(this.contentProps());
+            this.syncContent();
         } else {
             // The branch has just been torn down by the popover update above. The reference must not
             // survive into a re-open, and the factory reassigns it there.
@@ -263,10 +289,37 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
         }
     }
 
+    private syncPopover(popover: PopoverView): void {
+        popover.setOpen(this.model.popoverOpen);
+        popover.setAnchor(this.root);
+        popover.setPlacement("bottom-start");
+        popover.setOffset([0, 2]);
+        popover.setSizing({ matchAnchorWidth: true, resizable: false, scroll: false });
+    }
+
+    private syncContent(): void {
+        const content = this.contentView;
+        if (!content) return;
+
+        const props = this.props;
+        content.setHeaderSlots(props.header, props.headerAction);
+        const { filteredItems } = this.model.filtered;
+        content.setItems(filteredItems);
+        content.setEmptyMessage(props.emptyMessage);
+        content.setLayout({
+            rowHeight: this.model.rowHeight,
+            growToHeight: `${this.model.maxVisibleItems * this.model.rowHeight}px`,
+            fitToWidth: true,
+            whiteSpaceY: undefined,
+        });
+        // The final ListBox operation carries the filtered rows and active index together for
+        // the correct after-paint scroll path.
+        content.setActiveIndex(this.model.state.get().activeIndex);
+    }
+
     private inputProps(): InputProps {
         const props = this.props;
         return {
-            ref: this.setInputElement,
             size: props.size ?? "md",
             value: props.value,
             onChange: this.model.onInputChange,
@@ -326,7 +379,7 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
      */
     private listProps(): ListBoxProps<IListBoxItem> {
         const props = this.props;
-        const { filteredItems } = this.model.filtered.value;
+        const { filteredItems } = this.model.filtered;
         return {
             id: this.model.listboxId,
             items: filteredItems,
@@ -341,23 +394,11 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
     }
 
     // -----------------------------------------------------------------------
-    // The forwarded ref
+    // Owned input access
     // -----------------------------------------------------------------------
 
-    /** One identity for this view's whole life, so `InputView` binds it exactly once. */
-    private readonly setInputElement = (el: HTMLInputElement | null): void => {
-        this.inputElement = el;
-        this.model.setInputRef(el);
-        this.syncCallerRef(true);
-    };
-
-    /** Re-bound whenever the caller's ref identity moves, so the previous ref is released first. */
-    private syncCallerRef(force: boolean): void {
-        const ref = this.props.ref;
-        if (!force && ref === this.appliedCallerRef) return;
-        this.callerRefCleanup?.();
-        this.appliedCallerRef = ref;
-        this.callerRefCleanup = bindRef(this.inputElement, ref);
+    public get inputElement(): HTMLInputElement | null {
+        return this.input?.inputElement ?? null;
     }
 
     // -----------------------------------------------------------------------
@@ -368,14 +409,13 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
     };
 
     private modelProps(props: AutocompleteViewProps): AutocompleteProps {
-        const { ref: _ref, ...modelProps } = props;
-        return modelProps as AutocompleteProps;
+        return props;
     }
 
     private restProps(props: AutocompleteViewProps): Record<string, unknown> {
         const {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            ref: _ref, name: _name, value: _value, onChange: _onChange, items: _items,
+            name: _name, value: _value, onChange: _onChange, items: _items,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             filterMode: _filterMode, filter: _filter, openOnFocus: _openOnFocus,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars

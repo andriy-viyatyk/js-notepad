@@ -13,7 +13,6 @@ import type { SvgEditor } from "./SvgEditor";
 export interface SvgBodyViewProps {
     model: SvgEditor;
     editorConfig?: EditorConfig;
-    imageModelSetter?: (model: ImageViewportModel | null) => void;
 }
 
 function rootPanelProps(editorConfig?: EditorConfig): PanelStyleProps {
@@ -27,12 +26,8 @@ function rootPanelProps(editorConfig?: EditorConfig): PanelStyleProps {
     };
 }
 
-function viewportProps(
-    content: string,
-    imageModelSetter?: SvgBodyViewProps["imageModelSetter"],
-): ImageViewportProps {
+function viewportProps(content: string): ImageViewportProps {
     return {
-        onModel: imageModelSetter,
         src: `data:image/svg+xml,${encodeURIComponent(content)}`,
         alt: "SVG Preview",
     };
@@ -40,7 +35,6 @@ function viewportProps(
 
 export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
     private model: SvgEditor;
-    private imageModelSetter: SvgBodyViewProps["imageModelSetter"];
     private viewport!: ImageViewportView;
     private hostSubscription: (() => void) | undefined;
     private boundModel: SvgEditor | undefined;
@@ -50,16 +44,14 @@ export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
     public constructor(props: SvgBodyViewProps) {
         super(props, createPanelElement(rootPanelProps(props.editorConfig)));
         this.model = props.model;
-        this.imageModelSetter = props.imageModelSetter;
     }
 
     protected onMount(): void {
         this.model = this.props.model;
-        this.imageModelSetter = this.props.imageModelSetter;
         applyPanelAttributes(this.root, resolvePanelAttributes(rootPanelProps(this.props.editorConfig)));
         const content = this.model.host?.state.get().content ?? "";
         this.viewport = this.child(new ImageViewportView(
-            viewportProps(content, this.imageModelSetter),
+            viewportProps(content),
         ));
         this.root.append(this.viewport.root);
         this.viewport.mount();
@@ -73,7 +65,6 @@ export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
         applyPanelAttributes(this.root, resolvePanelAttributes(rootPanelProps(props.editorConfig)));
 
         const modelChanged = this.model !== props.model;
-        this.imageModelSetter = props.imageModelSetter;
         if (modelChanged) {
             this.queueSubscription?.();
             this.queueSubscription = undefined;
@@ -85,10 +76,7 @@ export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
 
         this.bindToHostIfNeeded();
         this.viewport.update(
-            viewportProps(
-                this.model.host?.state.get().content ?? "",
-                this.imageModelSetter,
-            ),
+            viewportProps(this.model.host?.state.get().content ?? ""),
         );
     }
 
@@ -104,9 +92,13 @@ export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
 
         this.hostSubscription = this.ownSubscription(host.state.subscribe(
             (content: string) => {
-                this.viewport.update(viewportProps(content, this.imageModelSetter));
+                this.viewport.update(viewportProps(content));
             },
             (state) => state.content,
         ));
+    }
+
+    public get imageModel(): ImageViewportModel | null {
+        return this.viewport?.model ?? null;
     }
 }

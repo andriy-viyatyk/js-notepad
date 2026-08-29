@@ -17,7 +17,7 @@ All state primitives live in `/src/renderer/core/state/`.
 | `TGlobalState<T>` | Application-wide state (cleared on logout) | `api/` modules |
 | `TComponentState<T>` | Component-scoped state | `TComponentModel` instances |
 | `TModel<T>` | Stateful business logic (non-React) | Models, services |
-| `TComponentModel<T, P>` | Component model with props, state, handlers, and cached computations; driven by an explicit lifecycle adapter | `VanillaView` classes |
+| `TComponentModel<T, P>` | Component model with props, state, handlers, and synchronously maintained derived fields; driven by an explicit lifecycle adapter | `VanillaView` classes |
 | `TDialogModel<T, R>` | Dialog/modal with async result | Dialogs |
 | `EditorModel<T, R>` | Editor instance (every editor subclasses this) | Editors |
 
@@ -146,7 +146,8 @@ class MyModel extends TModel<MyState> {
 
 ### TComponentModel\<T, P\>
 
-Component model with props tracking, explicit lifecycle hooks, and cached computations.
+Component model with props tracking, explicit lifecycle hooks, and synchronously maintained derived
+fields.
 Framework-free views use `createComponentModelDriver` from `core/state/model.ts`.
 
 ```typescript
@@ -177,8 +178,11 @@ post-mount updates should guard `setProps()` with an initialization flag. A mode
 vanilla view must put DOM work in the view lifecycle or in explicit model methods, and must keep
 asynchronous work cancellable after disposal.
 
-**Primitives:**
-- `this.memo(computeFn, depsFactory)` — cached computation (like `useMemo`)
+**Derived values:**
+Keep values derived from props or state as plain model fields. Recompute them in `setProps()` or in
+the setter that changes their inputs, before any state notification or view consequence observes
+the write. This makes invalidation visible at the write site and avoids a lazy cache whose value can
+become stale during a synchronous state update. `TComponentModel` has no `memo()` primitive.
 
 See [Model-View Pattern](/doc/standards/model-view-pattern.md) for full documentation.
 

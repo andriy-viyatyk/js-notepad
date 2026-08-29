@@ -26,12 +26,12 @@ export interface TreeState {
     /**
      * Per-source-value loading flag. Set true when `loadChildren` begins, cleared on
      * resolve OR reject. Affects the chevron (replaced by spinner) and `data-loading`
-     * on the row; does NOT alter the rows-memo output (a loading row is still in `rows`,
+     * on the row; does NOT alter the rows output (a loading row is still in `rows`,
      * just with a spinner where its chevron normally is).
      */
     loading: Record<string | number, boolean>;
     /**
-     * Bumped after every successful `loadChildren` resolution to force `rows` memo to
+     * Bumped after every successful `loadChildren` resolution to force the rows derivation to
      * re-walk even when the consumer mutated the source tree in place (i.e., `props.items`
      * reference is stable). Co-opted by from the V1 declaration.
      */
@@ -95,14 +95,24 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * Do not call `this.state.update` anywhere else in this folder — `grep "state.update"
      * uikit/Tree/` must return exactly one hit, which is what makes the convention checkable.
      */
-    private mutate(updater: (state: TreeState) => void): void {
+    private mutate(updater: (state: TreeState) => void, deriveRows = true): void {
+        if (deriveRows) {
+            const current = this.state.get();
+            const next = {
+                ...current,
+                expanded: { ...current.expanded },
+                loading: { ...current.loading },
+            };
+            updater(next);
+            this.deriveRows(next.expanded);
+        }
         this.state.update(updater);
         this.onStateApplied?.();
     }
 
     /** `TreeDndModel`'s narrow entry to the funnel, so it never touches `tree.state` directly. */
     mutateState = (updater: (state: TreeState) => void): void => {
-        this.mutate(updater);
+        this.mutate(updater, false);
     };
 
     // Composed interaction models retain transient gesture state outside TreeState.
@@ -120,7 +130,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         return this.props.id ?? this._elementId;
     }
     itemId = (rowIndex: number): string => {
-        const row = this.rows.value[rowIndex];
+        const row = this.rows[rowIndex];
         return row ? `${this.rootId}-item-${row.value}` : "";
     };
 
@@ -167,106 +177,100 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         return items.traits.get(TREE_ITEM_KEY);
     }
 
-    /**
-     * Memoized flat list of visible rows. Each render-relevant input (items prop, expansion
-     * map, default-expand hints) appears in the deps factory. The tree host passes this flat
-     * array to VirtualGrid, whose row count is rows.length.
-     */
-    rows = this.memo<TreeRow<T>[]>(
-        () => {
-            const items = this.props.items;
-            const accessor = this.itemsAccessor;
-            const sources = (isTraited<unknown[]>(items) ? items.target : items) as T[];
-            const expanded = this.state.get().expanded;
-            const expandAll = !!this.props.defaultExpandAll;
+    private appliedItems: TreeProps<T>["items"] | undefined = undefined;
+    private appliedValue: TreeProps<T>["value"] | undefined = undefined;
+    private appliedGetChildren: TreeProps<T>["getChildren"] | undefined = undefined;
+    private appliedGetHasChildren: TreeProps<T>["getHasChildren"] | undefined = undefined;
+    private appliedDefaultExpandAll: TreeProps<T>["defaultExpandAll"] | undefined = undefined;
+    private appliedDefaultExpandedValues: TreeProps<T>["defaultExpandedValues"] | undefined = undefined;
+    private hasAppliedProps = false;
 
-            const rows: TreeRow<T>[] = [];
-            const walk = (src: T, level: number) => {
-                const { item, children } = this.resolveOne(src, accessor);
-                const hasChildren = !!children && children.length > 0;
-                // Lazy chevron eligibility: predicate says "yes children" but the walk
-                // yielded none. When real children are already loaded, this stays false
-                // so the chevron is driven solely by `hasChildren`.
-                const lazyChildren =
-                    !hasChildren && !!this.props.getHasChildren?.(src);
-                // Expansion default per node:
-                //  - explicit user toggle wins (state.expanded[value])
-                //  - otherwise defaultExpandedValues hint wins
-                //  - otherwise defaultExpandAll
-                const fromState = expanded[item.value];
-                const fromHint = this.props.defaultExpandedValues?.[item.value];
-                const isExpanded =
-                    fromState !== undefined
-                        ? fromState
-                        : fromHint !== undefined
-                            ? fromHint
-                            : expandAll;
-                rows.push({
-                    item,
-                    source: src,
-                    level,
-                    expanded: isExpanded,
-                    hasChildren,
-                    lazyChildren,
-                    value: item.value,
-                });
-                if (hasChildren && isExpanded && children) {
-                    for (const child of children) walk(child, level + 1);
-                }
-            };
-            for (const src of sources) walk(src, 0);
-            return rows;
-        },
-        () => [
-            this.props.items,
-            this.props.getChildren,
-            this.props.getHasChildren,
-            this.props.defaultExpandAll,
-            this.props.defaultExpandedValues,
-            this.state.get().expanded,
-            this.state.get().revision,
-        ],
-    );
+    rows: TreeRow<T>[] = [];
+    indexByValue = new Map<string | number, number>();
+    selectedKey: string | number | null = null;
 
-    /** Lookup of source `value` to row index (for imperative expand/scroll/toggle). */
-    indexByValue = this.memo<Map<string | number, number>>(
-        () => {
-            const map = new Map<string | number, number>();
-            this.rows.value.forEach((r, i) => map.set(r.value, i));
-            return map;
-        },
-        () => [this.rows.value],
-    );
+    setProps = (): void => {
+        const rowsChanged = !this.hasAppliedProps
+            || this.appliedItems !== this.props.items
+            || this.appliedGetChildren !== this.props.getChildren
+            || this.appliedGetHasChildren !== this.props.getHasChildren
+            || this.appliedDefaultExpandAll !== this.props.defaultExpandAll
+            || this.appliedDefaultExpandedValues !== this.props.defaultExpandedValues;
+        const selectionChanged = !this.hasAppliedProps
+            || this.appliedValue !== this.props.value
+            || this.appliedItems !== this.props.items;
 
-    /** Resolved selected `value` from `value` prop (only used when `isSelected` is absent). */
-    selectedKey = this.memo<string | number | null>(
-        () => {
-            const v = this.props.value;
-            if (v == null) return null;
-            return this.resolveSelectionValue(v).value;
-        },
-        () => [this.props.value, this.props.items],
-    );
+        if (rowsChanged) this.deriveRows(this.state.get().expanded);
+        if (selectionChanged) {
+            this.selectedKey = this.props.value == null
+                ? null
+                : this.resolveSelectionValue(this.props.value).value;
+        }
+
+        this.appliedItems = this.props.items;
+        this.appliedValue = this.props.value;
+        this.appliedGetChildren = this.props.getChildren;
+        this.appliedGetHasChildren = this.props.getHasChildren;
+        this.appliedDefaultExpandAll = this.props.defaultExpandAll;
+        this.appliedDefaultExpandedValues = this.props.defaultExpandedValues;
+        this.hasAppliedProps = true;
+    };
+
+    /** Derive the visible rows and its lookup together, before a state notification can run. */
+    private deriveRows(expanded: Record<string | number, boolean>): void {
+        const items = this.props.items;
+        const accessor = this.itemsAccessor;
+        const sources = (isTraited<unknown[]>(items) ? items.target : items) as T[];
+        const expandAll = !!this.props.defaultExpandAll;
+        const rows: TreeRow<T>[] = [];
+        const walk = (src: T, level: number) => {
+            const { item, children } = this.resolveOne(src, accessor);
+            const hasChildren = !!children && children.length > 0;
+            const lazyChildren = !hasChildren && !!this.props.getHasChildren?.(src);
+            const fromState = expanded[item.value];
+            const fromHint = this.props.defaultExpandedValues?.[item.value];
+            const isExpanded = fromState !== undefined
+                ? fromState
+                : fromHint !== undefined
+                    ? fromHint
+                    : expandAll;
+            rows.push({
+                item,
+                source: src,
+                level,
+                expanded: isExpanded,
+                hasChildren,
+                lazyChildren,
+                value: item.value,
+            });
+            if (hasChildren && isExpanded && children) {
+                for (const child of children) walk(child, level + 1);
+            }
+        };
+        for (const src of sources) walk(src, 0);
+        this.rows = rows;
+        this.indexByValue = new Map(rows.map((row, index) => [row.value, index]));
+    }
 
     // --- selection / interaction predicates ---
 
     isSelectedAt = (rowIndex: number): boolean => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         if (!r || r.item.section) return false;
         if (this.props.isSelected) return this.props.isSelected(r.source, r.level);
-        const key = this.selectedKey.value;
+        const key = this.selectedKey;
         return key != null && r.value === key;
     };
 
     isInteractive = (rowIndex: number): boolean => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         return !!r && !r.item.section && !r.item.disabled;
     };
 
     /** Row index of the current selection, or -1. Keyboard fallback origin when no row
      *  is active (e.g. the mouse just left the tree). */
     selectedRowIndex = (): number => {
-        const rows = this.rows.value;
+        const rows = this.rows;
         for (let i = 0; i < rows.length; i++) {
             if (this.isSelectedAt(i)) return i;
         }
@@ -274,7 +278,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     findNextInteractive = (start: number, dir: 1 | -1): number => {
-        const rows = this.rows.value;
+        const rows = this.rows;
         let i = start;
         while (i >= 0 && i < rows.length) {
             if (this.isInteractive(i)) return i;
@@ -291,7 +295,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      */
     private currentSelectionIndices = (): number[] => {
         const out: number[] = [];
-        for (let i = 0; i < this.rows.value.length; i++) {
+        for (let i = 0; i < this.rows.length; i++) {
             if (this.isSelectedAt(i)) out.push(i);
         }
         return out;
@@ -304,7 +308,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         const unique = [...new Set(indices)]
             .filter((i) => this.isInteractive(i))
             .sort((a, b) => a - b);
-        const rows = this.rows.value;
+        const rows = this.rows;
         handler(
             unique.map((i) => rows[i].source),
             unique.map((i) => rows[i].value),
@@ -320,7 +324,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     findParentIndex = (rowIndex: number): number => {
-        const rows = this.rows.value;
+        const rows = this.rows;
         const cur = rows[rowIndex];
         if (!cur || cur.level === 0) return -1;
         for (let i = rowIndex - 1; i >= 0; i--) {
@@ -339,7 +343,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * disjoint-range add is not a gesture we support.
      */
     onItemClick = (rowIndex: number, e?: MouseEvent) => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         if (!r || r.item.disabled || r.item.section) return;
 
         if (!this.props.multiSelect) {
@@ -366,7 +370,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     onItemDoubleClick = (rowIndex: number) => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         if (!r || r.item.disabled || r.item.section) return;
         this.props.onItemDoubleClick?.(r.source, r.level);
     };
@@ -387,7 +391,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     onItemContextMenu = (e: MouseEvent, rowIndex: number) => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         if (!r || r.item.section) return;
 
         // Right-click moves the selection to this row ONLY when the row is outside the current
@@ -442,19 +446,19 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      */
     private needsLazyLoad = (rowIndex: number): boolean => {
         if (!this.props.loadChildren) return false;
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         if (!r) return false;
         return r.lazyChildren;
     };
 
     isLoadingAt = (rowIndex: number): boolean => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         return !!r && !!this.state.get().loading[r.value];
     };
 
     /**
      * Run `loadChildren` for a row. Sets expanded=true + loading=true atomically before
-     * the await; on resolve clears loading + bumps revision (forces rows-memo re-walk);
+     * the await; on resolve clears loading + bumps revision (forces a rows re-walk);
      * on reject clears loading + sets expanded=false + invokes `onLoadError`.
      *
      * Re-checks `isLive` at every awaited boundary so an unmount mid-load is safe.
@@ -495,7 +499,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     // --- imperative API ---
 
     toggleAt = (rowIndex: number) => {
-        const r = this.rows.value[rowIndex];
+        const r = this.rows[rowIndex];
         if (!r) return;
         if (!r.hasChildren && !r.lazyChildren) return;
 
@@ -556,15 +560,15 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     expandItem = (value: string | number) => {
-        const idx = this.indexByValue.value.get(value);
+        const idx = this.indexByValue.get(value);
         if (idx == null) return;
-        const r = this.rows.value[idx];
+        const r = this.rows[idx];
         if (!r || r.expanded) return;
         this.toggleAt(idx);
     };
 
     toggleItem = (value: string | number) => {
-        const idx = this.indexByValue.value.get(value);
+        const idx = this.indexByValue.get(value);
         if (idx != null) this.toggleAt(idx);
     };
 
@@ -622,7 +626,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     scrollToItem = (value: string | number, align?: RowAlign) => {
-        const idx = this.indexByValue.value.get(value);
+        const idx = this.indexByValue.get(value);
         if (idx != null) this.gridRef?.scrollToRow(idx, align);
     };
 
@@ -679,7 +683,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         const expandedNow = this.state.get().expanded;
         const chainNow = this.findAncestorChain(value);
         if (chainNow != null && chainNow.every((a) => expandedNow[a])) {
-            const idx = this.indexByValue.value.get(value);
+            const idx = this.indexByValue.get(value);
             if (idx != null) this.gridRef?.scrollToRow(idx, align ?? "nearest");
             return;
         }
@@ -705,17 +709,17 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         // Sequentially expand each ancestor -- for any that is unloaded, runLoadAndExpand
         // resolves only after children land. Then walk the next.
         for (const a of ancestors) {
-            const idx = this.indexByValue.value.get(a);
+            const idx = this.indexByValue.get(a);
             if (idx == null) return; // chain is broken -- bail.
-            const row = this.rows.value[idx];
+            const row = this.rows[idx];
             if (!row) return;
             if (row.expanded) continue;
 
             if (this.needsLazyLoad(idx)) {
                 await this.runLoadAndExpand(row);
             } else if (row.hasChildren) {
-                // No wait after the toggle: the state write is synchronous and `memo()` is lazy, so
-                // `indexByValue.value` on the next iteration already reflects the new rows. The
+                // No wait after the toggle: the state write is synchronous and rows are derived
+                // before listeners run, so `indexByValue` on the next iteration already reflects the new rows. The
                 // `setTimeout(0)` this replaces existed only to outlive `toggleAt`'s microtask.
                 this.toggleAt(idx);
             }
@@ -749,7 +753,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             }
         }
         if (!this.isLive) return;
-        const idx = this.indexByValue.value.get(value);
+        const idx = this.indexByValue.get(value);
         if (idx == null) return;
         if (expandedRows) {
             // The row set just grew, so the scrollable extent is stale until the paint that
@@ -771,9 +775,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * state change does not pump props in a vanilla driver, so a state slot would be dead code.
      * `draggingValue`, `dragOverValue` and `loading` reach the DOM through `mutate()` instead.
      *
-     * Memo outputs are compared, not their upstream props: `rows` is not derivable from props at
-     * all (its identity is the only signal carrying expand/collapse), and `selectedKey` normalises
-     * to a primitive.
+     * The derived row projection and normalised selected key are compared directly. The row
+     * identity carries expand/collapse changes through the state-write funnel.
      *
      * Three signature details reflect the native repaint path: `rowHeight` is dropped (the engine
      * compares it in `inputChanged()`), `getContextMenu` is dropped (read at event time, changes
@@ -782,8 +785,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      */
     repaintSignature(): readonly unknown[] {
         return [
-            this.rows.value,
-            this.selectedKey.value,
+            this.rows,
+            this.selectedKey,
             this.props.activeIndex,
             this.props.searchText,
             this.props.renderItem,
@@ -806,12 +809,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * `syncActiveScroll`, with the unmeasured case now handled by the engine's own pending-scroll
      * register rather than a `setTimeout(0)` that could not test the actual condition.
      */
-    init() {
-        this.props.onModel?.(this);
-    }
-
     dispose() {
-        this.props.onModel?.(null);
         this.dnd.dispose();
     }
 }

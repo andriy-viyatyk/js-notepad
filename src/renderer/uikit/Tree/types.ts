@@ -88,8 +88,6 @@ export interface TreeProps<T = ITreeItem>
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
-    /** Called with the live model on mount and null on unmount. */
-    onModel?: (model: import("./TreeModel").TreeModel<T> | null) => void;
     /** Root items. When `T = ITreeItem`, children are read from `item.items`. */
     items: T[] | Traited<unknown[]>;
     /**
@@ -278,9 +276,9 @@ export interface TreeProps<T = ITreeItem>
      *
      * Contract:
      *   • Resolve after the consumer has updated their source tree to include the children.
-     *     The model bumps `state.revision` after the await, forcing the rows memo to re-walk.
+     *     The model bumps `state.revision` after the await, forcing the rows derivation to re-walk.
      *     Either pass a fresh `items` reference OR mutate the existing tree in place — both
-     *     work, because revision is in the rows-memo deps.
+     *     work, because revision is a row-derivation input.
      *   • Reject to signal load failure. The model collapses the row, clears the loading
      *     flag, and invokes `onLoadError`. The model does NOT cache failures — re-expand
      *     re-invokes `loadChildren`. Consumers that want to suppress retry must cache or

@@ -1,5 +1,5 @@
 export { VirtualGridView } from "./VirtualGridView";
-export type { VirtualGridProps, VirtualGridStats } from "./VirtualGridView";
+export type { VirtualGridLayout, VirtualGridProps, VirtualGridStats } from "./VirtualGridView";
 export { VirtualFlexGridView } from "./VirtualFlexGridView";
 export type {
     VirtualFlexCellFunc,

@@ -121,6 +121,16 @@ export class MonacoEditorHostView extends VanillaView<MonacoEditorHostProps> {
         }
     }
 
+    public setLanguage(language: string | undefined): void {
+        const editor = this.assertReady();
+        const nextLanguage = language ?? "plaintext";
+        if (nextLanguage === this.currentLanguage) return;
+
+        this.currentLanguage = nextLanguage;
+        const model = editor.getModel();
+        if (model) monaco.editor.setModelLanguage(model, nextLanguage);
+    }
+
     public getEditor(): monaco.editor.IStandaloneCodeEditor {
         return this.assertReady();
     }

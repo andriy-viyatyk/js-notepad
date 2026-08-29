@@ -6,9 +6,11 @@ import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { DrawIcon } from "../../theme/language-icons";
 import type { ImageEditor } from "./ImageEditor";
+import type { ImageViewportModel } from "../../uikit/ImageViewport/ImageViewport";
 
 export interface ImageToolbarViewProps {
     model: ImageEditor;
+    getImageModel: () => ImageViewportModel | null;
 }
 
 function createDirectToolbarIcon(component: { createElement: () => SVGElement }): SVGElement {
@@ -17,6 +19,7 @@ function createDirectToolbarIcon(component: { createElement: () => SVGElement })
 
 export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
     private model: ImageEditor;
+    private getImageModel: () => ImageViewportModel | null;
     private readonly saveButton: IconButtonView;
     private readonly drawButton: IconButtonView;
     private readonly copyButton: IconButtonView;
@@ -27,6 +30,8 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
     public constructor(props: ImageToolbarViewProps) {
         const root = createPanelElement({ direction: "row", align: "center", gap: "sm" });
         super(props, root);
+        this.model = props.model;
+        this.getImageModel = props.getImageModel;
 
         const saveButton = new IconButtonView({
             name: "image-save",
@@ -39,18 +44,17 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
             name: "image-open-draw",
             size: "sm",
             title: "Open in Drawing Editor",
-            onClick: props.model.openInDrawingEditor,
+            onClick: this.onDrawClick,
             icon: this.drawIcon,
         });
         const copyButton = new IconButtonView({
             name: "image-copy",
             size: "sm",
             title: "Copy Image to Clipboard (Ctrl+C)",
-            onClick: props.model.copyImageToClipboard,
+            onClick: this.onCopyClick,
             icon: "copy",
         });
         root.append(saveButton.root, drawButton.root, copyButton.root);
-        this.model = props.model;
         this.saveButton = this.child(saveButton);
         this.drawButton = this.child(drawButton);
         this.copyButton = this.child(copyButton);
@@ -65,9 +69,10 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
 
     protected onUpdate(props: ImageToolbarViewProps): void {
         this.model = props.model;
+        this.getImageModel = props.getImageModel;
         this.saveButton.update(this.saveButtonProps());
-        this.drawButton.update(this.drawButtonProps(props.model));
-        this.copyButton.update(this.copyButtonProps(props.model));
+        this.drawButton.update(this.drawButtonProps());
+        this.copyButton.update(this.copyButtonProps());
         if (this.menuHandle) this.menuHandle.update(this.menuOptions());
     }
 
@@ -136,23 +141,31 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
         };
     }
 
-    private drawButtonProps(model: ImageEditor): ConstructorParameters<typeof IconButtonView>[0] {
+    private drawButtonProps(): ConstructorParameters<typeof IconButtonView>[0] {
         return {
             name: "image-open-draw",
             size: "sm",
             title: "Open in Drawing Editor",
-            onClick: model.openInDrawingEditor,
+            onClick: this.onDrawClick,
             icon: this.drawIcon,
         };
     }
 
-    private copyButtonProps(model: ImageEditor): ConstructorParameters<typeof IconButtonView>[0] {
+    private copyButtonProps(): ConstructorParameters<typeof IconButtonView>[0] {
         return {
             name: "image-copy",
             size: "sm",
             title: "Copy Image to Clipboard (Ctrl+C)",
-            onClick: model.copyImageToClipboard,
+            onClick: this.onCopyClick,
             icon: "copy",
         };
     }
+
+    private readonly onDrawClick = (): void => {
+        void this.model.openInDrawingEditor();
+    };
+
+    private readonly onCopyClick = (): void => {
+        void this.getImageModel()?.copyToClipboard();
+    };
 }

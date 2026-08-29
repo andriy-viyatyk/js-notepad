@@ -39,6 +39,7 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
 
     protected onMount(): void {
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.childrenCleanup = fillSlot(this.root, this.props.children as SlotContent);
         this.listen(this.root, "keydown", this.onKeyDown);
         this.listen(this.root, "focusin", this.onFocusIn, { capture: true });
@@ -72,14 +73,27 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
             children: _children,
             onKeyDown: _onKeyDown,
             onFocusCapture: _onFocusCapture,
-            ...rest
+            ..._rest
         } = props;
 
         applyToolbarAttributes(this.root, { orientation, background, borderTop, borderBottom, disabled });
         this.root.dataset.rovingHost = "";
 
-        // Toolbar's two callbacks are intentionally not residual listeners:
-        // roving logic runs first, then each caller callback runs once.
+    }
+
+    private applyConstructionRestProps(props: ToolbarProps): void {
+        const {
+            orientation: _orientation,
+            background: _background,
+            borderTop: _borderTop,
+            borderBottom: _borderBottom,
+            disabled: _disabled,
+            children: _children,
+            onKeyDown: _onKeyDown,
+            onFocusCapture: _onFocusCapture,
+            ...rest
+        } = props;
+        // Toolbar's callbacks remain separate from its roving listeners.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 

@@ -61,6 +61,7 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
 
     protected onMount(): void {
         this.applyRootProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.rows.update(this.buildRows(this.props));
         this.own(() => this.rows.dispose());
     }
@@ -280,7 +281,7 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
             getCount: _getCount,
             separator: _separator,
             rootLabel: _rootLabel,
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "category-list";
@@ -288,7 +289,20 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
         else this.root.dataset.name = name;
         this.root.tabIndex = 0;
         this.root.dataset.focusSelection = "";
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         this.root.classList.add("category-list-root", "scroll-container");
+    }
+
+    private applyConstructionRestProps(props: CategoryListProps): void {
+        const {
+            name: _name,
+            items: _items,
+            value: _value,
+            onChange: _onChange,
+            getCount: _getCount,
+            separator: _separator,
+            rootLabel: _rootLabel,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

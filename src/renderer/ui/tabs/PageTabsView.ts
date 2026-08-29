@@ -12,6 +12,7 @@ import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { SplitButtonView } from "../../uikit/SplitButton/SplitButtonView";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { IState } from "../../core/state/state";
 import type { MenuItem } from "../../uikit/Menu/types";
 import { getCreatableItems } from "../sidebar/tools-editors-registry";
 import { decodePin, getPinnedStrings } from "../sidebar/pinned-items";
@@ -164,8 +165,18 @@ export class PageTabsView extends VanillaView<object> {
             const previous = this.pageLayoutSubscriptions.get(page.id);
             if (previous?.page === page && previous.editor === editor) continue;
             previous?.release();
-            const pageUnsubscribe = page.state.subscribe(() => this.refreshTabLayout());
-            const editorUnsubscribe = editor?.state.subscribe(() => this.refreshTabLayout());
+            const pageUnsubscribe = page.state.subscribe(
+                () => this.refreshTabLayout(),
+                (state) => ({ pinned: state.pinned, mainEditorId: state.mainEditorId, version: state.version }),
+            );
+            const editorState = editor?.state as unknown as IState<{ encrypted?: boolean; password?: unknown }> | undefined;
+            const editorUnsubscribe = editorState?.subscribe(
+                () => this.refreshTabLayout(),
+                (state) => ({
+                    encrypted: state.encrypted === true,
+                    decrypted: state.password !== undefined,
+                }),
+            );
             this.pageLayoutSubscriptions.set(page.id, {
                 page,
                 editor,

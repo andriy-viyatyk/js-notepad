@@ -75,10 +75,6 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private readonly footerCount = document.createElement("span");
     private readonly bridgeHost = document.createElement("div");
     private readonly tileScope = document.createElement("div");
-    private readonly searchFieldRef = (element: HTMLInputElement | null): void => {
-        this.searchField = element ?? undefined;
-    };
-
     private inputView: InputView | undefined;
     private clearButton: IconButtonView | undefined;
     private viewModeButton: IconButtonView | undefined;
@@ -121,7 +117,6 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             placeholder: "Search...",
             onChange: this.model.setSearchText,
             onKeyDown: this.onSearchKeyDown,
-            ref: this.searchFieldRef,
         }));
         this.clearButton = this.child(new IconButtonView({
             size: "sm",
@@ -138,6 +133,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.spacerView = this.child(new SpacerView({}));
 
         this.inputView.mount();
+        this.searchField = this.inputView.inputElement;
         this.clearButton.mount();
         this.viewModeButton.mount();
         this.spacerView.mount();
@@ -405,7 +401,6 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             placeholder: "Search...",
             onChange: this.model.setSearchText,
             onKeyDown: this.onSearchKeyDown,
-            ref: this.searchFieldRef,
             endSlot: state.searchText ? this.clearButton.root : undefined,
         });
         this.viewModeButton.update({

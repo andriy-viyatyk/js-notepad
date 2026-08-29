@@ -35,6 +35,7 @@ export class CheckboxView extends VanillaView<CheckboxProps> {
 
     protected onMount(): void {
         this.root.append(this.iconHost, this.childrenHost);
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.updateIcon(this.props.checked);
         this.updateChildren(this.props.children);
@@ -55,14 +56,18 @@ export class CheckboxView extends VanillaView<CheckboxProps> {
     }
 
     private applyProps(props: CheckboxProps): void {
-        const { name, checked, onChange: _onChange, disabled, children: _children, ...rest } = props;
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+        const { name, checked, onChange: _onChange, disabled, children: _children, ..._rest } = props;
         this.root.dataset.type = "checkbox";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
         this.root.dataset.checked = String(checked);
         if (disabled) this.root.dataset.disabled = "";
         else delete this.root.dataset.disabled;
+    }
+
+    private applyConstructionRestProps(props: CheckboxProps): void {
+        const { name: _name, checked: _checked, onChange: _onChange, disabled: _disabled, children: _children, ...rest } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     private updateIcon(checked: boolean): void {

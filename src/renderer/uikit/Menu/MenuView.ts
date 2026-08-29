@@ -1,4 +1,3 @@
-import type { ElementRef } from "../shared/dom-props";
 import { createComponentModelDriver } from "../../core/state/model";
 import { CheckIcon, ChevronRightIcon } from "../../theme/icons";
 import { InputView } from "../Input/InputView";
@@ -113,6 +112,7 @@ class MenuContentView extends VanillaView<MenuModel> {
             if (!this.inputMounted) {
                 this.searchWrap.append(this.inputView.root);
                 this.inputView.mount();
+                this.model.setSearchInputRef(this.inputView.inputElement);
                 this.inputMounted = true;
             }
             this.inputView.update(this.inputProps(this.model.state.get().search));
@@ -122,7 +122,7 @@ class MenuContentView extends VanillaView<MenuModel> {
             this.inputMounted = false;
         }
 
-        const prepared = this.model.prepared.value;
+        const prepared = this.model.prepared;
         this.keyedList?.update(prepared);
         this.syncSubmenu();
 
@@ -141,7 +141,6 @@ class MenuContentView extends VanillaView<MenuModel> {
 
     private inputProps(value: string): InputProps {
         return {
-            ref: this.model.setSearchInputRef,
             value,
             onChange: this.model.onSearchChange,
             placeholder: "Search...",
@@ -182,7 +181,7 @@ class MenuContentView extends VanillaView<MenuModel> {
         setBooleanAttribute(row, "data-start-group", record.startGroup);
         setBooleanAttribute(row, "data-minor", Boolean(record.item.minor));
 
-        const hasIcons = this.model.hasAnyIcon.value;
+        const hasIcons = this.model.hasAnyIcon;
         if (hasIcons && !parts.iconHost) {
             parts.iconHost = document.createElement("span");
             parts.iconHost.dataset.part = "icon";
@@ -269,7 +268,7 @@ class MenuContentView extends VanillaView<MenuModel> {
             return;
         }
 
-        const record = this.model.prepared.value.find((candidate) => candidate.item === item);
+        const record = this.model.prepared.find((candidate) => candidate.item === item);
         const key = record?.id ?? idOf(item, this.model.props.items.indexOf(item));
         const props = this.submenuProps(item, state.subMenuAnchor);
         if (this.activeSubmenu && this.activeSubmenuKey === key) {
@@ -301,11 +300,11 @@ class MenuContentView extends VanillaView<MenuModel> {
     }
 }
 
-export class MenuView extends VanillaView<MenuProps & { ref?: ElementRef<HTMLDivElement> }> {
+export class MenuView extends VanillaView<MenuProps & { onFloatingRoot?: (root: HTMLDivElement | null) => void }> {
     private readonly driver;
     private readonly popover: PopoverView;
 
-    public constructor(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }) {
+    public constructor(props: MenuProps & { onFloatingRoot?: (root: HTMLDivElement | null) => void }) {
         super(props);
         this.root.style.display = "contents";
         this.driver = createComponentModelDriver(
@@ -323,22 +322,22 @@ export class MenuView extends VanillaView<MenuProps & { ref?: ElementRef<HTMLDiv
         this.popover.mount();
     }
 
-    protected onUpdate(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }): void {
+    protected onUpdate(props: MenuProps & { onFloatingRoot?: (root: HTMLDivElement | null) => void }): void {
         this.driver.update(this.modelProps(props));
         this.popover.update(this.popoverProps(props));
     }
 
-    private modelProps(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }): MenuProps {
-        const { ref: _ref, ...modelProps } = props;
+    private modelProps(props: MenuProps & { onFloatingRoot?: (root: HTMLDivElement | null) => void }): MenuProps {
+        const { onFloatingRoot: _onFloatingRoot, ...modelProps } = props;
         return modelProps;
     }
 
-    private popoverProps(props: MenuProps & { ref?: ElementRef<HTMLDivElement> }): PopoverViewProps {
-        const { items: _items, onClose: _onClose, ref, open, ...positionProps } = props;
+    private popoverProps(props: MenuProps & { onFloatingRoot?: (root: HTMLDivElement | null) => void }): PopoverViewProps {
+        const { items: _items, onClose: _onClose, onFloatingRoot, open, ...positionProps } = props;
         const showSearch = props.items.length > 20;
         return {
             ...positionProps,
-            ref,
+            onFloatingRoot,
             open,
             onClose: this.driver.model.onPopoverClose,
             onKeyDown: showSearch

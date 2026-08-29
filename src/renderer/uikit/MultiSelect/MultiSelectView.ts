@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { nextElementId } from "../shared/element-id";
 import { VanillaView } from "../shared/vanilla-view";
@@ -14,9 +14,7 @@ import type { InputProps } from "../Input/InputView";
 import { defaultMultiSelectState, MultiSelectModel, type MultiSelectProps } from "./MultiSelectModel";
 import "./MultiSelect.css";
 
-export type MultiSelectViewProps<T = IListBoxItem> = MultiSelectProps<T> & {
-    ref?: ElementRef<HTMLInputElement>;
-};
+export type MultiSelectViewProps<T = IListBoxItem> = MultiSelectProps<T>;
 
 /**
  * The multi-select dropdown: a read-only `Input` with a chevron button, and a `Popover` hosting a
@@ -62,9 +60,6 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
      */
     private listView: MultiListBoxView<T> | undefined;
 
-    private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
-    private callerRefCleanup: (() => void) | undefined;
 
     public constructor(props: MultiSelectViewProps<T>) {
         super(props, document.createElement("div"));
@@ -81,7 +76,6 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         // composed views are already inert when the driver reports its unmount.
         this.own(() => this.driver.dispose());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
-        this.own(() => this.callerRefCleanup?.());
     }
 
     /** The live model, for the story and for tests. */
@@ -98,9 +92,8 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         this.input = this.child(new InputView(this.inputProps()));
         this.root.append(this.input.root);
         this.input.mount();
-        if (this.inputElement) {
-            this.listen(this.inputElement, "keydown", this.handleInputKeyDown);
-        }
+        this.model.setInputRef(this.input.inputElement);
+        this.listen(this.input.inputElement, "keydown", this.handleInputKeyDown);
 
         // `PopoverView`'s own root is `display: contents`; the floating branch lives in the overlay
         // layer, so this append contributes no box.
@@ -109,6 +102,7 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         this.popover.mount();
 
         this.applyRoot(this.props);
+        applyRestProps(this.root, this.restProps(this.props), this.restPropsState);
         this.driver.mount();
 
         // Applies once immediately, which seeds the first sync; then fires on every state write.
@@ -122,7 +116,6 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
     protected onUpdate(props: MultiSelectViewProps<T>): void {
         this.driver.update(this.modelProps(props));
         this.applyRoot(props);
-        this.syncCallerRef(false);
         this.syncChildren();
     }
 
@@ -143,7 +136,6 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         root.style.minWidth = props.minWidth === undefined ? "" : cssLength(props.minWidth);
         root.style.maxWidth = props.maxWidth === undefined ? "" : cssLength(props.maxWidth);
 
-        applyRestProps(root, this.restProps(props), this.restPropsState);
     }
 
     // -----------------------------------------------------------------------
@@ -162,10 +154,10 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
 
         chevron.update(this.chevronProps());
         input.update(this.inputProps());
-        popover.update(this.popoverProps());
+        this.syncPopover(popover);
 
         if (open) {
-            this.listView?.update(this.listProps());
+            this.syncList();
         } else {
             // Hygiene rather than correctness: the branch has just been torn down by the popover
             // update above. The reference must not survive into a re-open, and the factory
@@ -174,12 +166,45 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         }
     }
 
+    private syncPopover(popover: PopoverView): void {
+        const props = this.props;
+        popover.setOpen(this.model.state.get().open);
+        popover.setAnchor(this.root);
+        popover.setPlacement("bottom-start");
+        popover.setOffset([0, 2]);
+        popover.setSizing({
+            matchAnchorWidth: props.matchAnchorWidth ?? true,
+            resizable: props.resizable,
+            scroll: false,
+        });
+    }
+
+    private syncList(): void {
+        const list = this.listView;
+        if (!list) return;
+
+        const props = this.props;
+        const { popoverResized } = this.model.state.get();
+        list.setItems(props.items);
+        list.setValue(props.value);
+        list.setOnChange(props.onChange);
+        list.setDisabled(props.disabled);
+        list.setReadOnly(props.readOnly);
+        list.setSearchSettings(true, props.filterMode, undefined);
+        list.setSelectAll(props.selectAll, props.selectAllLabel);
+        list.setEmptyMessage(props.emptyMessage);
+        list.setLayout({
+            rowHeight: props.rowHeight,
+            maxVisibleItems: popoverResized ? 999 : props.maxVisibleItems,
+            height: popoverResized ? "100%" : undefined,
+        });
+    }
+
     private inputProps(): InputProps {
         const props = this.props;
         return {
-            ref: this.setInputElement,
             size: props.size ?? "md",
-            value: this.model.displayText.value,
+            value: this.model.displayText,
             placeholder: props.placeholder,
             disabled: props.disabled,
             // Always read-only: the trigger displays a formatted selection and is never typed into.
@@ -266,7 +291,7 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
     }
 
     // -----------------------------------------------------------------------
-    // The forwarded ref
+    // Owned input access
     // -----------------------------------------------------------------------
 
     /**
@@ -275,22 +300,12 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
      * `InputView.updateRef`'s identity gate fire on every update, and its `clearRef` calls
      * `ref(null)`, so `model.inputRef` would go transiently null each time.
      */
-    private readonly setInputElement = (el: HTMLInputElement | null): void => {
-        this.inputElement = el;
-        this.model.setInputRef(el);
-        this.syncCallerRef(true);
-    };
-
     /**
      * The caller's ref needs the opposite cadence: re-bound whenever its identity moves, so the
      * previous ref is released before the next one receives the element.
      */
-    private syncCallerRef(force: boolean): void {
-        const ref = this.props.ref;
-        if (!force && ref === this.appliedCallerRef) return;
-        this.callerRefCleanup?.();
-        this.appliedCallerRef = ref;
-        this.callerRefCleanup = bindRef(this.inputElement, ref);
+    public get inputElement(): HTMLInputElement | null {
+        return this.input?.inputElement ?? null;
     }
 
     // -----------------------------------------------------------------------
@@ -310,14 +325,13 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
     // -----------------------------------------------------------------------
 
     private modelProps(props: MultiSelectViewProps<T>): MultiSelectProps<T> {
-        const { ref: _ref, ...modelProps } = props;
-        return modelProps as MultiSelectProps<T>;
+        return props;
     }
 
     private restProps(props: MultiSelectViewProps<T>): Record<string, unknown> {
         const {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            ref: _ref, name: _name, items: _items, value: _value, onChange: _onChange,
+            name: _name, items: _items, value: _value, onChange: _onChange,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             placeholder: _placeholder, disabled: _disabled, readOnly: _readOnly, size: _size,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars

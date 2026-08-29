@@ -230,6 +230,10 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
      * undefined". See `setProps`.
      */
     private appliedItemsSource: unknown = NO_SOURCE;
+    private appliedValue: SelectProps<T>["value"] | undefined = undefined;
+    private appliedFilterMode: SelectProps<T>["filterMode"] | undefined = undefined;
+    private appliedFilter: SelectProps<T>["filter"] | undefined = undefined;
+    private hasAppliedProps = false;
 
     /**
      * One-shot flag set by `commitSelection` so the focus call we issue right after
@@ -253,47 +257,54 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
         return v as unknown as IListBoxItem;
     }
 
-    selectedResolved = this.memo<IListBoxItem | null>(
-        () => {
-            const v = this.props.value;
-            return v != null ? this.resolveSingleValue(v) : null;
-        },
-        () => [this.props.value],
-    );
+    selectedResolved: IListBoxItem | null = null;
 
     /** Filter loaded items by the active search text. Build parallel filteredItems +
      *  filteredSources arrays so onListChange can map IListBoxItem → source T. */
-    filtered = this.memo<{ filteredItems: IListBoxItem[]; filteredSources: T[] }>(
-        () => {
-            const { loadedItems, loadedSources, open, searchText } = this.state.get();
-            const filterMode = this.props.filterMode ?? "contains";
-            const customFilter = this.props.filter;
-            const matchFn =
-                customFilter ?? ((it: IListBoxItem) => defaultMatch(it, searchText, filterMode));
-            const items: IListBoxItem[] = [];
-            const sources: T[] = [];
-            const skipFilter = !open || filterMode === "off";
-            for (let i = 0; i < loadedItems.length; i++) {
-                const it = loadedItems[i];
-                if (skipFilter || matchFn(it, searchText)) {
-                    items.push(it);
-                    sources.push(loadedSources[i] as T);
-                }
+    filtered: { filteredItems: IListBoxItem[]; filteredSources: T[] } = {
+        filteredItems: [],
+        filteredSources: [],
+    };
+
+    private deriveFiltered(
+        loadedItems: IListBoxItem[],
+        loadedSources: unknown[],
+        open: boolean,
+        searchText: string,
+    ): { filteredItems: IListBoxItem[]; filteredSources: T[] } {
+        const filterMode = this.props.filterMode ?? "contains";
+        const customFilter = this.props.filter;
+        const matchFn =
+            customFilter ?? ((it: IListBoxItem) => defaultMatch(it, searchText, filterMode));
+        const items: IListBoxItem[] = [];
+        const sources: T[] = [];
+        const skipFilter = !open || filterMode === "off";
+        for (let i = 0; i < loadedItems.length; i++) {
+            const it = loadedItems[i];
+            if (skipFilter || matchFn(it, searchText)) {
+                items.push(it);
+                sources.push(loadedSources[i] as T);
             }
-            return { filteredItems: items, filteredSources: sources };
-        },
-        () => {
-            const s = this.state.get();
-            return [
-                s.loadedItems,
-                s.loadedSources,
-                s.open,
-                s.searchText,
-                this.props.filterMode,
-                this.props.filter,
-            ];
-        },
-    );
+        }
+        return { filteredItems: items, filteredSources: sources };
+    }
+
+    private deriveDisplayText(open: boolean, searchText: string): string {
+        if (open) return searchText;
+        const sel = this.selectedResolved;
+        if (sel == null) return "";
+        return typeof sel.label === "string" ? sel.label : "";
+    }
+
+    private deriveForState(
+        open: boolean,
+        searchText: string,
+        loadedItems = this.state.get().loadedItems,
+        loadedSources = this.state.get().loadedSources,
+    ): void {
+        this.filtered = this.deriveFiltered(loadedItems, loadedSources, open, searchText);
+        this.displayText = this.deriveDisplayText(open, searchText);
+    }
 
     /**
      * Trigger label when closed; live query when open.
@@ -306,16 +317,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
      * the caret jumps to the end whenever the user edits mid-string. If a transform ever becomes
      * necessary, the selection has to be preserved in `InputView`, not worked around here.
      */
-    displayText = this.memo<string>(
-        () => {
-            const { open, searchText } = this.state.get();
-            if (open) return searchText;
-            const sel = this.selectedResolved.value;
-            if (sel == null) return "";
-            return typeof sel.label === "string" ? sel.label : "";
-        },
-        () => [this.state.get().open, this.state.get().searchText, this.selectedResolved.value],
-    );
+    displayText = "";
 
     // --- open/close transitions ---
 
@@ -352,6 +354,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
         if (this.state.get().open) return;
         const current = this.state.get();
         const seedIndex = this.seedIndex(current.loadedItems, current.searchText);
+        this.deriveForState(true, current.searchText);
         this.state.update((s) => this.openInto(s, seedIndex));
         this.startLoadIfNeeded();
     };
@@ -360,6 +363,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
         // Makes a double close a no-op rather than a second full dispatch — Escape racing the
         // popover's own document keydown handler, or an outside click racing a chevron click.
         if (!this.state.get().open) return;
+        this.deriveForState(false, "");
         this.state.update((s) => this.closeInto(s));
     };
 
@@ -382,7 +386,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
      */
     private seedIndex(items: IListBoxItem[], searchText: string): number {
         if (items.length === 0) return -1;
-        const sel = this.selectedResolved.value;
+        const sel = this.selectedResolved;
         if (!sel) return -1;
         const filterMode = this.props.filterMode ?? "contains";
         const customFilter = this.props.filter;
@@ -407,6 +411,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
         // The seed belongs to the open *transition* only. While already open, `activeIndex` keeps
         // whatever keyboard nav or hover put there — which is what the effect's deps did too.
         const seedIndex = wasOpen ? -1 : this.seedIndex(this.state.get().loadedItems, val);
+        this.deriveForState(true, val);
         this.state.update((s) => {
             if (!s.open) this.openInto(s, seedIndex);
             s.searchText = val;
@@ -456,7 +461,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
     };
 
     private commitSelection = (idx: number) => {
-        const { filteredSources } = this.filtered.value;
+        const { filteredSources } = this.filtered;
         const source = filteredSources[idx];
         if (source === undefined) return;
         this.props.onChange?.(source);
@@ -477,7 +482,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
     };
 
     onListChange = (item: IListBoxItem) => {
-        const { filteredItems } = this.filtered.value;
+        const { filteredItems } = this.filtered;
         const idx = filteredItems.indexOf(item);
         if (idx < 0) return;
         this.commitSelection(idx);
@@ -487,7 +492,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
         const { disabled, readOnly } = this.props;
         if (disabled) return;
         const { open, activeIndex } = this.state.get();
-        const { filteredItems } = this.filtered.value;
+        const { filteredItems } = this.filtered;
         switch (e.key) {
             case "ArrowDown":
             case "PageDown": {
@@ -616,9 +621,11 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
      * popover may have closed, reopened, or the highlight may already have been moved.
      */
     private commitLoaded(r: ResolvedItems): void {
-        const seedIndex = this.state.get().open
-            ? this.seedIndex(r.items, this.state.get().searchText)
+        const current = this.state.get();
+        const seedIndex = current.open
+            ? this.seedIndex(r.items, current.searchText)
             : -1;
+        this.deriveForState(current.open, current.searchText, r.items, r.sources);
         this.state.update((s) => {
             s.loadedItems = r.items;
             s.loadedSources = r.sources;
@@ -664,9 +671,28 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
      * the first render already has its items.
      */
     setProps = (): void => {
-        if (Object.is(this.props.items, this.appliedItemsSource)) return;
-        this.appliedItemsSource = this.props.items;
-        this.resetItemsCache();
+        const itemsChanged = !Object.is(this.props.items, this.appliedItemsSource);
+        const valueChanged = !this.hasAppliedProps || this.appliedValue !== this.props.value;
+        const filterChanged = !this.hasAppliedProps
+            || this.appliedFilterMode !== this.props.filterMode
+            || this.appliedFilter !== this.props.filter;
+
+        if (valueChanged) this.selectedResolved = this.props.value == null
+            ? null
+            : this.resolveSingleValue(this.props.value);
+        if (valueChanged || filterChanged || itemsChanged) {
+            const state = this.state.get();
+            this.deriveForState(state.open, state.searchText);
+        }
+
+        this.appliedValue = this.props.value;
+        this.appliedFilterMode = this.props.filterMode;
+        this.appliedFilter = this.props.filter;
+        this.hasAppliedProps = true;
+        if (itemsChanged) {
+            this.appliedItemsSource = this.props.items;
+            this.resetItemsCache();
+        }
     };
 
     /**
@@ -688,6 +714,8 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
             this.startLoad();
             return;
         }
+        const current = this.state.get();
+        this.deriveForState(current.open, current.searchText, [], []);
         this.state.update((s) => {
             s.loadedItems = [];
             s.loadedSources = [];

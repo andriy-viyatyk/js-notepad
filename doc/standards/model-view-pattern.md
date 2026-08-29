@@ -210,10 +210,14 @@ class MyView extends VanillaView<MyViewProps> {
 
     protected onMount(): void {
         this.driver.mount();
-        this.bind(this.driver.model.state, (state) => [state.isOpen, state.selectedIndex], ([isOpen, selectedIndex]) => {
-            this.root.dataset.state = isOpen ? "open" : "closed";
-            this.root.replaceChildren(isOpen ? document.createTextNode(String(selectedIndex)) : document.createTextNode(""));
-        });
+        this.bind(
+            this.driver.model.state,
+            (state) => ({ isOpen: state.isOpen, selectedIndex: state.selectedIndex }),
+            ({ isOpen, selectedIndex }) => {
+                this.root.dataset.state = isOpen ? "open" : "closed";
+                this.root.replaceChildren(isOpen ? document.createTextNode(String(selectedIndex)) : document.createTextNode(""));
+            },
+        );
         this.listen("click", () => this.driver.model.handleClick(0));
         this.listen("keydown", this.driver.model.handleKeyDown);
     }
@@ -306,11 +310,12 @@ source without releasing the prior handle stacks subscriptions.
 
 Selectors must read only the reactive state argument. Do not reach through the model to a lazy
 getter or a directly-assigned field: those values are not dependencies observed by the state
-subscription. If a derived value is needed, derive it from the state snapshot in the selector (or
-use a helper that accepts that snapshot) so every reactive input participates in comparison. Do not
-use `bind` as a replacement for all DOM work: structure, input/event feedback, root attributes,
-focus, and layout-sensitive reads remain explicit view code. View fields hold DOM references; models
-receive view-owned refs through explicit commands or setters and never query the document.
+subscription. If a derived value is needed, derive it from the state snapshot (or use a helper that
+accepts that snapshot) so every reactive input participates in comparison. A selector must not
+allocate a fresh array; derive mapped arrays in the apply callback instead. Do not use `bind` as a
+replacement for all DOM work: structure, input/event feedback, root attributes, focus, and
+layout-sensitive reads remain explicit view code. View fields hold DOM references; models receive
+view-owned refs through explicit commands or setters and never query the document.
 
 ```typescript
 protected onMount(): void {
@@ -340,6 +345,144 @@ into markup. `replaceChildren` is allowed for a region the view owns outright, n
 [`KeyedList`](../../src/renderer/uikit/shared/keyed-list.ts)-managed container. For conditional
 owned roots, use [`SubtreeSwap`](../../src/renderer/uikit/shared/subtree-swap.ts); both helpers
 are direct imports from `uikit/shared/`, not public `uikit/index.ts` exports.
+
+## The props-pump convention
+
+The native view boundary has a deliberate split: props configure a child when it is constructed;
+live data reaches the child through a shared model that the child subscribes to, or through a
+targeted setter method. `update(props)` is therefore an exceptional configuration operation, not a
+render pass for pushing current data through every descendant.
+
+[`PageContentView`](../../src/renderer/ui/app/PageContentView.ts) is the worked reference. It takes
+only `{ pageId }` as construction-time configuration, finds the page, and subscribes to
+`pagesModel` itself. A parent may retain a slot or other structural identity while the child owns
+the live subscription for the data it renders. If a child cannot subscribe to a model, expose the
+smallest targeted setter needed for that live value rather than rebuilding a props object and
+calling `update()` for every state dispatch.
+
+This convention does not eliminate channels for values that do not exist at construction time. A
+DataGrid instance created during a mounted grid branch still uses its deferred `onModel` channel,
+and secondary-view headers created by a panel stack still use `headerRef`; both are lifecycle
+notifications rather than ordinary child props. Likewise, editor roots that capture a stable
+model may reject an unexpected model-identity replacement at their boundary. These cases are
+separate from the `VanillaView.update()` equality decision.
+
+The native attribute contract remains intentionally broad. `NativeHTMLAttributes` and its component
+`Omit` surfaces are compatibility types; narrowing them is a per-component API decision, not a
+consequence of adopting construction-time residual props. Residual attributes and listeners are
+applied during the initial mount pass, with targeted setters for the small set of verified live
+fields.
+
+### Stable callbacks are fields
+
+Every `onX` handler that crosses a props or update boundary is a bound method stored as a field and
+created once. Do not allocate an arrow handler inside a props builder or an update path. The
+existing pattern is [`TreeProviderViewImpl.ts:327-399`](../../src/renderer/components/tree-provider/TreeProviderViewImpl.ts#L327-L399),
+where selection, active-state, expansion, drag, and context-menu handlers are stable fields and
+can be passed into child props repeatedly.
+
+The reason is recorded in the header of
+[`DataGridView.ts:10-32`](../../src/renderer/uikit/DataGrid/DataGridView.ts#L10-L32):
+`VanillaView.update()` has no equality gate, so a parent can re-push fresh props on each update;
+replacing a stable callback with a new function identity turns that pump into needless downstream
+work even when handler behavior has not changed. A stable field can still read the view's current
+props or model state when it is invoked, so identity and behavior are separate concerns.
+
+An inline arrow in a construction-time descriptor is legitimate when that descriptor is built once
+and retained, such as a menu item or toolbar button. It does not create identity churn on an update
+path and costs nothing in that case. This exception is about the lifetime of the descriptor, not a
+permission to put arrows back into a props builder that runs during updates. It is about descriptor
+lifetime, not update-time prop construction.
+
+### Selector authoring
+
+Check the implementation of
+[`TOneState.subscribe()`](../../src/renderer/core/state/state.ts#L74-L95) before judging a selector.
+The overload with `subscribe(listener, selector)` evaluates the selector at subscription time and
+after each dispatch, then delivers only when `compareSelection(last, next)` reports a change.
+`compareSelection` recursively compares plain-object fields, but compares arrays, `Map`, `Set`,
+`Date`, and `RegExp` values by identity
+([`state.ts:18-40`](../../src/renderer/core/state/state.ts#L18-L40)).
+
+Consequently, a selector must never return a freshly allocated array:
+
+```ts
+// Wrong: a new array is unequal by identity on every dispatch.
+(state) => state.pages.map((page) => page.id)
+```
+
+That selector fires its listener on every dispatch, including dispatches unrelated to pages. It is
+strictly worse than the whole-state selector it appears to improve on, and the regression is silent:
+typechecking, linting, and the build do not detect it. Return a direct state reference, a primitive,
+or a plain object containing only those values. A fresh plain object is safe when its fields are
+direct references or primitives because plain objects are compared recursively. Derive mapped
+values in the apply callback, as `PagesView.managerProps()` now does
+([`PagesView.ts:21-50`](../../src/renderer/ui/app/PagesView.ts#L21-L50)).
+
+A whole-state selector `(state) => state` on a small model-owned state is correct when the view
+renders most of that state. Narrowing it is churn, not an improvement. The target is a whole-state
+selector on hot, global, frequently-dispatched state. In particular, the
+pilot found that the former `PagesView.ts:18` whole-state selector was already reference-gated on
+all five `OpenFilesState` fields — `pages`, `ordered`, `leftRight`, `rightLeft`, and
+`compareGroups`. The conversion made those dependencies explicit, but had no runtime selector
+effect. Do not call a wide selector a defect until these comparison semantics and the actual state
+shape have been checked.
+
+The overload without a selector is different: `state.subscribe(() => ...)` registers the listener
+directly and fires it on every dispatch
+([`state.ts:74-95`](../../src/renderer/core/state/state.ts#L74-L95)). That was the real defect
+found by the pilot in `PageTabsView`'s former page and editor layout subscriptions, not the wide
+selector in `PagesView`. The converted layout path now projects the page fields and effective
+editor flags it reads
+([`PageTabsView.ts:156-179`](../../src/renderer/ui/tabs/PageTabsView.ts#L156-L179)).
+
+Projection is not permission to substitute a convenient stored field for a derived value without
+proof. The pilot's `PageTabsView` projection (`PageTabsView.ts:172-178`) uses the stored
+`state.encrypted` flag while the effective
+`TextFileEncryptionModel.encrypted` value is derived from content
+([`TextFileEncryptionModel.ts:10-15`](../../src/renderer/editors/text/TextFileEncryptionModel.ts#L10-L15)).
+That substitution is safe only while a write path maintains the invariant. Here,
+`TextEditorModel.changeContent()` writes `state.encrypted` from the new content at line 276
+([`TextEditorModel.ts:272-278`](../../src/renderer/editors/text/TextEditorModel.ts#L272-L278)).
+Any projection that relies on such an invariant must cite the maintaining write path at the
+projection site; otherwise it can silently stop updating or report the wrong derived value.
+
+### Dynamic children: two structural patterns
+
+[`KeyedList`](../../src/renderer/uikit/shared/keyed-list.ts) and
+[`SubtreeSwap`](../../src/renderer/uikit/shared/subtree-swap.ts) are the only sanctioned answers
+for dynamic children. Use `KeyedList` for a collection: it validates keys, removes and detaches
+missing records, creates new records, preserves retained nodes while reconciling order, and then
+updates each record. Use `SubtreeSwap` for one conditional branch: the same key is a no-op, and a
+changed key is created detached, inserted before the old root, then the old branch is disposed and
+detached. Both helpers own the structural operation and its lifetime.
+
+The idempotency guard in
+[`NotebookBodyView.ts:262-284`](../../src/renderer/editors/notebook/NotebookBodyView.ts#L262-L284)
+is the worked reference: when the grid root is already the notes list's only child, it returns
+instead of calling `replaceChildren` again. Full-DOM clear-and-rebuild in an update path is the
+anti-pattern. `replaceChildren` remains appropriate for a region the view owns outright, but not
+as a substitute for keyed collection reconciliation or conditional subtree swapping.
+
+### The `update()` contract and the rejected gate
+
+In prose, `update(props)` carries configuration, not live data. `VanillaView.update()` stores the
+new props and calls `onUpdate()` only after mount
+([`vanilla-view.ts:84-97`](../../src/renderer/uikit/shared/vanilla-view.ts#L84-L97)); it has no
+shallow-equality gate. A child that needs live data must bind to the relevant model state or expose
+a targeted setter, while a props update should be reserved for construction-style configuration.
+
+Narrowing this distinction in the type system is deliberately deferred. Roughly 400 call sites
+(405 `.update({ ... })` sites in the current renderer) still pass data through `update()`, so a
+type-level split cannot be made without first migrating those callers. This document is therefore
+the current house convention, not an enforced type contract.
+
+The transitional option in
+[`doc/de-react-refactoring.md` R2 step 4](../de-react-refactoring.md#r2-kill-the-props-pump--children-subscribe-parents-stop-re-pushing)
+is rejected: a shallow-equality gate inside `VanillaView.update()` would be “a crutch, not the
+fix.” It would mask exactly the call sites that need to be found and could make verification pass
+for the wrong reason. Keep the pump visible until each live-data path is
+owned by the appropriate child subscription or targeted setter.
 
 ## Virtualized DOM views
 
@@ -488,38 +631,42 @@ class PathInputView extends VanillaView<PathInputViewProps> {
 
 The view shares the model and state contract directly; its slot and event APIs are native.
 
-## Memo Primitive
+## Derived values and prop updates
 
-`TComponentModel` provides `memo()` for cached model computations. It is a value-level cache, not
-a lifecycle or subscription mechanism.
+`TComponentModel` does not provide a lazy memo primitive. Values derived from props or state are
+plain model fields, maintained at the write site so their invalidation is explicit and consumers
+observe current values during synchronous notifications.
 
-### memo(computeFn, depsFactory)
+### Synchronous derive-on-write
 
-Create a cached computation with dependency tracking. Recomputes only when dependencies change.
+When a setter changes an input, recompute every affected derived field in dependency order before
+publishing the state change or notifying a view. Guard prop-derived work by input identity when
+needed, and skip expensive derivations on unrelated writes when the dependency classification makes
+that safe.
 
 ```typescript
 class MyViewModel extends TComponentModel<MyState, MyProps> {
-    // Cached computation — recalculates only when items change
-    filteredItems = this.memo(
-        () => this.props.items.filter(i => i.active),
-        () => [this.props.items]
-    );
+    // Derived field — maintained when the input changes
+    filteredItems: Item[] = [];
 
-    // In View: model.filteredItems.value
+    setProps = (props: MyProps): void => {
+        if (props.items === this.props.items) return;
+        this.filteredItems = props.items.filter((item) => item.active);
+    };
+
+    // In View: model.filteredItems
 }
 ```
 
-**How it works:**
-- Returns an object with `.value` getter
-- On `.value` access, checks if deps changed since last computation
-- If changed: recompute, cache, return new value
-- If same: return cached value
+The field is current before the next state/view consequence runs. If a derivation is genuinely
+expensive and cannot be eagerly maintained, introduce an explicitly invalidated cache alongside
+the write path that invalidates it; do not hide invalidation behind a dependency array.
 
 ### Lifecycle Summary
 
 | Primitive | Where to Define | When Evaluated |
 |-----------|-----------------|-----------------|----------------|
-| `this.memo(fn, deps)` | Class body or `init()` | On `.value` access when deps change |
+| Derived field | Model class | When an input setter or `setProps()` changes its dependencies |
 | `init()` | Class | On explicit driver mount |
 | `setProps(props)` | Class | After each driver prop pump, including the initial pump |
 | `dispose()` | Class | On explicit driver/view disposal; owned cleanup is drained |
@@ -533,9 +680,11 @@ measurement and layout reads in the View's mount/update hooks, and make asynchro
 cancellable so it cannot publish after disposal.
 
 When a model state has many fields, subscribe to only the stored fields the View actually renders
-with `VanillaView.bind(state, selector, render)`. Return stored values from selectors; put derived
-arrays or objects in a model `memo()` rather than allocating them inside the selector, or
-structural/reference comparison will cause unnecessary updates.
+with `VanillaView.bind(state, selector, render)`. Return direct references, primitives, or plain
+objects of those values from selectors; never allocate an array in a selector. Derive mapped arrays
+in the apply callback or maintain them as model fields at the write site, depending on ownership,
+so structural/reference comparison does not turn a selector into an always-fire path. See [The props-pump
+convention](#the-props-pump-convention).
 
 ---
 
@@ -621,20 +770,21 @@ class MyViewModel extends TComponentModel<State, Props> {
 // View: driver.mount(), driver.update(props), and driver.dispose()
 ```
 
-### Move useMemo to Model Memo
+### Move derived calculations to model fields
 
 ```typescript
 // Before — useMemo in View
 const displaySize = useMemo(() => calcSize(zoom, src), [zoom, src]);
 
-// After — this.memo() in Model
+// After — a plain field maintained when its inputs change
 class MyViewModel extends TComponentModel<State, Props> {
-    displaySize = this.memo(
-        () => calcSize(this.state.get().zoom, this.state.get().src),
-        () => [this.state.get().zoom, this.state.get().src]
-    );
+    displaySize!: Size;
+
+    setProps = (props: Props): void => {
+        this.displaySize = calcSize(props.zoom, props.src);
+    };
 }
-// View: model.displaySize.value
+// View: model.displaySize
 ```
 
 ## Examples in Codebase

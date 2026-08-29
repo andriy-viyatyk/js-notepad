@@ -95,12 +95,12 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             defaultTreeState,
         );
         this.model.setElementId(nextElementId("tree"));
-        // Registered before `driver.mount()`, so a state write from a consumer's `onModel` callback
-        // already has somewhere to land.
+        // Registered before `driver.mount()`, so state writes from a mounted owner already have
+        // somewhere to land.
         this.model.onStateApplied = this.refresh;
 
-        // Registration order is load-bearing: disposal runs these FIFO, and the grid and the row
-        // views must go before the driver, whose disposal reports `onModel(null)` to the host.
+        // Registration order is load-bearing: disposal runs these FIFO, and the grid and row
+        // views must go before the model driver.
         this.own(() => { this.inert = true; });
         this.own(() => { this.model.onStateApplied = null; });
         this.own(() => {
@@ -116,7 +116,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
-    /** The live model, for the React shim's `onModel` contract and for the story. */
+    /** The live model, for owners that retain this view. */
     public get model(): TreeModel<T> {
         return this.driver.model;
     }
@@ -148,9 +148,10 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         });
 
         this.applyArm(this.props);
+        applyRestProps(this.root, this.restProps(this.props), this.restPropsState);
 
-        // After the grid exists: `init()` reports `onModel(this.model)`, and a consumer may call
-        // `model.revealItem()` synchronously from that callback.
+        // The driver is mounted after the grid arm exists, so owners can use `view.model` once
+        // this child has mounted.
         this.driver.mount();
 
         this.syncActiveScroll(this.props.activeIndex, false);
@@ -193,7 +194,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         // Insurance for a branch that is unreachable today: `rows.push` is unconditional per source
         // and only the recursion is gated on expansion, so `rows.length === 0` iff `props.items` is
         // empty, and no state write can flip the arm. The proof dies the day `searchText` filters
-        // instead of highlighting, and this costs one cached-memo read.
+        // instead of highlighting, and this costs one plain-field read.
         if (this.armFor(this.props) !== this.arm) {
             this.applyArm(this.props);
             return;
@@ -209,7 +210,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 
     private armFor(props: TreeProps<T>): Arm {
         if (props.loading) return "loading";
-        return this.model.rows.value.length === 0 ? "empty" : "real";
+        return this.model.rows.length === 0 ? "empty" : "real";
     }
 
     /**
@@ -272,9 +273,6 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             root.removeAttribute("aria-activedescendant");
         }
 
-        // Residual props last, matching the JSX spread order: a caller-supplied role, tabIndex or
-        // aria-* wins over the arm's own value.
-        applyRestProps(root, this.restProps(props), this.restPropsState);
     }
 
     /**
@@ -284,7 +282,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
      */
     private applyActiveDescendant(props: TreeProps<T>): void {
         if (this.arm !== "real") return;
-        const rowCount = this.model.rows.value.length;
+        const rowCount = this.model.rows.length;
         const activeIndex = props.activeIndex;
         const activeId =
             activeIndex != null && activeIndex >= 0 && activeIndex < rowCount
@@ -335,7 +333,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         return {
             // A thunk, so a pure row-count change is detected by the engine's own `inputChanged()`
             // and needs no slot in the repaint signature.
-            rowCount: () => this.model.rows.value.length,
+            rowCount: () => this.model.rows.length,
             columnCount: 1,
             columnWidth,
             rowHeight: props.rowHeight ?? defaultRowHeight,
@@ -354,7 +352,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     // -----------------------------------------------------------------------
 
     private renderCell: RenderCellFunc = (p: RenderCellParams) => {
-        const row = this.model.rows.value[p.row];
+        const row = this.model.rows[p.row];
         if (!row) return undefined;
 
         let wrapper = p.previous ?? p.recycle?.();
@@ -586,7 +584,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     private restProps(props: TreeProps<T>): Record<string, unknown> {
         const {
             /* eslint-disable @typescript-eslint/no-unused-vars */
-            name: _name, onModel: _onModel, searchText: _searchText, renderItem: _renderItem,
+            name: _name, searchText: _searchText, renderItem: _renderItem,
             keyboardNav: _keyboardNav, focusSelection: _focusSelection,
             multiSelect: _multiSelect, rowHeight: _rowHeight, indentSize: _indentSize,
             growToHeight: _growToHeight, whiteSpaceY: _whiteSpaceY, activeIndex: _activeIndex,

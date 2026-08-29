@@ -14,13 +14,6 @@ export function depsChanged(
     return prev.some((v, i) => !Object.is(v, next[i]));
 }
 
-/**
- * Cached model computation retained for Epic A; Epic B removes it with the props pump.
- */
-export interface IMemo<V> {
-    readonly value: V;
-}
-
 export interface IModel<T> {
     state: IState<T>;
 }
@@ -98,29 +91,6 @@ export class TComponentModel<T, P> extends TModel<T> {
     }
 
     private _initCalled = false;
-
-    /**
-     * Create a cached computation with dependency tracking.
-     * Recomputes only when dependencies change.
-     *
-     * @param computeFn - Computation function.
-     * @param depsFactory - Returns dependency array. Recomputes when deps change.
-     * @returns Object with .value getter that returns the cached result.
-     */
-    memo<V>(computeFn: () => V, depsFactory: () => unknown[]): IMemo<V> {
-        let prevDeps: unknown[] | undefined;
-        let cachedValue: V;
-        return {
-            get value() {
-                const newDeps = depsFactory();
-                if (depsChanged(prevDeps, newDeps)) {
-                    cachedValue = computeFn();
-                    prevDeps = [...newDeps];
-                }
-                return cachedValue;
-            },
-        };
-    }
 
     setPropsInternal = (props: P) => {
         this.props = props;

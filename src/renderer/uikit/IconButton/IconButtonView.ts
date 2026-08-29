@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, NativeButtonHTMLAttributes, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { NativeButtonHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
@@ -11,7 +11,6 @@ import type { IconRef } from "../shared/slots";
 import "./IconButton.css";
 
 export interface IconButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
-    ref?: ElementRef<HTMLButtonElement>;
     name?: string;
     title?: string;
     onClick?: (event: MouseEvent) => void;
@@ -39,8 +38,6 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
     private appliedIconName: string | undefined;
     private appliedIconNode: Node | undefined;
     private tooltip: TooltipAttachment | undefined;
-    private refCleanup: (() => void) = () => undefined;
-    private boundRef: ElementRef<HTMLButtonElement> | undefined;
 
     public constructor(props: IconButtonViewProps) {
         super(props, document.createElement("button"));
@@ -48,22 +45,20 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.root.append(this.iconHost);
         this.updateIcon(this.props.icon);
         this.listen(this.root, "click", this.handleClick);
-        this.setRef(this.props.ref);
         this.tooltip = attachTooltip(this.root, { content: this.props.title ?? null });
         this.own(() => this.tooltip?.dispose());
         this.own(() => this.clearIcon());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
     protected onUpdate(props: IconButtonViewProps): void {
         this.applyProps(props);
         this.updateIcon(props.icon);
-        this.setRef(props.ref);
         this.tooltip?.update({ content: props.title ?? null });
     }
 
@@ -80,12 +75,10 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
             icon: _icon,
             hideUntilParentHover,
             strikethrough,
-            ref: _ref,
             children: _children,
-            ...rest
+            ..._rest
         } = props;
 
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         const button = this.root as HTMLButtonElement;
         button.type = props.type ?? "button";
         button.disabled = Boolean(disabled);
@@ -104,6 +97,25 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         else delete this.root.dataset.strikethrough;
         if (hideUntilParentHover) this.root.dataset.visibility = "parent-hover";
         else delete this.root.dataset.visibility;
+    }
+
+    private applyConstructionRestProps(props: IconButtonViewProps): void {
+        const {
+            name: _name,
+            size: _size,
+            variant: _variant,
+            active: _active,
+            warning: _warning,
+            disabled: _disabled,
+            title: _title,
+            onClick: _onClick,
+            icon: _icon,
+            hideUntilParentHover: _hideUntilParentHover,
+            strikethrough: _strikethrough,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     /**
@@ -136,19 +148,6 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         this.iconCleanup = undefined;
         this.appliedIconName = undefined;
         this.appliedIconNode = undefined;
-    }
-
-    private setRef(ref: ElementRef<HTMLButtonElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root as HTMLButtonElement, ref);
-    }
-
-    private clearRef(): void {
-        this.refCleanup();
-        this.refCleanup = () => undefined;
-        this.boundRef = undefined;
     }
 
     private readonly handleClick = (event: MouseEvent): void => {

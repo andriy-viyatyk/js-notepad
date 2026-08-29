@@ -18,13 +18,16 @@ export class FileListView extends VanillaView<FileListProps> {
     private readonly searchHost = document.createElement("div");
     private readonly input: InputView;
     private readonly clearButton: IconButtonView;
-    private searchInput: HTMLInputElement | undefined;
     private sourceItems: FileListItem[] | undefined;
     private sourceTrailing: FileListProps["getTrailing"] | undefined;
     private sourceRows: FileListRow[] = [];
     private filteredSearch: string | undefined;
     private filteredRows: FileListRow[] = [];
     private iconCacheInvalid = false;
+
+    public get model(): FileListModel {
+        return this.driver.model;
+    }
 
     public constructor(props: FileListProps) {
         super(props, document.createElement("div"));
@@ -37,7 +40,6 @@ export class FileListView extends VanillaView<FileListProps> {
             name: "file-list-search-input",
             value: "",
             placeholder: "Search...",
-            ref: (element) => { this.searchInput = element ?? undefined; },
             onChange: this.driver.model.setSearchText,
             onKeyDown: this.onSearchKeyDown,
             onBlur: this.onSearchBlur,
@@ -60,15 +62,14 @@ export class FileListView extends VanillaView<FileListProps> {
         this.searchHost.append(this.input.root);
         this.root.append(this.list.root);
         this.input.mount();
+        const searchInput = this.input.inputElement;
         this.clearButton.mount();
         this.list.mount();
 
         this.driver.model.setViewFocusHandlers(
-            () => this.searchInput?.focus(),
+            () => searchInput.focus(),
             () => this.root.focus(),
         );
-        this.props.onModel?.(this.driver.model);
-        this.own(() => this.props.onModel?.(null));
         this.own(() => this.iconSubscription?.());
         this.iconSubscription = subscribeFileIconElements(() => {
             this.iconCacheInvalid = true;
@@ -107,7 +108,6 @@ export class FileListView extends VanillaView<FileListProps> {
             name: "file-list-search-input",
             value: state.searchText,
             placeholder: "Search...",
-            ref: (element) => { this.searchInput = element ?? undefined; },
             onChange: this.driver.model.setSearchText,
             onKeyDown: this.onSearchKeyDown,
             onBlur: this.onSearchBlur,

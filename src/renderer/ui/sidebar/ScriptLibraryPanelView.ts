@@ -18,14 +18,11 @@ import "../../uikit/Text/Text.css";
 
 export interface ScriptLibraryPanelProps {
     onClose?: () => void;
-    explorerModel?: (model: TreeProviderViewModel | null) => void;
     expandState?: TreeProviderViewSavedState;
     onExpandStateChange?: (state: TreeProviderViewSavedState) => void;
 }
 
-type TreeProps = TreeProviderViewProps & {
-    onModel?: (model: TreeProviderViewModel | null) => void;
-};
+type TreeProps = TreeProviderViewProps;
 
 export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps> {
     private readonly setupPanel: HTMLDivElement;
@@ -34,6 +31,10 @@ export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps>
     private provider: FileTreeProvider | null = null;
     private treeView: TreeProviderViewImpl | undefined;
     private live = true;
+
+    public get model(): TreeProviderViewModel | null {
+        return this.treeView?.model ?? null;
+    }
 
     public constructor(props: ScriptLibraryPanelProps) {
         const outer = createPanelElement({
@@ -123,7 +124,6 @@ export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps>
         return {
             provider: this.provider!,
             initialState: this.props.expandState,
-            onModel: (model) => this.props.explorerModel?.(model),
             onStateChange: (state) => this.props.onExpandStateChange?.(state),
             onItemClick: (item) => {
                 if (!item.isDirectory) {

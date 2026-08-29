@@ -27,6 +27,7 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
     private toolbar!: ImageToolbarView;
     private pageToolbar!: PageToolbarView;
     private viewport!: ImageViewportView;
+    private readonly getImageModel = () => this.viewport.model;
 
     public constructor(props: { model: EditorModel }) {
         super(props, createContentsRoot());
@@ -34,14 +35,17 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onMount(): void {
-        this.toolbar = this.child(new ImageToolbarView({ model: this.model }));
+        this.viewport = this.child(new ImageViewportView(this.viewportProps()));
+        this.toolbar = this.child(new ImageToolbarView({
+            model: this.model,
+            getImageModel: this.getImageModel,
+        }));
         this.pageToolbar = this.child(new PageToolbarView({
             name: "image-toolbar",
             model: this.model,
             borderBottom: true,
             rightContributions: this.toolbar.root,
         }));
-        this.viewport = this.child(new ImageViewportView(this.viewportProps()));
         this.root.append(this.pageToolbar.root, this.viewport.root);
         this.pageToolbar.mount();
         this.toolbar.mount();
@@ -56,13 +60,19 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
-        this.model = requireImageModel(props.model);
-        this.toolbar.update({ model: this.model });
+        const model = requireImageModel(props.model);
+        if (model !== this.model) {
+            throw new Error("Image view received a different model instance.");
+        }
         this.pageToolbar.update({
             name: "image-toolbar",
             model: this.model,
             borderBottom: true,
             rightContributions: this.toolbar.root,
+        });
+        this.toolbar.update({
+            model: this.model,
+            getImageModel: this.getImageModel,
         });
         this.viewport.update(this.viewportProps());
     }
@@ -74,7 +84,6 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
         return {
             src: url || "",
             alt: filePath ? fpBasename(filePath) : "Image",
-            onModel: this.model.setImageModel,
         };
     }
 }

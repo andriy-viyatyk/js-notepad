@@ -38,6 +38,7 @@ export class SegmentedControlView extends VanillaView<SegmentedControlViewProps>
 
     protected onMount(): void {
         this.applyRootProps(this.props);
+        applyRestProps(this.root, {}, this.restPropsState);
         this.list = new KeyedList<ISegment, string, HTMLButtonElement>(this.root, {
             keyOf: (segment) => segment.value,
             create: (segment) => {
@@ -73,7 +74,6 @@ export class SegmentedControlView extends VanillaView<SegmentedControlViewProps>
     }
 
     private applyRootProps(props: SegmentedControlViewProps): void {
-        applyRestProps(this.root, {}, this.restPropsState);
         this.root.dataset.type = "segmented-control";
         if (props.name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = props.name;

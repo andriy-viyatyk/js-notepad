@@ -12,7 +12,6 @@ import { VanillaView } from "../../uikit/shared/vanilla-view";
 export interface MermaidBodyViewProps {
     model: MermaidEditor;
     editorConfig?: EditorConfig;
-    imageModelSetter?: (model: ImageViewportModel | null) => void;
 }
 
 interface MermaidProjection {
@@ -66,7 +65,6 @@ class MermaidLoadingView extends VanillaView<Record<string, never>> {
 
 export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
     private model: MermaidEditor;
-    private imageModelSetter: MermaidBodyViewProps["imageModelSetter"];
     private modelSubscription: (() => void) | undefined;
     private queueSubscription: (() => void) | undefined;
     private readonly errorPanel: HTMLDivElement;
@@ -80,7 +78,6 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
     public constructor(props: MermaidBodyViewProps) {
         super(props, createPanelElement(rootPanelProps(props.editorConfig)));
         this.model = props.model;
-        this.imageModelSetter = props.imageModelSetter;
 
         this.errorText = createTextElement("", { color: "warning", preWrap: true });
         this.errorPanel = createPanelElement(
@@ -118,7 +115,6 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
         applyPanelAttributes(this.root, resolvePanelAttributes(rootPanelProps(props.editorConfig)));
 
         const modelChanged = this.model !== props.model;
-        this.imageModelSetter = props.imageModelSetter;
 
         if (modelChanged) {
             this.unsubscribeFromModel();
@@ -188,9 +184,12 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
 
     private viewportProps(svgUrl: string): ImageViewportProps {
         return {
-            onModel: this.imageModelSetter,
             src: svgUrl,
             alt: "Mermaid Diagram",
         };
+    }
+
+    public get imageModel(): ImageViewportModel | null {
+        return this.activeViewport?.model ?? null;
     }
 }

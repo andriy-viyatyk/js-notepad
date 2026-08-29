@@ -33,6 +33,16 @@ export class EditorToolbarView extends VanillaView<EditorToolbarViewProps> {
         super(props, createPanelElement(panelProps(props)));
     }
 
+    public setConfiguration(props: Omit<EditorToolbarViewProps, "children">): void {
+        this.props = { ...this.props, ...props };
+        this.syncPanel(this.props);
+    }
+
+    public setContent(children: SlotContent | undefined): void {
+        this.props = { ...this.props, children };
+        this.updateContent(children);
+    }
+
     protected onMount(): void {
         this.syncPanel(this.props);
         this.updateContent(this.props.children);

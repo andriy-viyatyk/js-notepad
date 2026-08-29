@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import type { NotificationProps, NotificationSeverity } from "./Notification";
 import { createIconElement } from "../shared/slots";
 import { applyTextAttributes, resolveTextAttributes } from "../Text/text-style";
@@ -65,8 +65,6 @@ export class NotificationView extends VanillaView<NotificationProps> {
     private iconHost: HTMLSpanElement | undefined;
     private messageElement: HTMLSpanElement | undefined;
     private closeSwap: SubtreeSwap<string> | undefined;
-    private refCleanup: () => void = () => undefined;
-    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: NotificationProps) {
         super(props, document.createElement("div"));
@@ -85,14 +83,13 @@ export class NotificationView extends VanillaView<NotificationProps> {
         this.closeSwap = new SubtreeSwap<string>(this.root);
         this.root.append(this.iconHost, this.messageElement);
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.updateIcon(this.props.type);
         this.updateMessage(this.props.message);
-        this.setRef(this.props.ref);
         this.listen(this.root, "click", (event) => {
             this.props.onClick?.(event);
         });
         this.own(() => this.closeSwap?.dispose());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
         this.updateClose(this.props.onClose);
     }
@@ -101,7 +98,6 @@ export class NotificationView extends VanillaView<NotificationProps> {
         this.applyProps(props);
         this.updateIcon(props.type);
         this.updateMessage(props.message);
-        this.setRef(props.ref);
         this.updateClose(props.onClose);
     }
 
@@ -112,9 +108,8 @@ export class NotificationView extends VanillaView<NotificationProps> {
             onClick: _onClick,
             onClose: _onClose,
             message: _message,
-            ref: _ref,
             children: _children,
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "notification";
@@ -126,10 +121,19 @@ export class NotificationView extends VanillaView<NotificationProps> {
         this.root.setAttribute("role", ARIA_ROLE[type]);
         this.root.setAttribute("aria-live", ARIA_LIVE[type]);
 
-        // Match the React component: residual attributes are applied after the
-        // owned markers, so a caller's residual data-* value still wins. The
-        // private class is intentionally outside that surface because the
-        // public props omit className.
+    }
+
+    private applyConstructionRestProps(props: NotificationProps): void {
+        const {
+            name: _name,
+            type: _type,
+            onClick: _onClick,
+            onClose: _onClose,
+            message: _message,
+            children: _children,
+            ...rest
+        } = props;
+        // Match the React component: residual attributes are applied after the owned markers.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
@@ -158,16 +162,4 @@ export class NotificationView extends VanillaView<NotificationProps> {
         mountedView?.mount();
     }
 
-    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root, ref);
-    }
-
-    private clearRef(): void {
-        this.refCleanup();
-        this.refCleanup = () => undefined;
-        this.boundRef = undefined;
-    }
 }

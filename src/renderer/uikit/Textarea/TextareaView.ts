@@ -101,6 +101,7 @@ export class TextareaView extends VanillaView<TextareaProps> {
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.syncEditableListeners();
         this.scheduleAutoFocus(this.props.autoFocus);
@@ -144,10 +145,8 @@ export class TextareaView extends VanillaView<TextareaProps> {
             autoFocus: _autoFocus,
             onKeyDown: _onKeyDown,
             onPaste: _onPaste,
-            ...rest
+            ..._rest
         } = props;
-
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
 
         this.root.setAttribute("role", "textbox");
         this.root.setAttribute("aria-multiline", String(!singleLine));
@@ -182,6 +181,31 @@ export class TextareaView extends VanillaView<TextareaProps> {
         else this.root.style.setProperty("--textarea-flex", nextFlex);
 
         this.previousAutoFocus = Boolean(props.autoFocus);
+    }
+
+    private applyConstructionRestProps(props: TextareaProps): void {
+        const {
+            name: _name,
+            value: _value,
+            onChange: _onChange,
+            placeholder: _placeholder,
+            disabled: _disabled,
+            readOnly: _readOnly,
+            singleLine: _singleLine,
+            minHeight: _minHeight,
+            maxHeight: _maxHeight,
+            width: _width,
+            minWidth: _minWidth,
+            maxWidth: _maxWidth,
+            flex: _flex,
+            size: _size,
+            variant: _variant,
+            autoFocus: _autoFocus,
+            onKeyDown: _onKeyDown,
+            onPaste: _onPaste,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     private syncEditableListeners(): void {

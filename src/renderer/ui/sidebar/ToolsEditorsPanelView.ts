@@ -1,6 +1,9 @@
 import { pagesModel } from "../../api/pages";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
-import { SegmentedControlView } from "../../uikit/SegmentedControl/SegmentedControlView";
+import {
+    SegmentedControlView,
+    type SegmentedControlProps,
+} from "../../uikit/SegmentedControl/SegmentedControlView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { PinnedRailView } from "./PinnedRailView";
 import { BuiltinEditorsListView } from "./BuiltinEditorsListView";
@@ -21,6 +24,26 @@ function panelTabToHubTab(tab: PanelTab): HubTab {
 
 export class ToolsEditorsPanelView extends VanillaView<ToolsEditorsPanelProps> {
     private tab: PanelTab = "editors";
+    private readonly onOpenInNewTab = (): void => this.openInNewTab();
+    private readonly onTabChange = (value: string): void => {
+        const next = value as PanelTab;
+        if (next === this.tab) return;
+        this.tab = next;
+        this.tabsProps.value = this.tab;
+        this.tabs.update(this.tabsProps);
+        this.mountBody();
+    };
+    private readonly tabsProps: SegmentedControlProps = {
+        name: "tools-editors-tabs",
+        size: "sm",
+        value: this.tab,
+        onChange: this.onTabChange,
+        items: [
+            { value: "editors", label: "Built-in Editors" },
+            { value: "boards", label: "Boards" },
+            { value: "tools", label: "Tools" },
+        ],
+    };
     private readonly header = document.createElement("div");
     private readonly tabsHost = document.createElement("div");
     private readonly body = document.createElement("div");
@@ -28,6 +51,7 @@ export class ToolsEditorsPanelView extends VanillaView<ToolsEditorsPanelProps> {
     private readonly pinned: PinnedRailView;
     private readonly tabs: SegmentedControlView;
     private bodyView: VanillaView<{ onClose?: () => void }> | undefined;
+    private previousOnClose: (() => void) | undefined;
 
     public constructor(props: ToolsEditorsPanelProps) {
         super(props);
@@ -36,10 +60,11 @@ export class ToolsEditorsPanelView extends VanillaView<ToolsEditorsPanelProps> {
             size: "sm",
             icon: "new-window",
             title: "Open in new tab",
-            onClick: () => this.openInNewTab(),
+            onClick: this.onOpenInNewTab,
         });
         this.pinned = new PinnedRailView({ layout: "horizontal", onClose: props.onClose });
-        this.tabs = new SegmentedControlView(this.tabProps());
+        this.tabs = new SegmentedControlView(this.tabsProps);
+        this.previousOnClose = props.onClose;
     }
 
     protected onMount(): void {
@@ -58,36 +83,10 @@ export class ToolsEditorsPanelView extends VanillaView<ToolsEditorsPanelProps> {
     }
 
     protected onUpdate(props: ToolsEditorsPanelProps): void {
-        this.openButton.update({
-            name: "tools-editors-open-in-tab",
-            size: "sm",
-            icon: "new-window",
-            title: "Open in new tab",
-            onClick: () => this.openInNewTab(),
-        });
+        if (props.onClose === this.previousOnClose) return;
+        this.previousOnClose = props.onClose;
         this.pinned.update({ layout: "horizontal", onClose: props.onClose });
-        this.tabs.update(this.tabProps());
         this.bodyView?.update({ onClose: props.onClose });
-    }
-
-    private tabProps() {
-        return {
-            name: "tools-editors-tabs",
-            size: "sm" as const,
-            value: this.tab,
-            onChange: (value: string) => {
-                const next = value as PanelTab;
-                if (next === this.tab) return;
-                this.tab = next;
-                this.tabs.update(this.tabProps());
-                this.mountBody();
-            },
-            items: [
-                { value: "editors", label: "Built-in Editors" },
-                { value: "boards", label: "Boards" },
-                { value: "tools", label: "Tools" },
-            ],
-        };
     }
 
     private mountBody(): void {

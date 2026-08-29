@@ -60,59 +60,82 @@ export class MultiListBoxModel<T = IListBoxItem> extends TComponentModel<
     MultiListBoxState,
     MultiListBoxProps<T>
 > {
-    resolvedItems = this.memo<ResolvedItems<T>>(
-        () => resolveItems(this.props.items),
-        () => [this.props.items],
-    );
+    private appliedItems: MultiListBoxProps<T>["items"] | undefined = undefined;
+    private appliedValue: MultiListBoxProps<T>["value"] | undefined = undefined;
+    private appliedFilterMode: MultiListBoxProps<T>["filterMode"] | undefined = undefined;
+    private hasAppliedProps = false;
 
-    selectedKeys = this.memo<Set<string | number>>(
-        () => new Set(this.props.value.map(this.resolvedItems.value.extractValue)),
-        () => [this.props.value, this.resolvedItems.value],
-    );
+    resolvedItems: ResolvedItems<T> = {
+        resolved: [],
+        sources: [],
+        extractValue: (value) => (value as unknown as IListBoxItem).value,
+    };
+    selectedKeys = new Set<string | number>();
+    filtered: { sources: T[]; items: IListBoxItem[] } = { sources: [], items: [] };
+    listBoxItems: T[] | Traited<unknown[]> = [];
+    visibleSelectedCount = 0;
 
-    filtered = this.memo<{ sources: T[]; items: IListBoxItem[] }>(
-        () => {
-            const { resolved, sources } = this.resolvedItems.value;
-            const { searchText } = this.state.get();
-            const mode = this.props.filterMode ?? "contains";
-            const filteredSources: T[] = [];
-            const filteredItems: IListBoxItem[] = [];
-            for (let index = 0; index < resolved.length; index++) {
-                if (matches(resolved[index], searchText, mode)) {
-                    filteredSources.push(sources[index]);
-                    filteredItems.push(resolved[index]);
-                }
+    setProps = (): void => {
+        const itemsChanged = !this.hasAppliedProps || this.appliedItems !== this.props.items;
+        const valueChanged = !this.hasAppliedProps || this.appliedValue !== this.props.value;
+        const filterChanged = !this.hasAppliedProps || this.appliedFilterMode !== this.props.filterMode;
+
+        if (itemsChanged) this.resolvedItems = resolveItems(this.props.items);
+        if (itemsChanged || valueChanged) {
+            this.selectedKeys = new Set(this.props.value.map(this.resolvedItems.extractValue));
+        }
+        if (itemsChanged || filterChanged) {
+            this.filtered = this.deriveFiltered(this.state.get().searchText);
+            this.listBoxItems = this.deriveListBoxItems();
+        }
+        if (itemsChanged || valueChanged || filterChanged) {
+            this.visibleSelectedCount = this.deriveVisibleSelectedCount();
+        }
+
+        this.appliedItems = this.props.items;
+        this.appliedValue = this.props.value;
+        this.appliedFilterMode = this.props.filterMode;
+        this.hasAppliedProps = true;
+    };
+
+    private deriveFiltered(searchText: string): { sources: T[]; items: IListBoxItem[] } {
+        const { resolved, sources } = this.resolvedItems;
+        const mode = this.props.filterMode ?? "contains";
+        const filteredSources: T[] = [];
+        const filteredItems: IListBoxItem[] = [];
+        for (let index = 0; index < resolved.length; index++) {
+            if (matches(resolved[index], searchText, mode)) {
+                filteredSources.push(sources[index]);
+                filteredItems.push(resolved[index]);
             }
-            return { sources: filteredSources, items: filteredItems };
-        },
-        () => [this.resolvedItems.value, this.state.get().searchText, this.props.filterMode],
-    );
+        }
+        return { sources: filteredSources, items: filteredItems };
+    }
 
-    listBoxItems = this.memo<T[] | Traited<unknown[]>>(
-        () => {
-            const { items } = this.props;
-            return isTraited<unknown[]>(items)
-                ? traited(this.filtered.value.sources, items.traits)
-                : this.filtered.value.sources;
-        },
-        () => [this.props.items, this.filtered.value.sources],
-    );
+    private deriveListBoxItems(): T[] | Traited<unknown[]> {
+        const items = this.props.items;
+        return isTraited<unknown[]>(items)
+            ? traited(this.filtered.sources, items.traits)
+            : this.filtered.sources;
+    }
 
-    visibleSelectedCount = this.memo<number>(
-        () => this.filtered.value.items.filter((item) => this.selectedKeys.value.has(item.value)).length,
-        () => [this.filtered.value.items, this.selectedKeys.value],
-    );
+    private deriveVisibleSelectedCount(): number {
+        return this.filtered.items.filter((item) => this.selectedKeys.has(item.value)).length;
+    }
 
     get allVisibleSelected(): boolean {
-        return this.filtered.value.items.length > 0
-            && this.visibleSelectedCount.value === this.filtered.value.items.length;
+        return this.filtered.items.length > 0
+            && this.visibleSelectedCount === this.filtered.items.length;
     }
 
     get someVisibleSelected(): boolean {
-        return this.visibleSelectedCount.value > 0 && !this.allVisibleSelected;
+        return this.visibleSelectedCount > 0 && !this.allVisibleSelected;
     }
 
     setSearchText = (searchText: string) => {
+        this.filtered = this.deriveFiltered(searchText);
+        this.listBoxItems = this.deriveListBoxItems();
+        this.visibleSelectedCount = this.deriveVisibleSelectedCount();
         this.state.update((state) => { state.searchText = searchText; });
     };
 
@@ -123,27 +146,26 @@ export class MultiListBoxModel<T = IListBoxItem> extends TComponentModel<
     /**
      * The row-selected predicate handed to `ListBox`.
      *
-     * A `memo`, not a stable bound method. `ListBox` repaints its cells only when a slot of
+     * `ListBox` repaints its cells when the explicit `selectedKeys` signal moves. The predicate
+     * itself remains stable because it reads the current plain fields. The remaining explanation
+     * below describes the old failure mode for historical context.
      * `ListBoxModel.repaintSignature()` moves, and this predicate is the only slot that can carry a
      * parent-owned selection — `value` is never forwarded to the inner list. With a stable identity,
      * checking a row would move no slot at all and the box would keep its old glyph until some
      * unrelated input changed (the self-healing form of the masked defect in `doc/de-react.md` §6.1).
      */
-    isSelected = this.memo<(source: T) => boolean>(
-        () => {
-            const keys = this.selectedKeys.value;
-            const { extractValue } = this.resolvedItems.value;
-            return (source: T) => keys.has(extractValue(source));
-        },
-        () => [this.selectedKeys.value, this.resolvedItems.value],
-    );
+    isSelected = this.isSelectedForSource.bind(this);
+
+    private isSelectedForSource(source: T): boolean {
+        return this.selectedKeys.has(this.resolvedItems.extractValue(source));
+    }
 
     toggle = (source: T) => {
         if (this.props.disabled || this.props.readOnly) return;
-        const { extractValue } = this.resolvedItems.value;
+        const { extractValue } = this.resolvedItems;
         const key = extractValue(source);
         this.props.onChange(
-            this.selectedKeys.value.has(key)
+            this.selectedKeys.has(key)
                 ? this.props.value.filter((value) => extractValue(value) !== key)
                 : [...this.props.value, source],
         );
@@ -151,8 +173,8 @@ export class MultiListBoxModel<T = IListBoxItem> extends TComponentModel<
 
     toggleSelectAll = () => {
         if (this.props.disabled || this.props.readOnly) return;
-        const { items, sources } = this.filtered.value;
-        const { extractValue } = this.resolvedItems.value;
+        const { items, sources } = this.filtered;
+        const { extractValue } = this.resolvedItems;
         const visibleKeys = new Set(items.map((item) => item.value));
         if (this.allVisibleSelected) {
             this.props.onChange(this.props.value.filter((value) => !visibleKeys.has(extractValue(value))));
@@ -160,7 +182,7 @@ export class MultiListBoxModel<T = IListBoxItem> extends TComponentModel<
         }
         const next = this.props.value.slice();
         items.forEach((item, index) => {
-            if (!this.selectedKeys.value.has(item.value)) next.push(sources[index]);
+            if (!this.selectedKeys.has(item.value)) next.push(sources[index]);
         });
         this.props.onChange(next);
     };

@@ -413,11 +413,9 @@ export class LinkEditorView extends VanillaView<{ model: EditorModel }> {
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireLinkModel(props.model);
-        this.model = model;
-        this.breadcrumb?.update({ model });
-        this.actions?.update({ model });
-        this.footer?.update({ model });
-        this.body?.update({ model });
+        if (model !== this.model) {
+            throw new Error("Link view received a different model instance.");
+        }
         this.chrome?.update({
             model: props.model,
             toolbarContributions: this.breadcrumb?.root,

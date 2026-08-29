@@ -19,7 +19,6 @@ export function createIconPlaceholderElement(props?: SvgIconProps): SVGElement {
         className,
         color,
         style,
-        ref: _ref,
         ...otherProps
     } = props ?? {};
     const element = document.createElementNS(SVG_NAMESPACE, "svg");

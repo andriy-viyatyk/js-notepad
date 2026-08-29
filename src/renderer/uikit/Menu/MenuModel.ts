@@ -94,9 +94,18 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
         const closing = !props.open && previousOpen === true;
         const itemsChanged = previousItems !== props.items;
         const reset = closing || (!props.open && (previousOpen === undefined || itemsChanged));
+        const nextSearch = reset || opening ? "" : this.state.get().search;
 
         this.previousOpen = props.open;
         this.previousItems = props.items;
+
+        if (itemsChanged || !this.hasAppliedDerived) {
+            this.hasAnyIcon = props.items.some((item) => Boolean(item.icon));
+        }
+        if (reset || (props.open && (opening || itemsChanged)) || !this.hasAppliedDerived) {
+            this.prepared = this.derivePrepared(nextSearch);
+        }
+        this.hasAppliedDerived = true;
 
         if (reset) {
             this.state.set({ ...defaultMenuState });
@@ -122,42 +131,38 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
         return this.props.items.length > SEARCH_THRESHOLD;
     }
 
-    hasAnyIcon = this.memo<boolean>(
-        () => this.props.items.some((i) => Boolean(i.icon)),
-        () => [this.props.items],
-    );
+    hasAnyIcon = false;
+    private hasAppliedDerived = false;
 
     /** Filter + group-fixup (legacy parity: when an invisible item carried startGroup,
      *  transfer it to the next visible sibling). */
-    prepared = this.memo<PreparedItem[]>(
-        () => {
-            const items = this.props.items;
-            const search = this.state.get().search;
-            const showSearch = this.showSearch;
-            const q = search.toLocaleLowerCase();
-            const out: PreparedItem[] = [];
-            let pendingStartGroup = false;
-            items.forEach((item, idx) => {
-                if (item.invisible) {
-                    if (item.startGroup) pendingStartGroup = true;
-                    return;
-                }
-                const matchesSearch = !showSearch || !q || item.label.toLocaleLowerCase().includes(q);
-                if (!matchesSearch) {
-                    if (item.startGroup) pendingStartGroup = true;
-                    return;
-                }
-                out.push({
-                    item,
-                    id: idOf(item, idx),
-                    startGroup: (item.startGroup || pendingStartGroup) && out.length > 0,
-                });
-                pendingStartGroup = false;
+    prepared: PreparedItem[] = [];
+
+    private derivePrepared(search: string): PreparedItem[] {
+        const items = this.props.items;
+        const showSearch = items.length > SEARCH_THRESHOLD;
+        const q = search.toLocaleLowerCase();
+        const out: PreparedItem[] = [];
+        let pendingStartGroup = false;
+        items.forEach((item, idx) => {
+            if (item.invisible) {
+                if (item.startGroup) pendingStartGroup = true;
+                return;
+            }
+            const matchesSearch = !showSearch || !q || item.label.toLocaleLowerCase().includes(q);
+            if (!matchesSearch) {
+                if (item.startGroup) pendingStartGroup = true;
+                return;
+            }
+            out.push({
+                item,
+                id: idOf(item, idx),
+                startGroup: (item.startGroup || pendingStartGroup) && out.length > 0,
             });
-            return out;
-        },
-        () => [this.props.items, this.state.get().search],
-    );
+            pendingStartGroup = false;
+        });
+        return out;
+    }
 
     // --- timer helpers ---
 
@@ -207,6 +212,7 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
     };
 
     onSearchChange = (v: string) => {
+        this.prepared = this.derivePrepared(v);
         this.state.update((s) => {
             s.search = v;
         });
@@ -237,7 +243,7 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
     };
 
     onKeyDown = (e: KeyboardEvent): void => {
-        const prepared = this.prepared.value;
+        const prepared = this.prepared;
         const hoveredId = this.state.get().hoveredId;
         const idx = prepared.findIndex((p) => p.id === hoveredId);
         const visibleRows = Math.max(

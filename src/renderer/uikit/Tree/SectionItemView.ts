@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import { TreeIndents } from "./tree-indents";
@@ -31,8 +31,6 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
     private labelCleanup: (() => void) | undefined;
     private indents: TreeIndents | undefined;
 
-    private refCleanup: () => void = () => undefined;
-    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: SectionItemProps) {
         super(props, document.createElement("div"));
@@ -47,16 +45,14 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
         this.indents = new TreeIndents(this.root, this.labelHost);
 
         this.applyProps(this.props);
-        this.setRef(this.props.ref);
+        this.applyConstructionRestProps(this.props);
 
         this.own(() => this.labelCleanup?.());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
     protected onUpdate(props: SectionItemProps): void {
         this.applyProps(props);
-        this.setRef(props.ref);
     }
 
     private applyProps(props: SectionItemProps): void {
@@ -67,7 +63,6 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
             label,
             indentSize = defaultIndentSize,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            ref: _ref,
             ...rest
         } = props;
 
@@ -86,19 +81,18 @@ export class SectionItemView extends VanillaView<SectionItemProps> {
         indents.sync(level, indentSize);
         this.labelCleanup = fillSlot(labelHost, label);
 
-        applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
     }
 
-    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root, ref);
+    private applyConstructionRestProps(props: SectionItemProps): void {
+        const {
+            name: _name,
+            id: _id,
+            level: _level,
+            label: _label,
+            indentSize: _indentSize,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
-    private clearRef(): void {
-        this.refCleanup();
-        this.refCleanup = () => undefined;
-        this.boundRef = undefined;
-    }
 }

@@ -12,6 +12,7 @@ export class DividerView extends VanillaView<DividerProps> {
 
     protected onMount(): void {
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
@@ -24,15 +25,17 @@ export class DividerView extends VanillaView<DividerProps> {
     }
 
     private applyProps(props: DividerProps): void {
-        const { name, orientation = "horizontal", ...rest } = props;
+        const { name, orientation = "horizontal", ..._rest } = props;
         this.root.dataset.type = "divider";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
         this.root.dataset.orientation = orientation;
         this.root.setAttribute("role", "separator");
         this.root.setAttribute("aria-orientation", orientation);
-        // Divider historically forwarded residual attributes last, including
-        // caller overrides of its component-owned attributes.
+    }
+
+    private applyConstructionRestProps(props: DividerProps): void {
+        const { name: _name, orientation: _orientation, ...rest } = props;
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

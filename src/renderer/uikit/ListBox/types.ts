@@ -84,8 +84,6 @@ export interface ListBoxProps<T = IListBoxItem>
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
-    /** Called with the live model on mount and null on unmount. */
-    onModel?: (model: import("./ListBoxModel").ListBoxModel<T> | null) => void;
     items: T[] | Traited<unknown[]>;
     /**
      * Currently-selected item. `null` when nothing is selected. May reference an
@@ -109,9 +107,9 @@ export interface ListBoxProps<T = IListBoxItem>
      * caller.
      *
      * **The predicate's identity is a repaint input** (see `ListBoxModel.repaintSignature`). A
-     * caller whose selection changed must hand over a *new* function, or the rows will not redraw:
-     * nothing else in the signature can see a selection the list was never given. A stable bound
-     * method is therefore a bug in a multi-select parent — memoize it on the selection instead.
+     * A direct caller whose selection changed must hand over a *new* function, or the rows will not
+     * redraw. `MultiListBox` is the intentional exception: it uses a stable bound method and sends
+     * its changing selection set through the targeted ListBox signal.
      */
     isSelected?: (item: T, index: number) => boolean;
     /** Index of the currently-highlighted (active) row. Controlled. */

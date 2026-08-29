@@ -329,20 +329,19 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
 
         // CSV-only — reload rows when user changes delimiter / header toggle.
         if (this.format === "csv") {
-            let lastDelimiter = this.state.get().csvDelimiter;
-            let lastWithColumns = this.state.get().csvWithColumns;
             this.registerHostSubscription(
-                this.state.subscribe(() => {
-                    const { csvDelimiter, csvWithColumns } = this.state.get();
-                    if (csvDelimiter !== lastDelimiter || csvWithColumns !== lastWithColumns) {
-                        lastDelimiter = csvDelimiter;
-                        lastWithColumns = csvWithColumns;
+                this.state.subscribe(
+                    () => {
                         const content = this._host?.state.get().content ?? "";
                         // Delimiter / header changes redefine the columns, so force
                         // re-derivation instead of preserving the stale ones.
                         this.reparseRows(content, true);
-                    }
-                }),
+                    },
+                    (state) => ({
+                        csvDelimiter: state.csvDelimiter,
+                        csvWithColumns: state.csvWithColumns,
+                    }),
+                ),
             );
         }
 

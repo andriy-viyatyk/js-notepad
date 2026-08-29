@@ -30,6 +30,7 @@ export class ProgressBarView extends VanillaView<ProgressBarProps> {
         this.fill.dataset.part = "fill";
         this.root.append(this.fill);
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
@@ -52,7 +53,7 @@ export class ProgressBarView extends VanillaView<ProgressBarProps> {
             variant = "default",
             "aria-label": ariaLabel = "Progress",
             children: _children,
-            ...rest
+            ..._rest
         } = props;
         const state: ProgressState = completed ? "completed" : value != null ? "determinate" : "indeterminate";
         const percent = state === "completed" ? 100 : state === "determinate" ? clampPercent(value ?? 0, max) : 0;
@@ -75,14 +76,27 @@ export class ProgressBarView extends VanillaView<ProgressBarProps> {
             this.root.setAttribute("aria-valuemax", String(max));
             this.root.setAttribute("aria-valuenow", String(state === "completed" ? max : value));
         }
-        // ariaProps precede residual props in the React face, so callers can
-        // override these attributes. Keep that precedence during conversion.
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
-
         this.root.style.setProperty("--progress-bar-width", width === undefined ? "100%" : cssLength(width));
         this.root.style.setProperty("--progress-bar-height", `${height}px`);
         if (!this.fill) return;
         if (state === "indeterminate") this.fill.style.removeProperty("--progress-bar-fill-width");
         else this.fill.style.setProperty("--progress-bar-fill-width", `${percent}%`);
+    }
+
+    private applyConstructionRestProps(props: ProgressBarProps): void {
+        const {
+            name: _name,
+            value: _value,
+            max: _max,
+            completed: _completed,
+            width: _width,
+            height: _height,
+            variant: _variant,
+            "aria-label": _ariaLabel,
+            children: _children,
+            ...rest
+        } = props;
+        // ariaProps precede residual props in the React face, so callers can override these attrs.
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

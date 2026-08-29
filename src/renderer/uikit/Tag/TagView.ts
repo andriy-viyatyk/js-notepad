@@ -1,4 +1,4 @@
-import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState, setRestProp } from "../shared/dom-props";
 import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
@@ -50,12 +50,14 @@ export class TagView extends VanillaView<TagProps> {
     private childrenHost: HTMLSpanElement | undefined;
     private childrenCleanup: (() => void) | undefined;
     private removeButton: HTMLButtonElement | undefined;
+    private rootClickEnabled = false;
 
     public constructor(props: TagProps) {
         super(props, document.createElement("span"));
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.updateContent(this.props);
         this.own(() => this.clearContent());
@@ -64,6 +66,7 @@ export class TagView extends VanillaView<TagProps> {
 
     protected onUpdate(props: TagProps): void {
         this.applyProps(props);
+        this.updateTargetedRestProps(props);
         this.updateContent(props);
     }
 
@@ -77,13 +80,9 @@ export class TagView extends VanillaView<TagProps> {
             name, label: _label, icon: _icon, onRemove: _onRemove, onClick,
             selected, disabled, variant = "filled", tone = "default", size = "md",
             truncate, removeAffordance = "always", removeAriaLabel: _removeAriaLabel,
-            children: _children, ...rest
+            children: _children, ..._rest
         } = props;
 
-        const onRootClick = onClick && !disabled
-            ? () => onClick()
-            : undefined;
-        applyRestProps(this.root, { ...rest, onClick: onRootClick }, this.restPropsState);
         this.root.dataset.type = "tag";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
@@ -96,12 +95,48 @@ export class TagView extends VanillaView<TagProps> {
         else delete this.root.dataset.disabled;
         if (selected) this.root.dataset.selected = "";
         else delete this.root.dataset.selected;
-        if (onRootClick) this.root.dataset.clickable = "";
+        if (onClick && !disabled) this.root.dataset.clickable = "";
         else delete this.root.dataset.clickable;
         if (props.onRemove) this.root.dataset.removable = "";
         else delete this.root.dataset.removable;
         if (props.onRemove) this.root.dataset.removeAffordance = removeAffordance;
         else delete this.root.dataset.removeAffordance;
+    }
+
+    private applyConstructionRestProps(props: TagProps): void {
+        const {
+            name: _name,
+            label: _label,
+            icon: _icon,
+            onRemove: _onRemove,
+            onClick,
+            selected: _selected,
+            disabled,
+            variant: _variant,
+            tone: _tone,
+            size: _size,
+            truncate: _truncate,
+            removeAffordance: _removeAffordance,
+            removeAriaLabel: _removeAriaLabel,
+            children: _children,
+            ...rest
+        } = props;
+        this.rootClickEnabled = Boolean(onClick && !disabled);
+        applyRestProps(this.root, { ...rest, onClick: this.rootClickEnabled ? this.onRootClick : undefined }, this.restPropsState);
+    }
+
+    private updateTargetedRestProps(props: TagProps): void {
+        const rootClickEnabled = Boolean(props.onClick && !props.disabled);
+        if (rootClickEnabled !== this.rootClickEnabled) {
+            this.rootClickEnabled = rootClickEnabled;
+            setRestProp(
+                this.root,
+                "onClick",
+                rootClickEnabled ? this.onRootClick : undefined,
+                this.restPropsState,
+            );
+        }
+        setRestProp(this.root, "title", props.title, this.restPropsState);
     }
 
     private updateContent(props: TagProps): void {
@@ -175,6 +210,10 @@ export class TagView extends VanillaView<TagProps> {
     private readonly onRemoveClick = (event: Event): void => {
         event.stopPropagation();
         if (!this.props.disabled) this.props.onRemove?.();
+    };
+
+    private readonly onRootClick = (): void => {
+        if (!this.props.disabled) this.props.onClick?.();
     };
 
     private clearContent(): void {

@@ -228,7 +228,10 @@ export class SwitchWidgetView extends VanillaView<SwitchWidgetViewProps> {
     protected onMount(): void {
         this.root.dataset.type = "switch-widget";
         this.root.style.display = "contents";
-        this.own(customEditorRegistry.state.subscribe(() => this.syncSegments()));
+        this.own(customEditorRegistry.state.subscribe(
+            () => this.syncSegments(),
+            (state) => state.entries,
+        ));
         this.own(boardInstallRegistry.subscribeInstalled(() => this.syncSegments()));
         this.bind(this.model.state, selectEditorSwitchProjection, () => this.syncSegments());
     }
@@ -381,6 +384,15 @@ export class PageToolbarView extends VanillaView<PageToolbarViewProps> {
         this.toolbar = toolbar;
     }
 
+    public setSlots(children: SlotContent | undefined, rightContributions: SlotContent | undefined): void {
+        if (this.childrenHost) {
+            this.childrenCleanup = fillSlot(this.childrenHost, children);
+        }
+        if (this.rightHost) {
+            this.rightCleanup = fillSlot(this.rightHost, rightContributions);
+        }
+    }
+
     protected onMount(): void {
         this.child(this.toolbar);
         this.toolbar.mount();
@@ -392,9 +404,9 @@ export class PageToolbarView extends VanillaView<PageToolbarViewProps> {
         this.childrenHost = childrenHost;
         this.rightHost = rightHost;
 
-        this.toolbar.update({ ...toolbarProps(this.props), children: content });
-        this.childrenCleanup = fillSlot(childrenHost, this.props.children);
-        this.rightCleanup = fillSlot(rightHost, this.props.rightContributions);
+        this.toolbar.setConfiguration(toolbarProps(this.props));
+        this.toolbar.setContent(content);
+        this.setSlots(this.props.children, this.props.rightContributions);
 
         const navPanel = this.child(new NavPanelButtonView({ model: this.props.model }));
         const switchWidget = this.child(new SwitchWidgetView({ model: this.props.model }));
@@ -421,16 +433,10 @@ export class PageToolbarView extends VanillaView<PageToolbarViewProps> {
     }
 
     protected onUpdate(props: PageToolbarViewProps): void {
-        this.toolbar.update({ ...toolbarProps(props), children: this.content });
-        if (this.childrenHost) {
-            this.childrenCleanup = fillSlot(this.childrenHost, props.children);
-        }
-        if (this.rightHost) {
-            this.rightCleanup = fillSlot(this.rightHost, props.rightContributions);
-        }
-        this.navPanel?.update({ model: props.model });
+        this.toolbar.setConfiguration(toolbarProps(props));
+        this.toolbar.setContent(this.content);
+        this.setSlots(props.children, props.rightContributions);
         this.updateSpacer(props.noSpacer);
-        this.switchWidget?.update({ model: props.model });
     }
 
     protected onDispose(): void {

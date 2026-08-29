@@ -475,6 +475,8 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             this.rightView.update(this.rightViewProps(this.rightViewKey));
             return;
         }
+        this.fileListModel = null;
+        this.treeViewModel = null;
         this.rightView?.dispose();
         this.rightView?.root.remove();
         this.rightView = undefined;
@@ -484,6 +486,11 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         this.rightView = view;
         this.contentPanel.append(view.root);
         this.child(view).mount();
+        if (view instanceof RecentFileListView) {
+            this.fileListModel = view.model;
+        } else if (view instanceof ScriptLibraryPanelView || view instanceof TreeProviderViewImpl) {
+            this.treeViewModel = view.model;
+        }
     }
 
     private createRightView(key: string): VanillaView<unknown> | undefined {
@@ -491,12 +498,10 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             case openTabsId: return new OpenTabsListView({ onClose: this.props.onClose, open: this.props.open });
             case recentFilesId: return new RecentFileListView({
                 onClose: this.props.onClose,
-                onModel: (model) => { this.fileListModel = model; },
             });
             case toolsEditorsId: return new ToolsEditorsPanelView({ onClose: this.props.onClose });
             case scriptLibraryId: return new ScriptLibraryPanelView({
                 onClose: this.props.onClose,
-                explorerModel: (model) => { this.treeViewModel = model; },
                 expandState: this.expandStateMap.get(scriptLibraryId),
                 onExpandStateChange: (state) => this.expandStateMap.set(scriptLibraryId, state),
             });
@@ -507,7 +512,6 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
                 return new TreeProviderViewImpl({
                     provider,
                     initialState: this.expandStateMap.get(key),
-                    onModel: (model) => { this.treeViewModel = model; },
                     onStateChange: (state) => this.expandStateMap.set(key, state),
                     onItemClick: (item) => {
                         if (!item.isDirectory) {
@@ -525,12 +529,10 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             case openTabsId: return { onClose: this.props.onClose, open: this.props.open };
             case recentFilesId: return {
                 onClose: this.props.onClose,
-                onModel: (model: FileListModel | null) => { this.fileListModel = model; },
             };
             case toolsEditorsId: return { onClose: this.props.onClose };
             case scriptLibraryId: return {
                 onClose: this.props.onClose,
-                explorerModel: (model: TreeProviderViewModel | null) => { this.treeViewModel = model; },
                 expandState: this.expandStateMap.get(scriptLibraryId),
                 onExpandStateChange: (state: TreeProviderViewSavedState) => this.expandStateMap.set(scriptLibraryId, state),
             };
@@ -540,7 +542,6 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
                 return {
                     provider: this.getProvider(key, folder.path),
                     initialState: this.expandStateMap.get(key),
-                    onModel: (model: TreeProviderViewModel | null) => { this.treeViewModel = model; },
                     onStateChange: (state: TreeProviderViewSavedState) => this.expandStateMap.set(key, state),
                     onItemClick: (item: { isDirectory: boolean; href: string }) => {
                         if (!item.isDirectory) {

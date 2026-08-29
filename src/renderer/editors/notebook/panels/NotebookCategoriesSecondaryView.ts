@@ -89,10 +89,17 @@ export default class NotebookCategoriesSecondaryView extends VanillaView<Seconda
     }
 
     private subscribeToEditor(editor: NotebookEditor): void {
-        this.stateUnsubscribe = this.ownSubscription(editor.state.subscribe(() => {
-            if (this.editor !== editor) return;
-            this.tree?.update(this.treeProps(editor));
-        }));
+        this.stateUnsubscribe = this.ownSubscription(editor.state.subscribe(
+            () => {
+                if (this.editor !== editor) return;
+                this.tree?.update(this.treeProps(editor));
+            },
+            (state) => ({
+                categories: state.categories,
+                selectedCategory: state.selectedCategory,
+                categoriesSize: state.categoriesSize,
+            }),
+        ));
     }
 
     private treeProps(editor: NotebookEditor): TreeProps<CategoryItem> {

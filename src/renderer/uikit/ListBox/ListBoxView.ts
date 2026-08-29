@@ -12,6 +12,7 @@ import type {
     Percent,
     RenderCellFunc,
     RenderCellParams,
+    VirtualGridLayout,
 } from "../VirtualGrid";
 import { ListItemView } from "./ListItemView";
 import { SectionItemView } from "./SectionItemView";
@@ -74,6 +75,8 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     private gridHost: HTMLDivElement | undefined;
     private messageHost: HTMLDivElement | undefined;
     private spinner: SpinnerView | undefined;
+    private layout: VirtualGridLayout = {};
+    private emptyMessage: ListBoxProps<T>["emptyMessage"];
     private lastActiveIndex: number | null | undefined = undefined;
     private lastEmptyMessage: ListBoxProps<T>["emptyMessage"] | undefined = undefined;
     /**
@@ -93,8 +96,8 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         );
         this.model.setElementId(nextElementId("lb"));
 
-        // Registration order is load-bearing: disposal runs these FIFO, and the grid and the row
-        // views must go before the driver, whose disposal reports `onModel(null)` to the host.
+        // Registration order is load-bearing: disposal runs these FIFO, and the grid and row
+        // views must go before the model driver.
         this.own(() => { this.inert = true; });
         this.own(() => {
             this.grid?.dispose();
@@ -109,9 +112,53 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
-    /** The live model, for the React shim's `onModel` contract and for the story. */
+    /** The live model, for owners that retain this view. */
     public get model(): ListBoxModel<T> {
         return this.driver.model;
+    }
+
+    public setItems(items: ListBoxProps<T>["items"]): void {
+        this.model.setItems(items);
+        this.applyArm(this.props);
+    }
+
+    public setSelection(
+        isSelected: ListBoxProps<T>["isSelected"],
+        selectionSignal?: unknown,
+    ): void {
+        this.model.setSelection(isSelected, selectionSignal);
+    }
+
+    public setActiveIndex(activeIndex: ListBoxProps<T>["activeIndex"]): void {
+        this.model.setActiveIndex(activeIndex);
+        this.applyArm(this.props);
+        const contentChanged = this.repaintRows();
+        if (activeIndex !== this.lastActiveIndex) {
+            this.syncActiveScroll(activeIndex, contentChanged);
+        }
+    }
+
+    public setSearchText(searchText: ListBoxProps<T>["searchText"]): void {
+        this.model.setSearchText(searchText);
+    }
+
+    public setValue(value: ListBoxProps<T>["value"]): void {
+        this.model.setValue(value);
+    }
+
+    public setLoading(loading: ListBoxProps<T>["loading"]): void {
+        this.model.setLoading(loading);
+        this.applyArm(this.props);
+    }
+
+    public setEmptyMessage(emptyMessage: ListBoxProps<T>["emptyMessage"]): void {
+        this.emptyMessage = emptyMessage;
+        this.applyArm(this.props);
+    }
+
+    public setLayout(layout: VirtualGridLayout): void {
+        this.layout = layout;
+        this.grid?.setLayout(layout);
     }
 
     protected onMount(): void {
@@ -122,6 +169,9 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         this.gridHost.dataset.part = "grid";
         this.gridHost.style.display = "contents";
 
+        this.layout = this.layoutProps(this.props);
+        this.emptyMessage = this.props.emptyMessage;
+
         // Both listeners are permanent. `contextmenu` is on all three React arms; `keydown` is on
         // the real arm only, but it is gated below and a listener is not in a DOM snapshot.
         this.listen(this.root, "contextmenu", (event) => this.model.onRootContextMenu(event));
@@ -131,34 +181,40 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         });
 
         this.applyArm(this.props);
+        applyRestProps(this.root, this.restProps(this.props), this.restPropsState);
 
-        // After the grid exists: `init()` reports `onModel(this.model)`, and a consumer may call
-        // `model.scrollToIndex()` synchronously from that callback.
+        // The driver is mounted after the grid arm exists, so owners can use `view.model` once
+        // this child has mounted.
         this.driver.mount();
 
-        this.syncActiveScroll(this.props.activeIndex, false);
+        this.syncActiveScroll(this.model.activeIndex, false);
         this.repaintGate.prime(this.model.repaintSignature());
     }
 
     protected onUpdate(props: ListBoxProps<T>): void {
         this.driver.update(props);
+        this.layout = this.layoutProps(props);
+        this.emptyMessage = props.emptyMessage;
         this.applyArm(props);
+        const contentChanged = this.repaintRows();
+        if (this.model.activeIndex !== this.lastActiveIndex) {
+            this.syncActiveScroll(this.model.activeIndex, contentChanged);
+        }
+    }
+
+    private repaintRows(): boolean {
         const contentChanged = this.repaintGate.changed(this.model.repaintSignature());
-        if (contentChanged) {
-            this.grid?.model.update({ all: true });
-        }
-        if (props.activeIndex !== this.lastActiveIndex) {
-            this.syncActiveScroll(props.activeIndex, contentChanged);
-        }
+        if (contentChanged) this.grid?.model.update({ all: true });
+        return contentChanged;
     }
 
     // -----------------------------------------------------------------------
     // Arms
     // -----------------------------------------------------------------------
 
-    private armFor(props: ListBoxProps<T>): Arm {
-        if (props.loading) return "loading";
-        return this.model.resolved.value.resolved.length === 0 ? "empty" : "real";
+    private armFor(_props: ListBoxProps<T>): Arm {
+        if (this.model.loading) return "loading";
+        return this.model.resolved.resolved.length === 0 ? "empty" : "real";
     }
 
     /**
@@ -179,9 +235,9 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         if (arm === "real") {
             if (changed) {
                 messageHost.remove();
-                this.enterRealArm(props);
+                this.enterRealArm();
             } else {
-                this.grid?.update(this.gridProps(props));
+                this.grid?.setLayout(this.layout);
             }
         } else {
             if (changed) {
@@ -190,9 +246,9 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             }
             // Only when the content can actually have changed: re-running `fillSlot` every update
             // would move the spinner element and rewrite the text node for nothing.
-            if (changed || props.emptyMessage !== this.lastEmptyMessage) {
-                this.lastEmptyMessage = props.emptyMessage;
-                this.fillMessage(arm, props);
+            if (changed || this.emptyMessage !== this.lastEmptyMessage) {
+                this.lastEmptyMessage = this.emptyMessage;
+                this.fillMessage(arm, this.emptyMessage);
             }
         }
 
@@ -203,8 +259,8 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         toggle(root, "data-empty", arm === "empty");
 
         if (arm === "real") {
-            const resolvedCount = this.model.resolved.value.resolved.length;
-            const activeIndex = props.activeIndex;
+            const resolvedCount = this.model.resolved.resolved.length;
+            const activeIndex = this.model.activeIndex;
             const activeId =
                 activeIndex != null && activeIndex >= 0 && activeIndex < resolvedCount
                     ? this.model.itemId(activeIndex)
@@ -222,17 +278,15 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             root.removeAttribute("aria-activedescendant");
         }
 
-        // Residual props last, matching the JSX spread order: a caller-supplied role, tabIndex or
-        // aria-* wins over the arm's own value.
-        applyRestProps(root, this.restProps(props), this.restPropsState);
     }
 
-    private enterRealArm(props: ListBoxProps<T>): void {
+    private enterRealArm(): void {
         if (!this.gridHost) return;
         this.root.append(this.gridHost);
-        const grid = new VirtualGridView(this.gridProps(props));
+        const grid = new VirtualGridView(this.gridProps());
         this.gridHost.append(grid.root);
         grid.mount();
+        grid.setLayout(this.layout);
         this.grid = grid;
         this.model.setGridRef(grid.model);
     }
@@ -248,7 +302,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         if (this.gridHost) this.gridHost.replaceChildren();
     }
 
-    private fillMessage(arm: Arm, props: ListBoxProps<T>): void {
+    private fillMessage(arm: Arm, emptyMessage: ListBoxProps<T>["emptyMessage"]): void {
         const messageHost = this.messageHost;
         if (!messageHost) return;
 
@@ -262,17 +316,16 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             fillSlot(messageHost, fragment);
             return;
         }
-        fillSlot(messageHost, props.emptyMessage ?? "no rows");
+        fillSlot(messageHost, emptyMessage ?? "no rows");
     }
 
-    private gridProps(props: ListBoxProps<T>) {
+    private gridProps() {
         return {
             // A thunk, so a pure row-count change is detected by the engine's own `inputChanged()`
             // and needs no slot in the repaint signature.
-            rowCount: () => this.model.resolved.value.resolved.length,
+            rowCount: () => this.model.resolved.resolved.length,
             columnCount: 1,
             columnWidth,
-            rowHeight: props.rowHeight ?? defaultRowHeight,
             renderCell: this.renderCell,
             overscanRow: 2,
             fitToWidth: true,
@@ -280,7 +333,14 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             // real call sites pass one (`UrlSuggestionsDropdown` 400, `Select`
             // maxVisibleItems * rowHeight). The engine's prop is a string, and React would have
             // added the unit itself.
+        };
+    }
+
+    private layoutProps(props: ListBoxProps<T>): VirtualGridLayout {
+        return {
+            rowHeight: props.rowHeight ?? defaultRowHeight,
             growToHeight: cssLength(props.growToHeight),
+            fitToWidth: true,
             whiteSpaceY: props.whiteSpaceY,
         };
     }
@@ -290,7 +350,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     // -----------------------------------------------------------------------
 
     private renderCell: RenderCellFunc = (p: RenderCellParams) => {
-        const { resolved, sources } = this.model.resolved.value;
+        const { resolved, sources } = this.model.resolved;
         const item = resolved[p.row];
         if (!item) return undefined;
 
@@ -343,7 +403,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
                 source: sources[p.row],
                 index: p.row,
                 selected: this.model.isSelectedAt(p.row),
-                active: p.row === this.props.activeIndex,
+                active: p.row === this.model.activeIndex,
                 id,
             });
             record.slotCleanup = fillSlot(wrapper, node);
@@ -367,9 +427,9 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             trailing: item.trailing,
             trailingElement: item.trailingElement,
             drag: item.drag,
-            searchText: this.props.searchText,
+            searchText: this.model.searchText,
             selected: this.model.isSelectedAt(index),
-            active: index === this.props.activeIndex,
+            active: index === this.model.activeIndex,
             disabled: item.disabled,
             tooltip: this.props.getTooltip?.(sources[index], index),
             variant: this.props.variant,
@@ -441,7 +501,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     private restProps(props: ListBoxProps<T>): Record<string, unknown> {
         const {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            name: _name, onModel: _onModel, loading: _loading, emptyMessage: _emptyMessage,
+            name: _name, loading: _loading, emptyMessage: _emptyMessage,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             searchText: _searchText, renderItem: _renderItem, keyboardNav: _keyboardNav,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars

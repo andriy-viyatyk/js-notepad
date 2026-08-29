@@ -282,7 +282,7 @@ class BrowserToolbarView extends VanillaView<BrowserToolbarProps> {
         this.controls = [home, back, forward, reload];
         this.navigate = this.child(new IconButtonView({ name: "url-navigate", size: "sm", icon: "arrow-right", title: "Navigate", onClick: this.model.urlBar.handleNavigate }));
         this.star = this.child(new IconButtonView({ name: "url-bookmark-toggle", size: "sm", icon: "star", title: "Add Bookmark", onClick: this.model.bookmarksUI.handleStarClick }));
-        this.input = this.child(new InputView({ name: "url-input", ref: this.model.urlBar.setUrlInputRef, size: "sm", value: props.state.urlInput, onChange: this.model.urlBar.handleUrlChange, onKeyDown: this.model.urlBar.handleUrlKeyDown, onFocus: this.model.urlBar.handleUrlFocus, onBlur: this.model.urlBar.handleUrlBlur, onContextMenu: (event) => this.model.urlBar.handleUrlContextMenu(event as never), placeholder: "Enter URL or search term...", autoComplete: "off", startSlot: this.startSlot, endSlot: this.endSlot }));
+        this.input = this.child(new InputView({ name: "url-input", size: "sm", value: props.state.urlInput, onChange: this.model.urlBar.handleUrlChange, onKeyDown: this.model.urlBar.handleUrlKeyDown, onFocus: this.model.urlBar.handleUrlFocus, onBlur: this.model.urlBar.handleUrlBlur, onContextMenu: (event) => this.model.urlBar.handleUrlContextMenu(event as never), placeholder: "Enter URL or search term...", autoComplete: "off", startSlot: this.startSlot, endSlot: this.endSlot }));
         const bookmarks = make("toolbar-bookmarks", "bookmark", "Open Bookmarks", this.model.bookmarksUI.handleOpenBookmarks);
         const torInfo = make("toolbar-tor-info", "question", "Tor connection info", this.model.showTorInfoDialog);
         const downloads = this.child(new DownloadButtonView());
@@ -307,7 +307,7 @@ class BrowserToolbarView extends VanillaView<BrowserToolbarProps> {
     private readonly downloads: DownloadButtonView;
     get urlAnchor(): Element { return this.inputPanel; }
 
-    protected onMount(): void { this.listen(this.searchEngineButton, "click", (event) => { event.stopPropagation(); this.openSearchMenu(); }); this.listen(this.torIndicator, "click", (event) => { event.stopPropagation(); this.model.toggleTorOverlay(); }); this.controls.forEach((view) => view.mount()); this.input.mount(); this.navigate.mount(); this.star.mount(); this.downloads.mount(); this.sync(this.props.state); }
+    protected onMount(): void { this.listen(this.searchEngineButton, "click", (event) => { event.stopPropagation(); this.openSearchMenu(); }); this.listen(this.torIndicator, "click", (event) => { event.stopPropagation(); this.model.toggleTorOverlay(); }); this.controls.forEach((view) => view.mount()); this.input.mount(); this.model.urlBar.setUrlInputRef(this.input.inputElement); this.navigate.mount(); this.star.mount(); this.downloads.mount(); this.sync(this.props.state); }
     protected onUpdate(props: BrowserToolbarProps): void { this.sync(props.state); }
     protected onDispose(): void { this.pageMenu?.dispose(); this.searchMenu?.dispose(); this.pageMenu = undefined; this.searchMenu = undefined; }
 
@@ -317,7 +317,7 @@ class BrowserToolbarView extends VanillaView<BrowserToolbarProps> {
         this.controls[1].update({ name: "toolbar-back", size: "sm", icon: "arrow-left", title: "Back (Alt+Left)", onClick: this.model.webview.goBack, disabled: !state.canGoBack });
         this.controls[2].update({ name: "toolbar-forward", size: "sm", icon: "arrow-right", title: "Forward (Alt+Right)", onClick: this.model.webview.goForward, disabled: !state.canGoForward });
         this.controls[3].update({ name: "toolbar-reload", size: "sm", icon: state.loading ? "stop" : "refresh", title: state.loading ? "Stop" : "Reload", onClick: this.model.webview.reloadOrStop });
-        this.input.update({ name: "url-input", ref: this.model.urlBar.setUrlInputRef, size: "sm", value: state.urlInput, onChange: this.model.urlBar.handleUrlChange, onKeyDown: this.model.urlBar.handleUrlKeyDown, onFocus: this.model.urlBar.handleUrlFocus, onBlur: this.model.urlBar.handleUrlBlur, onContextMenu: (event) => this.model.urlBar.handleUrlContextMenu(event as never), placeholder: "Enter URL or search term...", autoComplete: "off", startSlot: this.startSlot, endSlot: this.endSlot });
+        this.input.update({ name: "url-input", size: "sm", value: state.urlInput, onChange: this.model.urlBar.handleUrlChange, onKeyDown: this.model.urlBar.handleUrlKeyDown, onFocus: this.model.urlBar.handleUrlFocus, onBlur: this.model.urlBar.handleUrlBlur, onContextMenu: (event) => this.model.urlBar.handleUrlContextMenu(event as never), placeholder: "Enter URL or search term...", autoComplete: "off", startSlot: this.startSlot, endSlot: this.endSlot });
         this.navigate.update({ name: "url-navigate", size: "sm", icon: "arrow-right", title: "Navigate", onClick: this.model.urlBar.handleNavigate });
         this.star.update({ name: "url-bookmark-toggle", size: "sm", icon: state.isBookmarked ? "star-filled" : "star", title: state.isBookmarked ? "Edit Bookmark" : "Add Bookmark", active: state.isBookmarked, onClick: this.model.bookmarksUI.handleStarClick });
         this.controls[4].update({ name: "toolbar-bookmarks", size: "sm", icon: "bookmark", title: "Open Bookmarks", onClick: this.model.bookmarksUI.handleOpenBookmarks });

@@ -11,7 +11,6 @@ import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { pagesModel } from "../../api/pages";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
-import type { ImageViewportModel } from "../../uikit/ImageViewport";
 import type { IImageExport } from "../base/IImageExport";
 import type { MenuItem } from "../../uikit";
 import { rasterToPngBlob, savePngViaDialog } from "../shared/image-export";
@@ -61,14 +60,6 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
      *  file for the image (true for non-local sources AND blob-URL
      *  imports). Gates the dispose() cleanup. */
     private cacheFileCreated = false;
-
-    /** View model registered by ImageView. Used by copyImageToClipboard to
-     *  delegate to the shared image viewport's clipboard API. */
-    imageModel: ImageViewportModel | null = null;
-
-    setImageModel = (model: ImageViewportModel | null) => {
-        this.imageModel = model;
-    };
 
     constructor(state: TComponentState<ImageEditorState>) {
         super(state);
@@ -262,10 +253,6 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
         } catch (err) {
             ui.notify(`Failed to save image: ${errMessage(err)}`, "error");
         }
-    };
-
-    copyImageToClipboard = (): void => {
-        this.imageModel?.copyToClipboard();
     };
 
     openInDrawingEditor = async (): Promise<void> => {

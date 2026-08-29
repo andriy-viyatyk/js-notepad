@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import { cssLength } from "../Input/InputView";
 import { IconButtonView } from "../IconButton/IconButtonView";
 import { createIconElement, createIconPlaceholderElement, isIconName, type IconRef } from "../shared/slots";
@@ -44,8 +44,6 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
     private closeSwap: SubtreeSwap<"close"> | undefined;
     private closeSwapParent: HTMLElement | undefined;
     private closeView: IconButtonView | undefined;
-    private refCleanup: (() => void) | undefined;
-    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: DialogContentProps) {
         super(props, document.createElement("div"));
@@ -63,14 +61,13 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.root.append(this.bodyHost);
 
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.syncStructure(this.props);
         this.childrenCleanup = fillSlot(this.bodyHost, this.props.children);
-        this.setRef(this.props.ref);
 
         this.own(() => this.childrenCleanup?.());
         this.own(() => this.clearHeaderSlots());
         this.own(() => this.closeSwap?.dispose());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
@@ -78,12 +75,10 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.applyProps(props);
         this.syncStructure(props);
         if (this.bodyHost) this.childrenCleanup = fillSlot(this.bodyHost, props.children);
-        this.setRef(props.ref);
     }
 
     protected onDispose(): void {
         this.clearHeaderSlots();
-        this.clearRef();
     }
 
     private applyProps(props: DialogContentProps): void {
@@ -100,8 +95,7 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
             minHeight: _minHeight,
             maxHeight: _maxHeight,
             children: _children,
-            ref: _ref,
-            ...rest
+            ..._rest
         } = props;
 
         const hasHeader = props.title !== undefined
@@ -114,8 +108,26 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         if (hasHeader) this.root.dataset.hasHeader = "true";
         else delete this.root.dataset.hasHeader;
         this.writeSizing(props);
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         this.root.classList.add("dialog-content-shell");
+    }
+
+    private applyConstructionRestProps(props: DialogContentProps): void {
+        const {
+            name: _name,
+            title: _title,
+            icon: _icon,
+            onClose: _onClose,
+            headerButtons: _headerButtons,
+            width: _width,
+            height: _height,
+            minWidth: _minWidth,
+            maxWidth: _maxWidth,
+            minHeight: _minHeight,
+            maxHeight: _maxHeight,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     private writeSizing(props: DialogContentProps): void {
@@ -281,16 +293,4 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         this.headerButtonsHost = undefined;
     }
 
-    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup?.();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root as HTMLDivElement, ref);
-    }
-
-    private clearRef(): void {
-        this.refCleanup?.();
-        this.refCleanup = undefined;
-        this.boundRef = undefined;
-    }
 }

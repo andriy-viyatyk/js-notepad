@@ -1,12 +1,9 @@
-import type { ElementRef } from "../shared/dom-props";
 import type { AlertData } from "./AlertItem";
 import type { TMessageType } from "../../core/utils/types";
-import { bindRef } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
 import { NotificationView } from "./NotificationView";
 
 export interface AlertItemViewProps {
-    ref?: ElementRef<HTMLDivElement>;
     name?: string;
     data: AlertData;
     top: number;
@@ -22,8 +19,6 @@ const AUTOCLOSE_SECONDS: Record<TMessageType, number> = {
 
 export class AlertItemView extends VanillaView<AlertItemViewProps> {
     private readonly notification: NotificationView;
-    private refCleanup: () => void = () => undefined;
-    private boundRef: ElementRef<HTMLDivElement> | undefined;
 
     public constructor(props: AlertItemViewProps) {
         super(props, document.createElement("div"));
@@ -41,7 +36,6 @@ export class AlertItemView extends VanillaView<AlertItemViewProps> {
         this.root.append(this.notification.root);
         this.notification.mount();
         this.applyProps(this.props);
-        this.setRef(this.props.ref);
 
         const seconds = AUTOCLOSE_SECONDS[this.props.data.type];
         if (seconds) {
@@ -65,7 +59,6 @@ export class AlertItemView extends VanillaView<AlertItemViewProps> {
             onClick: () => this.props.data.onClose("clicked"),
             onClose: () => this.props.data.onClose(),
         });
-        this.setRef(props.ref);
     }
 
     private applyProps(props: AlertItemViewProps): void {
@@ -73,16 +66,6 @@ export class AlertItemView extends VanillaView<AlertItemViewProps> {
         this.root.style.right = `${props.right}px`;
     }
 
-    private setRef(ref: ElementRef<HTMLDivElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root, ref);
-    }
-
     protected onDispose(): void {
-        this.refCleanup();
-        this.refCleanup = () => undefined;
-        this.boundRef = undefined;
     }
 }

@@ -132,6 +132,7 @@ class TreeDemoView extends VanillaView<DemoProps> {
         this.selectionRow = createPanelElement({ direction: "row", gap: "sm" }, [createTextElement("", { size: "sm", color: "light" })]);
         const tree = this.child(new TreeView(this.treeProps(this.props)));
         this.tree = tree;
+        this.model = tree.model;
         this.treeHost = tree.root;
         this.root.append(controls, tree.root);
         expand.mount(); collapse.mount(); reveal.mount(); tree.mount();
@@ -210,7 +211,6 @@ class TreeDemoView extends VanillaView<DemoProps> {
 
     private treeProps(props: DemoProps): TreeProps<StoryTreeItem> {
         return {
-            onModel: (model) => { this.model = model; },
             items: this.items,
             value: props.predicateSelection || props.multiSelect ? null : this.value,
             onChange: this.onChange,

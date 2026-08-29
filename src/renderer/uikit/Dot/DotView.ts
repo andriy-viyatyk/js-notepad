@@ -52,6 +52,7 @@ export class DotView extends VanillaView<DotProps> {
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
@@ -73,9 +74,8 @@ export class DotView extends VanillaView<DotProps> {
             selected,
             hideUntilParentHover,
             onClick,
-            ...rest
+            ..._rest
         } = props;
-        applyRestProps(this.root, { ...rest, onClick }, this.restPropsState);
         this.root.dataset.type = "dot";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
@@ -89,5 +89,21 @@ export class DotView extends VanillaView<DotProps> {
         else delete this.root.dataset.visibility;
         this.root.style.setProperty("--dot-size", `${diameter(size)}px`);
         this.root.style.setProperty("--dot-color", resolveFill(colorProp));
+    }
+
+    private applyConstructionRestProps(props: DotProps): void {
+        const {
+            name: _name,
+            size: _size,
+            color: _color,
+            bordered: _bordered,
+            selected: _selected,
+            hideUntilParentHover: _hideUntilParentHover,
+            onClick,
+            ...rest
+        } = props;
+        // Current callers recreate/remove dots instead of changing this callback. If a live dot
+        // starts re-pushing `onClick`, this construction-only bridge silently keeps the stale one.
+        applyRestProps(this.root, { ...rest, onClick }, this.restPropsState);
     }
 }

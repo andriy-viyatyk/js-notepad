@@ -18,6 +18,7 @@ export class LabelView extends VanillaView<LabelProps> {
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.renderText();
         this.own(() => this.clearContent());
@@ -49,15 +50,31 @@ export class LabelView extends VanillaView<LabelProps> {
             // These four fields intentionally remain in the residual props. The
             // React Label has always forwarded them to <label> without applying
             // them to its nested Text; Epic F owns their eventual cleanup.
-            ...rest
+            ..._rest
         } = props;
 
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         this.root.dataset.type = "label";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
         if (disabled) this.root.dataset.disabled = "";
         else delete this.root.dataset.disabled;
+    }
+
+    private applyConstructionRestProps(props: LabelProps): void {
+        const {
+            name: _name,
+            variant: _variant,
+            color: _color,
+            size: _size,
+            italic: _italic,
+            bold: _bold,
+            nowrap: _nowrap,
+            required: _required,
+            disabled: _disabled,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 
     private renderText(): void {

@@ -192,9 +192,10 @@ export class HtmlEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
-        this.model = requireHtmlModel(props.model);
-        this.body.update({ model: this.model });
-        this.toolbar.update({ model: this.model });
+        const model = requireHtmlModel(props.model);
+        if (model !== this.model) {
+            throw new Error("HTML view received a different model instance.");
+        }
         this.chrome.update({
             model: props.model,
             children: this.body.root,

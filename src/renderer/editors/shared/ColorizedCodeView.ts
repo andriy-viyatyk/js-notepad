@@ -52,7 +52,6 @@ export class ColorizedCodeView extends VanillaView<ColorizedCodeProps> {
     }
 
     protected onUpdate(props: ColorizedCodeProps): void {
-        this.applyResidualProps(props);
         const tabSize = props.tabSize ?? 4;
         if (
             props.code === this.currentCode

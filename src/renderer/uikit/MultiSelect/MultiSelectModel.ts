@@ -122,16 +122,27 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
     // --- derived ---
 
     /** Formatted text shown in the trigger Input. */
-    displayText = this.memo<string>(
-        () => {
+    displayText = "";
+    private appliedValue: MultiSelectProps<T>["value"] | undefined;
+    private appliedFormatSelection: MultiSelectProps<T>["formatSelection"] | undefined;
+    private hasAppliedProps = false;
+
+    setProps = (): void => {
+        if (!this.hasAppliedProps
+            || this.appliedValue !== this.props.value
+            || this.appliedFormatSelection !== this.props.formatSelection) {
             const value = this.props.value;
             const fmt = this.props.formatSelection;
-            if (fmt) return fmt(value);
-            if (!value || value.length === 0) return "";
-            return `(${value.length}) selected`;
-        },
-        () => [this.props.value, this.props.formatSelection],
-    );
+            this.displayText = fmt
+                ? fmt(value)
+                : value.length === 0
+                    ? ""
+                    : `(${value.length}) selected`;
+        }
+        this.appliedValue = this.props.value;
+        this.appliedFormatSelection = this.props.formatSelection;
+        this.hasAppliedProps = true;
+    };
 
     // --- state transitions ---
 

@@ -1,4 +1,4 @@
-import type { ElementRef, NativeHTMLAttributes } from "../shared/dom-props";
+import type { NativeHTMLAttributes } from "../shared/dom-props";
 
 // --- Types ---
 
@@ -6,7 +6,6 @@ export type NotificationSeverity = "info" | "success" | "warning" | "error";
 
 export interface NotificationProps
     extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onClick"> {
-    ref?: ElementRef<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

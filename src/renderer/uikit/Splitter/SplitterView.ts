@@ -36,6 +36,7 @@ export class SplitterView extends VanillaView<SplitterProps> {
         this.listen(this.root, "pointerup", this.onPointerUp);
         this.listen(this.root, "pointercancel", this.onPointerUp);
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.own(() => this.releaseCapture());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
@@ -62,7 +63,7 @@ export class SplitterView extends VanillaView<SplitterProps> {
             border = "after",
             background = "default",
             hoverBackground = "light",
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "splitter";
@@ -82,8 +83,24 @@ export class SplitterView extends VanillaView<SplitterProps> {
         if (max !== Infinity) this.root.setAttribute("aria-valuemax", String(max));
         else this.root.removeAttribute("aria-valuemax");
 
-        // Native drag listeners remain authoritative. Residual pointer callbacks
-        // are additive through applyRestProps; no production caller uses them.
+    }
+
+    private applyConstructionRestProps(props: SplitterProps): void {
+        const {
+            name: _name,
+            orientation: _orientation,
+            value: _value,
+            onChange: _onChange,
+            side: _side,
+            min: _min,
+            max: _max,
+            disabled: _disabled,
+            border: _border,
+            background: _background,
+            hoverBackground: _hoverBackground,
+            ...rest
+        } = props;
+        // Native drag listeners remain authoritative; no production caller uses residual pointers.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 

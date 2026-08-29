@@ -63,6 +63,15 @@ export interface VirtualGridProps extends VirtualGridOptions {
     onCellReleased?: (element: HTMLElement) => void;
 }
 
+export interface VirtualGridLayout {
+    rowHeight?: VirtualGridOptions["rowHeight"];
+    growToHeight?: string;
+    growToWidth?: string;
+    height?: string;
+    fitToWidth?: boolean;
+    whiteSpaceY?: number;
+}
+
 const px = (n: number) => `${n}px`;
 
 /** Write a style only when it actually differs — a redundant write can force layout. */
@@ -161,11 +170,13 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
 
     /** The props the model was constructed from, so onMount can tell whether they moved on. */
     private modelProps: VirtualGridProps;
+    private layout: VirtualGridLayout;
 
     public constructor(props: VirtualGridProps) {
         super(props, document.createElement("div"));
         this.root.dataset.type = "virtual-grid";
         this.modelProps = props;
+        this.layout = this.layoutFromProps(props);
 
         // The model is constructed here rather than in onMount because `attach()` is what binds
         // it to the DOM: a host may hold `view.model` and queue a `scrollToRow` before mount,
@@ -235,6 +246,45 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         regions[region === "header" ? "stickyTop" : "cells"].append(el);
     }
 
+    /** Update the grid's layout without replacing its stable engine callbacks or cell renderer. */
+    setLayout(layout: VirtualGridLayout): void {
+        const previous = this.layout;
+        this.layout = { ...layout };
+
+        const heightChanged = previous.height !== layout.height;
+        const growToHeightChanged = previous.growToHeight !== layout.growToHeight;
+        const growToWidthChanged = previous.growToWidth !== layout.growToWidth;
+        const fitToWidthChanged = previous.fitToWidth !== layout.fitToWidth;
+        const rowHeightChanged = previous.rowHeight !== layout.rowHeight;
+        const whiteSpaceYChanged = previous.whiteSpaceY !== layout.whiteSpaceY;
+
+        if (heightChanged || growToHeightChanged) {
+            setStyle(this.root, "height", layout.height ?? (layout.growToHeight ? "unset" : "100px"));
+        }
+        if (growToHeightChanged) {
+            setStyle(this.root, "max-height", layout.growToHeight ?? "unset");
+            if (this.container) setStyle(this.container, "max-height", layout.growToHeight ?? "unset");
+        }
+        if (growToWidthChanged && this.container) {
+            setStyle(this.container, "max-width", layout.growToWidth ?? "unset");
+        }
+        if (fitToWidthChanged && this.container) {
+            setStyle(this.container, "overflow-x", layout.fitToWidth ? "hidden" : "auto");
+        }
+
+        const engineChanged = rowHeightChanged || fitToWidthChanged;
+        if (engineChanged || whiteSpaceYChanged) {
+            this.model.setOptions({
+                rowHeight: layout.rowHeight,
+                fitToWidth: layout.fitToWidth,
+                whiteSpaceY: layout.whiteSpaceY,
+            });
+            // VirtualGridModel's input signature intentionally excludes whiteSpaceY; force the
+            // geometry pass only when that layout input is the sole changed engine field.
+            if (whiteSpaceYChanged && !engineChanged) this.model.update({ all: true });
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Lifecycle
     // -----------------------------------------------------------------------
@@ -271,11 +321,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         // `className`, `height` and the growTo* values are consumed by the root/container styles,
         // which the donor only rebuilt at construction. With a full-props update they can change.
         this.applyRootProps(props);
-        setStyle(this.root, "height", props.height ?? (props.growToHeight ? "unset" : "100px"));
-        setStyle(this.root, "max-height", props.growToHeight ?? "unset");
-        setStyle(this.container, "max-height", props.growToHeight ?? "unset");
-        setStyle(this.container, "max-width", props.growToWidth ?? "unset");
-        setStyle(this.container, "overflow-x", props.fitToWidth ? "hidden" : "auto");
+        this.setLayout(this.layoutFromProps(props));
 
         // A full replacement is not itself a change signal: setOptions merges and inputChanged()
         // then compares field by field. `renderCell` is compared by reference, though, so a host
@@ -618,7 +664,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
 
     /** Structure that never changes. Appearance is `VirtualGrid.css`'s business, not this file's. */
     private applyStaticStyles(): void {
-        const { growToHeight, growToWidth } = this.props;
+        const { growToHeight, growToWidth } = this.layout;
 
         setStyle(this.root, "flex", "1 1 auto");
         setStyle(this.root, "position", "relative");
@@ -626,12 +672,12 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         setStyle(
             this.root,
             "height",
-            this.props.height ?? (growToHeight ? "unset" : "100px"),
+            this.layout.height ?? (growToHeight ? "unset" : "100px"),
         );
         setStyle(this.root, "max-height", growToHeight ?? "unset");
 
         setStyle(this.container, "overflow-y", "auto");
-        setStyle(this.container, "overflow-x", this.props.fitToWidth ? "hidden" : "auto");
+        setStyle(this.container, "overflow-x", this.layout.fitToWidth ? "hidden" : "auto");
         setStyle(this.container, "outline", "none");
         // Scroll anchoring off, on both the scroller and the content it scrolls.
         //
@@ -680,7 +726,7 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         const width = this.model.size.width ?? 0;
         const height = this.model.size.height ?? 0;
 
-        const { growToHeight, growToWidth } = this.props;
+        const { growToHeight, growToWidth } = this.layout;
         setStyle(this.container, "width", growToWidth ? "unset" : px(width));
         setStyle(this.container, "height", growToHeight ? "unset" : px(height));
 
@@ -792,5 +838,16 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
             "display",
             visible ? (INLINE_FLEX_REGIONS.has(key) ? "inline-flex" : "block") : "none",
         );
+    }
+
+    private layoutFromProps(props: VirtualGridProps): VirtualGridLayout {
+        return {
+            rowHeight: props.rowHeight,
+            growToHeight: props.growToHeight,
+            growToWidth: props.growToWidth,
+            height: props.height,
+            fitToWidth: props.fitToWidth,
+            whiteSpaceY: props.whiteSpaceY,
+        };
     }
 }

@@ -20,12 +20,16 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
     constructor(props: ImageViewportProps) {
         super(props);
         this.driver = createComponentModelDriver(
-            { src: props.src, onModel: props.onModel },
+            { src: props.src },
             ImageViewportModel,
             defaultImageViewportState,
         );
         this.own(() => this.driver.dispose());
         this.currentSrc = props.src;
+    }
+
+    public get model(): ImageViewportModel {
+        return this.driver.model;
     }
 
     protected onMount(): void {
@@ -64,7 +68,7 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
 
     protected onUpdate(props: ImageViewportProps): void {
         const previousSrc = this.currentSrc;
-        this.driver.update({ src: props.src, onModel: props.onModel });
+        this.driver.update({ src: props.src });
         this.image?.setAttribute("alt", props.alt ?? "Image");
 
         if (previousSrc !== props.src) {

@@ -32,7 +32,15 @@ export class PageContentView extends VanillaView<PageContentProps> {
 
     protected onMount(): void {
         this.own(() => { this.live = false; this.generation++; });
-        this.own(pagesModel.state.subscribe(() => this.sync()));
+        this.own(pagesModel.state.subscribe(
+            () => this.sync(),
+            (state) => ({
+                pages: state.pages,
+                leftRight: state.leftRight,
+                rightLeft: state.rightLeft,
+                compareGroups: state.compareGroups,
+            }),
+        ));
         this.sync();
     }
 

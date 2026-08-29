@@ -1,3 +1,50 @@
+## EPIC-076 — Post-De-React Epic B: the props pump
+
+**Completed 2026-08-30.** Second epic of the post-De-React programme (`de-react-refactoring.md`):
+R2, the pump-entangled half of R6, and R10.4-6. Ten tasks, ~130 changed source files.
+
+- **EPIC-076** — [Post-De-React Epic B: the props pump](EPIC-076.md) — R2, the pump-entangled
+  half of R6, and R10.4-6. Cut 2026-08-29 with its figures re-measured; three of the plan's counts
+  are withdrawn as non-comparable and the `(s) => s` sweep is narrowed to global state only.
+  Started 2026-08-29.
+  - [x] [US-1199: Pilot — narrow the app-shell hot path off whole-state bindings](../tasks/US-1199-app-shell-hot-path/README.md)
+  - [x] [US-1200: Write the convention — `update()` is configuration, callbacks are fields](../tasks/US-1200-props-pump-convention/README.md)
+  - [x] [US-1201: Sidebar — `OpenTabsListView` and the re-entrant list views](../tasks/US-1201-sidebar-props-pump/README.md)
+  - [x] [US-1202: Editor roots — stop fanning `{ model }` to every descendant](../tasks/US-1202-editor-roots/README.md)
+  - [x] [US-1207: Editor roots — triage and convert bare subscriptions](../tasks/US-1207-editor-bare-subscriptions/README.md)
+  - [x] [US-1203: The uikit drill — collapse the seven-layer props relay](../tasks/US-1203-uikit-drill/README.md)
+  - [x] [US-1203B: Compound dropdowns and the deferred editor edges](../tasks/US-1203B-dropdowns-and-editor-edges/README.md)
+  - [x] [US-1204: Retire the ref channels — `ElementRef`, `bindRef`, `onModel`](../tasks/US-1204-ref-channels/README.md)
+  - [x] [US-1205: Derive-on-write — retire the 20 `memo()` sites, then delete `memo`/`IMemo`](../tasks/US-1205-derive-on-write/README.md)
+  - [x] [US-1206: `applyRestProps` at construction only](../tasks/US-1206-rest-props-at-construction/README.md)
+
+**What closed.** `VanillaView.update(props)` is now documented and used as construction-time
+configuration; children that render live data subscribe to the slice they render. All four B-1
+statements hold, verified rather than asserted: no whole-state selector on global state; callbacks
+hoisted to stable fields in the converted areas; `this.memo` at zero with `memo`/`IMemo` deleted
+from `TComponentModel` and every `ElementRef`/`bindRef`/`ref?:` channel retired; and
+`applyRestProps` unreachable from any update path.
+
+**What was deliberately left.** `dom-props.ts`'s type surface (R6's type half) goes to Epic C
+alongside R7, which opens the same components. Three `GridBodyView.onModel` channels and `headerRef`
+were retained because their models and elements do not exist at construction time. Seven
+model-identity `throw` guards added in US-1202 were kept, contained by `AsyncEditorView`'s
+`try/catch`. R4 full-rebuild sites, R5 immer collections and R8 timers are untouched.
+
+**The finding that outlives the epic.** Roughly twenty of this epic's own stated facts failed
+verification, and every one of them was inferred from code shape rather than observed. Three would
+have caused regressions if implemented as written: "collapse the seven-layer relay" would have
+broken the virtualized cell pool; "the DepsGate population should shrink" would have turned every
+targeted push into a full repaint; and the obvious selector narrowing (`state.pages.map(...)`) would
+have converted a mostly-gated binding into a fully ungated one, because `compareSelection` compares
+arrays by identity. Two more near-misses were caught the same way: eager derive-on-write applied
+uniformly would have made every tree drag pay an O(all-nodes) walk, and unifying the Popover content
+factories would have broken either Select or Autocomplete. Counts published in this epic — including
+two of my own — were wrong roughly a quarter of the time; a grep is a population, and only a
+per-site verdict with a stated reason is a defect list.
+
+---
+
 # Completed Epics
 
 Last 10 completed epics, newest first. Older epics are pruned.

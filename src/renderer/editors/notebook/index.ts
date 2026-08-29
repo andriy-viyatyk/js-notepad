@@ -255,10 +255,9 @@ export class NotebookEditorView extends VanillaView<{ model: EditorModel }> {
 
     protected onUpdate(props: { model: EditorModel }): void {
         const model = requireNotebookModel(props.model);
-        this.model = model;
-        this.body?.update({ model });
-        this.breadcrumb?.update({ model });
-        this.toolbar?.update({ model });
+        if (model !== this.model) {
+            throw new Error("Notebook view received a different model instance.");
+        }
         const body = this.body;
         const breadcrumb = this.breadcrumb;
         const toolbar = this.toolbar;

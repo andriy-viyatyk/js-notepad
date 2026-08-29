@@ -243,6 +243,11 @@ export class KeyValueEditorView extends VanillaView<KeyValueEditorProps> {
         super(props, createPanelElement({ name: "kv-editor", direction: "column", gap: "xs" }));
     }
 
+    public setItems(items: RestHeader[]): void {
+        this.props = { ...this.props, items };
+        this.updateList(items);
+    }
+
     protected onMount(): void {
         this.own(() => this.list.dispose());
         this.updateList(this.props.items);

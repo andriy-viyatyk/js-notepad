@@ -158,38 +158,52 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
     // --- derived ---
 
     /** Resolve the `items` prop once per ref change into renderable + commit-string arrays. */
-    private resolved = this.memo(
-        () => toResolvedItems(this.props.items),
-        () => [this.props.items],
-    );
+    private resolved: { items: IListBoxItem[]; commits: string[] } = { items: [], commits: [] };
+    private appliedItems: AutocompleteProps["items"] | undefined = undefined;
+    private appliedValue: string | undefined = undefined;
+    private appliedFilterMode: AutocompleteProps["filterMode"] | undefined = undefined;
+    private appliedFilter: AutocompleteProps["filter"] | undefined = undefined;
+    private hasAppliedProps = false;
 
     /** Filter resolved items by the current value. Returns parallel filteredItems +
      *  filteredCommits arrays so onListChange can map IListBoxItem → commit string. */
-    filtered = this.memo<{ filteredItems: IListBoxItem[]; filteredCommits: string[] }>(
-        () => {
-            const { items, commits } = this.resolved.value;
-            const filterMode = this.props.filterMode ?? "contains";
-            const customFilter = this.props.filter;
-            const query = this.props.value ?? "";
-            const matchFn =
-                customFilter ?? ((it: IListBoxItem) => defaultMatch(it, query, filterMode));
-            const filteredItems: IListBoxItem[] = [];
-            const filteredCommits: string[] = [];
-            for (let i = 0; i < items.length; i++) {
-                if (matchFn(items[i], query)) {
-                    filteredItems.push(items[i]);
-                    filteredCommits.push(commits[i]);
-                }
+    filtered: { filteredItems: IListBoxItem[]; filteredCommits: string[] } = {
+        filteredItems: [],
+        filteredCommits: [],
+    };
+
+    setProps = (): void => {
+        const itemsChanged = !this.hasAppliedProps || this.appliedItems !== this.props.items;
+        const valueChanged = !this.hasAppliedProps || this.appliedValue !== this.props.value;
+        const filterChanged = !this.hasAppliedProps
+            || this.appliedFilterMode !== this.props.filterMode
+            || this.appliedFilter !== this.props.filter;
+        if (itemsChanged) this.resolved = toResolvedItems(this.props.items);
+        if (itemsChanged || valueChanged || filterChanged) this.deriveFiltered();
+        this.appliedItems = this.props.items;
+        this.appliedValue = this.props.value;
+        this.appliedFilterMode = this.props.filterMode;
+        this.appliedFilter = this.props.filter;
+        this.hasAppliedProps = true;
+    };
+
+    private deriveFiltered(): void {
+        const { items, commits } = this.resolved;
+        const filterMode = this.props.filterMode ?? "contains";
+        const customFilter = this.props.filter;
+        const query = this.props.value ?? "";
+        const matchFn =
+            customFilter ?? ((it: IListBoxItem) => defaultMatch(it, query, filterMode));
+        const filteredItems: IListBoxItem[] = [];
+        const filteredCommits: string[] = [];
+        for (let i = 0; i < items.length; i++) {
+            if (matchFn(items[i], query)) {
+                filteredItems.push(items[i]);
+                filteredCommits.push(commits[i]);
             }
-            return { filteredItems, filteredCommits };
-        },
-        () => [
-            this.resolved.value,
-            this.props.value,
-            this.props.filterMode,
-            this.props.filter,
-        ],
-    );
+        }
+        this.filtered = { filteredItems, filteredCommits };
+    }
 
     // --- forwarded API for the View ---
     get rowHeight(): number {
@@ -208,7 +222,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
      */
     get popoverOpen(): boolean {
         if (!this.state.get().open) return false;
-        return this.filtered.value.filteredItems.length > 0 || this.props.emptyMessage != null;
+        return this.filtered.filteredItems.length > 0 || this.props.emptyMessage != null;
     }
 
     // --- state transitions ---
@@ -267,7 +281,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
     };
 
     private commitFromIndex = (idx: number) => {
-        const { filteredCommits } = this.filtered.value;
+        const { filteredCommits } = this.filtered;
         const next = filteredCommits[idx];
         if (next === undefined) return;
         this.state.update((s) => this.closeInto(s));
@@ -285,7 +299,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
     };
 
     onListChange = (item: IListBoxItem) => {
-        const { filteredItems } = this.filtered.value;
+        const { filteredItems } = this.filtered;
         const idx = filteredItems.indexOf(item);
         if (idx < 0) return;
         this.commitFromIndex(idx);
@@ -295,7 +309,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
         const { disabled, readOnly, onSubmit, onEscape, value } = this.props;
         if (disabled) return;
         const { open, activeIndex } = this.state.get();
-        const { filteredItems } = this.filtered.value;
+        const { filteredItems } = this.filtered;
 
         switch (e.key) {
             case "ArrowDown":

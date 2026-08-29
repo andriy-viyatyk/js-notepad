@@ -36,6 +36,7 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
         this.caretSlot = document.createElement("div");
         this.caretSlot.classList.add("split-caret-slot");
         this.applyRootProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.createPrimary(this.props);
         this.caretView = this.child(new IconButtonView(this.caretProps(this.props)));
 
@@ -166,13 +167,29 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
             size: _size,
             menuTitle: _menuTitle,
             children: _children,
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "split-button";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         this.root.classList.add("split-button-root");
+    }
+
+    private applyConstructionRestProps(props: SplitButtonProps): void {
+        const {
+            name: _name,
+            icon: _icon,
+            title: _title,
+            onClick: _onClick,
+            items: _items,
+            disabled: _disabled,
+            menuDisabled: _menuDisabled,
+            size: _size,
+            menuTitle: _menuTitle,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

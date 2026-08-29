@@ -20,7 +20,6 @@ export interface FileListProps {
     getTrailing?: (item: FileListItem) => SlotContent;
     compact?: boolean;
     selectedPath?: string;
-    onModel?: (model: FileListModel | null) => void;
 }
 
 interface FileListState {

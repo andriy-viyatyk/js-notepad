@@ -19,6 +19,7 @@ export class SpinnerView extends VanillaView<SpinnerProps> {
 
     protected onMount(): void {
         this.root.append(createIconElement("progress"));
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
@@ -32,10 +33,7 @@ export class SpinnerView extends VanillaView<SpinnerProps> {
     }
 
     private applyProps(props: SpinnerProps): void {
-        const { name, size = 32, color, children: _children, ...rest } = props;
-        // Spinner historically forwards residual props first, then writes its
-        // owned data/ARIA/style fields after the spread.
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+        const { name, size = 32, color, children: _children, ..._rest } = props;
         this.root.dataset.type = "spinner";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
@@ -45,5 +43,11 @@ export class SpinnerView extends VanillaView<SpinnerProps> {
         this.root.style.setProperty("--spinner-size", `${size}px`);
         if (color) this.root.style.setProperty("--spinner-color", color);
         else this.root.style.removeProperty("--spinner-color");
+    }
+
+    private applyConstructionRestProps(props: SpinnerProps): void {
+        const { name: _name, size: _size, color: _color, children: _children, ...rest } = props;
+        // Spinner historically forwards residual props first, then owned data/ARIA/style fields.
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

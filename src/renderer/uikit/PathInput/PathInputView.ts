@@ -1,4 +1,3 @@
-import type { ElementRef } from "../shared/dom-props";
 import { createComponentModelDriver } from "../../core/state/model";
 import { InputView } from "../Input/InputView";
 import type { InputProps } from "../Input/InputView";
@@ -6,7 +5,6 @@ import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import { KeyedList } from "../shared/keyed-list";
 import {
     applyRestProps,
-    bindRef,
     clearRestListeners,
     createRestPropsState,
     RestPropsState,
@@ -20,9 +18,7 @@ import {
 import type { PathSuggestion } from "./suggestions";
 import "./PathInput.css";
 
-export type PathInputViewProps = PathInputProps & {
-    ref?: ElementRef<HTMLInputElement>;
-};
+export type PathInputViewProps = PathInputProps;
 
 interface RowMeta {
     item: PathSuggestion;
@@ -154,9 +150,6 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
     private readonly popoverView: PopoverView;
     private readonly inputView: InputView;
     private suggestionContentView: PathSuggestionContentView | undefined;
-    private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
-    private callerRefCleanup: (() => void) | undefined;
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
     public constructor(props: PathInputViewProps) {
@@ -167,17 +160,18 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             defaultPathInputState,
         );
         this.own(() => this.driver.dispose());
-        this.own(() => this.callerRefCleanup?.());
         this.inputView = this.child(new InputView(this.inputProps(props)));
         this.popoverView = this.child(new PopoverView(this.popoverProps(props)));
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyRootProps(this.props);
         this.driver.mount();
 
         this.root.append(this.inputView.root);
         this.inputView.mount();
+        this.driver.model.setInputRef(this.inputView.inputElement);
         this.root.append(this.popoverView.root);
         this.popoverView.mount();
 
@@ -191,7 +185,6 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
     protected onUpdate(props: PathInputViewProps): void {
         this.driver.update(this.modelProps(props));
         this.applyRootProps(props);
-        this.syncCallerRef(false);
         this.syncChildren();
     }
 
@@ -199,29 +192,12 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         clearRestListeners(this.root, this.restPropsState);
     }
 
-    private readonly setInputRef = (element: HTMLInputElement | null): void => {
-        this.inputElement = element;
-        this.driver.model.setInputRef(element);
-        this.syncCallerRef(true);
-
-        if (element && this.props.autoFocus) {
-            const length = element.value.length;
-            element.setSelectionRange(length, length);
-        }
-        if (element) this.popoverView.update(this.popoverProps(this.props));
-    };
-
-    private syncCallerRef(force: boolean): void {
-        const ref = this.props.ref;
-        if (!force && ref === this.appliedCallerRef) return;
-        this.callerRefCleanup?.();
-        this.appliedCallerRef = ref;
-        this.callerRefCleanup = bindRef(this.inputElement, ref);
+    public get inputElement(): HTMLInputElement {
+        return this.inputView.inputElement;
     }
 
     private modelProps(props: PathInputViewProps): PathInputProps {
-        const { ref: _ref, ...modelProps } = props;
-        return modelProps;
+        return props;
     }
 
     private inputProps(props: PathInputViewProps): InputProps {
@@ -229,7 +205,6 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         const showSuggestions = this.driver.model.state.get().open
             && this.driver.model.suggestions.length > 0;
         return {
-            ref: this.setInputRef,
             size,
             value,
             onChange: this.driver.model.onInputChange,
@@ -305,17 +280,14 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             disabled,
             readOnly,
             size: _size,
-            ref: _ref,
             children: _children,
             "aria-label": _ariaLabel,
             "aria-labelledby": _ariaLabelledBy,
-            ...attributes
+            ..._attributes
         } = props;
 
         // Forward residual props first; the component-owned attributes below
         // are authoritative even if a caller passes conflicting data-* props.
-        applyRestProps(this.root, attributes, this.restPropsState);
-
         this.root.dataset.type = "path-input";
         if (name !== undefined) this.root.dataset.name = name;
         else delete this.root.dataset.name;
@@ -323,6 +295,28 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         else delete this.root.dataset.disabled;
         if (readOnly) this.root.dataset.readonly = "";
         else delete this.root.dataset.readonly;
+    }
+
+    private applyConstructionRestProps(props: PathInputViewProps): void {
+        const {
+            name: _name,
+            value: _value,
+            onChange: _onChange,
+            paths: _paths,
+            separator: _separator,
+            placeholder: _placeholder,
+            onBlur: _onBlur,
+            autoFocus: _autoFocus,
+            maxDepth: _maxDepth,
+            disabled: _disabled,
+            readOnly: _readOnly,
+            size: _size,
+            children: _children,
+            "aria-label": _ariaLabel,
+            "aria-labelledby": _ariaLabelledBy,
+            ...attributes
+        } = props;
+        applyRestProps(this.root, attributes, this.restPropsState);
     }
 
 }

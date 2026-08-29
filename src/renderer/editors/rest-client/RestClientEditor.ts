@@ -152,7 +152,10 @@ export class RestClientEditor extends TextHostEditorModel<RestClientEditorState,
 
         // RC4 — state subscription → debounced serialize-back. Replaces
         // today's RestClientViewModel.onInit subscription.
-        this.registerHostSubscription(this.state.subscribe(() => this.onDataChangedDebounced()));
+        this.registerHostSubscription(this.state.subscribe(
+            () => this.onDataChangedDebounced(),
+            (state) => ({ data: state.data, error: state.error }),
+        ));
 
         // RC18 — fire-and-forget async restore of the response cache. Hits
         // both the descriptor-replay path (restore() → adoptHost) AND the

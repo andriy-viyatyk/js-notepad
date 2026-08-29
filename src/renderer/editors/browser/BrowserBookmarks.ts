@@ -73,11 +73,14 @@ export class BrowserBookmarks {
         // onDataChangedDebounced writes serialized state back to
         // host.changeContent which flips host.state.modified — that's the
         // trigger we watch here.
-        this.subscriptions.add(this.textFileHost.state.subscribe(() => {
-            if (this.textFileHost.state.get().modified) {
-                this.saveDebounced();
-            }
-        }));
+        this.subscriptions.add(this.textFileHost.state.subscribe(
+            (modified) => {
+                if (modified) {
+                    this.saveDebounced();
+                }
+            },
+            (state) => state.modified,
+        ));
         return true;
     }
 

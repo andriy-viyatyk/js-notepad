@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, NativeButtonHTMLAttributes, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState, setRestProp } from "../shared/dom-props";
+import type { NativeButtonHTMLAttributes, RestPropsState } from "../shared/dom-props";
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { createIconElement, createIconPlaceholderElement, isIconName } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
@@ -8,7 +8,6 @@ import type { IconRef } from "../shared/slots";
 import type { SlotContent } from "../shared/fill-slot";
 
 export interface ButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onKeyDown" | "children"> {
-    ref?: ElementRef<HTMLButtonElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -53,31 +52,28 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
     private childrenHost: HTMLSpanElement | undefined;
     private childrenCleanup: (() => void) | undefined;
     private tooltip: TooltipAttachment | undefined;
-    private refCleanup: (() => void) = () => undefined;
-    private boundRef: ElementRef<HTMLButtonElement> | undefined;
 
     public constructor(props: ButtonViewProps) {
         super(props, document.createElement("button"));
     }
 
     protected onMount(): void {
+        this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
         this.updateContent(this.props.icon, this.props.children);
         this.listen(this.root, "keydown", this.handleKeyDown);
-        this.setRef(this.props.ref);
         this.tooltip = attachTooltip(this.root, {
             content: this.props.title ?? null,
         });
         this.own(() => this.tooltip?.dispose());
         this.own(() => this.clearContent());
-        this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
     protected onUpdate(props: ButtonViewProps): void {
         this.applyProps(props);
+        this.updateTargetedRestProps(props);
         this.updateContent(props.icon, props.children);
-        this.setRef(props.ref);
         this.tooltip?.update({ content: props.title ?? null });
     }
 
@@ -94,11 +90,9 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
             onKeyDown: _onKeyDown,
             hideUntilParentHover,
             children: _children,
-            ref: _ref,
-            ...rest
+            ..._rest
         } = props;
 
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
         const button = this.root as HTMLButtonElement;
         button.type = props.type ?? "button";
         button.disabled = Boolean(disabled);
@@ -114,6 +108,32 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
         else delete this.root.dataset.disabled;
         if (hideUntilParentHover) this.root.dataset.visibility = "parent-hover";
         else delete this.root.dataset.visibility;
+    }
+
+    private applyConstructionRestProps(props: ButtonViewProps): void {
+        const {
+            name: _name,
+            variant: _variant,
+            size: _size,
+            background: _background,
+            block: _block,
+            icon: _icon,
+            disabled: _disabled,
+            title: _title,
+            onKeyDown: _onKeyDown,
+            hideUntilParentHover: _hideUntilParentHover,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+    }
+
+    private updateTargetedRestProps(props: ButtonViewProps): void {
+        const rest = props as Record<string, unknown>;
+        setRestProp(this.root, "onClick", rest.onClick, this.restPropsState);
+        setRestProp(this.root, "role", rest.role, this.restPropsState);
+        setRestProp(this.root, "aria-checked", rest["aria-checked"], this.restPropsState);
+        setRestProp(this.root, "tabIndex", rest.tabIndex, this.restPropsState);
     }
 
     /**
@@ -173,19 +193,6 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
             this.root.append(this.iconHost, this.childrenHost);
         }
         return { iconHost: this.iconHost, childrenHost: this.childrenHost };
-    }
-
-    private setRef(ref: ElementRef<HTMLButtonElement> | undefined): void {
-        if (ref === this.boundRef) return;
-        this.refCleanup();
-        this.boundRef = ref;
-        this.refCleanup = bindRef(this.root as HTMLButtonElement, ref);
-    }
-
-    private clearRef(): void {
-        this.refCleanup();
-        this.refCleanup = () => undefined;
-        this.boundRef = undefined;
     }
 
     private clearContent(): void {

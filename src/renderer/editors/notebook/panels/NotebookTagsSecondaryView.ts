@@ -87,10 +87,13 @@ export default class NotebookTagsSecondaryView extends VanillaView<SecondaryView
     }
 
     private subscribeToEditor(editor: NotebookEditor): void {
-        this.stateUnsubscribe = this.ownSubscription(editor.state.subscribe(() => {
-            if (this.editor !== editor) return;
-            this.list?.update(this.listProps(editor));
-        }));
+        this.stateUnsubscribe = this.ownSubscription(editor.state.subscribe(
+            () => {
+                if (this.editor !== editor) return;
+                this.list?.update(this.listProps(editor));
+            },
+            (state) => ({ tags: state.tags, selectedTag: state.selectedTag, tagsSize: state.tagsSize }),
+        ));
     }
 
     private listProps(editor: NotebookEditor): CategoryListProps {

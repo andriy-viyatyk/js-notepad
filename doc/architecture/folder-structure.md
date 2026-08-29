@@ -780,7 +780,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── deps-gate.ts    # Fixed-length repaint/dependency identity gate
 │       ├── element-id.ts   # Shared DOM id allocation for generated elements
 │       ├── fill-slot.ts    # React-valued slot bridge
-│       ├── dom-props.ts    # Native attributes, events, refs, and rest-prop bridge
+│       ├── dom-props.ts    # Native attributes/events, targeted residual props, and listener cleanup
 │       └── slots.ts        # Neutral icon and slot-content types/resolution
 │
 ├── components/             # Persephone-Coupled Components (KEEP-only)

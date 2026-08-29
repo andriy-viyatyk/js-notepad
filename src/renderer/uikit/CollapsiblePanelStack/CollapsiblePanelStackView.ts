@@ -43,6 +43,7 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
 
     protected onMount(): void {
         this.applyRootProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.panelList = new KeyedList(this.root, {
             keyOf: (panel) => panel.id,
             create: (panel) => this.createPanel(panel),
@@ -79,7 +80,7 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             height,
             minHeight,
             maxHeight,
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "collapsible-panel-stack";
@@ -91,6 +92,22 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
         this.setLength("height", height);
         this.setLength("min-height", minHeight);
         this.setLength("max-height", maxHeight);
+    }
+
+    private applyConstructionRestProps(props: StackViewProps): void {
+        const {
+            name: _name,
+            activePanel: _activePanel,
+            setActivePanel: _setActivePanel,
+            panels: _panels,
+            width: _width,
+            minWidth: _minWidth,
+            maxWidth: _maxWidth,
+            height: _height,
+            minHeight: _minHeight,
+            maxHeight: _maxHeight,
+            ...rest
+        } = props;
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 

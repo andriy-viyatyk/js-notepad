@@ -3,7 +3,7 @@ import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { VirtualGridView, type VirtualGridProps, type VirtualGridStats } from "./VirtualGridView";
 import { VirtualFlexGridView, type VirtualFlexGridProps, type VirtualFlexCellFunc } from "./VirtualFlexGridView";
-import type { ElementLength, GridModelCapability, Percent, RenderCellFunc } from "./types";
+import type { ElementLength, Percent, RenderCellFunc } from "./types";
 import color from "../../theme/color";
 import type { Story } from "../../editors/storybook/storyTypes";
 
@@ -130,7 +130,6 @@ export const virtualGridStory: Story<GridDemoProps> = {
 interface FlexDemoProps { rowCount?: number; growthDelay?: number; }
 
 class VirtualFlexGridDemoView extends VanillaView<FlexDemoProps> {
-    private model: GridModelCapability | null = null;
     private readonly grownRows = new Set<number>();
     private readonly renderFlexCell: VirtualFlexCellFunc = (params) => {
         const element = params.previous ?? params.recycle?.() ?? document.createElement("div");
@@ -185,7 +184,7 @@ class VirtualFlexGridDemoView extends VanillaView<FlexDemoProps> {
             name: "virtual-flex-grid-story", rowCount: props.rowCount ?? 180, columnCount: 1, rowHeight: 24,
             columnWidth: (() => "100%" as Percent) as ElementLength, renderCell: this.renderFlexCell,
             minRowHeight: 24, maxRowHeight: 180, getInitialRowHeight: () => 24, preferMinHeightForNewRows: true,
-            overscanRow: 1, fitToWidth: true, height: "100%", onModel: (model) => { this.model = model; },
+            overscanRow: 1, fitToWidth: true, height: "100%",
         };
     }
 
@@ -193,9 +192,9 @@ class VirtualFlexGridDemoView extends VanillaView<FlexDemoProps> {
         this.clearTimers();
         const delay = props.growthDelay ?? 900;
         const rowCount = props.rowCount ?? 180;
-        this.timers.push(window.setTimeout(() => { this.grownRows.add(2); this.model?.update({ rows: [2] }); }, delay));
-        this.timers.push(window.setTimeout(() => { void this.model?.scrollToRow(Math.max(0, rowCount - 1), "bottom"); }, delay + 450));
-        this.timers.push(window.setTimeout(() => { void this.model?.scrollToRow(0, "top"); this.roundTripDone = true; this.updateStatus(); }, delay + 1050));
+        this.timers.push(window.setTimeout(() => { this.grownRows.add(2); this.view?.gridModel?.update({ rows: [2] }); }, delay));
+        this.timers.push(window.setTimeout(() => { void this.view?.gridModel?.scrollToRow(Math.max(0, rowCount - 1), "bottom"); }, delay + 450));
+        this.timers.push(window.setTimeout(() => { void this.view?.gridModel?.scrollToRow(0, "top"); this.roundTripDone = true; this.updateStatus(); }, delay + 1050));
         this.statusTimer = window.setInterval(() => {
             const cell = this.view?.root.querySelector<HTMLElement>('[data-row="2"]');
             this.updateStatus(cell);

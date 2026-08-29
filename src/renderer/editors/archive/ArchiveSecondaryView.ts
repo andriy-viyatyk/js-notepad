@@ -56,6 +56,7 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
         });
 
         this.tree.mount();
+        this.treeProviderModel = this.tree.model;
         this.closeButton.mount();
         this.bind(
             archiveModel.selectionState,
@@ -109,9 +110,6 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
             selectedHref: selectedHref ?? undefined,
             onItemClick: this.handleItemClick,
             onItemDoubleClick: this.handleItemClick,
-            onModel: (model: TreeProviderViewModel | null) => {
-                this.treeProviderModel = model ?? undefined;
-            },
         };
     }
 

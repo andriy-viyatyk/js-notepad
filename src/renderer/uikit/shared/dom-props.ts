@@ -1,9 +1,5 @@
 import type { NativeSlotContent } from "./fill-slot";
 
-export type ElementRef<T> =
-    | ((element: T | null) => void | (() => void))
-    | { current: T | null };
-
 type NativeAttributeValue = string | number | boolean | null | undefined;
 type AriaAttribute = { [K in `aria-${string}`]?: NativeAttributeValue };
 type DataAttribute = { [K in `data-${string}`]?: NativeAttributeValue };
@@ -155,15 +151,63 @@ function isEnumeratedAttribute(key: string): boolean {
     return ENUMERATED_ATTRIBUTES.has(key.toLowerCase()) || key.startsWith("aria-");
 }
 
+function attributeName(key: string): string {
+    return key === "className" ? "class" : key === "htmlFor" ? "for" : key;
+}
+
+function applyRestEntry(
+    root: HTMLElement,
+    key: string,
+    value: unknown,
+    state: RestPropsState,
+): void {
+    if (key.startsWith("on")) {
+        state.attributes.delete(key);
+        const prior = state.listeners.get(key);
+        if (prior) root.removeEventListener(prior.type, prior.listener);
+        state.listeners.delete(key);
+        if (typeof value === "function") {
+            const eventName = key.slice(2).toLowerCase();
+            const type = eventName === "doubleclick" ? "dblclick" : eventName;
+            const listener: EventListener = (event) => {
+                (value as (event: Event) => void)(event);
+            };
+            root.addEventListener(type, listener);
+            state.listeners.set(key, { type, listener });
+        }
+        return;
+    }
+
+    if (value == null || (value === false && !isEnumeratedAttribute(key))) {
+        root.removeAttribute(attributeName(key));
+        state.attributes.delete(key);
+        return;
+    }
+    if (isEnumeratedAttribute(key)) {
+        root.setAttribute(attributeName(key), value === true ? "true" : String(value));
+        state.attributes.add(key);
+        return;
+    }
+    root.setAttribute(attributeName(key), value === true ? "" : String(value));
+    state.attributes.add(key);
+}
+
+/** Apply or remove one residual attribute/listener while preserving its bookkeeping. */
+export function setRestProp(
+    root: HTMLElement,
+    key: string,
+    value: unknown,
+    state: RestPropsState,
+): void {
+    applyRestEntry(root, key, value, state);
+}
+
 /** Apply residual attributes/listeners and remove stale values. */
 export function applyRestProps(
     root: HTMLElement,
     rest: Record<string, unknown>,
     previous: RestPropsState,
 ): RestPropsState {
-    const attributeName = (key: string): string =>
-        key === "className" ? "class" : key === "htmlFor" ? "for" : key;
-
     for (const key of Array.from(previous.attributes)) {
         if (!(key in rest)) {
             root.removeAttribute(attributeName(key));
@@ -178,35 +222,7 @@ export function applyRestProps(
     }
 
     for (const [key, value] of Object.entries(rest)) {
-        if (key.startsWith("on")) {
-            previous.attributes.delete(key);
-            const prior = previous.listeners.get(key);
-            if (prior) root.removeEventListener(prior.type, prior.listener);
-            previous.listeners.delete(key);
-            if (typeof value === "function") {
-                const eventName = key.slice(2).toLowerCase();
-                const type = eventName === "doubleclick" ? "dblclick" : eventName;
-                const listener: EventListener = (event) => {
-                    (value as (event: Event) => void)(event);
-                };
-                root.addEventListener(type, listener);
-                previous.listeners.set(key, { type, listener });
-            }
-            continue;
-        }
-
-        if (value == null || (value === false && !isEnumeratedAttribute(key))) {
-            root.removeAttribute(attributeName(key));
-            previous.attributes.delete(key);
-            continue;
-        }
-        if (isEnumeratedAttribute(key)) {
-            root.setAttribute(attributeName(key), value === true ? "true" : String(value));
-            previous.attributes.add(key);
-            continue;
-        }
-        root.setAttribute(attributeName(key), value === true ? "" : String(value));
-        previous.attributes.add(key);
+        applyRestEntry(root, key, value, previous);
     }
 
     return previous;
@@ -217,25 +233,4 @@ export function clearRestListeners(root: HTMLElement, state: RestPropsState): vo
         root.removeEventListener(entry.type, entry.listener);
     }
     state.listeners.clear();
-}
-
-/** Bind both callback and object refs and return the matching cleanup. */
-export function bindRef<T>(element: T | null, ref: ElementRef<T> | undefined): () => void {
-    if (!element || !ref) return () => undefined;
-
-    if (typeof ref === "function") {
-        const cleanup = ref(element);
-        let active = true;
-        return () => {
-            if (!active) return;
-            active = false;
-            if (typeof cleanup === "function") cleanup();
-            else ref(null);
-        };
-    }
-
-    ref.current = element;
-    return () => {
-        if (ref.current === element) ref.current = null;
-    };
 }

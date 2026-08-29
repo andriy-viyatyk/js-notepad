@@ -226,7 +226,10 @@ export class LinkEditor
 
         // LK4 — state subscription → debounced serialize-back. Replaces
         // today's LinkViewModel.onInit subscription.
-        this.registerHostSubscription(this.state.subscribe(() => this.onDataChangedDebounced()));
+        this.registerHostSubscription(this.state.subscribe(
+            () => this.onDataChangedDebounced(),
+            (state) => ({ data: state.data, error: state.error }),
+        ));
     }
 
     protected onHostAttached(host: TextFileModel): void {

@@ -62,6 +62,25 @@ When the user says **"let's create a task for [description]"** (or similar), fol
 - Ask for clarification when uncertain
 - Do NOT commit automatically - wait for user to request commits
 
+### Commit messages — co-author attribution
+
+Every commit must attribute **every** agent that produced the work, regardless of which one ran
+`git commit`. In this project the committing agent is usually not the authoring agent: work is
+delegated to Codex via the [`codex-dev`](.claude/skills/codex-dev/SKILL.md) skill, and the
+`codex-dev` workflow forbids Codex from committing — so Codex's own trailer rule in
+[`AGENTS.md`](AGENTS.md) never fires on its own. Attribution is therefore the committer's job.
+
+Add one trailer per agent that contributed to the commit, at the end of the message:
+
+- Claude wrote or reviewed any part of it →
+  `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`
+- Codex wrote or investigated any part of it →
+  `Co-authored-by: Codex <noreply@openai.com>`
+
+A delegated task normally earns **both**: Codex implements, Claude plans and reviews the plan. Use
+both trailers whenever both were involved, including when Codex only wrote the task document.
+Match the casing above exactly — it is what `AGENTS.md` already specifies for Codex.
+
 ### Completing a task (user-initiated):
 
 **Do NOT run completion steps automatically after implementation.** After implementation, the user will test the changes manually. During testing, bugs or adjustments may appear that require additional code changes. Only when the user explicitly says **"let's complete the task"** (or similar) should you proceed with the completion steps below.

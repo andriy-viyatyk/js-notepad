@@ -8,7 +8,6 @@ import { ResizeHandleIcon } from "../../theme/icons";
 import { getOverlayLayer } from "../shared/overlayLayer";
 import {
     applyRestProps,
-    bindRef,
     clearRestListeners,
     createRestPropsState,
     type RestPropsState,
@@ -23,11 +22,16 @@ import {
 import "./Popover.css";
 
 export type PopoverViewProps = PopoverProps & {
-    ref?: Parameters<typeof bindRef<HTMLDivElement>>[1];
+    onFloatingRoot?: (root: HTMLDivElement | null) => void;
     "data-type"?: string;
     /** Internal UIKit seam for a direct vanilla content view. */
     contentView?: (host: HTMLElement) => IOwnedView;
 };
+
+export type PopoverSizing = Pick<
+    PopoverProps,
+    "maxHeight" | "matchAnchorWidth" | "resizable" | "scroll"
+>;
 
 function isElementOrVirtualElement(
     value: Element | VirtualElement | null,
@@ -38,8 +42,7 @@ function isElementOrVirtualElement(
 class PopoverFloatingView extends VanillaView<PopoverViewProps> {
     private readonly model: PopoverModel;
     private readonly restPropsState: RestPropsState = createRestPropsState();
-    private refCleanup: (() => void) | undefined;
-    private boundRef: PopoverViewProps["ref"];
+    private floatingRootCallback: PopoverViewProps["onFloatingRoot"];
     private autoUpdateCleanup: (() => void) | undefined;
     private placeRef: Element | VirtualElement | null = null;
     private positionGeneration = 0;
@@ -64,6 +67,8 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
 
     protected onMount(): void {
         this.applyProps(this.props);
+        applyRestProps(this.root, this.getRestProps(this.props), this.restPropsState);
+        this.setFloatingRootCallback(this.props.onFloatingRoot);
 
         // These listeners belong to the floating branch, so they exist exactly
         // while an open branch is attached to the overlay layer.
@@ -93,7 +98,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         this.contentView = this.child(this.props.contentView(this.root));
         (this.contentView as IOwnedView & { mount(): unknown }).mount();
         this.updateNativeResizeHandle();
-        this.restartPositioning(this.model.placeRef.value);
+        this.restartPositioning(this.model.placeRef);
     }
 
     protected onUpdate(props: PopoverViewProps): void {
@@ -102,14 +107,26 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         }
         const previousPlaceRef = this.placeRef;
         this.applyProps(props);
+        this.setFloatingRootCallback(props.onFloatingRoot);
         this.updateNativeResizeHandle();
 
-        const nextPlaceRef = this.model.placeRef.value;
+        const nextPlaceRef = this.model.placeRef;
         if (nextPlaceRef !== previousPlaceRef) {
             this.restartPositioning(nextPlaceRef);
         } else {
             this.position();
         }
+    }
+
+    setShell(props: PopoverViewProps, placeRefChanged: boolean): void {
+        this.props = props;
+        if (placeRefChanged) {
+            this.restartPositioning(this.model.placeRef);
+            return;
+        }
+        this.applyVisualState(props);
+        this.updateNativeResizeHandle();
+        this.position();
     }
 
     protected onDispose(): void {
@@ -122,9 +139,8 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         this.nativeResizeHandle?.remove();
         this.nativeResizeHandle = undefined;
 
-        this.refCleanup?.();
-        this.refCleanup = undefined;
-        this.boundRef = undefined;
+        this.floatingRootCallback?.(null);
+        this.floatingRootCallback = undefined;
         this.model.setInternalRef(null);
 
         // SubtreeSwap detaches after dispose(); remove the floating root while
@@ -143,7 +159,6 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
 
     private applyProps(props: PopoverViewProps): void {
         const {
-            ref,
             name,
             open: _open,
             maxHeight,
@@ -161,7 +176,8 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
             matchAnchorWidth: _matchAnchorWidth,
             onResize: _onResize,
             contentView: _contentView,
-            ...rest
+            onFloatingRoot: _onFloatingRoot,
+            ..._rest
         } = props;
 
         this.root.dataset.type = "popover";
@@ -170,20 +186,44 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
 
         this.model.setInternalRef(this.root as HTMLDivElement);
         this.applyVisualState(props);
-        applyRestProps(this.root, rest, this.restPropsState);
-
-        if (ref !== this.boundRef) {
-            this.refCleanup?.();
-            this.boundRef = ref;
-            this.refCleanup = bindRef(this.root, ref);
-        }
-
         // Keep destructuring explicit above: these values are model/view
         // controls, not residual DOM attributes. `scroll` is applied here so
         // classList, rather than a className assignment, owns the hook.
         void maxHeight;
         void resizable;
         void scroll;
+    }
+
+    private getRestProps(props: PopoverViewProps): Record<string, unknown> {
+        const {
+            name: _name,
+            open: _open,
+            maxHeight: _maxHeight,
+            resizable: _resizable,
+            scroll: _scroll,
+            children: _children,
+            elementRef: _elementRef,
+            x: _x,
+            y: _y,
+            placement: _placement,
+            offset: _offset,
+            onClose: _onClose,
+            outsideClickIgnoreSelector: _outsideClickIgnoreSelector,
+            onKeyDown: _onKeyDown,
+            matchAnchorWidth: _matchAnchorWidth,
+            onResize: _onResize,
+            contentView: _contentView,
+            onFloatingRoot: _onFloatingRoot,
+            ...rest
+        } = props;
+        return rest;
+    }
+
+    private setFloatingRootCallback(callback: PopoverViewProps["onFloatingRoot"]): void {
+        if (callback === this.floatingRootCallback) return;
+        this.floatingRootCallback?.(null);
+        this.floatingRootCallback = callback;
+        callback?.(this.root as HTMLDivElement);
     }
 
     private applyVisualState(props: PopoverViewProps): void {
@@ -341,9 +381,50 @@ export class PopoverView extends VanillaView<PopoverViewProps> {
         this.syncBranch();
     }
 
+    public setOpen(open: boolean): void {
+        this.setShell({ open });
+    }
+
+    public setAnchor(anchor: PopoverProps["elementRef"]): void {
+        this.setShell({ elementRef: anchor });
+    }
+
+    public setPlacement(placement: PopoverProps["placement"]): void {
+        this.setShell({ placement });
+    }
+
+    public setOffset(offset: PopoverProps["offset"]): void {
+        this.setShell({ offset });
+    }
+
+    public setSizing(sizing: PopoverSizing): void {
+        this.setShell(sizing);
+    }
+
+    private setShell(changes: Partial<PopoverProps>): void {
+        const previousPlaceRef = this.driver.model.placeRef;
+        const nextProps = { ...this.props, ...changes };
+        this.props = nextProps;
+        this.driver.update(this.modelProps(nextProps));
+
+        const nextPlaceRef = this.driver.model.placeRef;
+        if (!nextProps.open || !nextPlaceRef) {
+            this.activeBranch = undefined;
+            this.swap.clear();
+            return;
+        }
+
+        if (this.activeBranch) {
+            this.activeBranch.setShell(nextProps, nextPlaceRef !== previousPlaceRef);
+            return;
+        }
+
+        this.syncBranch();
+    }
+
     private syncBranch(): void {
         const props = this.props;
-        const placeRef = this.driver.model.placeRef.value;
+        const placeRef = this.driver.model.placeRef;
         if (!props.open || !placeRef) {
             this.activeBranch = undefined;
             this.swap.clear();
@@ -377,7 +458,7 @@ export class PopoverView extends VanillaView<PopoverViewProps> {
     }
 
     private modelProps(props: PopoverViewProps): PopoverProps {
-        const { ref: _ref, contentView: _contentView, ...modelProps } = props;
+        const { onFloatingRoot: _onFloatingRoot, contentView: _contentView, ...modelProps } = props;
         return modelProps;
     }
 }

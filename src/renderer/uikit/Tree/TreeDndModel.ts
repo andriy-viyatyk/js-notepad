@@ -18,28 +18,28 @@ export class TreeDndModel<T = ITreeItem> {
     canDragRow = (rowIndex: number): boolean => {
         const { props } = this.tree;
         if ((!props.traitTypeId || !props.getDragData) && !props.onDragStartOverride) return false;
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         return !!row && !row.item.section && !row.item.disabled;
     };
 
     canDropRow = (rowIndex: number): boolean => {
         if (!this.tree.props.acceptsDrop) return false;
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         return !!row && !row.item.section && !row.item.disabled;
     };
 
     isDraggingAt = (rowIndex: number): boolean => {
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         return !!row && this.tree.state.get().draggingValue === row.value;
     };
 
     isDropTargetAt = (rowIndex: number): boolean => {
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         return !!row && this.tree.state.get().dragOverValue === row.value;
     };
 
     onDragStart = (e: DragEvent, rowIndex: number) => {
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         if (!row || row.item.section || row.item.disabled) {
             e.preventDefault();
             return;
@@ -81,7 +81,7 @@ export class TreeDndModel<T = ITreeItem> {
 
     onDragEnter = (e: DragEvent, rowIndex: number) => {
         if (!this.canDropRow(rowIndex) || !this.acceptsDrag(e.dataTransfer)) return;
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         if (!row) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
@@ -98,7 +98,7 @@ export class TreeDndModel<T = ITreeItem> {
     };
 
     onDragLeave = (_e: DragEvent, rowIndex: number) => {
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         if (!row) return;
         if (!this.dragEnterCounts.leave(row.value)) return;
         this.cancelHoverExpand();
@@ -119,7 +119,7 @@ export class TreeDndModel<T = ITreeItem> {
             state.draggingValue = null;
         });
         if (!payload) return;
-        const row = this.tree.rows.value[rowIndex];
+        const row = this.tree.rows[rowIndex];
         if (!row) return;
         if (this.tree.props.canTraitDrop?.(row.source, payload, row.level) ?? true) {
             this.tree.props.onTraitDrop?.(row.source, payload, row.level);
@@ -159,8 +159,8 @@ export class TreeDndModel<T = ITreeItem> {
         this.hoverExpandTimer = window.setTimeout(() => {
             this.hoverExpandTimer = null;
             if (!this.tree.isLive || this.tree.state.get().dragOverValue !== row.value) return;
-            const index = this.tree.indexByValue.value.get(row.value);
-            const current = index == null ? undefined : this.tree.rows.value[index];
+            const index = this.tree.indexByValue.get(row.value);
+            const current = index == null ? undefined : this.tree.rows[index];
             if (index != null && current && !current.expanded) this.tree.toggleAt(index);
         }, delay);
     }

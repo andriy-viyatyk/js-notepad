@@ -9,7 +9,7 @@ import { createIconComponentElement } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
-import type { ImageViewportModel } from "../../uikit/ImageViewport";
+import type { ImageViewportModel } from "../../uikit/ImageViewport/ImageViewport";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
@@ -24,17 +24,23 @@ function requireSvgModel(model: EditorModel): SvgEditor {
     return model;
 }
 
-class SvgToolbarBitsView extends VanillaView<{ model: SvgEditor }> {
+interface SvgToolbarBitsViewProps {
+    model: SvgEditor;
+    getImageModel: () => ImageViewportModel | null;
+}
+
+class SvgToolbarBitsView extends VanillaView<SvgToolbarBitsViewProps> {
     private model: SvgEditor;
-    private imageModel: ImageViewportModel | null = null;
+    private getImageModel: () => ImageViewportModel | null;
     private openDrawButton: IconButtonView | undefined;
     private saveButton: IconButtonView | undefined;
     private copyButton: IconButtonView | undefined;
     private drawIcon!: SVGElement;
 
-    public constructor(props: { model: SvgEditor }) {
+    public constructor(props: SvgToolbarBitsViewProps) {
         super(props, createContentsRoot());
         this.model = props.model;
+        this.getImageModel = props.getImageModel;
     }
 
     protected onMount(): void {
@@ -48,23 +54,19 @@ class SvgToolbarBitsView extends VanillaView<{ model: SvgEditor }> {
         this.copyButton.mount();
     }
 
-    protected onUpdate(props: { model: SvgEditor }): void {
+    protected onUpdate(props: SvgToolbarBitsViewProps): void {
         this.model = props.model;
+        this.getImageModel = props.getImageModel;
         this.openDrawButton?.update(this.openDrawButtonProps());
         this.saveButton?.update(this.saveButtonProps());
         this.copyButton?.update(this.copyButtonProps());
     }
 
     protected onDispose(): void {
-        this.imageModel = null;
         this.openDrawButton = undefined;
         this.saveButton = undefined;
         this.copyButton = undefined;
     }
-
-    public readonly setImageModel = (model: ImageViewportModel | null): void => {
-        this.imageModel = model;
-    };
 
     private readonly onOpenDraw = async (): Promise<void> => {
         const host = this.model.host;
@@ -103,7 +105,7 @@ class SvgToolbarBitsView extends VanillaView<{ model: SvgEditor }> {
             name: "svg-copy",
             size: "sm",
             title: "Copy Image to Clipboard (Ctrl+C)",
-            onClick: () => this.imageModel?.copyToClipboard(),
+            onClick: () => { void this.getImageModel()?.copyToClipboard(); },
             icon: "copy",
         };
     }
@@ -117,8 +119,11 @@ export class SvgEditorView extends VanillaView<{ model: EditorModel }> {
 
     public constructor(props: { model: EditorModel }) {
         const model = requireSvgModel(props.model);
-        const toolbar = new SvgToolbarBitsView({ model });
-        const body = new SvgBodyView({ model, imageModelSetter: toolbar.setImageModel });
+        const body = new SvgBodyView({ model });
+        const toolbar = new SvgToolbarBitsView({
+            model,
+            getImageModel: () => body.imageModel,
+        });
         const chrome = new TextChromeView({
             model: props.model,
             children: body.root,
@@ -139,8 +144,8 @@ export class SvgEditorView extends VanillaView<{ model: EditorModel }> {
 
     protected onUpdate(props: { model: EditorModel }): void {
         this.model = requireSvgModel(props.model);
-        this.body.update({ model: this.model, imageModelSetter: this.toolbar.setImageModel });
-        this.toolbar.update({ model: this.model });
+        this.body.update({ model: this.model });
+        this.toolbar.update({ model: this.model, getImageModel: () => this.body.imageModel });
         this.chrome.update({
             model: props.model,
             children: this.body.root,

@@ -1,5 +1,5 @@
-import { applyRestProps, bindRef, clearRestListeners, createRestPropsState } from "../shared/dom-props";
-import type { ElementRef, RestPropsState } from "../shared/dom-props";
+import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
+import type { RestPropsState } from "../shared/dom-props";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
 import { nextElementId } from "../shared/element-id";
 import { VanillaView } from "../shared/vanilla-view";
@@ -13,9 +13,7 @@ import type { InputProps } from "../Input/InputView";
 import { defaultSelectState, SelectModel, type SelectProps } from "./SelectModel";
 import "./Select.css";
 
-export type SelectViewProps<T = IListBoxItem> = SelectProps<T> & {
-    ref?: ElementRef<HTMLInputElement>;
-};
+export type SelectViewProps<T = IListBoxItem> = SelectProps<T>;
 
 /**
  * The single-select dropdown: an `Input` with a chevron button, and a `Popover` hosting a `ListBox`.
@@ -68,9 +66,6 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
      */
     private listView: ListBoxView<IListBoxItem> | undefined;
 
-    private inputElement: HTMLInputElement | null = null;
-    private appliedCallerRef: ElementRef<HTMLInputElement> | undefined;
-    private callerRefCleanup: (() => void) | undefined;
 
     public constructor(props: SelectViewProps<T>) {
         super(props, document.createElement("div"));
@@ -87,7 +82,6 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
         // composed views are already inert when the driver reports its unmount.
         this.own(() => this.driver.dispose());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
-        this.own(() => this.callerRefCleanup?.());
     }
 
     /** The live model, for the story and for tests. */
@@ -106,9 +100,8 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
         this.input = this.child(new InputView(this.inputProps()));
         this.root.append(this.input.root);
         this.input.mount();
-        if (this.inputElement) {
-            this.listen(this.inputElement, "keydown", this.handleInputKeyDown);
-        }
+        this.model.setInputRef(this.input.inputElement);
+        this.listen(this.input.inputElement, "keydown", this.handleInputKeyDown);
 
         // `PopoverView`'s own root is `display: contents`; the floating branch lives in the overlay
         // layer, so this append contributes no box.
@@ -117,6 +110,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
         this.popover.mount();
 
         this.applyRoot(this.props);
+        applyRestProps(this.root, this.restProps(this.props), this.restPropsState);
         this.driver.mount();
 
         // Applies once immediately, which seeds the first sync; then fires on every state write.
@@ -137,7 +131,6 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
     protected onUpdate(props: SelectViewProps<T>): void {
         this.driver.update(this.modelProps(props));
         this.applyRoot(props);
-        this.syncCallerRef(false);
         this.syncChildren();
     }
 
@@ -163,7 +156,6 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
         root.style.minWidth = props.minWidth === undefined ? "" : cssLength(props.minWidth);
         root.style.maxWidth = props.maxWidth === undefined ? "" : cssLength(props.maxWidth);
 
-        applyRestProps(root, this.restProps(props), this.restPropsState);
     }
 
     // -----------------------------------------------------------------------
@@ -182,10 +174,10 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
 
         chevron.update(this.chevronProps());
         input.update(this.inputProps());
-        popover.update(this.popoverProps());
+        this.syncPopover(popover);
 
         if (open) {
-            this.listView?.update(this.listProps());
+            this.syncList();
         } else {
             // Hygiene rather than correctness: the branch has just been torn down by the popover
             // update above, and `VanillaView.update()` early-returns on a disposed view anyway. The
@@ -194,12 +186,49 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
         }
     }
 
+    private syncPopover(popover: PopoverView): void {
+        const props = this.props;
+        popover.setOpen(this.model.state.get().open);
+        popover.setAnchor(this.root);
+        popover.setPlacement("bottom-start");
+        popover.setOffset([0, 2]);
+        popover.setSizing({
+            matchAnchorWidth: true,
+            resizable: props.resizable,
+            scroll: true,
+        });
+    }
+
+    private syncList(): void {
+        const list = this.listView;
+        if (!list) return;
+
+        const props = this.props;
+        const { activeIndex, popoverResized, itemsLoading, searchText } = this.model.state.get();
+        const { filteredItems } = this.model.filtered;
+        list.setItems(filteredItems);
+        list.setValue(this.model.selectedResolved ?? null);
+        list.setLoading(itemsLoading);
+        list.setSearchText(searchText);
+        list.setEmptyMessage(props.emptyMessage ?? "no results");
+        list.setLayout({
+            rowHeight: this.model.rowHeight,
+            growToHeight: popoverResized
+                ? undefined
+                : `${this.model.maxVisibleItems * this.model.rowHeight}px`,
+            fitToWidth: true,
+            whiteSpaceY: undefined,
+        });
+        // Keep the row-set and active-index changes in the same final ListBox consequence so a
+        // changed dataset uses scrollToRowAfterPaint.
+        list.setActiveIndex(activeIndex);
+    }
+
     private inputProps(): InputProps {
         const props = this.props;
         return {
-            ref: this.setInputElement,
             size: props.size ?? "md",
-            value: this.model.displayText.value,
+            value: this.model.displayText,
             onChange: this.model.onInputChange,
             placeholder: props.placeholder,
             disabled: props.disabled,
@@ -268,11 +297,11 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
     private listProps(): ListBoxProps<IListBoxItem> {
         const props = this.props;
         const { activeIndex, popoverResized, itemsLoading } = this.model.state.get();
-        const { filteredItems } = this.model.filtered.value;
+        const { filteredItems } = this.model.filtered;
         return {
             id: this.model.listboxId,
             items: filteredItems,
-            value: this.model.selectedResolved.value ?? null,
+            value: this.model.selectedResolved ?? null,
             activeIndex,
             onActiveChange: this.model.onActiveIndexChange,
             onChange: this.model.onListChange,
@@ -287,7 +316,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
     }
 
     // -----------------------------------------------------------------------
-    // The forwarded ref
+    // Owned input access
     // -----------------------------------------------------------------------
 
     /**
@@ -296,12 +325,6 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
      * `InputView.updateRef`'s identity gate fire on every keystroke, and its `clearRef` calls
      * `ref(null)`, so `model.inputRef` would go transiently null each time the user typed.
      */
-    private readonly setInputElement = (el: HTMLInputElement | null): void => {
-        this.inputElement = el;
-        this.model.setInputRef(el);
-        this.syncCallerRef(true);
-    };
-
     /**
      * The caller's ref needs the opposite cadence: re-bound whenever its identity moves, so the
      * previous ref is released (its own cleanup, or `ref(null)`) before the next one receives the
@@ -309,12 +332,8 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
      * a replacement ref. The cell editor passes a stable host callback, which is exactly what
      * the React `useCallback([model, ref])` re-bound too.
      */
-    private syncCallerRef(force: boolean): void {
-        const ref = this.props.ref;
-        if (!force && ref === this.appliedCallerRef) return;
-        this.callerRefCleanup?.();
-        this.appliedCallerRef = ref;
-        this.callerRefCleanup = bindRef(this.inputElement, ref);
+    public get inputElement(): HTMLInputElement | null {
+        return this.input?.inputElement ?? null;
     }
 
     // -----------------------------------------------------------------------
@@ -334,14 +353,13 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
     // -----------------------------------------------------------------------
 
     private modelProps(props: SelectViewProps<T>): SelectProps<T> {
-        const { ref: _ref, ...modelProps } = props;
-        return modelProps as SelectProps<T>;
+        return props;
     }
 
     private restProps(props: SelectViewProps<T>): Record<string, unknown> {
         const {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            ref: _ref, name: _name, items: _items, value: _value, onChange: _onChange,
+            name: _name, items: _items, value: _value, onChange: _onChange,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onItemsLoadError: _onItemsLoadError, placeholder: _placeholder,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -167,9 +167,10 @@ export class LogViewEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
-        this.model = requireLogModel(props.model);
-        this.body.update({ model: this.model });
-        this.toolbar.update({ model: this.model });
+        const model = requireLogModel(props.model);
+        if (model !== this.model) {
+            throw new Error("Log view received a different model instance.");
+        }
         this.chrome.update({
             model: props.model,
             children: this.body.root,

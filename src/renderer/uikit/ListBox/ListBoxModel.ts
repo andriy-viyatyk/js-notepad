@@ -45,6 +45,71 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     ListBoxState,
     ListBoxProps<T>
 > {
+    private liveItems: ListBoxProps<T>["items"] | undefined = undefined;
+    private liveValue: ListBoxProps<T>["value"] = undefined;
+    private liveIsSelected: ListBoxProps<T>["isSelected"] = undefined;
+    private liveSelectionSignal: unknown;
+    private liveActiveIndex: ListBoxProps<T>["activeIndex"] = undefined;
+    private liveSearchText: ListBoxProps<T>["searchText"] = undefined;
+    private liveLoading: ListBoxProps<T>["loading"] = undefined;
+
+    setProps = (props: ListBoxProps<T>): void => {
+        const itemsChanged = this.liveItems !== props.items;
+        const valueChanged = this.liveValue !== props.value;
+        this.liveItems = props.items;
+        this.liveValue = props.value;
+        this.liveIsSelected = props.isSelected;
+        this.liveActiveIndex = props.activeIndex;
+        this.liveSearchText = props.searchText;
+        this.liveLoading = props.loading;
+        if (itemsChanged) this.resolved = this.resolveItems(props.items);
+        if (valueChanged) this.selectedKey = this.resolveSelectedKey(props.value);
+    };
+
+    setItems = (items: ListBoxProps<T>["items"]): void => {
+        if (this.liveItems === items) return;
+        this.liveItems = items;
+        this.resolved = this.resolveItems(items);
+    };
+
+    setSelection = (
+        isSelected: ListBoxProps<T>["isSelected"],
+        selectionSignal?: unknown,
+    ): void => {
+        this.liveIsSelected = isSelected;
+        this.liveSelectionSignal = selectionSignal;
+    };
+
+    setActiveIndex = (activeIndex: ListBoxProps<T>["activeIndex"]): void => {
+        this.liveActiveIndex = activeIndex;
+    };
+
+    setSearchText = (searchText: ListBoxProps<T>["searchText"]): void => {
+        this.liveSearchText = searchText;
+    };
+
+    setValue = (value: ListBoxProps<T>["value"]): void => {
+        if (this.liveValue === value) return;
+        this.liveValue = value;
+        this.selectedKey = this.resolveSelectedKey(value);
+    };
+
+    setLoading = (loading: ListBoxProps<T>["loading"]): void => {
+        this.liveLoading = loading;
+    };
+
+    get loading(): ListBoxProps<T>["loading"] {
+        return this.liveLoading;
+    }
+
+    get activeIndex(): ListBoxProps<T>["activeIndex"] {
+        return this.liveActiveIndex;
+    }
+
+    get searchText(): ListBoxProps<T>["searchText"] {
+        return this.liveSearchText;
+    }
+
     // --- refs ---
     gridRef: VirtualGridModel | null = null;
     setGridRef = (ref: VirtualGridModel | null) => {
@@ -61,35 +126,30 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         return this.props.id ?? this._elementId;
     }
     itemId = (idx: number): string => {
-        const { resolved } = this.resolved.value;
+        const { resolved } = this.resolved;
         return `${this.rootId}-item-${resolved[idx]?.value}`;
     };
 
-    // --- memoized derivations ---
+    // --- derived fields ---
 
     /** Resolved IListBoxItem[] + parallel sources array of source `T`. */
-    resolved = this.memo<{ resolved: IListBoxItem[]; sources: T[] }>(
-        () => {
-            const items = this.props.items;
-            if (isTraited<unknown[]>(items)) {
-                const r = resolveTraited<IListBoxItem>(items, LIST_ITEM_KEY);
-                return { resolved: r, sources: items.target as T[] };
-            }
-            const arr = items as T[];
-            return { resolved: arr as unknown as IListBoxItem[], sources: arr };
-        },
-        () => [this.props.items],
-    );
+    resolved: { resolved: IListBoxItem[]; sources: T[] } = { resolved: [], sources: [] };
 
     /** Selected key from `value` prop (only used when `isSelected` is not provided). */
-    selectedKey = this.memo<string | number | null>(
-        () => {
-            const v = this.props.value;
-            if (v == null) return null;
-            return this.resolveSingleValue(v).value;
-        },
-        () => [this.props.value],
-    );
+    selectedKey: string | number | null = null;
+
+    private resolveItems(items: ListBoxProps<T>["items"]): { resolved: IListBoxItem[]; sources: T[] } {
+        if (isTraited<unknown[]>(items)) {
+            const resolved = resolveTraited<IListBoxItem>(items, LIST_ITEM_KEY);
+            return { resolved, sources: items.target as T[] };
+        }
+        const sources = items as T[];
+        return { resolved: sources as unknown as IListBoxItem[], sources };
+    }
+
+    private resolveSelectedKey(value: ListBoxProps<T>["value"]): string | number | null {
+        return value == null ? null : this.resolveSingleValue(value).value;
+    }
 
     private resolveSingleValue(v: T | Traited<T>): IListBoxItem {
         if (isTraited<T>(v)) {
@@ -103,11 +163,11 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     // --- selection / interaction predicates ---
 
     isSelectedAt = (idx: number): boolean => {
-        const { resolved, sources } = this.resolved.value;
+        const { resolved, sources } = this.resolved;
         const item = resolved[idx];
         if (!item || item.section) return false;
-        if (this.props.isSelected) return this.props.isSelected(sources[idx], idx);
-        const key = this.selectedKey.value;
+        if (this.liveIsSelected) return this.liveIsSelected(sources[idx], idx);
+        const key = this.selectedKey;
         if (key == null) return false;
         return item.value === key;
     };
@@ -117,7 +177,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      * non-disabled item is found. Returns -1 when no candidate exists in that direction.
      */
     findNextSelectable = (start: number, dir: 1 | -1): number => {
-        const { resolved } = this.resolved.value;
+        const { resolved } = this.resolved;
         let i = start;
         while (i >= 0 && i < resolved.length) {
             const it = resolved[i];
@@ -130,21 +190,21 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     // --- handlers ---
 
     onItemClick = (idx: number) => {
-        const { resolved, sources } = this.resolved.value;
+        const { resolved, sources } = this.resolved;
         const item = resolved[idx];
         if (!item || item.disabled || item.section) return;
         this.props.onChange?.(sources[idx]);
     };
 
     onItemMouseEnter = (idx: number) => {
-        const { resolved } = this.resolved.value;
+        const { resolved } = this.resolved;
         const item = resolved[idx];
         if (!item || item.disabled || item.section) return;
-        if (idx !== this.props.activeIndex) this.props.onActiveChange?.(idx);
+        if (idx !== this.liveActiveIndex) this.props.onActiveChange?.(idx);
     };
 
     onItemContextMenu = (e: MouseEvent, idx: number) => {
-        const { resolved, sources } = this.resolved.value;
+        const { resolved, sources } = this.resolved;
         const item = resolved[idx];
         if (!item || item.section) return;
         const items = this.props.getContextMenu?.(sources[idx], idx);
@@ -164,10 +224,10 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
 
     onKeyDown = (e: KeyboardEvent) => {
         if (!this.props.keyboardNav) return;
-        const { resolved } = this.resolved.value;
+        const { resolved } = this.resolved;
         const n = resolved.length;
         if (n === 0) return;
-        const cur = this.props.activeIndex ?? -1;
+        const cur = this.liveActiveIndex ?? -1;
         const apply = (target: number) => {
             if (target < 0) return;
             this.props.onActiveChange?.(target);
@@ -233,14 +293,12 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      * Three rules the list encodes, in case a future input is added:
      *
      * - **Fixed length.** A conditionally-pushed slot makes the comparison always report a change.
-     * - **`props.items`, not `resolved.value.resolved`.** The `resolved` memo's only dependency *is*
+     * - **`liveItems`, not the resolved array.** The resolved field is a pass-through projection of
      *   `props.items`, so its output identity changes exactly when `props.items` does — the two are
-     *   the same signal, and using the prop avoids evaluating a memo inside change detection.
+     *   the live input identity is the correct signature slot.
      *   `selectedKey` is the opposite case: its output is a normalised primitive key, so comparing
      *   the *output* is strictly better than comparing `props.value` (a new object resolving to the
-     *   same key collapses to no-change). That is the general rule for memos in a signature —
-     *   compare the output when the memo genuinely derives something, compare the upstream prop when
-     *   it is a pass-through.
+     *   same key collapses to no-change).
      * - **Only inputs that change cell DOM.** `rowHeight` is deliberately absent because
      *   `VirtualGridModel.inputChanged()` already compares it and repaints on its own;
      *   `getContextMenu` is absent because it is read live inside the context-menu handler and
@@ -254,16 +312,18 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      * reaches this signature **only** through `props.isSelected`'s identity. `MultiListBox` passes a
      * membership predicate and never passes `value`, so if that predicate were a stable bound method
      * no slot would move when the user checked a row, and the box would not redraw until an
-     * unrelated input changed. That is why `MultiListBoxModel.isSelected` is a `memo`.
+     * unrelated input changed. MultiListBox therefore carries its changing `selectedKeys` Set as a
+     * separate signature signal while keeping `isSelected` stable.
      */
     repaintSignature(): readonly unknown[] {
         return [
-            this.props.items,
-            this.selectedKey.value,
-            this.props.activeIndex,
-            this.props.searchText,
+            this.liveItems,
+            this.selectedKey,
+            this.liveSelectionSignal,
+            this.liveActiveIndex,
+            this.liveSearchText,
             this.props.renderItem,
-            this.props.isSelected,
+            this.liveIsSelected,
             this.props.getTooltip,
             this.props.variant,
             this.props.selectionStyle,
@@ -280,11 +340,4 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      * queues that request itself when it has no usable size yet, which is what the old
      * `setTimeout(0)` was approximating. See EPIC-056 C3-6 rows 1 and 2.
      */
-    init() {
-        this.props.onModel?.(this);
-    }
-
-    dispose = () => {
-        this.props.onModel?.(null);
-    };
 }

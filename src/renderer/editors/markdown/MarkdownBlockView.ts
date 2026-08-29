@@ -183,9 +183,12 @@ export class MarkdownBlockView extends VanillaView<MarkdownBlockProps> {
     protected onMount(): void {
         this.applyRootProps();
         this.listen(this.root, "contextmenu", (event) => this.onContextMenu(event));
-        this.own(themeState.subscribe(() => {
-            if (this.renderedHasMermaid) this.renderIfNeeded();
-        }));
+        this.own(themeState.subscribe(
+            () => {
+                if (this.renderedHasMermaid) this.renderIfNeeded();
+            },
+            (state) => state.isDark,
+        ));
         this.registerQueue(this.props.commandQueue);
         this.startWikiRootLookup();
         this.renderIfNeeded(true);

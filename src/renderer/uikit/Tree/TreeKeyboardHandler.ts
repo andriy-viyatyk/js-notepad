@@ -15,13 +15,13 @@ export class TreeKeyboardHandler<T = ITreeItem> {
     /** Resolves the transient anchor at gesture time, so rebuilt rows cannot shift it. */
     anchorIndex(): number | null {
         if (this.anchorValue == null) return null;
-        return this.tree.indexByValue.value.get(this.anchorValue) ?? null;
+        return this.tree.indexByValue.get(this.anchorValue) ?? null;
     }
 
     onKeyDown = (e: KeyboardEvent) => {
         const { tree } = this;
         if (!tree.props.keyboardNav) return;
-        const rows = tree.rows.value;
+        const rows = tree.rows;
         const n = rows.length;
         if (n === 0) return;
         const cur = tree.props.activeIndex ?? tree.selectedRowIndex();

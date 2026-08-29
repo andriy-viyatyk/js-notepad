@@ -4,7 +4,7 @@ import { appWindow } from "../../api/window";
 import type { IEditorState, WindowPages } from "../../../shared/types";
 import { createFileTypeIconElement } from "../../components/icons/icon-elements";
 import { ListBoxView } from "../../uikit/ListBox/ListBoxView";
-import type { IListBoxItem } from "../../uikit/ListBox/types";
+import type { IListBoxItem, ListBoxProps } from "../../uikit/ListBox/types";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 
 export interface OpenTabsListProps {
@@ -19,6 +19,27 @@ interface OpenTabsListItem extends IListBoxItem {
 
 export class OpenTabsListView extends VanillaView<OpenTabsListProps> {
     private readonly list: ListBoxView<OpenTabsListItem>;
+    private readonly onListChange = (item: OpenTabsListItem): void => this.onClick(item);
+    private readonly onListActiveChange = (index: number): void => {
+        this.activeIndex = index;
+        this.updateList();
+    };
+    private readonly isListItemSelected = (item: OpenTabsListItem): boolean =>
+        item.page?.id === pagesModel.activePage?.id;
+    private readonly getListItemTooltip = (item: OpenTabsListItem): string | undefined =>
+        item.page?.filePath;
+    private readonly listProps: ListBoxProps<OpenTabsListItem> = {
+        name: "sidebar-open-tabs",
+        items: [],
+        rowHeight: 22,
+        activeIndex: null,
+        onChange: this.onListChange,
+        onActiveChange: this.onListActiveChange,
+        isSelected: this.isListItemSelected,
+        getTooltip: this.getListItemTooltip,
+        emptyMessage: "no tabs",
+        variant: "browse",
+    };
     private allWindowsPages: WindowPages[] = [];
     private activeIndex: number | null = null;
     private loadId = 0;
@@ -27,25 +48,16 @@ export class OpenTabsListView extends VanillaView<OpenTabsListProps> {
     private live = true;
 
     public constructor(props: OpenTabsListProps) {
-        const holder: { view?: OpenTabsListView } = {};
         const list = new ListBoxView<OpenTabsListItem>({
             name: "sidebar-open-tabs",
             items: [],
             rowHeight: 22,
-            onChange: (item) => holder.view?.onClick(item),
-            onActiveChange: (index) => {
-                if (!holder.view) return;
-                holder.view.activeIndex = index;
-                holder.view.updateList();
-            },
-            isSelected: (item) => item.page?.id === pagesModel.activePage?.id,
-            getTooltip: (item) => item.page?.filePath,
             emptyMessage: "no tabs",
             variant: "browse",
         });
         super(props, list.root);
-        holder.view = this;
         this.list = list;
+        this.list.update(this.listProps);
     }
 
     protected onMount(): void {
@@ -107,21 +119,10 @@ export class OpenTabsListView extends VanillaView<OpenTabsListProps> {
             }, 50);
         }
 
-        this.list.update({
-            name: "sidebar-open-tabs",
-            items,
-            rowHeight: 22,
-            activeIndex: this.activeIndex,
-            onChange: (item) => this.onClick(item),
-            onActiveChange: (index) => {
-                this.activeIndex = index;
-                this.updateList();
-            },
-            isSelected: (item) => item.page?.id === pagesModel.activePage?.id,
-            getTooltip: (item) => item.page?.filePath,
-            emptyMessage: "no tabs",
-            variant: "browse",
-        });
+        if (this.listProps.items === items && this.listProps.activeIndex === this.activeIndex) return;
+        this.listProps.items = items;
+        this.listProps.activeIndex = this.activeIndex;
+        this.list.update(this.listProps);
     }
 
     private section(windowIndex: number): OpenTabsListItem {

@@ -305,13 +305,7 @@ export class TextChromeView extends VanillaView<TextChromeViewProps> {
         }
 
         this.updateSlots(props);
-        this.pageToolbar?.update({
-            name: "text-chrome-top",
-            model: this.model,
-            borderBottom: true,
-            children: this.toolbarContent,
-            rightContributions: this.rightContent,
-        });
+        this.pageToolbar?.setSlots(this.toolbarContent, this.rightContent);
         if (this.footer && this.textHost) {
             this.footer.update({
                 host: this.textHost,

@@ -301,13 +301,10 @@ export class LinkTreeProvider implements ITreeProvider {
         // (= toggle + setSelectedCategory) leave the chevron expanded while the
         // virtualized rows never refreshed. Selection highlight is driven
         // separately via the `selectedHref` prop, not by `watch`.
-        let lastLinks = this.source.state.get().data.links;
-        const unsub = this.source.state.subscribe(() => {
-            const nextLinks = this.source.state.get().data.links;
-            if (nextLinks === lastLinks) return;
-            lastLinks = nextLinks;
-            callback();
-        });
+        const unsub = this.source.state.subscribe(
+            callback,
+            (state) => state.data.links,
+        );
         return unsub;
     }
 

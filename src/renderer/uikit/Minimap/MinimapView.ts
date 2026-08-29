@@ -87,7 +87,6 @@ export class MinimapView extends VanillaView<MinimapProps> {
         } else {
             this.root.dataset.name = props.name;
         }
-        applyRestProps(this.root, this.getRestProps(props), this.restState);
         if (scrollContainerChanged) {
             model.setScrollContainer(props.scrollContainer);
         }

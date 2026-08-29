@@ -16,7 +16,6 @@ import { createTreeProviderItemIconElement, subscribeFileIconElements } from "..
 import { TREE_ITEM_KEY } from "../../uikit/Tree/types";
 import type { TreeProps } from "../../uikit/Tree/types";
 import { TreeView } from "../../uikit/Tree/TreeView";
-import type { TreeModel } from "../../uikit/Tree/TreeModel";
 import { InputView } from "../../uikit/Input/InputView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -24,9 +23,7 @@ import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";
 import "./TreeProviderView.css";
 
-type ViewProps = TreeProviderViewProps & {
-    onModel?: (model: TreeProviderViewModel | null) => void;
-};
+type ViewProps = TreeProviderViewProps;
 
 type ProviderState = TreeProviderViewState;
 type Arm = "tree" | "error" | "empty";
@@ -48,10 +45,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     >;
     private readonly iconCache = new Map<string, Element>();
     private readonly selectedSet = new Set<string>();
-    private readonly modelProps = (props: ViewProps): TreeProviderViewModelProps => ({
-        ...props,
-        onModel: props.onModel,
-    });
+    private readonly modelProps = (props: ViewProps): TreeProviderViewModelProps => props;
 
     private treeView: TreeView<TreeProviderNode> | undefined;
     private searchPanel: HTMLDivElement | undefined;
@@ -78,10 +72,14 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         );
 
         // The driver is constructed here, so its cleanup is registered here as well. Children are
-        // disposed before these FIFO disposers, which lets TreeModel receive onModel(null) only
-        // after the Tree and search views have released their DOM and listeners.
+        // VanillaView disposes owned children before these FIFO disposers. Keep that ordering:
+        // Tree and search views must release their DOM and listeners before the driver disposes
+        // TreeProviderViewModel and clears its tree-model handoff.
         this.own(() => { this.inert = true; });
         this.own(() => this.driver.dispose());
+        // VanillaView disposes Tree/search children before these FIFO disposers. Clear the
+        // model's tree handoff only after those children have released their resources.
+        this.own(() => this.model.setTreeModel(null));
     }
 
     public get model(): TreeProviderViewModel {
@@ -171,6 +169,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         this.treeView = view;
         this.root.insertBefore(view.root, this.searchPanel ?? null);
         view.mount();
+        this.model.setTreeModel(view.model);
     }
 
     private leaveTreeArm(): void {
@@ -233,12 +232,12 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
             size: "sm",
             value: "",
             placeholder: "Search...",
-            ref: (element) => { this.searchField = element ?? undefined; },
             onChange: this.model.setSearchText,
             onKeyDown: this.onSearchKeyDown,
             onBlur: this.onSearchBlur,
         }));
         this.searchInput.mount();
+        this.searchField = this.searchInput.inputElement;
         this.searchPanel.append(this.searchInput.root);
         this.root.append(this.searchPanel);
     }
@@ -264,7 +263,6 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
             size: "sm",
             value: state.searchText,
             placeholder: "Search...",
-            ref: (element) => { this.searchField = element ?? undefined; },
             onChange: this.model.setSearchText,
             onKeyDown: this.onSearchKeyDown,
             onBlur: this.onSearchBlur,
@@ -320,7 +318,6 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
             canTraitDrop: writable ? this.canTraitDrop : undefined,
             onTraitDrop: writable ? this.onTraitDrop : undefined,
             onDragStartOverride: osDragEnabled ? this.onOsDragStart : undefined,
-            onModel: (tree: TreeModel<TreeProviderNode> | null) => this.model.setTreeModel(tree),
         };
     }
 

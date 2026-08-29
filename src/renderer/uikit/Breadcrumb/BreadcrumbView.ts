@@ -19,6 +19,7 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
 
     protected onMount(): void {
         this.applyProps(this.props);
+        this.applyConstructionRestProps(this.props);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
 
@@ -42,7 +43,7 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
             size = "md",
             clipStart = false,
             children: _children,
-            ...rest
+            ..._rest
         } = props;
 
         this.root.dataset.type = "breadcrumb";
@@ -51,8 +52,6 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
         this.root.dataset.size = size;
         if (clipStart) this.root.dataset.clipStart = "";
         else delete this.root.dataset.clipStart;
-        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
-
         const joinSeparator = separators[0];
         const segments = value ? splitWithSeparators(value, separators) : [];
         const nodes: Node[] = [];
@@ -101,4 +100,21 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
     private readonly onRootClick = (): void => {
         this.props.onChange("");
     };
+
+    private applyConstructionRestProps(props: BreadcrumbProps): void {
+        const {
+            name: _name,
+            rootLabel: _rootLabel,
+            value: _value,
+            onChange: _onChange,
+            separators: _separators,
+            trailingParentSeparator: _trailingParentSeparator,
+            separatorContent: _separatorContent,
+            size: _size,
+            clipStart: _clipStart,
+            children: _children,
+            ...rest
+        } = props;
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+    }
 }

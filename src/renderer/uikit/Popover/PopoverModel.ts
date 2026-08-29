@@ -111,21 +111,32 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
 
     // --- derived ---
 
-    placeRef = this.memo<Element | VirtualElement | null>(
-        () => {
+    placeRef: Element | VirtualElement | null = null;
+    private appliedElementRef: PopoverProps["elementRef"] = undefined;
+    private appliedX: number | undefined = undefined;
+    private appliedY: number | undefined = undefined;
+    private hasAppliedPlaceRef = false;
+
+    setProps = (): void => {
+        if (!this.hasAppliedPlaceRef
+            || this.appliedElementRef !== this.props.elementRef
+            || this.appliedX !== this.props.x
+            || this.appliedY !== this.props.y) {
             const { elementRef, x, y } = this.props;
-            if (elementRef) return elementRef;
-            if (x !== undefined && y !== undefined) {
-                return {
+            if (elementRef) this.placeRef = elementRef;
+            else if (x !== undefined && y !== undefined) {
+                this.placeRef = {
                     getBoundingClientRect: () => ({
                         top: y, left: x, bottom: y, right: x, width: 0, height: 0,
                     }),
                 } as VirtualElement;
-            }
-            return null;
-        },
-        () => [this.props.elementRef, this.props.x, this.props.y],
-    );
+            } else this.placeRef = null;
+            this.appliedElementRef = elementRef;
+            this.appliedX = x;
+            this.appliedY = y;
+            this.hasAppliedPlaceRef = true;
+        }
+    };
 
     createMiddleware = (isCurrent: () => boolean): Middleware[] => {
         const m: Middleware[] = [

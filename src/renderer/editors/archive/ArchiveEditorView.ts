@@ -70,6 +70,7 @@ export class ArchiveEditorView extends VanillaView<{ model: EditorModel }> {
         this.collapseButton.mount();
         this.refreshButton.mount();
         this.tree.mount();
+        this.treeModel = this.tree.model;
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
@@ -102,7 +103,6 @@ export class ArchiveEditorView extends VanillaView<{ model: EditorModel }> {
     private treeProps(provider: NonNullable<ArchiveEditor["treeProvider"]>) {
         return {
             provider,
-            onModel: this.handleTreeModel,
             onItemClick: this.handleItemClick,
             onItemDoubleClick: this.handleItemClick,
         };
@@ -127,10 +127,6 @@ export class ArchiveEditorView extends VanillaView<{ model: EditorModel }> {
             padding: "xl",
         }));
     }
-
-    private readonly handleTreeModel = (model: TreeProviderViewModel | null): void => {
-        this.treeModel = model;
-    };
 
     private readonly handleItemClick = (item: ITreeProviderItem): void => {
         const provider = this.model.treeProvider;
