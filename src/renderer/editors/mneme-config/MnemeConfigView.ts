@@ -92,11 +92,11 @@ export interface MnemeConfigEditorViewProps { model: EditorModel; }
 function requireConfigModel(model: EditorModel): MnemeConfigEditorModel { if (!(model instanceof MnemeConfigEditorModel)) throw new Error("Mneme config view received an invalid model."); return model; }
 
 export class MnemeConfigEditorView extends VanillaView<MnemeConfigEditorViewProps> {
-    private model: MnemeConfigEditorModel; private stateSubscription: (() => void) | undefined; private connected = false; private live = false; private inventoryGeneration = 0; private page: HTMLDivElement | undefined; private pageModel: StoppedConfigView | RunningConfigView | undefined;
+    private model: MnemeConfigEditorModel; private stateSubscription: (() => void) | undefined; private connected = false; private live = false; private inventoryGeneration = 0; private pageModel: StoppedConfigView | RunningConfigView | undefined;
     public constructor(props: MnemeConfigEditorViewProps) { super(props, createPanelElement({ name: "mneme-config-root", direction: "column", flex: true })); this.model = requireConfigModel(props.model); }
-    protected onMount(): void { this.live = true; this.page = createPanelElement({}); this.root.append(this.page); this.subscribeToModel(this.model); }
+    protected onMount(): void { this.live = true; this.subscribeToModel(this.model); }
     protected onUpdate(props: MnemeConfigEditorViewProps): void { const model = requireConfigModel(props.model); if (model !== this.model) this.replaceModelSubscription(model); this.sync(this.model.state.get()); }
-    protected onDispose(): void { this.live = false; this.stateSubscription?.(); this.stateSubscription = undefined; this.inventoryGeneration++; this.pageModel = undefined; this.page = undefined; }
+    protected onDispose(): void { this.live = false; this.stateSubscription?.(); this.stateSubscription = undefined; this.inventoryGeneration++; this.pageModel = undefined; }
     private subscribeToModel(model: MnemeConfigEditorModel): void {
         this.stateSubscription?.(); this.stateSubscription = undefined; this.connected = false;
         this.stateSubscription = model.state.subscribe(() => { if (!this.live || this.model !== model) return; this.applyModelState(model); });
@@ -111,7 +111,7 @@ export class MnemeConfigEditorView extends VanillaView<MnemeConfigEditorViewProp
         const running = state.running;
         if (!this.pageModel || (running && !(this.pageModel instanceof RunningConfigView)) || (!running && !(this.pageModel instanceof StoppedConfigView))) {
             const next = running ? new RunningConfigView({ model: this.model, state }) : new StoppedConfigView({ model: this.model });
-            this.child(next); this.page.append(next.root); next.mount(); const previous = this.pageModel; this.pageModel = next; if (previous) this.releaseChild(previous);
+            this.child(next); this.root.append(next.root); next.mount(); const previous = this.pageModel; this.pageModel = next; if (previous) this.releaseChild(previous);
         } else if (this.pageModel instanceof RunningConfigView) this.pageModel.update({ model: this.model, state });
     }
 }

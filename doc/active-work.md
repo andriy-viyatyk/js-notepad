@@ -10,7 +10,6 @@ Overview of all active and planned epics and tasks.
 
 - *(no epic)*
   - [ ] [US-1131: Close the remaining gaps in the VanillaView lifecycle lint rules](tasks/US-1131-vanillaview-lint-gaps/README.md)
-  - [ ] [US-1153: Mneme tree and link-editor tiles were never rendered](tasks/US-1153-mneme-tree-link-tiles-unverified/README.md)
   - [ ] [US-1109: A cleared DataGrid value can vanish silently](tasks/US-1109-datagrid-cleared-value/README.md)
   - [ ] [US-1111: ScriptPanel bypasses app.fs with require("fs")](tasks/US-1111-scriptpanel-require-fs/README.md)
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
