@@ -53,10 +53,6 @@ class NotebookBreadcrumbView extends VanillaView<{ model: NotebookEditor }> {
         this.root.append(this.breadcrumb.root);
         this.breadcrumb.mount();
         this.bindState();
-        this.own(() => {
-            this.stateSubscription?.();
-            this.stateSubscription = undefined;
-        });
     }
 
     protected onUpdate(props: { model: NotebookEditor }): void {
@@ -73,10 +69,10 @@ class NotebookBreadcrumbView extends VanillaView<{ model: NotebookEditor }> {
 
     private bindState(): void {
         this.stateSubscription?.();
-        this.stateSubscription = this.model.state.subscribe(
+        this.stateSubscription = this.ownSubscription(this.model.state.subscribe(
             (projection: NotebookBreadcrumbProjection) => this.sync(projection),
             selectNotebookBreadcrumb,
-        );
+        ));
     }
 
     private sync(projection: NotebookBreadcrumbProjection): void {
@@ -125,10 +121,6 @@ class NotebookToolbarBitsView extends VanillaView<{ model: NotebookEditor }> {
         this.searchInput.mount();
         this.bindState();
         this.sync(this.model.state.get().searchText);
-        this.own(() => {
-            this.stateSubscription?.();
-            this.stateSubscription = undefined;
-        });
     }
 
     protected onUpdate(props: { model: NotebookEditor }): void {
@@ -147,10 +139,10 @@ class NotebookToolbarBitsView extends VanillaView<{ model: NotebookEditor }> {
 
     private bindState(): void {
         this.stateSubscription?.();
-        this.stateSubscription = this.model.state.subscribe<string>(
+        this.stateSubscription = this.ownSubscription(this.model.state.subscribe<string>(
             (searchText) => this.sync(searchText),
             (state) => state.searchText,
-        );
+        ));
     }
 
     private sync(searchText: string): void {

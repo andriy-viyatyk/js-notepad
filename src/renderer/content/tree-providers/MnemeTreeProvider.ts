@@ -4,7 +4,6 @@ import type {
     ITreeStat,
     ICategorySegment,
 } from "../../api/types/io.tree";
-import type { ISubscriptionObject } from "../../api/types/events";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import { mnemeConnection } from "../../api/mneme-connection";
 import { toMnemeAddress, toMnemeHref } from "../mneme-link";
@@ -198,7 +197,7 @@ export class MnemeTreeProvider implements ITreeProvider {
 
     /** Live-refresh: rebuild the tree on any `resources/list_changed` (create/rename/delete),
      *  whether triggered by our own mutations or an external/agent change. */
-    watch(callback: () => void): ISubscriptionObject {
+    watch(callback: () => void): () => void {
         return mnemeConnection.onListChanged(callback);
     }
 

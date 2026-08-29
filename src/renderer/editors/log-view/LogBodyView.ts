@@ -105,10 +105,8 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.root.append(this.listHost, this.messageHost);
         this.attachGridRoot();
         this.grid.mount();
-        this.stateUnsubscribe = this.editor.state.subscribe(this.handleState, selectProjection);
-        this.queueUnsubscribe = this.editor.typedQueue.subscribe(this.handleQueue);
-        this.own(() => this.stateUnsubscribe?.());
-        this.own(() => this.queueUnsubscribe?.());
+        this.stateUnsubscribe = this.ownSubscription(this.editor.state.subscribe(this.handleState, selectProjection));
+        this.queueUnsubscribe = this.ownSubscription(this.editor.typedQueue.subscribe(this.handleQueue));
         this.applyProjection(this.projection);
         this.applyRowsAndAutoScroll(this.projection.entryCount);
         this.listenForScroll();

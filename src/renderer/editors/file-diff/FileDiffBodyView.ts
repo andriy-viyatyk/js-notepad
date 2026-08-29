@@ -242,13 +242,13 @@ export class FileDiffBodyView extends VanillaView<FileDiffBodyProps> {
             : EMPTY_HOST_PROJECTION;
 
         if (host) {
-            this.hostUnsubscribe = host.state.subscribe(
+            this.hostUnsubscribe = this.ownSubscription(host.state.subscribe(
                 (projection) => {
                     this.hostProjection = projection;
                     this.syncCurrentBody();
                 },
                 selectHostProjection,
-            );
+            ));
         }
     }
 

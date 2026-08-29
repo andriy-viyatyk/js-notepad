@@ -52,7 +52,6 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
     private contentHostUnsubscribe: (() => void) | undefined;
     private sharedStateUnsubscribe: (() => void) | undefined;
     private focusUnsubscribe: (() => void) | undefined;
-    private messageUnsubscribe: (() => void) | undefined;
     private focusTimer: ReturnType<typeof setTimeout> | undefined;
 
     public constructor(props: BoardWebviewProps) {
@@ -87,8 +86,6 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
         }
         this.focusUnsubscribe?.();
         this.focusUnsubscribe = undefined;
-        this.messageUnsubscribe?.();
-        this.messageUnsubscribe = undefined;
         this.contentHostUnsubscribe?.();
         this.contentHostUnsubscribe = undefined;
         this.sharedStateUnsubscribe?.();
@@ -148,7 +145,7 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
         this.props.model.setIframe(iframe, this.tabId);
         this.listen(iframe, "load", this.handleLoad);
         window.addEventListener("message", this.handleMessage);
-        this.messageUnsubscribe = () => window.removeEventListener("message", this.handleMessage);
+        this.ownSubscription(() => window.removeEventListener("message", this.handleMessage));
         this.root.append(iframe);
         if (this.isMain) {
             const focusSubscription = pagesModel.onFocus.subscribe((pageModel) => {
@@ -159,7 +156,7 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
                     if (this.live) this.focusFrame();
                 }, 200);
             });
-            this.focusUnsubscribe = () => focusSubscription.unsubscribe();
+            this.focusUnsubscribe = this.ownSubscription(focusSubscription);
         }
     }
 
@@ -167,7 +164,7 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
         const host = this.host;
         if (!host) return;
         const model = this.props.model;
-        this.portDeliveryUnsubscribe = api.onBoardPort((boardId, port) => {
+        this.portDeliveryUnsubscribe = this.ownSubscription(api.onBoardPort((boardId, port) => {
             // `onBoardPort` is a GLOBAL ipcRenderer subscription (`ipc/renderer/api.ts:422`):
             // every mounted board frame's callback receives every board's port, and `boardId`
             // is the only filter. So a port that is not ours belongs to another live frame —
@@ -184,11 +181,11 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
             this.closePendingPort();
             this.pendingPort = port;
             this.transferPort();
-        });
+        }));
 
         const contentHost = model.contentHost;
         if (contentHost) {
-            this.contentHostUnsubscribe = contentHost.state.subscribe(
+            this.contentHostUnsubscribe = this.ownSubscription(contentHost.state.subscribe(
                 (content) => {
                     if (!this.live || content === this.lastBoardContent) return;
                     const frame = this.iframe;
@@ -201,10 +198,10 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
                     frame.contentWindow?.postMessage(message, `board://${this.host}`);
                 },
                 (state) => state.content,
-            );
+            ));
         }
 
-        this.sharedStateUnsubscribe = model.state.subscribe(
+        this.sharedStateUnsubscribe = this.ownSubscription(model.state.subscribe(
             (sharedState) => {
                 if (!this.live || !this.host) return;
                 const frame = this.iframe;
@@ -217,7 +214,7 @@ export class BoardWebview extends VanillaView<BoardWebviewProps> {
                 frame.contentWindow?.postMessage(message, `board://${this.host}`);
             },
             (state) => state.sharedState,
-        );
+        ));
     }
 
     private transferPort(): void {

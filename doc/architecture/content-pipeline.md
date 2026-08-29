@@ -100,7 +100,7 @@ Transformers are walked in reverse order. Each receives the new data and a lazy 
 ### Conditional capabilities
 
 - `writable` -- true only if the provider is writable AND all transformers implement `write`.
-- `watch` -- delegates to `provider.watch()` if supported. Returns a `SubscriptionObject`.
+- `watch` -- delegates to `provider.watch()` if supported. Returns a `() => void` disposer.
 
 ## Built-in Providers
 

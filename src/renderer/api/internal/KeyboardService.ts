@@ -9,6 +9,8 @@ import { cycleAppTheme } from "../cycle-app-theme";
  */
 export class KeyboardService {
     async init(): Promise<void> {
+        // App.initEvents() owns this process-wide shortcut listener; it must outlive
+        // individual views and models and is released with the renderer process.
         document.addEventListener("keydown", this.handleKeyDown);
     }
 

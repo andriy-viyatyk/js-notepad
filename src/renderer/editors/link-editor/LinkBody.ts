@@ -94,14 +94,8 @@ export class LinkBodyView extends VanillaView<{ model: LinkEditor }> {
         this.listen(this.centerPanel, "dragover", this.handleCenterDragOver);
         this.listen(this.centerPanel, "dragleave", this.handleCenterDragLeave);
         this.listen(this.centerPanel, "drop", this.handleCenterDrop);
-        this.queueSubscription = this.model.queue.subscribe(this.handleQueueEvent);
-        this.stateSubscription = this.model.state.subscribe(this.handleStateChange);
-        this.own(() => {
-            this.stateSubscription?.();
-            this.stateSubscription = undefined;
-            this.queueSubscription?.();
-            this.queueSubscription = undefined;
-        });
+        this.queueSubscription = this.ownSubscription(this.model.queue.subscribe(this.handleQueueEvent));
+        this.stateSubscription = this.ownSubscription(this.model.state.subscribe(this.handleStateChange));
         this.own(() => { this.inert = true; });
         this.applyProjection(selectBody(this.model.state.get(), this.model));
     }
@@ -113,8 +107,8 @@ export class LinkBodyView extends VanillaView<{ model: LinkEditor }> {
             this.queueSubscription?.();
             this.model = props.model;
             this.model.containerElement = this.root;
-            this.queueSubscription = this.model.queue.subscribe(this.handleQueueEvent);
-            this.stateSubscription = this.model.state.subscribe(this.handleStateChange);
+            this.queueSubscription = this.ownSubscription(this.model.queue.subscribe(this.handleQueueEvent));
+            this.stateSubscription = this.ownSubscription(this.model.state.subscribe(this.handleStateChange));
         }
         this.applyProjection(selectBody(this.model.state.get(), this.model));
     }

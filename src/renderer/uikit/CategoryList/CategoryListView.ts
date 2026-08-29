@@ -201,8 +201,8 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
         row.append(expand, name);
         const parts = { data, expand, name };
         this.rowParts.set(row, parts);
-        row.addEventListener("click", this.onRowClick);
-        expand.addEventListener("click", this.onExpandClick);
+        this.listen(row, "click", this.onRowClick);
+        this.listen(expand, "click", this.onExpandClick);
         return row;
     }
 

@@ -7,17 +7,18 @@ import { getLanguageByExtension } from "../../core/utils";
 import { shell } from "../../api/shell";
 import { debounce, errMessage } from "../../../shared/utils";
 import type { TextFileModel } from "./TextEditorModel";
-import type { ISubscriptionObject } from "../../api/types/events";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { ContentPipe } from "../../content/ContentPipe";
 import { FileProvider } from "../../content/providers/FileProvider";
 import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
 import { PipePair } from "../../content/PipePair";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 export class TextFileIOModel {
     /** Cache pipe — same transformers as primary pipe, CacheFileProvider as source. */
     private readonly pipes: PipePair;
-    private watchSubscription: ISubscriptionObject | null = null;
+    private watchSubscription: (() => void) | null = null;
+    private readonly disposables = new DisposableStore();
     private modificationSaved = true;
     private isSavingModifications = false;
 
@@ -55,7 +56,7 @@ export class TextFileIOModel {
 
     /** Replace source and cache pipes together, then watch the new source. */
     setPrimary(pipe: IContentPipe | null): void {
-        this.watchSubscription?.unsubscribe();
+        this.watchSubscription?.();
         this.watchSubscription = null;
         this.pipes.setPrimary(pipe);
         // Assigning `pipe` publishes on `pipeState` — it is an accessor over that channel.
@@ -65,11 +66,11 @@ export class TextFileIOModel {
 
     /** Set up file watch via pipe.watch(). */
     setupWatch(): void {
-        this.watchSubscription?.unsubscribe();
+        this.watchSubscription?.();
         this.watchSubscription = null;
         const pipe = this.model.pipe;
         if (pipe?.watch) {
-            this.watchSubscription = pipe.watch(this.onFileChanged);
+            this.watchSubscription = this.disposables.add(pipe.watch(this.onFileChanged));
         }
     }
 
@@ -367,8 +368,9 @@ export class TextFileIOModel {
     );
 
     dispose() {
-        this.watchSubscription?.unsubscribe();
+        this.watchSubscription?.();
         this.watchSubscription = null;
+        this.disposables.dispose();
         this.pipes.dispose();
         this.model.pipe = null;
     }

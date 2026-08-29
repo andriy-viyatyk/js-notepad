@@ -1,5 +1,4 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { ISubscriptionObject } from "./types/events";
 import { api } from "../../ipc/renderer/api";
 import ipcRendererEvents from "../../ipc/renderer/renderer-events";
 import { settings } from "./settings";
@@ -45,6 +44,8 @@ class MnemeConnectionService {
 
         this.enabled = !!settings.get("mneme.enabled");
 
+        // This shared connection service owns the process-lifetime setting and IPC
+        // subscriptions; they must survive all individual Mneme views/models.
         settings.onChanged.subscribe(({ key }: { key: string }) => {
             if (key !== "mneme.enabled") return;
             this.enabled = !!settings.get("mneme.enabled");
@@ -83,11 +84,9 @@ class MnemeConnectionService {
     }
 
     /** Listen for connection-status changes. Multiple consumers may subscribe. */
-    onStatusChange(callback: (status: McpConnectionStatus, error?: string) => void): ISubscriptionObject {
+    onStatusChange(callback: (status: McpConnectionStatus, error?: string) => void): () => void {
         this.statusWatchers.add(callback);
-        return {
-            unsubscribe: () => { this.statusWatchers.delete(callback); },
-        };
+        return () => { this.statusWatchers.delete(callback); };
     }
 
     /** Force a fresh connect (used by the config editor's manual reconnect / restart). */
@@ -100,7 +99,7 @@ class MnemeConnectionService {
     /** Subscribe to `resources/updated` for a document URI. Refcounted: the server
      *  subscription is issued on the first watcher for a URI and dropped when the
      *  last one unsubscribes. Survives reconnects (the manager replays its set). */
-    subscribe(uri: string, callback: (event: string) => void): ISubscriptionObject {
+    subscribe(uri: string, callback: (event: string) => void): () => void {
         let set = this.watchers.get(uri);
         if (!set) {
             set = new Set();
@@ -108,25 +107,21 @@ class MnemeConnectionService {
             void this.manager?.subscribeResource(uri);
         }
         set.add(callback);
-        return {
-            unsubscribe: () => {
-                const current = this.watchers.get(uri);
-                if (!current) return;
-                current.delete(callback);
-                if (current.size === 0) {
-                    this.watchers.delete(uri);
-                    void this.manager?.unsubscribeResource(uri);
-                }
-            },
+        return () => {
+            const current = this.watchers.get(uri);
+            if (!current) return;
+            current.delete(callback);
+            if (current.size === 0) {
+                this.watchers.delete(uri);
+                void this.manager?.unsubscribeResource(uri);
+            }
         };
     }
 
     /** Listen for `resources/list_changed` (tree add/remove/rename). */
-    onListChanged(callback: () => void): ISubscriptionObject {
+    onListChanged(callback: () => void): () => void {
         this.listChangedWatchers.add(callback);
-        return {
-            unsubscribe: () => { this.listChangedWatchers.delete(callback); },
-        };
+        return () => { this.listChangedWatchers.delete(callback); };
     }
 
     private dispatchUpdated(uri: string): void {

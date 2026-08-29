@@ -57,7 +57,7 @@ export class BuiltinEditorsListView extends VanillaView<BuiltinEditorsListProps>
         const settingsSubscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "browser-profiles" || key === "pinned-editors") this.refresh();
         });
-        this.own(() => settingsSubscription.dispose());
+        this.own(settingsSubscription);
         this.refresh();
     }
 

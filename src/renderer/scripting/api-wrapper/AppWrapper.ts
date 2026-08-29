@@ -14,7 +14,7 @@ function wrapEventChannel<TEvent extends { handled?: boolean }>(
     return {
         subscribe(handler: EventHandler<TEvent>) {
             const sub = channel.subscribe(handler);
-            releaseList.push(() => sub.unsubscribe());
+            releaseList.push(sub);
             return sub;
         },
         send(event: TEvent) {

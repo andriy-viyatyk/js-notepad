@@ -24,15 +24,6 @@ reviewed in batches by user decision (2026-08-29), the same deferred model epics
 
 ## Planned
 
-- **EPIC-075** — [Post-De-React Epic A: core contracts](epics/EPIC-075.md)
-  - [ ] US-1192: Detox the settings sections — stop driving models through their internals
-  - [ ] US-1193: Delete the hooks-emulation surface from `TComponentModel`
-  - [ ] US-1194: Retire `isFirstUse` / `oldProps`
-  - [ ] US-1195: Extract `DisposableStore`; give models disposal parity
-  - [ ] US-1196: One event primitive — `Emitter<T>`, one teardown shape
-  - [ ] US-1197: `ownSubscription` — route every subscription through ownership
-  - [ ] US-1198: `core/utils/scheduling.ts` — named, disposable deferrals
-
 - *(no epic)*
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
     — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29): the

@@ -34,8 +34,6 @@ function revKey(sel: RevSel): string {
 
 export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDiffBodyProps> {
     private modifiedEditor: monaco.editor.ICodeEditor | null = null;
-    private subs: (() => void)[] = [];
-
     private get editor(): FileDiffEditor {
         return this.props.model;
     }
@@ -68,41 +66,32 @@ export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDi
         });
     };
 
-    // Resolution is driven by state SUBSCRIPTIONS (not render-driven `effect()`),
-    // because the body view doesn't subscribe to `from` — picking a `from` rev
-    // must still re-resolve the left side.
+    // Resolution is driven by state SUBSCRIPTIONS because the body view doesn't subscribe to
+    // `from` — picking a `from` rev must still re-resolve the left side.
     init(): void {
         const editor = this.editor;
         void this.resolveAndSet("from");
         void this.resolveAndSet("to");
-        this.subs.push(
-            editor.state.subscribe(() => void this.resolveAndSet("from"), (s) => revKey(s.from)),
-        );
-        this.subs.push(
-            editor.state.subscribe(() => void this.resolveAndSet("to"), (s) => revKey(s.to)),
-        );
+        this.own(editor.state.subscribe(() => void this.resolveAndSet("from"), (s) => revKey(s.from)));
+        this.own(editor.state.subscribe(() => void this.resolveAndSet("to"), (s) => revKey(s.to)));
         // The Unstaged `to` side tracks live host content (edits + external changes).
         const host = editor.host;
         if (host) {
-            this.subs.push(
-                host.state.subscribe(
+            this.own(host.state.subscribe(
                     () => {
                         if (editor.state.get().to.kind === "unstaged") void this.resolveAndSet("to");
                     },
                     (s) => s.content,
-                ),
-            );
+                ));
             // On restore, repoRoot/relPath only become available once git detection
             // lands — re-resolve both sides then (git blobs need the root).
-            this.subs.push(
-                host.state.subscribe(
+            this.own(host.state.subscribe(
                     () => {
                         void this.resolveAndSet("from");
                         void this.resolveAndSet("to");
                     },
                     (s) => (s as { gitRepo?: { root: string } | null }).gitRepo?.root,
-                ),
-            );
+                ));
         }
     }
 
@@ -120,8 +109,6 @@ export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDi
     };
 
     dispose(): void {
-        this.subs.forEach((u) => u());
-        this.subs = [];
         this.modifiedEditor = null;
     }
 }

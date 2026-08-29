@@ -4,9 +4,8 @@ import { depsChanged } from "../../core/state/model";
  * A one-slot dependency comparison, for a vanilla view that has to decide whether a prop pump
  * changed anything its DOM reads.
  *
- * This is the replacement for `TComponentModel.effect(fn, deps)` in a vanilla-driven component:
- * `createComponentModelDriver` refuses to mount a model that registered effects, but the "did any
- * of these nine inputs move?" question survives the framework. It uses the same comparator
+ * The model publishes a fixed-length signature for the "did any of these nine inputs move?"
+ * question, and the host view checks it at the prop-pump boundary. It uses the shared comparator
  * (`depsChanged`), so the behaviour is identical by construction.
  *
  * Two rules come with it, and both are load-bearing:

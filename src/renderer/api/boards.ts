@@ -315,7 +315,7 @@ export const boards: IBoards = {
             const settle = (root: string | undefined) => {
                 if (settled) return;
                 settled = true;
-                installedSub.unsubscribe();
+                installedSub();
                 pagesUnsub();
                 resolve(root);
             };

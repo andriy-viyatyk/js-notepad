@@ -94,6 +94,7 @@ export abstract class EditorModel<
         super(modelState, defaultState);
         // Any state mutation is a persistence-worthy change by default.
         this._stateAutoUnsub = this.state.subscribe(() => this.descriptorChanged.send(undefined));
+        this.own(() => this._stateAutoUnsub?.());
     }
 
     setPage(page: IPageHost | null): void {
@@ -370,5 +371,6 @@ export abstract class EditorModel<
      *  to a successor. */
     async dispose(): Promise<void> {
         this.queue.dispose();
+        super.dispose();
     }
 }

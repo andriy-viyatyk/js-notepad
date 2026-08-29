@@ -143,21 +143,34 @@ export class TreeProviderViewModel extends TComponentModel<
     treeModel: TreeController | null = null;
     savedExpandMap: Record<string, boolean> | null = null;
     initialExpandMap: Record<string, boolean> | undefined = undefined;
-    private watchSubscription?: { unsubscribe: () => void };
+    private watchSubscription?: () => void;
+    private watchOwnerRegistered = false;
+    private previousProvider: ITreeProvider | undefined;
+    private previousShowLinks: boolean | undefined;
+    private previousSelectedHref: string | undefined;
 
     init() {
         this.props.onModel?.(this);
     }
 
-    onUnmount = () => {
-        this.props.onModel?.(null);
-    };
-
     setProps = () => {
-        if (this.isFirstUse) {
-            if (this.props.initialState?.expandedPaths?.length) {
+        const props = this.props;
+        const previousProvider = this.previousProvider;
+        const previousShowLinks = this.previousShowLinks;
+        const previousSelectedHref = this.previousSelectedHref;
+        const first = previousProvider === undefined;
+        const providerChanged = !first && previousProvider !== props.provider;
+        const showLinksChanged = previousShowLinks !== props.showLinks;
+        const selectedHrefChanged = props.selectedHref !== previousSelectedHref;
+
+        this.previousProvider = props.provider;
+        this.previousShowLinks = props.showLinks;
+        this.previousSelectedHref = props.selectedHref;
+
+        if (first) {
+            if (props.initialState?.expandedPaths?.length) {
                 const map: Record<string, boolean> = {};
-                for (const p of this.props.initialState.expandedPaths) {
+                for (const p of props.initialState.expandedPaths) {
                     map[p] = true;
                 }
                 this.initialExpandMap = map;
@@ -168,8 +181,8 @@ export class TreeProviderViewModel extends TComponentModel<
             // somewhere the restored set doesn't contain, navigation wins — it reflects what the
             // main editor is actually showing. Pre-epic state carries only `selectedHref` and so
             // restores as a one-item selection.
-            const restored = this.props.initialState?.selectedHrefs;
-            const seed = this.props.selectedHref ?? this.props.initialState?.selectedHref;
+            const restored = props.initialState?.selectedHrefs;
+            const seed = props.selectedHref ?? props.initialState?.selectedHref;
             if (restored?.length && (!seed || restored.some((h) => sameHref(h, seed)))) {
                 this.adoptSelection(restored);
             } else if (seed) {
@@ -177,21 +190,21 @@ export class TreeProviderViewModel extends TComponentModel<
             }
             this.initializeTree();
             this.subscribeWatch();
-        } else if (this.oldProps?.provider !== this.props.provider) {
+        } else if (providerChanged) {
             this.subscribeWatch();
             this.buildTree();
-        } else if (this.oldProps?.showLinks !== this.props.showLinks) {
+        } else if (showLinksChanged) {
             this.recomputeDisplayTree();
         }
 
         // Adopt an external selection change (main-editor navigation). A null
         // selectedHref never clears — see TreeProviderViewState.selectedValues.
         if (
-            !this.isFirstUse &&
-            this.props.selectedHref &&
-            this.props.selectedHref !== this.oldProps?.selectedHref
+            !first &&
+            props.selectedHref &&
+            selectedHrefChanged
         ) {
-            this.adoptSelection([this.props.selectedHref]);
+            this.adoptSelection([props.selectedHref]);
         }
     };
 
@@ -246,17 +259,25 @@ export class TreeProviderViewModel extends TComponentModel<
     };
 
     private subscribeWatch = () => {
-        this.watchSubscription?.unsubscribe();
+        if (!this.watchOwnerRegistered) {
+            this.watchOwnerRegistered = true;
+            this.own(() => this.watchSubscription?.());
+        }
+        this.watchSubscription?.();
         this.watchSubscription = undefined;
         const provider = this.props.provider as any; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (typeof provider.watch === "function") {
-            this.watchSubscription = provider.watch(() => this.buildTree());
+            const unsubscribe = provider.watch(() => this.buildTree());
+            this.watchSubscription = unsubscribe;
         }
     };
 
     dispose = () => {
-        this.watchSubscription?.unsubscribe();
+        this.watchSubscription?.();
         this.watchSubscription = undefined;
+        // Keep props.onModel?.(null) as the last statement: child views must dispose before the
+        // host notification.
+        this.props.onModel?.(null);
     };
 
     private initializeTree = async () => {

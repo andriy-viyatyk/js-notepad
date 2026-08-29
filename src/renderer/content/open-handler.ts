@@ -9,7 +9,8 @@ import { cleanForStorage } from "../../shared/link-data";
  * Passes the pipe to the page model via openFile(filePath, pipe).
  * The page owns the pipe and uses it for all content I/O.
  *
- * Call during app bootstrap, before scripts load.
+ * Call during app bootstrap, before scripts load. App bootstrap owns this
+ * process-lifetime handler; it is not a view/model resource.
  */
 export function registerOpenHandler(): void {
     app.events.openContent.subscribe(async (data) => {

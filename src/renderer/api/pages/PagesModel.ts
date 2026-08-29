@@ -45,6 +45,12 @@ export class PagesModel extends TModel<OpenFilesState> {
 
     constructor() {
         super(new TGlobalState(defaultOpenFilesState));
+        // PagesModel owns every page/editor subscription until the page is detached;
+        // this final sweep also covers application shutdown with pages still open.
+        this.own(() => {
+            for (const unsubscribe of this.pageSubscriptions.values()) unsubscribe();
+            this.pageSubscriptions.clear();
+        });
         this.query = new PagesQueryModel(this);
         this.persistence = new PagesPersistenceModel(this);
         this.layout = new PagesLayoutModel(this);
@@ -71,7 +77,7 @@ export class PagesModel extends TModel<OpenFilesState> {
                 const sub = editor.descriptorChanged.subscribe(() => {
                     this.persistence.saveStateDebounced();
                 });
-                editorSubs.set(editor.id, () => sub.unsubscribe());
+                editorSubs.set(editor.id, sub);
             }
         };
 

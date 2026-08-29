@@ -1,4 +1,5 @@
 import { createComponentModelDriver, type ComponentModelDriver, TComponentModel } from "../../core/state/model";
+import { Delayer } from "../../core/utils/scheduling";
 import type { ButtonProps } from "../../uikit/Button/ButtonView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import type { InputProps } from "../../uikit/Input/InputView";
@@ -42,7 +43,7 @@ const defaultGraphLegendState: GraphLegendState = {
 };
 
 class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPanelProps> {
-    private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly descriptionDelayers = new Map<string, Delayer<void>>();
 
     setExpanded = (expanded: boolean): void => this.state.update((s) => { s.expanded = expanded; });
     setActiveTab = (activeTab: LegendTab): void => this.state.update((s) => { s.activeTab = activeTab; });
@@ -67,17 +68,19 @@ class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPane
     scheduleDescription = (tab: "levels" | "shapes", key: string, value: string): void => {
         this.updateDescription(tab, key, value);
         const timerKey = `${tab}:${key}`;
-        const existing = this.debounceTimers.get(timerKey);
-        if (existing) clearTimeout(existing);
-        this.debounceTimers.set(timerKey, setTimeout(() => {
+        let delayer = this.descriptionDelayers.get(timerKey);
+        if (!delayer) {
+            delayer = new Delayer<void>(300);
+            this.descriptionDelayers.set(timerKey, delayer);
+        }
+        void delayer.trigger(() => {
             if (this.isLive) this.props.editor.setLegendDescription(tab, key, value);
-            this.debounceTimers.delete(timerKey);
-        }, 300));
+        }).catch(() => { /* disposal/cancellation is intentional */ });
     };
 
     dispose = (): void => {
-        for (const timer of this.debounceTimers.values()) clearTimeout(timer);
-        this.debounceTimers.clear();
+        for (const delayer of this.descriptionDelayers.values()) delayer.dispose();
+        this.descriptionDelayers.clear();
     };
 }
 

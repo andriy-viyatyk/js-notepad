@@ -139,13 +139,11 @@ export class TreeDndModel<T = ITreeItem> {
     /**
      * Every drag state write goes through the model's funnel, which is also what repaints.
      *
-     * This is the one site that had no repaint of its own — it relied entirely on the repaint
-     * `effect()` that the vanilla conversion deleted, so without the funnel a drag produces no
+     * This is the one site that has no repaint of its own. Without the funnel, a drag produces no
      * `data-dragging` / `data-drop-active` at all, with no error anywhere.
      *
-     * The `queueMicrotask` this replaces was a React workaround (a synchronous `state.update` from
-     * a render-phase path tripped React's "cannot update while rendering" warning). Every caller
-     * here is a native drag event, and the schedule change is unobservable: the browser fires
+     * The direct write belongs to the model mutation funnel. Every caller here is a native drag
+     * event, and the schedule change is unobservable: the browser fires
      * `dragenter` on the new row before `dragleave` on the old, so the order of writes — and hence
      * `onDragLeave`'s guard — is the same either way.
      */

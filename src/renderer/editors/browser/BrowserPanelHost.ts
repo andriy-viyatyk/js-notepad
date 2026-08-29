@@ -6,6 +6,7 @@ import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-vi
 import { panelExpanded } from "../../core/state/events";
 import { panelKey, panelIdOf, isCompositePanelKey } from "../../ui/secondary-views/panel-key";
 import type { LinkEditor } from "../link-editor";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 const defaultPageState: IPageState = {
     pinned: false,
@@ -48,6 +49,7 @@ export class BrowserPanelHost implements IPageHost {
 
     private _editor: LinkEditor | null = null;
     private _editorSub: (() => void) | null = null;
+    private readonly subscriptions = new DisposableStore();
     private _activePanel = "link-category";
     private _pendingWidth: number | undefined = undefined;
     private _transient = new Map<string, unknown>();
@@ -61,10 +63,10 @@ export class BrowserPanelHost implements IPageHost {
         this._editor = editor as LinkEditor;
         editor.setPage(this);
         this._editorSub?.();
-        this._editorSub = editor.state.subscribe(
+        this._editorSub = this.subscriptions.add(editor.state.subscribe(
             () => this.state.update((s) => { s.version++; s.hasSidebar = this.hasSidebar; }),
             (s) => (s as { secondaryView?: string[] }).secondaryView,
-        );
+        ));
         this.state.update((s) => { s.version++; s.hasSidebar = this.hasSidebar; });
         this.ensureSecondaryViewsModel().setStateQuiet({ open: true });
     }
@@ -125,9 +127,9 @@ export class BrowserPanelHost implements IPageHost {
                 activePanel: this._activePanel,
                 ...(this._pendingWidth ? { width: this._pendingWidth } : undefined),
             });
-            this.secondaryViewsModel.state.subscribe(() => {
+            this.subscriptions.add(this.secondaryViewsModel.state.subscribe(() => {
                 this.state.update((s) => { s.version++; });
-            });
+            }));
             this.state.update((s) => { s.hasSidebar = true; });
         }
         return this.secondaryViewsModel;
@@ -208,5 +210,6 @@ export class BrowserPanelHost implements IPageHost {
         this._editor = null;
         this.secondaryViewsModel?.dispose();
         this.secondaryViewsModel = null;
+        this.subscriptions.dispose();
     }
 }

@@ -1,5 +1,4 @@
 import type { IProvider, IProviderDescriptor } from "../../api/types/io.provider";
-import type { ISubscriptionObject } from "../../api/types/events";
 import { mnemeConnection } from "../../api/mneme-connection";
 
 /**
@@ -63,7 +62,7 @@ export class MnemeProvider implements IProvider {
         }
     }
 
-    watch(callback: (event: string) => void): ISubscriptionObject {
+    watch(callback: (event: string) => void): () => void {
         return mnemeConnection.subscribe(this.uri, () => callback("change"));
     }
 

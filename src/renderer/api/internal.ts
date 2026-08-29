@@ -31,14 +31,12 @@ export class DisposableCollection implements IDisposable {
 
 /**
  * Adapts an existing Subscription<T> to the IEvent<T> interface.
- * The returned IEvent.subscribe() produces IDisposable objects
- * instead of the raw { unsubscribe() } objects.
+ * The returned IEvent.subscribe() exposes the underlying disposer.
  */
 export function wrapSubscription<T>(subscription: Subscription<T>): IEvent<T> {
     return {
-        subscribe(handler: (data: T) => void): IDisposable {
-            const sub = subscription.subscribe(handler);
-            return { dispose: () => sub.unsubscribe() };
+        subscribe(handler: (data: T) => void): () => void {
+            return subscription.subscribe(handler);
         },
     };
 }

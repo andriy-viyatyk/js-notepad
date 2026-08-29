@@ -47,6 +47,8 @@ class PublishedBoards {
     async load(): Promise<void> {
         if (!this.subscribed) {
             this.subscribed = true;
+            // The published-board catalog singleton owns this process-lifetime IPC
+            // listener; individual catalog views only consume its state.
             rendererEvents[EventEndpoint.ePublishedBoardsUpdated].subscribe((catalog) => {
                 this.state.update((s) => {
                     s.catalog = catalog;

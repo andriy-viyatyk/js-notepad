@@ -235,7 +235,9 @@ export async function initMonaco() {
 
     monacoInstance = monaco;
 
-    // Register once after the instance exists. TOneState subscriptions are
+    // Register once after the instance exists. This bootstrap module owns the
+    // process-lifetime listener; routing it through a view/model store would be wrong.
+    // TOneState subscriptions are
     // change-only, so apply the current snapshot explicitly as well.
     themeState.subscribe(() => {
         const theme = getThemeById(themeState.get().id);

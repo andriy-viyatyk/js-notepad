@@ -67,7 +67,9 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
             secondaryViewDefs: state.secondaryViewDefs,
         });
         this.renderState();
-        this.stateUnsubscribe = boardModel.state.subscribe(() => this.renderState(), selector);
+        this.stateUnsubscribe = this.ownSubscription(
+            boardModel.state.subscribe(() => this.renderState(), selector),
+        );
     }
 
     protected onUpdate(props: SecondaryViewProps): void {

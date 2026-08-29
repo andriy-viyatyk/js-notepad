@@ -1,8 +1,7 @@
 import { app } from "../../../api/app";
 import { settings } from "../../../api/settings";
 import { api } from "../../../../ipc/renderer/api";
-import { TComponentState } from "../../../core/state/state";
-import { TComponentModel } from "../../../core/state/model";
+import { createComponentModelDriver, TComponentModel, type ComponentModelDriver } from "../../../core/state/model";
 import { fpBasename } from "../../../core/utils/file-path";
 import { ButtonView } from "../../../uikit/Button/ButtonView";
 import { CheckboxView } from "../../../uikit/Checkbox/CheckboxView";
@@ -15,6 +14,7 @@ import { SelectView, type SelectViewProps } from "../../../uikit/Select/SelectVi
 import type { IListBoxItem } from "../../../uikit/ListBox/types";
 import { SubtreeSwap } from "../../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
+import { createDepsGate, type DepsGate } from "../../../uikit/shared/deps-gate";
 import { createSectionRoot, panel, settingsFieldLabel, settingsLink, settingsPath, settingsPlaceholder, text } from "./settings-native";
 import "../../../uikit/Button/Button.css";
 import "../../../uikit/Checkbox/Checkbox.css";
@@ -58,7 +58,7 @@ export class LinkBehaviorSectionView extends VanillaView<Record<string, never>> 
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "link-open-behavior") this.select?.update(this.selectProps());
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void {
@@ -94,7 +94,7 @@ export class WindowBehaviorSectionView extends VanillaView<Record<string, never>
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "window.close-to-tray") this.sync();
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void {
@@ -121,21 +121,42 @@ export class WindowBehaviorSectionView extends VanillaView<Record<string, never>
 interface GitIntegrationState { probe: { installed: boolean; version?: string } | null; }
 
 class GitIntegrationModel extends TComponentModel<GitIntegrationState, { gitEnabled: boolean }> {
+    private initialized = false;
+    private readonly gitEnabledGate: DepsGate = createDepsGate();
+    private cancelProbe: (() => void) | undefined;
+
     setProbe = (probe: GitIntegrationState["probe"]): void => this.state.update((state) => { state.probe = probe; });
 
     init(): void {
-        this.effect(() => {
-            if (!this.props.gitEnabled) {
-                queueMicrotask(() => { if (this.isLive) this.setProbe(null); });
-                return;
-            }
-            let alive = true;
-            void import("../../../api/git")
-                .then(({ git }) => git.probe())
-                .then((result) => { if (alive) this.setProbe(result); })
-                .catch(() => { if (alive) this.setProbe({ installed: false }); });
-            return () => { alive = false; };
-        }, () => [this.props.gitEnabled]);
+        this.updateProbe(this.props.gitEnabled);
+        this.gitEnabledGate.prime([this.props.gitEnabled]);
+        this.initialized = true;
+    }
+
+    setProps = (props: { gitEnabled: boolean }): void => {
+        if (!this.initialized) return;
+        if (this.gitEnabledGate.changed([props.gitEnabled])) this.updateProbe(props.gitEnabled);
+    };
+
+    private updateProbe(gitEnabled: boolean): void {
+        this.cancelProbe?.();
+        this.cancelProbe = undefined;
+        if (!gitEnabled) {
+            this.setProbe(null);
+            return;
+        }
+
+        let alive = true;
+        this.cancelProbe = () => { alive = false; };
+        void import("../../../api/git")
+            .then(({ git }) => git.probe())
+            .then((result) => { if (alive) this.setProbe(result); })
+            .catch(() => { if (alive) this.setProbe({ installed: false }); });
+    }
+
+    dispose(): void {
+        this.cancelProbe?.();
+        this.cancelProbe = undefined;
     }
 }
 
@@ -155,6 +176,7 @@ class GitStatusView extends VanillaView<{ probe: NonNullable<GitIntegrationState
 }
 
 export class GitIntegrationSectionView extends VanillaView<Record<string, never>> {
+    private driver: ComponentModelDriver<GitIntegrationState, { gitEnabled: boolean }, GitIntegrationModel> | undefined;
     private model: GitIntegrationModel | undefined;
     private checkbox: CheckboxView | undefined;
     private statusSwap: SubtreeSwap<string> | undefined;
@@ -165,10 +187,15 @@ export class GitIntegrationSectionView extends VanillaView<Record<string, never>
 
     protected onMount(): void {
         sectionHeader(this.root, "Git Integration", "Enable Git Tree and File Diff editors. Off by default — requires git installed and on PATH.");
-        const model = new GitIntegrationModel(new TComponentState({ probe: null }));
+        const driver = createComponentModelDriver(
+            { gitEnabled: settings.get("git.enabled") },
+            GitIntegrationModel,
+            { probe: null },
+        );
+        this.driver = driver;
+        const model = driver.model;
         this.model = model;
-        model.setPropsInternal({ gitEnabled: settings.get("git.enabled") });
-        model._initInternal();
+        this.own(() => driver.dispose());
 
         const row = panel({ direction: "row", align: "center", gap: "md", paddingBottom: "lg" });
         this.checkbox = this.child(new CheckboxView({ checked: model.props.gitEnabled, onChange: () => settings.set("git.enabled", !settings.get("git.enabled")), children: "Enable Git integration" }));
@@ -180,18 +207,19 @@ export class GitIntegrationSectionView extends VanillaView<Record<string, never>
         this.root.append(host);
         this.statusSwap = new SubtreeSwap(host);
         this.own(() => this.statusSwap?.dispose());
-        this.own(() => model.onUnmountInternal());
+        driver.mount();
         this.bind(model.state, (state) => state, (state) => this.sync(state));
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "git.enabled") {
-                model.setPropsInternal({ gitEnabled: settings.get("git.enabled") });
+                driver.update({ gitEnabled: settings.get("git.enabled") });
                 this.sync(model.state.get());
             }
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void {
+        this.driver = undefined;
         this.model = undefined;
         this.checkbox = undefined;
         this.statusSwap = undefined;
@@ -238,7 +266,7 @@ export class BoardVarsSectionView extends VanillaView<Record<string, never>> {
         this.root.append(row, openRow);
         this.sync();
         const subscription = settings.onChanged.subscribe(({ key }) => { if (key === "board-vars.file") this.sync(); });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void { this.valuePanel = undefined; this.row = undefined; this.unlinkButton = undefined; this.openButton = undefined; }
@@ -302,7 +330,7 @@ class LibraryPathSectionView extends VanillaView<Record<string, never>> {
         this.root.append(row);
         this.sync();
         const subscription = settings.onChanged.subscribe(({ key }) => { if (key === this.config.pathKey) this.sync(); });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void { this.valuePanel = undefined; this.row = undefined; this.clearButton = undefined; }
@@ -334,18 +362,31 @@ export class DrawingLibrarySectionView extends LibraryPathSectionView {
     }
 }
 
-class VideoPlayerModel extends TComponentModel<{ portValue: string }, { videoStreamPort: number }> {
+interface VideoPlayerState { portValue: string; }
+interface VideoPlayerProps { videoStreamPort: number; }
+
+class VideoPlayerModel extends TComponentModel<VideoPlayerState, VideoPlayerProps> {
+    private initialized = false;
+    private readonly videoPortGate: DepsGate = createDepsGate();
+
     setPortValue = (portValue: string): void => this.state.update((state) => { state.portValue = portValue; });
 
     init(): void {
-        this.effect(() => {
-            const portValue = String(this.props.videoStreamPort);
-            queueMicrotask(() => { if (this.isLive && this.state.get().portValue !== portValue) this.setPortValue(portValue); });
-        }, () => [this.props.videoStreamPort]);
+        this.setPortValue(String(this.props.videoStreamPort));
+        this.videoPortGate.prime([this.props.videoStreamPort]);
+        this.initialized = true;
     }
+
+    setProps = (props: VideoPlayerProps): void => {
+        if (!this.initialized) return;
+        if (this.videoPortGate.changed([props.videoStreamPort])) {
+            this.setPortValue(String(props.videoStreamPort));
+        }
+    };
 }
 
 export class VideoPlayerSectionView extends VanillaView<Record<string, never>> {
+    private driver: ComponentModelDriver<VideoPlayerState, VideoPlayerProps, VideoPlayerModel> | undefined;
     private model: VideoPlayerModel | undefined;
     private valuePanel: HTMLDivElement | undefined;
     private clearButton: IconButtonView | undefined;
@@ -355,10 +396,15 @@ export class VideoPlayerSectionView extends VanillaView<Record<string, never>> {
 
     protected onMount(): void {
         sectionHeader(this.root, "Video Player", "VLC integration and local video streaming server settings");
-        const model = new VideoPlayerModel(new TComponentState({ portValue: String(settings.get("video-stream.port")) }));
+        const driver = createComponentModelDriver(
+            { videoStreamPort: settings.get("video-stream.port") },
+            VideoPlayerModel,
+            { portValue: String(settings.get("video-stream.port")) },
+        );
+        this.driver = driver;
+        const model = driver.model;
         this.model = model;
-        model.setPropsInternal({ videoStreamPort: settings.get("video-stream.port") });
-        model._initInternal();
+        this.own(() => driver.dispose());
         const outer = panel({ direction: "column", rounded: "sm", background: "dark" });
         const pathRow = panel({ direction: "row", align: "center", gap: "md", paddingTop: "xs", paddingRight: "md", paddingBottom: "sm", paddingLeft: "xxl" });
         this.valuePanel = document.createElement("div");
@@ -371,19 +417,19 @@ export class VideoPlayerSectionView extends VanillaView<Record<string, never>> {
         this.input.mount();
         outer.append(pathRow, portRow);
         this.root.append(outer);
+        driver.mount();
         this.sync();
-        this.own(() => model.onUnmountInternal());
         this.bind(model.state, (state) => state.portValue, () => this.input?.update(this.inputProps()));
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "vlc-path" || key === "video-stream.port") {
-                model.setPropsInternal({ videoStreamPort: settings.get("video-stream.port") });
+                driver.update({ videoStreamPort: settings.get("video-stream.port") });
                 this.sync();
             }
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
-    protected onDispose(): void { this.model = undefined; this.valuePanel = undefined; this.clearButton = undefined; this.input = undefined; }
+    protected onDispose(): void { this.driver = undefined; this.model = undefined; this.valuePanel = undefined; this.clearButton = undefined; this.input = undefined; }
 
     private inputProps(): InputProps {
         const model = this.model;
@@ -439,7 +485,7 @@ export class TerminalSectionView extends VanillaView<Record<string, never>> {
         this.select = this.child(new SelectView(this.selectProps()));
         host.append(this.select.root); this.select.mount(); this.root.append(host);
         const subscription = settings.onChanged.subscribe(({ key }) => { if (key === "terminal.command") this.select?.update(this.selectProps()); });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void { this.select = undefined; }

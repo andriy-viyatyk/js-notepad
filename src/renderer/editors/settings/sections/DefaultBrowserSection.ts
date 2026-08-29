@@ -1,11 +1,17 @@
 import { TComponentState } from "../../../core/state/state";
+import { api } from "../../../../ipc/renderer/api";
 import { ButtonView } from "../../../uikit/Button/ButtonView";
 import type { ButtonProps } from "../../../uikit/Button/ButtonView";
 import { SubtreeSwap } from "../../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
-import { DefaultBrowserSectionModel, defaultDefaultBrowserSectionState, type DefaultBrowserSectionState } from "./DefaultBrowserSectionModel";
 import { createSectionRoot, panel, text } from "./settings-native";
 
+const defaultDefaultBrowserSectionState = {
+    registered: null as boolean | null,
+    busy: false,
+};
+
+type DefaultBrowserSectionState = typeof defaultDefaultBrowserSectionState;
 type DefaultBrowserStatus = DefaultBrowserSectionState["registered"];
 
 class DefaultBrowserStatusView extends VanillaView<{ registered: DefaultBrowserStatus; busy: boolean; onRegister: () => void; onUnregister: () => void; onOpenSettings: () => void }> {
@@ -45,8 +51,9 @@ class DefaultBrowserStatusView extends VanillaView<{ registered: DefaultBrowserS
 }
 
 export class DefaultBrowserSectionView extends VanillaView<Record<string, never>> {
-    private model: DefaultBrowserSectionModel | undefined;
+    private readonly state = new TComponentState(defaultDefaultBrowserSectionState);
     private statusSwap: SubtreeSwap<string> | undefined;
+    private live = true;
 
     public constructor(props: Record<string, never>) {
         super(props, createSectionRoot("settings-section"));
@@ -64,38 +71,60 @@ export class DefaultBrowserSectionView extends VanillaView<Record<string, never>
         this.statusSwap = new SubtreeSwap(statusHost);
         this.own(() => this.statusSwap?.dispose());
 
-        const model = new DefaultBrowserSectionModel(
-            new TComponentState(defaultDefaultBrowserSectionState),
-        );
-        this.model = model;
-        this.own(() => model.onUnmountInternal());
-        model.setPropsInternal({});
-        model._initInternal();
-        this.bind(model.state, (state) => state, (state) => this.syncStatus(state));
+        this.bind(this.state, (state) => state, (state) => this.syncStatus(state));
+        void this.checkStatus();
     }
 
     protected onDispose(): void {
-        this.model = undefined;
+        this.live = false;
         this.statusSwap = undefined;
     }
 
     private syncStatus(state: DefaultBrowserSectionState): void {
-        const model = this.model;
         const statusSwap = this.statusSwap;
-        if (!model || !statusSwap) return;
+        if (!statusSwap) return;
         const key = state.registered === null ? "checking" : `${state.registered}-${state.busy}`;
         statusSwap.set(key, () => {
             const view = new DefaultBrowserStatusView({
                 registered: state.registered,
                 busy: state.busy,
-                onRegister: model.handleRegister,
-                onUnregister: model.handleUnregister,
-                onOpenSettings: model.handleOpenSettings,
+                onRegister: this.handleRegister,
+                onUnregister: this.handleUnregister,
+                onOpenSettings: this.handleOpenSettings,
             });
             view.mount();
             return view;
         });
     }
+
+    private checkStatus = async (): Promise<void> => {
+        const registered = await api.isRegisteredAsDefaultBrowser();
+        if (this.live) this.state.update((state) => { state.registered = registered; });
+    };
+
+    private handleRegister = async (): Promise<void> => {
+        this.state.update((state) => { state.busy = true; });
+        try {
+            await api.registerAsDefaultBrowser();
+            await this.checkStatus();
+        } finally {
+            if (this.live) this.state.update((state) => { state.busy = false; });
+        }
+    };
+
+    private handleUnregister = async (): Promise<void> => {
+        this.state.update((state) => { state.busy = true; });
+        try {
+            await api.unregisterAsDefaultBrowser();
+            await this.checkStatus();
+        } finally {
+            if (this.live) this.state.update((state) => { state.busy = false; });
+        }
+    };
+
+    private handleOpenSettings = (): void => {
+        api.openDefaultAppsSettings();
+    };
 }
 
 export { DefaultBrowserSectionView as DefaultBrowserSection };

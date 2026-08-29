@@ -58,7 +58,8 @@ function ensureListeners() {
         dragging = false;
         notify();
     };
-    // Capture phase so we react even if a handler downstream stops propagation.
+    // This singleton owns the document listeners for the renderer lifetime; no tooltip
+    // view owns them. Capture phase also lets us react before downstream handlers.
     document.addEventListener("dragstart", onDragStart, true);
     document.addEventListener("dragend", onDragEnd, true);
     document.addEventListener("drop", onDragEnd, true);

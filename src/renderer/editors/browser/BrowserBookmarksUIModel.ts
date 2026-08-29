@@ -9,6 +9,7 @@ import type { LinkItem } from "../link-editor/linkTypes";
 import { app } from "../../api/app";
 import { BookmarkEvent } from "../../api/events/events";
 import { withTimeout } from "../../core/utils/utils";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 /** Tracked image URLs from a specific navigation level. */
 export interface TrackedImageLevel {
@@ -40,6 +41,7 @@ export class BrowserBookmarksUIModel {
     private bookmarksSub: (() => void) | null = null;
     /** Cleanup function for model state subscription (urlInput tracking). */
     private urlTrackingSub: (() => void) | null = null;
+    private readonly subscriptions = new DisposableStore();
 
     constructor(model: BrowserEditorModel) {
         this.model = model;
@@ -136,19 +138,19 @@ export class BrowserBookmarksUIModel {
         this.dispose();
 
         // Track changes in the link editor (add/remove/edit bookmarks)
-        this.bookmarksSub = bm.linkEditor.state.subscribe(() => {
+        this.bookmarksSub = this.subscriptions.add(bm.linkEditor.state.subscribe(() => {
             this.updateIsBookmarked();
-        });
+        }));
 
         // Track urlInput changes to re-check isBookmarked
         let prevUrlInput = this.model.state.get().urlInput;
-        this.urlTrackingSub = this.model.state.subscribe(() => {
+        this.urlTrackingSub = this.subscriptions.add(this.model.state.subscribe(() => {
             const current = this.model.state.get().urlInput;
             if (current !== prevUrlInput) {
                 prevUrlInput = current;
                 this.updateIsBookmarked();
             }
-        });
+        }));
 
         this.updateIsBookmarked();
     };

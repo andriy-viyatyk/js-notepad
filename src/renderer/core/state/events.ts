@@ -1,41 +1,44 @@
-export class AppEvent extends EventTarget {
-    emitEvent = <D = undefined>(type: string, detail?: D) => {
-        const event = new CustomEvent(type, { detail });
-        this.dispatchEvent(event);
-    }
+export type Event<T> = (listener: (event: T) => void) => () => void;
+
+interface EmitterRegistration<T> {
+    listener: (event: T) => void;
+    active: boolean;
 }
 
-export type SubsribtionCallback<D> = (detail?: D) => void;
-export interface SubscriptionObject {
-    unsubscribe: () => void;
-}
+export class Emitter<T> {
+    private registrations: EmitterRegistration<T>[] = [];
 
-export class Subscription<D = undefined> {
-    type: string;
-    appEvent: AppEvent;
+    readonly event: Event<T> = (listener) => {
+        const registration: EmitterRegistration<T> = { listener, active: true };
+        this.registrations.push(registration);
+        return () => {
+            if (!registration.active) return;
+            registration.active = false;
+            const index = this.registrations.indexOf(registration);
+            if (index >= 0) this.registrations.splice(index, 1);
+        };
+    };
 
-    constructor(type?: string, appEvent?: AppEvent){
-        this.type = type ?? 'default';
-        this.appEvent = appEvent || new AppEvent();
-    }
-
-    send = (data: D) => {
-        this.appEvent.emitEvent(this.type, data);
-    }
-
-    subscribe = (callback: SubsribtionCallback<D>): SubscriptionObject => {
-        const callbackWrapper = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            callback(customEvent.detail);
-        }
-
-        this.appEvent.addEventListener(this.type, callbackWrapper);
-        return {
-            unsubscribe: () => {
-                this.appEvent.removeEventListener(this.type, callbackWrapper);
+    fire(event: T): void {
+        for (const registration of [...this.registrations]) {
+            if (!registration.active) continue;
+            try {
+                registration.listener(event);
+            } catch (error) {
+                setTimeout(() => { throw error; }, 0);
             }
         }
     }
+}
+
+export class Subscription<D = undefined> {
+    private readonly emitter = new Emitter<D>();
+
+    send = (data: D): void => {
+        this.emitter.fire((data === undefined ? null : data) as D);
+    };
+
+    subscribe = (callback: (event: D) => void): (() => void) => this.emitter.event(callback);
 }
 
 /** Global keyboard event broadcast. Sent from MainPage's window keydown listener. */

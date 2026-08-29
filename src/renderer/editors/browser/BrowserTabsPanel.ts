@@ -54,7 +54,7 @@ export class TabItemView extends VanillaView<TabItemProps> {
         else if (!props.showClose && this.close) { this.releaseChild(this.close); this.close = undefined; }
         this.close?.update({ name: "tab-close", size: "sm", icon: "close", title: "Close Tab", onClick: (event) => { event.stopPropagation(); props.model.tabs.closeTab(props.tab.id); } });
     }
-    private renderFavicon(url: string): void { this.favicon.replaceChildren(); const icon = createIconElement("globe"); if (url) { icon.dataset.hidden = ""; const image = document.createElement("img"); image.src = url; image.alt = ""; image.referrerPolicy = "no-referrer"; image.addEventListener("error", () => { delete icon.dataset.hidden; image.remove(); }); this.favicon.append(image); } this.favicon.append(icon); }
+    private renderFavicon(url: string): void { this.favicon.replaceChildren(); const icon = createIconElement("globe"); if (url) { icon.dataset.hidden = ""; const image = document.createElement("img"); image.src = url; image.alt = ""; image.referrerPolicy = "no-referrer"; this.listen(image, "error", () => { delete icon.dataset.hidden; image.remove(); }); this.favicon.append(image); } this.favicon.append(icon); }
     private toggle(name: string, value: boolean): void { if (value) this.root.setAttribute(name, ""); else this.root.removeAttribute(name); }
     private readonly onDragStart = (event: DragEvent): void => { event.stopPropagation(); setTraitDragData(event.dataTransfer, TraitTypeId.BrowserTab, { tabId: this.props.tab.id }); this.dragging = true; this.sync(this.props); };
     private readonly onDragEnd = (): void => { this.dragging = false; this.sync(this.props); };

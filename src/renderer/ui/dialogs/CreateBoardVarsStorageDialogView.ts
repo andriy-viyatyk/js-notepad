@@ -1,4 +1,5 @@
 import { TDialogModel } from "../../core/state/model";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
@@ -35,8 +36,6 @@ export class CreateBoardVarsStorageDialogView extends VanillaView<DialogViewProp
     private readonly cancelButton: ButtonView;
     private readonly createButton: ButtonView;
     private pathElement: HTMLInputElement | undefined;
-    private focusTimer: ReturnType<typeof setTimeout> | undefined;
-    private viewDisposed = false;
 
     public constructor(props: DialogViewProps) {
         const model = props.model as CreateBoardVarsStorageDialogModel;
@@ -136,21 +135,7 @@ export class CreateBoardVarsStorageDialogView extends VanillaView<DialogViewProp
         this.bind(this.model.state, (state) => state.creating, () => {
             this.syncCreateButton();
         });
-        this.scheduleFocus();
-    }
-
-    protected onDispose(): void {
-        this.viewDisposed = true;
-        if (this.focusTimer !== undefined) clearTimeout(this.focusTimer);
-        this.focusTimer = undefined;
-    }
-
-    private scheduleFocus(): void {
-        this.focusTimer = setTimeout(() => {
-            this.focusTimer = undefined;
-            if (this.viewDisposed) return;
-            this.pathElement?.focus();
-        }, 0);
+        this.own(focusAfterPaint(this.pathElement));
     }
 
     private syncCreateButton(): void {

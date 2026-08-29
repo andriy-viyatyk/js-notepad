@@ -41,16 +41,16 @@ const defaultState: LibraryServiceState = {
 class LibraryService extends TModel<LibraryServiceState> {
     private initialized = false;
     private watcher: ReturnType<typeof nodefs.watch> | undefined;
-    private settingsSub: { dispose: () => void } | undefined;
 
     constructor() {
         super(new TGlobalState(defaultState));
-        this.settingsSub = settings.onChanged.subscribe(({ key }) => {
+        this.own(settings.onChanged.subscribe(({ key }) => {
             if (key === "script-library.path" && this.initialized) {
                 this.deactivate();
                 this.activate();
             }
-        });
+        }));
+        this.own(() => this.stopWatching());
     }
 
     /** Call before using any service state. Idempotent — only initializes once. */
@@ -70,8 +70,7 @@ class LibraryService extends TModel<LibraryServiceState> {
 
     dispose(): void {
         this.deactivate();
-        this.settingsSub?.dispose();
-        this.settingsSub = undefined;
+        super.dispose();
     }
 
     // ── Private ──────────────────────────────────────────────────────────

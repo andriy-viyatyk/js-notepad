@@ -108,7 +108,7 @@ export class MainPageView extends VanillaView<object> {
         this.toggleWindowButton.className = "system-button darkBackground";
         this.toggleWindowButton.type = "button";
         this.toggleWindowButton.dataset.name = "window-toggle";
-        this.toggleWindowButton.addEventListener("click", () => app.window.toggleWindow());
+        this.listen(this.toggleWindowButton, "click", () => app.window.toggleWindow());
         this.statusIndicators.className = "status-indicators";
         this.statusIndicators.dataset.name = "status-indicators";
         this.snipButton.type = "button";
@@ -116,7 +116,7 @@ export class MainPageView extends VanillaView<object> {
         this.snipButton.className = "snip-indicator";
         this.snipButton.title = "Snip screen or Persephone window";
         this.snipButton.append(createIconElement("more-horiz", { width: 28, height: 28 }));
-        this.snipButton.addEventListener("click", () => this.toggleSnipMenu());
+        this.listen(this.snipButton, "click", () => this.toggleSnipMenu());
         this.statusIndicators.append(this.snipButton, this.mnemeIndicator, this.mcpIndicator);
         this.header.append(this.statusIndicators);
     }
@@ -144,7 +144,7 @@ export class MainPageView extends VanillaView<object> {
         button.className = className;
         button.title = title;
         button.append(icon);
-        button.addEventListener("click", onClick);
+        this.listen(button, "click", onClick);
         return button;
     }
 
@@ -157,7 +157,7 @@ export class MainPageView extends VanillaView<object> {
         this.zoomButton.dataset.name = "zoom-indicator";
         this.zoomButton.className = "zoom-indicator";
         this.zoomButton.title = "Reset Zoom";
-        this.zoomButton.addEventListener("click", () => app.window.resetZoom());
+        this.listen(this.zoomButton, "click", () => app.window.resetZoom());
         return this.zoomButton;
     }
 

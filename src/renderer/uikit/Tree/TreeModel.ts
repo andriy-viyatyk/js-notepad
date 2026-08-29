@@ -89,9 +89,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * The only place in `uikit/Tree/` that writes state.
      *
      * A vanilla driver pumps props through the view's `update()`, so a state write reaches nothing
-     * on its own: there is no re-render to re-evaluate anything, and this model registers no
-     * effects (`createComponentModelDriver.mount()` throws if it does). Every write therefore
-     * carries its own consequence, and this is where it is carried.
+     * on its own: there is no re-render to re-evaluate anything. Every write therefore carries its
+     * own consequence, and this is where it is carried.
      *
      * Do not call `this.state.update` anywhere else in this folder — `grep "state.update"
      * uikit/Tree/` must return exactly one hit, which is what makes the convention checkable.
@@ -525,9 +524,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             !next && this.props.collapseDescendants
                 ? this.collectDescendantValues(r.source)
                 : null;
-        // Written inline. The deferral this replaced existed only because model effects with deps
-        // ran inside `setPropsInternal` during React's render phase; a vanilla-driven model
-        // registers no effects, and every caller of this method is a DOM event, a timer or an
+        // Written inline because every caller of this method is a DOM event, a timer or an
         // explicit imperative call. The write still precedes `onExpandChange`, so a consumer that
         // reads `getExpandedMap()` from that callback still sees the new map.
         this.mutate((s) => {
@@ -778,11 +775,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * all (its identity is the only signal carrying expand/collapse), and `selectedKey` normalises
      * to a primitive.
      *
-     * Three departures from the effect this replaces, all because the React path repainted
-     * unconditionally on every parent render and so could not expose a gap: `rowHeight` is dropped
-     * (the engine compares it in `inputChanged()`), `getContextMenu` is dropped (read at event
-     * time, changes no cell DOM), and `id` plus the four DnD-gating props are **added** — they are
-     * read on the cell path, for `itemId()` and for the wrapper's `draggable` attribute.
+     * Three signature details reflect the native repaint path: `rowHeight` is dropped (the engine
+     * compares it in `inputChanged()`), `getContextMenu` is dropped (read at event time, changes
+     * no cell DOM), and `id` plus the four DnD-gating props are **added** — they are read on the
+     * cell path, for `itemId()` and for the wrapper's `draggable` attribute.
      */
     repaintSignature(): readonly unknown[] {
         return [
@@ -805,12 +801,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     // --- lifecycle ---
 
     /**
-     * No `effect()` calls: `createComponentModelDriver` refuses to mount a model that registers
-     * any, and both of the two this model used to have have been re-homed. The repaint effect
-     * became `repaintSignature()` plus the host view's gate for props, and `mutate()` for state;
-     * the scroll-on-`activeIndex` effect became the host view's `syncActiveScroll`, with the
-     * unmeasured case now handled by the engine's own pending-scroll register rather than a
-     * `setTimeout(0)` that could not test the actual condition.
+     * The two former prop reactions became `repaintSignature()` plus the host view's gate for
+     * props, and `mutate()` for state. The scroll-on-`activeIndex` reaction became the host view's
+     * `syncActiveScroll`, with the unmeasured case now handled by the engine's own pending-scroll
+     * register rather than a `setTimeout(0)` that could not test the actual condition.
      */
     init() {
         this.props.onModel?.(this);

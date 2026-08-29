@@ -1,5 +1,3 @@
-import type { ISubscriptionObject } from "../types/events";
-
 export type EventHandler<TEvent> = (event: TEvent) => void | Promise<void>;
 
 export interface EventChannelOptions {
@@ -36,17 +34,15 @@ export class EventChannel<TEvent extends { handled?: boolean }> {
 
     /**
      * Register a handler. Accepts sync or async functions.
-     * Returns an object with `unsubscribe()` to remove the handler.
+     * Returns a disposer to remove the handler.
      */
-    subscribe = (handler: EventHandler<TEvent>): ISubscriptionObject => {
+    subscribe = (handler: EventHandler<TEvent>): (() => void) => {
         this.handlers.push(handler);
-        return {
-            unsubscribe: () => {
-                const index = this.handlers.indexOf(handler);
-                if (index >= 0) {
-                    this.handlers.splice(index, 1);
-                }
-            },
+        return () => {
+            const index = this.handlers.indexOf(handler);
+            if (index >= 0) {
+                this.handlers.splice(index, 1);
+            }
         };
     };
 

@@ -1,4 +1,5 @@
 import { TDialogModel } from "../../core/state/model";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
@@ -35,8 +36,6 @@ export class CreateBoardDialogView extends VanillaView<DialogViewProps> {
     private readonly statusPanel: HTMLDivElement;
     private folderElement: HTMLInputElement | undefined;
     private nameElement: HTMLInputElement | undefined;
-    private focusTimer: ReturnType<typeof setTimeout> | undefined;
-    private viewDisposed = false;
 
     public constructor(props: DialogViewProps) {
         const model = props.model as CreateBoardDialogModel;
@@ -171,22 +170,8 @@ export class CreateBoardDialogView extends VanillaView<DialogViewProps> {
         this.bind(this.model.state, (state) => state.creating, () => {
             this.syncCreateButton();
         });
-        this.scheduleFocus();
-    }
-
-    protected onDispose(): void {
-        this.viewDisposed = true;
-        if (this.focusTimer !== undefined) clearTimeout(this.focusTimer);
-        this.focusTimer = undefined;
-    }
-
-    private scheduleFocus(): void {
         const hasFolder = !!this.model.state.get().folder.trim();
-        this.focusTimer = setTimeout(() => {
-            this.focusTimer = undefined;
-            if (this.viewDisposed) return;
-            (hasFolder ? this.nameElement : this.folderElement)?.focus();
-        }, 0);
+        this.own(focusAfterPaint(hasFolder ? this.nameElement : this.folderElement));
     }
 
     private syncStatus(): void {

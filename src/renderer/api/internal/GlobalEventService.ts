@@ -76,6 +76,8 @@ async function collectFolderFiles(
  */
 export class GlobalEventService {
     async init(): Promise<void> {
+        // App.initEvents() owns these process-wide document/window listeners for the
+        // renderer lifetime; they are not resources of any individual view or model.
         document.addEventListener("contextmenu", this.handleContextMenu);
         document.addEventListener("dragover", this.handleDragOver);
         // Capture: tag OS file drops with an IFileLink descriptor (no consume) so

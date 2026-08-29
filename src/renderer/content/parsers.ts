@@ -36,7 +36,8 @@ function splitUrlFragment(href: string): { url: string; fragment?: string } {
  * 1. fileParser registered first → runs last (fallback)
  * 2. archiveParser registered second → runs first (checks for "!")
  *
- * Call during app bootstrap, before scripts load.
+ * Call during app bootstrap, before scripts load. The bootstrap parser registry
+ * owns these process-lifetime handlers; no view/model should dispose them.
  */
 export function registerRawLinkParsers(): void {
     // File parser — fallback for plain file paths and file:// URLs

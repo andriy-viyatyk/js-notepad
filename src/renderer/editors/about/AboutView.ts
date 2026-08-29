@@ -82,7 +82,7 @@ export class AboutEditorView extends VanillaView<AboutEditorProps> {
                 this.render();
             },
         );
-        this.own(() => updateSubscription.unsubscribe());
+        this.own(updateSubscription);
         this.own(publishedBoards.subscribeCatalog(() => {
             if (!this.alive) return;
             this.availableBoards = publishedBoards.getCatalog().length;

@@ -1,4 +1,3 @@
-import type { ISubscriptionObject } from "./events";
 import type { IProvider, IProviderDescriptor } from "./io.provider";
 import type { ITransformer, ITransformerDescriptor } from "./io.transformer";
 
@@ -52,7 +51,7 @@ export interface IContentPipe {
     /** Display name for UI (delegated to provider). */
     readonly displayName: string;
     /** Watch for external changes (delegated to provider). */
-    watch?(callback: (event: string) => void): ISubscriptionObject;
+    watch?(callback: (event: string) => void): () => void;
     /** Clone this pipe with a different provider, keeping all transformers. */
     cloneWithProvider(provider: IProvider): IContentPipe;
     /** Clone this pipe with same provider and transformers (deep copy). */

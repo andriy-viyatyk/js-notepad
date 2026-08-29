@@ -60,10 +60,10 @@ Settings are stored in `appSettings.json`. You can open this file via Settings â
 Subscribe to setting changes:
 
 ```javascript
-const sub = app.settings.onChanged.subscribe(({ key, value }) => {
+const release = app.settings.onChanged.subscribe(({ key, value }) => {
     console.log(`${key} changed to`, value);
 });
 
-// To unsubscribe later:
-sub.dispose();
+// To stop listening later:
+release();
 ```

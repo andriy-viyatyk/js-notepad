@@ -37,6 +37,8 @@ export function buildMultipartBody(entries: FormDataEntry[]): {
 
                     // Stream file content
                     await new Promise<void>((resolve, reject) => {
+                        // The multipart read stream owns these callbacks until the file
+                        // part ends or errors; they are not view/model resources.
                         const fileStream = fs.createReadStream(filePath);
                         fileStream.on("data", (chunk: Buffer) => {
                             controller.enqueue(new Uint8Array(chunk));

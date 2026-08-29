@@ -163,9 +163,9 @@ class MenuContentView extends VanillaView<MenuModel> {
             const current = this.rows.get(row);
             if (current) this.model.onRowClick(row, current.item);
         };
-        row.addEventListener("mouseenter", parts.onMouseEnter);
-        row.addEventListener("mouseleave", parts.onMouseLeave);
-        row.addEventListener("click", parts.onClick);
+        this.listen(row, "mouseenter", parts.onMouseEnter);
+        this.listen(row, "mouseleave", parts.onMouseLeave);
+        this.listen(row, "click", parts.onClick);
         row.append(label);
         this.rows.set(row, parts);
         return row;

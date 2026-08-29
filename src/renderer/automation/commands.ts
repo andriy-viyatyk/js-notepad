@@ -181,8 +181,8 @@ async function browserNavigate(target: IBrowserTarget, params: any): Promise<Mcp
     if (!url) return { error: { code: -32602, message: "Missing 'url' parameter" } };
 
     // Capture current URL so we can detect when navigation starts.
-    // navigate() triggers a React state update — the webview picks up the new src
-    // via a React effect (async), so we must wait for that gap before polling readyState.
+    // navigate() updates the webview asynchronously, so we must wait for that gap before polling
+    // readyState.
     const oldUrl = await target.cdp().evaluate('document.location.href').catch(() => '');
     target.navigate(url);
 

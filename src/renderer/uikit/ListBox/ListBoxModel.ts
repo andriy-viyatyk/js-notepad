@@ -226,9 +226,9 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     /**
      * Everything a rendered cell reads that the virtualization engine cannot detect for itself.
      *
-     * This replaces the `effect()` that used to call `gridRef.update({ all: true })`: a
-     * vanilla-driven model registers no effects, so the host view compares this array on every prop
-     * pump (see `uikit/shared/deps-gate.ts`) and repaints only when a slot moved.
+     * The host view compares this array on every prop pump (see `uikit/shared/deps-gate.ts`) and
+     * repaints only when a slot moved. This keeps the grid's full repaint at the explicit view
+     * boundary where its DOM is available.
      *
      * Three rules the list encodes, in case a future input is added:
      *
@@ -246,9 +246,9 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      *   `getContextMenu` is absent because it is read live inside the context-menu handler and
      *   affects nothing rendered — keeping it would repaint the whole window on every update for
      *   callers that pass an inline arrow. `variant` and `selectionStyle` are present even though
-     *   the old effect omitted them: the old `renderCell` was a fresh closure per render, which made
-     *   the engine repaint unconditionally and hid their absence. `checkbox` is present for the same
-     *   reason as those two — it adds and removes a child of every row.
+     *   the earlier repaint path omitted them: the old `renderCell` was a fresh closure per render,
+     *   which made the engine repaint unconditionally and hid their absence. `checkbox` is present
+     *   for the same reason as those two — it adds and removes a child of every row.
      *
      * One consequence worth stating, because it is invisible from here: a caller-owned selection
      * reaches this signature **only** through `props.isSelected`'s identity. `MultiListBox` passes a
@@ -274,9 +274,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     // --- lifecycle ---
 
     /**
-     * Registers no `effect()`, so `createComponentModelDriver` can own this model.
-     *
-     * The two effects this used to carry became the host view's responsibility: the display-input
+     * The two former prop reactions became the host view's responsibility: the display-input
      * repaint is `repaintSignature()` plus the view's gate, and the scroll-into-view on
      * `activeIndex` is one unconditional `scrollToRow` from the view's update path — the engine now
      * queues that request itself when it has no usable size yet, which is what the old
@@ -286,7 +284,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         this.props.onModel?.(this);
     }
 
-    onUnmount = () => {
+    dispose = () => {
         this.props.onModel?.(null);
     };
 }

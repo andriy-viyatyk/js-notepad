@@ -3,7 +3,6 @@ import { TGlobalState } from "../core/state/state";
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import { DownloadEntry } from "../../ipc/api-param-types";
-import { EventSubscription } from "../../ipc/api-types";
 import type { IDownloads } from "./types/downloads";
 
 const defaultDownloadsState = {
@@ -18,8 +17,6 @@ type DownloadsState = typeof defaultDownloadsState;
  * Implements IDownloads interface.
  */
 class Downloads extends TModel<DownloadsState> implements IDownloads {
-    private subscriptions: EventSubscription[] = [];
-
     constructor() {
         super(new TGlobalState(defaultDownloadsState));
     }
@@ -31,13 +28,12 @@ class Downloads extends TModel<DownloadsState> implements IDownloads {
             s.downloads = downloads;
         });
 
-        this.subscriptions.push(
-            rendererEvents.eDownloadStarted.subscribe((entry) => {
+        this.own(rendererEvents.eDownloadStarted.subscribe((entry) => {
                 this.state.update((s) => {
                     s.downloads = [entry, ...s.downloads];
                 });
-            }),
-            rendererEvents.eDownloadProgress.subscribe((data) => {
+            }));
+        this.own(rendererEvents.eDownloadProgress.subscribe((data) => {
                 this.state.update((s) => {
                     const dl = s.downloads.find((d) => d.id === data.id);
                     if (dl) {
@@ -45,8 +41,8 @@ class Downloads extends TModel<DownloadsState> implements IDownloads {
                         dl.totalBytes = data.totalBytes;
                     }
                 });
-            }),
-            rendererEvents.eDownloadCompleted.subscribe((data) => {
+            }));
+        this.own(rendererEvents.eDownloadCompleted.subscribe((data) => {
                 this.state.update((s) => {
                     const dl = s.downloads.find((d) => d.id === data.id);
                     if (dl) {
@@ -56,8 +52,8 @@ class Downloads extends TModel<DownloadsState> implements IDownloads {
                         }
                     }
                 });
-            }),
-            rendererEvents.eDownloadFailed.subscribe((data) => {
+            }));
+        this.own(rendererEvents.eDownloadFailed.subscribe((data) => {
                 this.state.update((s) => {
                     const dl = s.downloads.find((d) => d.id === data.id);
                     if (dl) {
@@ -65,13 +61,12 @@ class Downloads extends TModel<DownloadsState> implements IDownloads {
                         dl.error = data.error;
                     }
                 });
-            }),
-            rendererEvents.eDownloadCleared.subscribe((downloads) => {
+            }));
+        this.own(rendererEvents.eDownloadCleared.subscribe((downloads) => {
                 this.state.update((s) => {
                     s.downloads = downloads;
                 });
-            }),
-        );
+            }));
     }
 
     get downloads(): DownloadEntry[] {

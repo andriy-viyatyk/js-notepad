@@ -69,8 +69,8 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     noLanguage = true;
     skipSave = true;
 
-    private _statusSub: { unsubscribe: () => void } | null = null;
-    private _connSub: { unsubscribe: () => void } | null = null;
+    private _statusSub: (() => void) | null = null;
+    private _connSub: (() => void) | null = null;
     private _aborts: Record<string, AbortController> = {};
 
     /** Background-job status poll (US-669): while any root is indexing or the
@@ -101,6 +101,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         this._statusSub = ipcRendererEvents.eMnemeStatusChanged.subscribe((s) => {
             this.applySidecarStatus(!!s.running, s.url || "");
         });
+        this.own(this._statusSub);
     }
 
     private applyConnectionStatus(status: McpConnectionStatus, error?: string): void {
@@ -555,9 +556,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
 
     async dispose(): Promise<void> {
         this.stopPolling();
-        this._statusSub?.unsubscribe();
-        this._statusSub = null;
-        this._connSub?.unsubscribe();
+        this._connSub?.();
         this._connSub = null;
         for (const a of Object.values(this._aborts)) a.abort();
         // Do NOT dispose mnemeConnection — it's shared (providers + the health prober).

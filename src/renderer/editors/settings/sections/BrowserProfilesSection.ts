@@ -1,6 +1,6 @@
 import { settings, type BrowserProfile } from "../../../api/settings";
-import { TComponentState } from "../../../core/state/state";
 import { fpBasename } from "../../../core/utils/file-path";
+import { createComponentModelDriver, type ComponentModelDriver } from "../../../core/state/model";
 import { DEFAULT_BROWSER_COLOR, TAG_COLORS } from "../../../theme/palette-colors";
 import { IncognitoIcon, TorIcon } from "../../../theme/language-icons";
 import { ButtonView } from "../../../uikit/Button/ButtonView";
@@ -344,6 +344,7 @@ class TorProfileRowView extends VanillaView<TorProfileRowProps> {
 }
 
 export class BrowserProfilesSectionView extends VanillaView<Record<string, never>> {
+    private driver: ComponentModelDriver<BrowserProfilesSectionState, BrowserProfilesSectionProps, BrowserProfilesSectionModel> | undefined;
     private model: BrowserProfilesSectionModel | undefined;
     private profilesList: KeyedList<BrowserProfile, string, HTMLElement> | undefined;
     private profileListHost: HTMLDivElement | undefined;
@@ -360,10 +361,15 @@ export class BrowserProfilesSectionView extends VanillaView<Record<string, never
     }
 
     protected onMount(): void {
-        const model = new BrowserProfilesSectionModel(new TComponentState(defaultBrowserProfilesSectionState));
+        const driver = createComponentModelDriver(
+            this.currentProps(),
+            BrowserProfilesSectionModel,
+            defaultBrowserProfilesSectionState,
+        );
+        this.driver = driver;
+        const model = driver.model;
         this.model = model;
-        model.setPropsInternal(this.currentProps());
-        model._initInternal();
+        this.own(() => driver.dispose());
 
         this.root.append(
             panel({ paddingBottom: "lg" }, text("Browser Profiles", { bold: true, size: "sm" })),
@@ -446,19 +452,21 @@ export class BrowserProfilesSectionView extends VanillaView<Record<string, never
         addPanel.append(colorPanel);
         this.root.append(addPanel);
 
+        driver.mount();
+
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (this.isRelevantSetting(key)) {
-                model.setPropsInternal(this.currentProps());
+                driver.update(this.currentProps());
                 this.sync(model.state.get());
             }
         });
-        this.own(() => subscription.dispose());
-        this.own(() => model.onUnmountInternal());
+        this.own(subscription);
         this.profilesList.update(model.props.profiles);
         this.sync(model.state.get());
     }
 
     protected onDispose(): void {
+        this.driver = undefined;
         this.model = undefined;
         this.profilesList = undefined;
         this.profileListHost = undefined;

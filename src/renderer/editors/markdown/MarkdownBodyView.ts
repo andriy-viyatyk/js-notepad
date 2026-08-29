@@ -113,7 +113,7 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
     private modelSubscription: (() => void) | undefined;
     private hostSubscription: (() => void) | undefined;
     private queueSubscription: (() => void) | undefined;
-    private pageFocusSubscription: { unsubscribe: () => void } | undefined;
+    private pageFocusSubscription: (() => void) | undefined;
     private boundModel: MarkdownEditor | undefined;
     private boundHost: MarkdownEditor["host"] = null;
 
@@ -297,7 +297,7 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
         this.modelSubscription = undefined;
         this.hostSubscription?.();
         this.hostSubscription = undefined;
-        this.pageFocusSubscription?.unsubscribe();
+        this.pageFocusSubscription?.();
         this.pageFocusSubscription = undefined;
         this.model.setContainer(null);
     }
@@ -312,7 +312,7 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
         this.modelSubscription = undefined;
         this.hostSubscription?.();
         this.hostSubscription = undefined;
-        this.pageFocusSubscription?.unsubscribe();
+        this.pageFocusSubscription?.();
         this.pageFocusSubscription = undefined;
         oldModel.setContainer(null);
 
@@ -337,13 +337,13 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
         const generation = this.lifecycleGeneration;
         this.lastProjection = undefined;
         this.applyProjection(selectProjection(model.state.get()));
-        this.modelSubscription = model.state.subscribe(
+        this.modelSubscription = this.ownSubscription(model.state.subscribe(
             (projection) => {
                 if (!this.isCurrent(model, generation)) return;
                 this.applyProjection(projection);
             },
             selectProjection,
-        );
+        ));
     }
 
     private bindToHostIfNeeded(): void {
@@ -360,30 +360,30 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
 
         const model = this.model;
         const generation = this.lifecycleGeneration;
-        this.hostSubscription = host.state.subscribe(
+        this.hostSubscription = this.ownSubscription(host.state.subscribe(
             (projection) => {
                 if (!this.isCurrent(model, generation)) return;
                 this.hostProjection = projection;
                 this.updateMarkdownBlock();
             },
             selectHostProjection,
-        );
+        ));
     }
 
     private bindPageFocus(): void {
         const model = this.model;
         const generation = this.lifecycleGeneration;
-        this.pageFocusSubscription = pagesModel.onFocus.subscribe((page) => {
+        this.pageFocusSubscription = this.ownSubscription(pagesModel.onFocus.subscribe((page) => {
             if (!this.isCurrent(model, generation) || page !== model.page) return;
             Promise.resolve().then(() => {
                 if (!this.isCurrent(model, generation)) return;
                 this.scrollPanel.scrollTop = this.scrollTop;
             });
-        });
+        }));
     }
 
     private subscribeToQueue(): void {
-        this.queueSubscription = this.model.typedQueue.subscribe(this.handleQueueEvent);
+        this.queueSubscription = this.ownSubscription(this.model.typedQueue.subscribe(this.handleQueueEvent));
     }
 
     private applyProjection(projection: MarkdownProjection): void {

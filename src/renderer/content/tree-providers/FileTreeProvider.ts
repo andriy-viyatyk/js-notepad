@@ -5,7 +5,6 @@ import type {
     ICategorySegment,
     IFileLink,
 } from "../../api/types/io.tree";
-import type { ISubscriptionObject } from "../../api/types/events";
 import { copyPathsInto } from "../../core/utils/copy-files";
 import { encodeCategoryLink } from "./tree-provider-link";
 import { encodeGitTreeLink } from "../git-tree-link";
@@ -230,16 +229,16 @@ export class FileTreeProvider implements ITreeProvider {
      * Watch the root directory recursively for changes.
      * Uses a single fs.watch({ recursive: true }) handle — efficient on Windows
      * (ReadDirectoryChangesW). Debounces at 500ms to batch rapid changes.
-     * Returns a subscription object; call unsubscribe() to stop watching.
+     * Returns a disposer to stop watching.
      * Gracefully degrades on failure (network drives, unmounted volumes).
      */
-    watch(callback: () => void): ISubscriptionObject {
+    watch(callback: () => void): () => void {
         try {
             const debouncedCallback = debounce(callback, 500);
             const watcher = nodefs.watch(this.sourceUrl, { recursive: true }, debouncedCallback);
-            return { unsubscribe: () => watcher.close() };
+            return () => watcher.close();
         } catch {
-            return { unsubscribe: () => {} };
+            return () => {};
         }
     }
 }

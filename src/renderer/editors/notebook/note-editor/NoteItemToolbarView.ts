@@ -56,10 +56,8 @@ export class NoteItemToolbarView extends VanillaView<NoteItemToolbarViewProps> {
     protected onMount(): void {
         this.root.append(this.languageButton.root, this.titleHost, this.extrasHost);
         this.languageButton.mount();
-        this.modelUnsubscribe = this.props.model.state.subscribe(() => this.sync());
-        this.selectionUnsubscribe = this.props.model.editor.state.subscribe(() => this.sync());
-        this.own(() => this.modelUnsubscribe?.());
-        this.own(() => this.selectionUnsubscribe?.());
+        this.modelUnsubscribe = this.ownSubscription(this.props.model.state.subscribe(() => this.sync()));
+        this.selectionUnsubscribe = this.ownSubscription(this.props.model.editor.state.subscribe(() => this.sync()));
         this.own(() => this.menu?.dispose());
         this.sync();
     }

@@ -2,7 +2,9 @@ import type { EditorConfig } from "../base/EditorConfig";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { HtmlEditor } from "./HtmlEditor";
 
-// Injected into the previewed HTML. Two capture-phase listeners:
+// Injected into the previewed HTML. The nested browser document owns both listeners
+// until navigation replaces that document; they are not host view/model resources.
+// Two capture-phase listeners:
 //  1. Block <a> navigation inside the preview.
 //  2. On any pointerdown, ping the host (`html:interact`) so it can dismiss open
 //     menus / popovers. The iframe is sandboxed (opaque origin) so its clicks
@@ -38,11 +40,9 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
         this.model.setCaptureElement(this.iframe);
         this.bindToHostIfNeeded();
         this.installMessageListener();
-        this.queueSubscription = this.model.typedQueue.subscribe(() => {
+        this.queueSubscription = this.ownSubscription(this.model.typedQueue.subscribe(() => {
             // Deliberate no-op: drain the focus queue to keep its lifecycle clean.
-        });
-        this.own(() => this.hostSubscription?.());
-        this.own(() => this.queueSubscription?.());
+        }));
     }
 
     protected onUpdate(props: HtmlBodyViewProps): void {
@@ -55,9 +55,9 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
             this.queueSubscription = undefined;
             this.model = props.model;
             this.model.setCaptureElement(this.iframe);
-            this.queueSubscription = this.model.typedQueue.subscribe(() => {
+            this.queueSubscription = this.ownSubscription(this.model.typedQueue.subscribe(() => {
                 // Deliberate no-op: drain the focus queue to keep its lifecycle clean.
-            });
+            }));
         }
 
         this.bindToHostIfNeeded();
@@ -104,10 +104,10 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
         this.boundHost = host;
         if (!host) return;
 
-        this.hostSubscription = host.state.subscribe(
+        this.hostSubscription = this.ownSubscription(host.state.subscribe(
             (content: string) => this.applyContent(content),
             (state) => state.content,
-        );
+        ));
     }
 
     private installMessageListener(): void {
@@ -134,6 +134,6 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
         };
 
         window.addEventListener("message", onMessage);
-        this.own(() => window.removeEventListener("message", onMessage));
+        this.ownSubscription(() => window.removeEventListener("message", onMessage));
     }
 }

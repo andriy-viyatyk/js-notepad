@@ -564,7 +564,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   │   ├── BrowserProfilesSection.ts
 │   │   │   ├── BrowserProfilesSectionModel.ts # Profile CRUD, bookmarks + partition cleanup
 │   │   │   ├── DefaultBrowserSection.ts
-│   │   │   ├── DefaultBrowserSectionModel.ts # Registration status + actions
+│   │   │   ├── DefaultBrowserSection.ts       # Registration status + actions
 │   │   │   ├── McpSection.ts
 │   │   │   ├── McpSectionModel.ts    # MCP/Mneme status, validation + actions
 │   │   │   ├── FileSearchSection.ts
@@ -813,7 +813,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   ├── state.ts        # TOneState, TComponentState, TGlobalState
 │   │   ├── model.ts        # TModel, TDialogModel, TComponentModel, createComponentModelDriver
 │   │   ├── ComponentQueue.ts # Model-to-view event and request/reply mailbox
-│   │   ├── events.ts       # Subscription event system
+│   │   ├── events.ts       # Emitter/Event primitive and named Subscription broadcasts
 │   │   └── index.ts
 │   ├── traits/             # Trait system — drag-and-drop type negotiation
 │   │   ├── traits.ts       # TraitKey<T>, TraitSet, Traited<V>, traited(), isTraited()
@@ -824,6 +824,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── index.ts        # Public exports
 │   ├── utils/              # Utility functions
 │   │   ├── utils.ts        # General helpers
+│   │   ├── DisposableStore.ts # Function-disposer ownership and ordered cleanup
+│   │   ├── scheduling.ts   # Delayer and paint-boundary scheduling helpers
 │   │   ├── parse-utils.ts  # JSON/JSON5 parsing, tryParseJson fallback
 │   │   ├── guard.ts        # guard(label, fn) — run and report failure as a toast
 │   │   ├── csv-utils.ts    # CSV parsing/generation

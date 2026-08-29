@@ -146,7 +146,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     private _host: TextFileModel | null = null;
     private _hostStateUnsub: (() => void) | null = null;
     private _pendingHost: HostDescriptor | undefined = undefined;
-    private _catalogSub: { unsubscribe: () => void } | null = null;
+    private _catalogSub: (() => void) | null = null;
     /** installId of the in-flight download per catalog id (for Cancel). */
     private readonly _activeDownloads = new Map<string, string>();
     /** installIds the user cancelled — so the rejected download isn't shown as an error. */
@@ -154,6 +154,8 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
 
     constructor(state: TComponentState<BoardInfoEditorState>) {
         super(state);
+        this.own(() => this._hostStateUnsub?.());
+        this.own(() => this._catalogSub?.());
         const trait: IContentHostTrait = {
             extractContentHost: (): IContentHost => {
                 const host = this._host;
@@ -259,7 +261,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
             await this.reconcile();
         }
         // Refresh install tiles if the catalog changes while the screen is open (install mode only).
-        this._catalogSub?.unsubscribe();
+        this._catalogSub?.();
         this._catalogSub = rendererEvents[EventEndpoint.ePublishedBoardsUpdated].subscribe(
             () => { if (this.mode === "install") void this.reconcile(); },
         );
@@ -513,7 +515,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
                 });
             }
         } finally {
-            sub.unsubscribe();
+            sub();
             this._activeDownloads.delete(entry.id);
             this._cancelled.delete(installId);
         }
@@ -645,7 +647,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     // ── Dispose ──────────────────────────────────────────────────────────
 
     override async dispose(): Promise<void> {
-        this._catalogSub?.unsubscribe();
+        this._catalogSub?.();
         this._catalogSub = null;
         this._hostStateUnsub?.();
         this._hostStateUnsub = null;

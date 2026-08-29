@@ -1,20 +1,25 @@
 const { ipcRenderer } = require("electron");
 import { settings } from "../../api/settings";
-import { windowClosing, SubscriptionObject } from "../../core/state/events";
+import { windowClosing } from "../../core/state/events";
 import { getPartitionString } from "./BrowserEditorModel";
 import { TorChannel, TorStatus } from "../../../ipc/tor-ipc";
 import { errMessage } from "../../../shared/utils";
 import type { BrowserEditorModel } from "./BrowserEditorModel";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 /** Owns the Tor partition and daemon lifecycle for one browser editor page. */
 export class BrowserTorModel {
     private readonly incognitoId = crypto.randomUUID();
     private readonly torId = crypto.randomUUID();
     private torArmed = false;
-    private readonly windowClosingSub: SubscriptionObject;
+    private readonly disposables = new DisposableStore();
 
     constructor(readonly model: BrowserEditorModel) {
-        this.windowClosingSub = windowClosing.subscribe(() => this.handleWindowClosing());
+        this.disposables.add(windowClosing.subscribe(() => this.handleWindowClosing()));
+        this.disposables.add(() => {
+            ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
+            ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
+        });
     }
 
     /** Electron session partition string, derived from profile state. */
@@ -90,11 +95,9 @@ export class BrowserTorModel {
     };
 
     dispose = () => {
-        this.windowClosingSub.unsubscribe();
+        this.disposables.dispose();
         const s = this.model.state.get();
         if (s.isTor) {
-            ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
-            ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
             ipcRenderer.invoke(TorChannel.stop, this.partition);
         }
     };

@@ -158,14 +158,14 @@ export class CompareEditor extends VanillaView<CompareEditorProps> {
         this.applyLeftProjection(leftProjection);
         this.applyRightProjection(rightProjection);
 
-        this.modelSubscription = model.state.subscribe(
+        this.modelSubscription = this.ownSubscription(model.state.subscribe(
             (projection) => this.applyLeftProjection(projection),
             selectCompareProjection,
-        );
-        this.groupedModelSubscription = groupedModel.state.subscribe(
+        ));
+        this.groupedModelSubscription = this.ownSubscription(groupedModel.state.subscribe(
             (projection) => this.applyRightProjection(projection),
             selectCompareProjection,
-        );
+        ));
     }
 
     private applyLeftProjection(projection: CompareProjection): void {

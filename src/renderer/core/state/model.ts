@@ -1,8 +1,9 @@
 import { IState, TComponentState } from "./state";
+import { DisposableStore } from "../utils/DisposableStore";
 
 /**
  * Slot-by-slot dependency comparison, shared with `uikit/shared/deps-gate.ts` so a vanilla view's
- * change detection is behaviour-identical to `effect()`'s by construction rather than by imitation.
+ * change detection uses the same identity semantics everywhere.
  * A length mismatch counts as changed.
  */
 export function depsChanged(
@@ -13,14 +14,9 @@ export function depsChanged(
     return prev.some((v, i) => !Object.is(v, next[i]));
 }
 
-interface EffectRegistration {
-    callback: () => (() => void) | void;
-    depsFactory: (() => unknown[]) | undefined;
-    prevDeps: unknown[] | undefined;
-    cleanup: (() => void) | undefined;
-    hasRun: boolean;
-}
-
+/**
+ * Cached model computation retained for Epic A; Epic B removes it with the props pump.
+ */
 export interface IMemo<V> {
     readonly value: V;
 }
@@ -32,6 +28,15 @@ export interface IModel<T> {
 export class TModel<T> implements IModel<T> {
     state: IState<T>;
     postCreate?: () => void;
+    private readonly disposables = new DisposableStore();
+
+    protected own(dispose: () => void): void {
+        this.disposables.add(dispose);
+    }
+
+    dispose(): void {
+        this.disposables.dispose();
+    }
 
     constructor(
         modelState: IState<T> | (new (defaultState: T) => IState<T>),
@@ -48,7 +53,6 @@ export class TModel<T> implements IModel<T> {
         } else {
             this.state = modelState;
         }
-        setTimeout(() => this.postCreate?.(), 0);
     }
 }
 
@@ -86,43 +90,14 @@ export class TDialogModel<T = unknown, R = unknown>
 
 export class TComponentModel<T, P> extends TModel<T> {
     props!: P;
-    oldProps?: P;
-    isFirstUse = true;
     isLive = true;
     setProps?: (props: P) => void | Promise<void>;
-    mapProps?: (props: P) => P;
-    onUnmount?: () => void;
     init?(): void;
-    dispose?(): void;
+    dispose(): void {
+        super.dispose();
+    }
 
-    private _effects: EffectRegistration[] = [];
     private _initCalled = false;
-
-    /** Whether init() registered effects that require the React adapter. */
-    get hasRegisteredEffects(): boolean {
-        return this._effects.length > 0;
-    }
-
-    /**
-     * Register a side effect with dependency tracking.
-     * Call in init() to set up effects that react to prop/state changes.
-     *
-     * @param callback - Effect function. May return a cleanup function.
-     * @param depsFactory - Returns dependency array. Effect re-runs when deps change.
-     *   If omitted, effect runs once (like useEffect with []).
-     */
-    effect(
-        callback: () => (() => void) | void,
-        depsFactory?: () => unknown[]
-    ): void {
-        this._effects.push({
-            callback,
-            depsFactory,
-            prevDeps: undefined,
-            cleanup: undefined,
-            hasRun: false,
-        });
-    }
 
     /**
      * Create a cached computation with dependency tracking.
@@ -147,63 +122,25 @@ export class TComponentModel<T, P> extends TModel<T> {
         };
     }
 
-    /** Evaluate all registered effects, running those whose deps changed. */
-    _evaluateEffects = () => {
-        for (const effect of this._effects) {
-            if (!effect.depsFactory) {
-                // No deps — run once only
-                if (!effect.hasRun) {
-                    effect.hasRun = true;
-                    const result = effect.callback();
-                    if (typeof result === "function") {
-                        effect.cleanup = result;
-                    }
-                }
-                continue;
-            }
-
-            const newDeps = effect.depsFactory();
-            if (depsChanged(effect.prevDeps, newDeps)) {
-                // Clean up previous execution
-                effect.cleanup?.();
-                effect.cleanup = undefined;
-
-                // Run effect
-                effect.hasRun = true;
-                const result = effect.callback();
-                if (typeof result === "function") {
-                    effect.cleanup = result;
-                }
-                effect.prevDeps = [...newDeps];
-            }
-        }
-    };
-
     setPropsInternal = (props: P) => {
-        this.oldProps = this.props;
-        this.props = this.mapProps ? this.mapProps(props) : props;
-        this._evaluateEffects();
+        this.props = props;
         return this.setProps?.(this.props);
     };
 
-    /** Called by useComponentModel on first useEffect. */
+    /** Called once when the explicit model driver mounts. */
     _initInternal = () => {
         if (this._initCalled) return;
         this._initCalled = true;
         this.init?.();
-        this._evaluateEffects();
     };
 
     onUnmountInternal = () => {
         this.isLive = false;
-        // Clean up all effects
-        for (const effect of this._effects) {
-            effect.cleanup?.();
-            effect.cleanup = undefined;
+        try {
+            this.dispose();
+        } finally {
+            super.dispose();
         }
-        this._effects = [];
-        this.dispose?.();
-        this.onUnmount?.();
     };
 }
 
@@ -247,11 +184,10 @@ export function createComponentModelDriver<
     model: M | ComponentModelConstructor<T, P, M>,
     defaultState?: T,
 ): ComponentModelDriver<T, P, M> {
-    // The initial prop pump happens at construction, matching useComponentModel. The explicit
-    // driver owns the model from this point onward and does not share it with a React adapter.
+    // The initial prop pump happens at construction. The explicit driver owns the model from
+    // this point onward.
     const controlModel = createModel(model, TComponentState, defaultState);
     controlModel.setPropsInternal(props);
-    controlModel.isFirstUse = false;
 
     let mounted = false;
     let disposed = false;
@@ -266,17 +202,12 @@ export function createComponentModelDriver<
             if (disposed || mounted) return;
             mounted = true;
             controlModel._initInternal();
-            if (controlModel.hasRegisteredEffects) {
-                throw new Error(
-                    `${controlModel.constructor.name} registered effects and cannot be driven by a vanilla lifecycle.`
-                );
-            }
         },
         dispose() {
             if (disposed) return;
             disposed = true;
-            // Unlike an uncommitted React render, an explicit owner must clean up even when
-            // mount() was never called. The model's init() may therefore not have run yet.
+            // An explicit owner must clean up even when mount() was never called. The model's
+            // init() may therefore not have run yet.
             controlModel.onUnmountInternal();
         },
     };

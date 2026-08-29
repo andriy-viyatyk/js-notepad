@@ -90,6 +90,8 @@ export class ForceGraphRenderer {
 
         if (canvas) {
             this.simulation = d3.forceSimulation<GraphNode, GraphLink>([]);
+            // D3 owns the simulation and behavior callbacks until cleanupCanvas();
+            // they are external-object resources, not view/model subscriptions.
             this.simulation.on("tick", this.renderData);
             this.addDrag();
             this.addZoom();
@@ -529,6 +531,7 @@ export class ForceGraphRenderer {
     private addZoom(): void {
         if (!this.canvas) return;
 
+        // D3 owns this zoom behavior and its callback until cleanupCanvas().
         const zoomBehavior = d3Zoom<HTMLCanvasElement, unknown>()
             .scaleExtent([0.1, 12])
             .filter((event) => !this.isDraggingNode && !event.button && event.buttons !== 2)
@@ -546,12 +549,14 @@ export class ForceGraphRenderer {
         const sel = d3.select(this.canvas);
         sel.call(zoomBehavior);
         // Disable d3-zoom's built-in double-click zoom (mouse wheel is sufficient)
+        // This is D3 handler removal, not a registration.
         sel.on("dblclick.zoom", null);
     }
 
     private addDrag(): void {
         if (!this.canvas) return;
 
+        // D3 owns this drag behavior and its callbacks until cleanupCanvas().
         const dragBehavior = d3Drag<HTMLCanvasElement, unknown>()
             .filter((event) => event.button === 0)
             .subject((event) => {

@@ -42,7 +42,6 @@ export default class NotebookCategoriesSecondaryView extends VanillaView<Seconda
             icon: this.props.iconElement,
             title: "Categories",
         });
-        this.own(() => this.stateUnsubscribe?.());
         this.own(() => this.header?.dispose());
         this.updateHeader(this.props);
     }
@@ -90,10 +89,10 @@ export default class NotebookCategoriesSecondaryView extends VanillaView<Seconda
     }
 
     private subscribeToEditor(editor: NotebookEditor): void {
-        this.stateUnsubscribe = editor.state.subscribe(() => {
+        this.stateUnsubscribe = this.ownSubscription(editor.state.subscribe(() => {
             if (this.editor !== editor) return;
             this.tree?.update(this.treeProps(editor));
-        });
+        }));
     }
 
     private treeProps(editor: NotebookEditor): TreeProps<CategoryItem> {

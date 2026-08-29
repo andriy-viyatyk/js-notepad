@@ -169,6 +169,8 @@ class RegisteredTools extends TModel<RegisteredToolsState> {
     dispose(): void {
         this.pathsSub?.();
         this.pathsSub = undefined;
+        // Drain the model's DisposableStore after existing teardown.
+        super.dispose();
     }
 }
 

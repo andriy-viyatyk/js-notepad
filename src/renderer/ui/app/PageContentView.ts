@@ -51,7 +51,7 @@ export class PageContentView extends VanillaView<PageContentProps> {
         const page = pagesModel.query.findPage(this.props.pageId) ?? undefined;
         if (page !== this.page) {
             this.pageSubscription?.();
-            this.pageSubscription = page?.state.subscribe(() => this.sync());
+            this.pageSubscription = page ? this.ownSubscription(page.state.subscribe(() => this.sync())) : undefined;
             this.navSubscription?.();
             this.navSubscription = undefined;
             this.navModel = undefined;
@@ -92,7 +92,7 @@ export class PageContentView extends VanillaView<PageContentProps> {
         if (this.navModel !== nav) {
             this.navSubscription?.();
             this.navModel = nav;
-            this.navSubscription = nav.state.subscribe(() => this.sync());
+            this.navSubscription = this.ownSubscription(nav.state.subscribe(() => this.sync()));
         }
         const state = nav.state.get();
         if (!state.open) {

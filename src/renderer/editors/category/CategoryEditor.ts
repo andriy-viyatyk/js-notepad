@@ -143,10 +143,10 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
         this.pageStateUnsub = undefined;
         this.observedPage = page;
         if (page) {
-            this.pageStateUnsub = page.state.subscribe(
+            this.pageStateUnsub = this.ownSubscription(page.state.subscribe(
                 () => this.syncSurface(),
                 (state) => state.version,
-            );
+            ));
         }
         this.syncSurface();
     }
@@ -300,10 +300,10 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
             this.applySelectedHref(null);
             return;
         }
-        this.hostSelectionUnsub = host.selectionState.subscribe(
+        this.hostSelectionUnsub = this.ownSubscription(host.selectionState.subscribe(
             (href: string | null) => this.applySelectedHref(href),
             (state) => state.selectedHref,
-        );
+        ));
         this.applySelectedHref(host.selectionState.get().selectedHref);
     }
 

@@ -126,10 +126,10 @@ class NavPanelButtonView extends VanillaView<{ model: EditorModel }> {
             this.pageStateUnsubscribe = undefined;
             this.page = page;
             if (page) {
-                this.pageStateUnsubscribe = page.state.subscribe(
+                this.pageStateUnsubscribe = this.ownSubscription(page.state.subscribe(
                     () => this.sync(),
                     (state) => state.version,
-                );
+                ));
             }
         }
 
@@ -143,11 +143,11 @@ class NavPanelButtonView extends VanillaView<{ model: EditorModel }> {
             this.pipeStateUnsubscribe = undefined;
             this.host = textHost;
             if (textHost) {
-                this.hostStateUnsubscribe = textHost.state.subscribe(
+                this.hostStateUnsubscribe = this.ownSubscription(textHost.state.subscribe(
                     () => this.sync(),
                     selectHostFilePath,
-                );
-                this.pipeStateUnsubscribe = textHost.pipeState.subscribe(() => this.sync());
+                ));
+                this.pipeStateUnsubscribe = this.ownSubscription(textHost.pipeState.subscribe(() => this.sync()));
             }
         }
 
@@ -156,10 +156,10 @@ class NavPanelButtonView extends VanillaView<{ model: EditorModel }> {
         if (needsEditorState && this.editorStateModel !== this.model) {
             this.editorStateUnsubscribe?.();
             this.editorStateModel = this.model;
-            this.editorStateUnsubscribe = this.model.state.subscribe(
+            this.editorStateUnsubscribe = this.ownSubscription(this.model.state.subscribe(
                 () => this.sync(),
                 (state) => state.filePath,
-            );
+            ));
         } else if (!needsEditorState && this.editorStateModel !== null) {
             this.editorStateUnsubscribe?.();
             this.editorStateUnsubscribe = undefined;
@@ -261,10 +261,10 @@ export class SwitchWidgetView extends VanillaView<SwitchWidgetViewProps> {
         this.hostStateUnsubscribe = undefined;
         this.host = host;
         if (host) {
-            this.hostStateUnsubscribe = host.state.subscribe(
+            this.hostStateUnsubscribe = this.ownSubscription(host.state.subscribe(
                 () => this.syncSegments(),
                 selectHostSwitchProjection,
-            );
+            ));
         }
     }
 
@@ -273,10 +273,10 @@ export class SwitchWidgetView extends VanillaView<SwitchWidgetViewProps> {
 
         this.catalogUnsubscribe?.();
         this.catalogFileName = fileName;
-        this.catalogUnsubscribe = publishedBoards.subscribeCatalogBoardsForFile(
+        this.catalogUnsubscribe = this.ownSubscription(publishedBoards.subscribeCatalogBoardsForFile(
             fileName,
             () => this.syncSegments(),
-        );
+        ));
     }
 
     private syncSegments(): void {

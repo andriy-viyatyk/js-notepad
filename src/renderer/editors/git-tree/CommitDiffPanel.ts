@@ -134,10 +134,10 @@ export class CommitDiffPanelView extends VanillaView<CommitDiffPanelProps> {
         this.gitTreeStateUnsubscribe?.();
         this.gitTreeStateUnsubscribe = undefined;
         this.boundGitTree = source;
-        this.gitTreeStateUnsubscribe = source.state.subscribe(
+        this.gitTreeStateUnsubscribe = this.ownSubscription(source.state.subscribe(
             () => this.onCommitsChanged(source.state.get().commits),
             (state) => state.commits,
-        );
+        ));
         this.onCommitsChanged(source.state.get().commits);
     }
 

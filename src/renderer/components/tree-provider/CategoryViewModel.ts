@@ -144,23 +144,31 @@ export class CategoryViewModel extends TComponentModel<
     CategoryViewState,
     CategoryViewProps
 > {
+    private previousProvider: ITreeProvider | undefined;
+    private previousCategory: string | undefined;
+    private previousSelectedHref: string | undefined;
+
     /** Shift+click / Shift-range anchor, held as an href rather than an index — the visible
      *  order changes with the search filter, which would silently move an index anchor.
      *  Transient on purpose: it must not trigger a render. */
     private anchorHref: string | null = null;
 
     /** Live-refresh subscription on the provider's optional `watch`. See `subscribeWatch`. */
-    private watchSubscription?: { unsubscribe: () => void };
+    private watchSubscription?: () => void;
+    private watchOwnerRegistered = false;
 
     setProps = () => {
-        // Captured: both flags are reset before the deferred callback below runs.
-        const first = this.isFirstUse;
-        const providerChanged = first || this.oldProps?.provider !== this.props.provider;
+        const props = this.props;
+        const previousProvider = this.previousProvider;
+        const previousCategory = this.previousCategory;
+        const previousSelectedHref = this.previousSelectedHref;
+        const { selectedHref, multiSelect } = props;
+        const first = previousProvider === undefined;
+        const providerChanged = first || previousProvider !== props.provider;
         const navigated = !first && (
-            this.oldProps?.category !== this.props.category
-            || this.oldProps?.provider !== this.props.provider
+            previousCategory !== props.category
+            || previousProvider !== props.provider
         );
-        const { selectedHref, multiSelect } = this.props;
         // The primary item changed from the outside: first render, a new folder, or the
         // Explorer tree navigating. Ctrl/Shift gestures never trigger this — a plain click
         // sets the local set to exactly `[selectedHref]`, so the seed below finds it present
@@ -168,7 +176,11 @@ export class CategoryViewModel extends TComponentModel<
         // snapping it back).
         const seed = multiSelect
             && !!selectedHref
-            && (first || navigated || this.oldProps?.selectedHref !== selectedHref);
+            && (first || navigated || previousSelectedHref !== selectedHref);
+
+        this.previousProvider = props.provider;
+        this.previousCategory = props.category;
+        this.previousSelectedHref = selectedHref;
 
         if (!first && !navigated && !seed) return;
 
@@ -207,19 +219,24 @@ export class CategoryViewModel extends TComponentModel<
      * selection against what still exists.
      */
     private subscribeWatch = () => {
-        this.watchSubscription?.unsubscribe();
+        if (!this.watchOwnerRegistered) {
+            this.watchOwnerRegistered = true;
+            this.own(() => this.watchSubscription?.());
+        }
+        this.watchSubscription?.();
         this.watchSubscription = undefined;
         const provider = this.props.provider as any; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (typeof provider.watch === "function") {
-            this.watchSubscription = provider.watch(() => {
+            const unsubscribe = provider.watch(() => {
                 // A debounced callback can still arrive after the page closed.
                 if (this.isLive) void this.loadItems();
             });
+            this.watchSubscription = unsubscribe;
         }
     };
 
     dispose = () => {
-        this.watchSubscription?.unsubscribe();
+        this.watchSubscription?.();
         this.watchSubscription = undefined;
     };
 

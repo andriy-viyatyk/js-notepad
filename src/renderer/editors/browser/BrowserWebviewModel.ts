@@ -144,7 +144,7 @@ export class BrowserWebviewModel {
 
     /**
      * Navigate the active tab's webview when the tab URL changes.
-     * Called from the view's useEffect when activeTab.url changes.
+     * Called from the view's update path when activeTab.url changes.
      */
     navigateWebview = (activeTabId: string, url: string) => {
         if (url !== this.prevActiveUrl && url !== "about:blank") {
@@ -163,12 +163,12 @@ export class BrowserWebviewModel {
     // IPC Event Handler
     // =====================================================================
 
-    /** Set up the global IPC event listener. Call from useEffect. */
+    /** Set up the global IPC event listener during view mount. */
     initIpcHandler = () => {
         ipcRenderer.on(BrowserChannel.event, this.handleBrowserEvent);
     };
 
-    /** Remove the IPC event listener. Call from useEffect cleanup. */
+    /** Remove the global IPC event listener during view disposal. */
     disposeIpcHandler = () => {
         ipcRenderer.removeListener(BrowserChannel.event, this.handleBrowserEvent);
     };

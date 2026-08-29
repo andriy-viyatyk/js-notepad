@@ -123,7 +123,7 @@ export class VideoEditorView extends VanillaView<{ model: EditorModel }> {
             this.shuffle = value === true;
             this.player.update(this.playerProps(this.surfaceState()));
         });
-        this.own(() => settingsSubscription.dispose());
+        this.own(settingsSubscription);
     }
 
     protected onUpdate(props: { model: EditorModel }): void {

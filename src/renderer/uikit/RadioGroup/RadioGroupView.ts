@@ -87,8 +87,8 @@ export class RadioGroupView extends VanillaView<RadioGroupProps> {
             labelText,
         });
         button.append(stateIcon, labelText);
-        button.addEventListener("click", this.handleItemClick);
-        button.addEventListener("keydown", this.handleItemKeyDown);
+        this.listen(button, "click", this.handleItemClick);
+        this.listen(button, "keydown", this.handleItemKeyDown);
         return button;
     }
 

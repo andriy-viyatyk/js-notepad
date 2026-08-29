@@ -94,7 +94,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         this.model.setElementId(nextElementId("lb"));
 
         // Registration order is load-bearing: disposal runs these FIFO, and the grid and the row
-        // views must go before the driver, whose `onUnmount` reports `onModel(null)` to the host.
+        // views must go before the driver, whose disposal reports `onModel(null)` to the host.
         this.own(() => { this.inert = true; });
         this.own(() => {
             this.grid?.dispose();
@@ -383,15 +383,15 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
      * re-adding them on recycle would stack an unbounded set on every pooled cell.
      */
     private installCellListeners(wrapper: HTMLElement): void {
-        wrapper.addEventListener("click", () => {
+        this.listen(wrapper, "click", () => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemClick(record.index);
         });
-        wrapper.addEventListener("mouseenter", () => {
+        this.listen(wrapper, "mouseenter", () => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemMouseEnter(record.index);
         });
-        wrapper.addEventListener("contextmenu", (event) => {
+        this.listen(wrapper, "contextmenu", (event) => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemContextMenu(event, record.index);
         });

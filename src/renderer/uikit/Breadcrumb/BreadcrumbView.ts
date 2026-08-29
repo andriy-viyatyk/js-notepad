@@ -59,7 +59,7 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
         const rootIsCurrent = segments.length === 0;
         const rootSegment = this.createSegment(rootLabel, "root", rootIsCurrent);
         if (!rootIsCurrent) {
-            rootSegment.addEventListener("click", this.onRootClick);
+            this.listen(rootSegment, "click", this.onRootClick);
         }
         nodes.push(rootSegment);
 
@@ -72,7 +72,7 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
 
             const segmentElement = this.createSegment(segment, "segment", isLeaf);
             if (!isLeaf) {
-                segmentElement.addEventListener("click", () => {
+                this.listen(segmentElement, "click", () => {
                     const path = segments.slice(0, index + 1).join(joinSeparator);
                     const finalPath = trailingParentSeparator
                         ? path + joinSeparator

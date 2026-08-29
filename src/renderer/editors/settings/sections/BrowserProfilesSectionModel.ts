@@ -5,6 +5,7 @@ import { getPartitionString } from "../../browser/BrowserEditorModel";
 import { api } from "../../../../ipc/renderer/api";
 import { BrowserChannel } from "../../../../ipc/browser-ipc";
 import { TAG_COLORS } from "../../../theme/palette-colors";
+import { createDepsGate, type DepsGate } from "../../../uikit/shared/deps-gate";
 
 const { ipcRenderer } = require("electron");
 
@@ -28,14 +29,21 @@ export type BrowserProfilesSectionState = typeof defaultBrowserProfilesSectionSt
 /** Owns profile mutations and asynchronous profile-data/bookmark operations. */
 export class BrowserProfilesSectionModel extends TComponentModel<BrowserProfilesSectionState, BrowserProfilesSectionProps> {
     private clearedTimer: ReturnType<typeof setTimeout> | undefined;
-    init() {
-        this.effect(
-            () => {
-                this.state.update((state) => { state.torPortValue = String(this.props.torSocksPort); });
-            },
-            () => [this.props.torSocksPort],
-        );
+    private initialized = false;
+    private readonly torSocksPortGate: DepsGate = createDepsGate();
+
+    init(): void {
+        this.state.update((state) => { state.torPortValue = String(this.props.torSocksPort); });
+        this.torSocksPortGate.prime([this.props.torSocksPort]);
+        this.initialized = true;
     }
+
+    setProps = (props: BrowserProfilesSectionProps): void => {
+        if (!this.initialized) return;
+        if (this.torSocksPortGate.changed([props.torSocksPort])) {
+            this.state.update((state) => { state.torPortValue = String(props.torSocksPort); });
+        }
+    };
 
     setNewName = (newName: string) => this.state.update((state) => { state.newName = newName; });
     setNewColor = (newColor: string) => this.state.update((state) => { state.newColor = newColor; });

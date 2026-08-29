@@ -57,6 +57,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         super(new TComponentState(defaultScriptPanelState));
         this.pageModel = pageModel;
         this.unsubscribe = this.state.subscribe(this.saveStateDebounced);
+        this.own(this.unsubscribe);
     }
 
     restore = async (id: string) => {
@@ -88,9 +89,9 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
     private saveStateDebounced = debounce(this.saveState, 300);
 
     dispose = () => {
-        this.unsubscribe?.();
         this.cleanupEditor();
         this.editorRef = null;
+        super.dispose();
     }
 
     handleEditorWillUnmount = () => {

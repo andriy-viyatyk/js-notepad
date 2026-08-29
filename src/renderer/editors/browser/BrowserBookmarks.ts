@@ -8,6 +8,7 @@ import { BrowserPanelHost } from "./BrowserPanelHost";
 import { EditorView } from "../../../shared/types";
 import { shell } from "../../api/shell";
 import { ui } from "../../api/ui";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 export class BrowserBookmarks {
     readonly textFileHost: TextFileModel;
@@ -16,6 +17,7 @@ export class BrowserBookmarks {
      *  browser empty page + bookmarks drawer (US-601). */
     readonly panelHost = new BrowserPanelHost();
     private saveDebounced = debounce(() => this.textFileHost.saveFile(), 300);
+    private readonly subscriptions = new DisposableStore();
 
     constructor(filePath: string) {
         const state = {
@@ -71,11 +73,11 @@ export class BrowserBookmarks {
         // onDataChangedDebounced writes serialized state back to
         // host.changeContent which flips host.state.modified — that's the
         // trigger we watch here.
-        this.textFileHost.state.subscribe(() => {
+        this.subscriptions.add(this.textFileHost.state.subscribe(() => {
             if (this.textFileHost.state.get().modified) {
                 this.saveDebounced();
             }
-        });
+        }));
         return true;
     }
 
@@ -87,6 +89,7 @@ export class BrowserBookmarks {
         // ref-counting needed.
         this.panelHost.dispose();
         await this.linkEditor.dispose();
+        this.subscriptions.dispose();
     }
 
     /** Check if a URL exists in the bookmarks. */

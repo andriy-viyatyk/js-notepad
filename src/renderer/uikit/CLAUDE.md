@@ -338,7 +338,7 @@ The pattern moves state transitions and reusable logic into a model; the `Vanill
 native listeners, bindings, and disposal. See the standard doc for the full pattern, including:
 
 - `TComponentState` — the state primitive
-- `TComponentModel` — the base class with `init()`, `dispose()`, `effect()`, `memo()`
+- `TComponentModel` — the base class with `init()`, `dispose()`, and `memo()`
 - `createComponentModelDriver(props, ModelClass, defaultState)` — the explicit native lifecycle driver
 
 ### Naming and file layout
@@ -425,10 +425,9 @@ exports from `uikit/index.ts`.
 - Store DOM references on the view and clear them during disposal. `bind` is for synchronized
   state-to-DOM projections; direct DOM work remains appropriate for structure, input feedback,
   attributes, focus, measurement, and other imperative operations.
-- A vanilla-driven model uses `createComponentModelDriver` and registers no
-  `TComponentModel.effect()` entries. Move behavior to explicit model methods, `setProps`, view
-  lifecycle hooks, or cancellable async work. Keep prop-to-state seeding behind an identity guard
-  in `setProps`, because prop pumping runs on every update.
+- A vanilla-driven model uses `createComponentModelDriver`. Move behavior to explicit model
+  methods, `setProps`, view lifecycle hooks, or cancellable async work. Keep prop-to-state seeding
+  behind an identity guard in `setProps`, because prop pumping runs on every update.
 
 #### The one exemption from the state primitives
 
@@ -447,10 +446,9 @@ to observe the engine rather than command it, the answer is another registered c
 options — as `onResize` and `onInnerSizeChange` already are — never a store bolted onto the model.
 Every other component in this folder uses the state primitives; do not generalise from this one.
 
-#### Replacing `effect()` in a vanilla-driven model
+#### Prop-change detection in a vanilla-driven model
 
-`createComponentModelDriver` refuses to mount a model that registered any `effect()`, but the
-question an effect answered — "did any of these inputs move?" — does not go away. The answer is
+The question "did any of these inputs move?" does not go away. The answer is
 `uikit/shared/deps-gate.ts`: the **model** publishes a fixed-length signature of everything its
 rendered output reads, and the **host view** holds a `DepsGate` and calls it once, at the end of
 `onUpdate`, after the driver has pumped props. `ListBoxModel.repaintSignature()` is the reference

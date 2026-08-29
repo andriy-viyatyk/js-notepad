@@ -28,7 +28,7 @@ interface TabProjection {
 interface PageLayoutSubscription {
     page: PageModel;
     editor: EditorOrHost | null;
-    unsubscribe: () => void;
+    release: () => void;
 }
 
 export class PageTabsView extends VanillaView<object> {
@@ -91,13 +91,13 @@ export class PageTabsView extends VanillaView<object> {
         this.own(() => this.resizeObserver?.disconnect());
         this.own(() => this.tabs.dispose());
         this.own(() => {
-            for (const subscription of this.pageLayoutSubscriptions.values()) subscription.unsubscribe();
+            for (const subscription of this.pageLayoutSubscriptions.values()) subscription.release();
             this.pageLayoutSubscriptions.clear();
         });
         const settingsSubscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "browser-profiles" || key === "pinned-editors") this.updateAddMenu();
         });
-        this.own(() => settingsSubscription.dispose());
+        this.own(settingsSubscription);
         this.own(subscribeBoardIconChanges(() => this.updateAddMenu()));
         this.bind(
             pagesModel.state,
@@ -156,20 +156,20 @@ export class PageTabsView extends VanillaView<object> {
         const presentIds = new Set(pages.map((page) => page.id));
         for (const [pageId, subscription] of this.pageLayoutSubscriptions) {
             if (presentIds.has(pageId)) continue;
-            subscription.unsubscribe();
+            subscription.release();
             this.pageLayoutSubscriptions.delete(pageId);
         }
         for (const page of pages) {
             const editor = page.mainEditor;
             const previous = this.pageLayoutSubscriptions.get(page.id);
             if (previous?.page === page && previous.editor === editor) continue;
-            previous?.unsubscribe();
+            previous?.release();
             const pageUnsubscribe = page.state.subscribe(() => this.refreshTabLayout());
             const editorUnsubscribe = editor?.state.subscribe(() => this.refreshTabLayout());
             this.pageLayoutSubscriptions.set(page.id, {
                 page,
                 editor,
-                unsubscribe: () => {
+                release: () => {
                     pageUnsubscribe();
                     editorUnsubscribe?.();
                 },

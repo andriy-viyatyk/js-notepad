@@ -79,9 +79,9 @@ class PathSuggestionContentView extends VanillaView<PathSuggestionContentProps> 
         row.dataset.part = "suggestion-row";
         this.rowElements.add(row);
         this.rowMeta.set(row, { item, index });
-        row.addEventListener("mousedown", this.onRowMouseDown);
-        row.addEventListener("click", this.onRowClick);
-        row.addEventListener("mouseenter", this.onRowMouseEnter);
+        this.listen(row, "mousedown", this.onRowMouseDown);
+        this.listen(row, "click", this.onRowClick);
+        this.listen(row, "mouseenter", this.onRowMouseEnter);
         return row;
     }
 

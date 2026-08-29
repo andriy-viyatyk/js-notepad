@@ -1,4 +1,5 @@
 import { TDialogModel } from "../../core/state/model";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
@@ -30,8 +31,6 @@ export class InputDialogView extends VanillaView<DialogViewProps> {
     private readonly buttonsPanel: HTMLDivElement;
     private readonly radioGroupView: RadioGroupView | undefined;
     private readonly buttonViews = new Map<number, ButtonView>();
-    private focusTimer: ReturnType<typeof setTimeout> | undefined;
-    private viewDisposed = false;
 
     public constructor(props: DialogViewProps) {
         const model = props.model as InputDialogModel;
@@ -135,22 +134,9 @@ export class InputDialogView extends VanillaView<DialogViewProps> {
                 });
             });
         }
-        this.scheduleFocus();
-    }
-
-    protected onDispose(): void {
-        this.viewDisposed = true;
-        if (this.focusTimer !== undefined) clearTimeout(this.focusTimer);
-        this.focusTimer = undefined;
-    }
-
-    private scheduleFocus(): void {
-        this.focusTimer = setTimeout(() => {
-            this.focusTimer = undefined;
-            if (this.viewDisposed || !this.inputElement) return;
-            if (this.model.state.get().selectAll) this.inputElement.select();
-            else this.inputElement.focus();
-        }, 0);
+        this.own(focusAfterPaint(this.inputElement, {
+            select: () => this.model.state.get().selectAll,
+        }));
     }
 
     private syncButtons(buttons: string[]): void {

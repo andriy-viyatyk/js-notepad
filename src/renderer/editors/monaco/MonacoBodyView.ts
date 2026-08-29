@@ -119,11 +119,11 @@ export class MonacoBodyView extends VanillaView<{ model: MonacoEditor }> {
             },
             selectHostSlice,
         );
-        this.hostSubscription = unsubscribe;
-        this.own(() => {
+        const release = this.ownSubscription(() => {
             unsubscribe();
-            if (this.hostSubscription === unsubscribe) this.hostSubscription = undefined;
+            if (this.hostSubscription === release) this.hostSubscription = undefined;
         });
+        this.hostSubscription = release;
         this.syncHost(selectHostSlice(host.state.get()));
     }
 
@@ -155,11 +155,11 @@ export class MonacoBodyView extends VanillaView<{ model: MonacoEditor }> {
 
         const queue = this.model.typedQueue;
         const unsubscribe = queue.subscribe(this.handleQueueEvent);
-        this.queueSubscription = unsubscribe;
-        this.own(() => {
+        const release = this.ownSubscription(() => {
             unsubscribe();
-            if (this.queueSubscription === unsubscribe) this.queueSubscription = undefined;
+            if (this.queueSubscription === release) this.queueSubscription = undefined;
         });
+        this.queueSubscription = release;
 
         const unregister = queue.register(this.handleQueueRequest);
         this.requestSubscription = unregister;

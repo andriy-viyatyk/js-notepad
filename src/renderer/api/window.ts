@@ -60,6 +60,8 @@ export class Window implements IWindow {
             });
         } catch { /* MCP may not be enabled */ }
 
+        // App bootstrap owns the shared window-state listener for the renderer lifetime;
+        // it is not a view/model resource.
         rendererEvents.eMcpStatusChanged.subscribe((status) => {
             this._state.update(s => {
                 s.mcpRunning = status.running;

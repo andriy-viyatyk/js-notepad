@@ -277,7 +277,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         if (!record) {
             record = { row };
             this.cellRecords.set(cell, record);
-            cell.addEventListener("click", () => {
+            const onCellClick = () => {
                 if (!this.live || !record?.row) return;
                 const current = record.row;
                 if (current.type === "file") {
@@ -285,7 +285,9 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
                 } else {
                     this.props.onResultClick?.(current.filePath, current.lineNumber);
                 }
-            });
+            };
+            cell.addEventListener("click", onCellClick);
+            this.ownSubscription(() => cell.removeEventListener("click", onCellClick));
         }
         record.row = row;
         applyCellStyle(
@@ -309,11 +311,14 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
             record.kind = "file";
             record.chevron = document.createElement("span");
             record.chevron.className = "fs-file-icon";
-            record.chevron.addEventListener("click", (event) => {
+            const chevron = record.chevron;
+            const onChevronClick = (event: MouseEvent) => {
                 event.stopPropagation();
                 if (!this.live || record.row?.type !== "file") return;
                 this.model.toggleFileExpanded(record.row.filePath);
-            });
+            };
+            chevron.addEventListener("click", onChevronClick);
+            this.ownSubscription(() => chevron.removeEventListener("click", onChevronClick));
             record.fileName = document.createElement("span");
             record.fileName.className = "fs-file-name";
             record.matchCount = document.createElement("span");

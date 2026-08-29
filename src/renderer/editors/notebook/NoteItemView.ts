@@ -41,6 +41,8 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
     private readonly expandButton: IconButtonView;
     private readonly deleteButton: IconButtonView;
     private stateUnsubscribe: (() => void) | undefined;
+    private releaseTagListeners: (() => void) | undefined;
+    private releaseCommentListener: (() => void) | undefined;
     private categoryInput: PathInputView | undefined;
     private newTagInput: PathInputView | undefined;
     private editingTagInput: PathInputView | undefined;
@@ -101,8 +103,7 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         this.activeEditor.mount();
         this.expandButton.mount();
         this.deleteButton.mount();
-        this.stateUnsubscribe = this.model.state.subscribe(() => this.sync());
-        this.own(() => this.stateUnsubscribe?.());
+        this.stateUnsubscribe = this.ownSubscription(this.model.state.subscribe(() => this.sync()));
         this.sync();
     }
 
@@ -265,6 +266,9 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
     }
 
     private syncTags(state: ReturnType<NoteItemViewModel["state"]["get"]>): void {
+        this.releaseTagListeners?.();
+        this.releaseTagListeners = undefined;
+
         this.newTagInput && !state.addingTag && this.releaseChild(this.newTagInput);
         if (!state.addingTag) this.newTagInput = undefined;
         if (state.addingTag && !this.newTagInput) {
@@ -290,19 +294,28 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
             this.editingTagInput.mount();
         }
 
+        const listeners: Array<() => void> = [];
         this.tagsContainer.replaceChildren();
         if (this.newTagInput) this.tagsContainer.append(this.newTagInput.root);
-        else this.tagsContainer.append(this.createTagAddButton());
+        else this.tagsContainer.append(this.createTagAddButton(listeners));
         for (let index = this.model.props.note.tags.length - 1; index >= 0; index--) {
             if (activeIndex === index && this.editingTagInput) {
                 this.tagsContainer.append(this.editingTagInput.root);
             } else {
-                this.tagsContainer.append(this.createTagElement(this.model.props.note.tags[index], index));
+                this.tagsContainer.append(this.createTagElement(this.model.props.note.tags[index], index, listeners));
             }
+        }
+        if (listeners.length > 0) {
+            this.releaseTagListeners = this.ownSubscription(() => {
+                listeners.forEach((dispose) => dispose());
+            });
         }
     }
 
     private syncComment(note: NoteItem): void {
+        this.releaseCommentListener?.();
+        this.releaseCommentListener = undefined;
+
         if (note.comment !== undefined) {
             const props = {
                 variant: "ghost" as const, size: "sm" as const, value: note.comment,
@@ -327,11 +340,13 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         add.style.cursor = "pointer";
         add.style.color = color.text.light;
         add.style.transition = "opacity 0.5s ease";
-        add.addEventListener("click", () => this.props.onAddComment?.(this.props.note.id));
+        const onAdd = (): void => this.props.onAddComment?.(this.props.note.id);
+        add.addEventListener("click", onAdd);
+        this.releaseCommentListener = this.ownSubscription(() => add.removeEventListener("click", onAdd));
         this.commentHost.replaceChildren(add);
     }
 
-    private createTagAddButton(): HTMLSpanElement {
+    private createTagAddButton(listeners: Array<() => void>): HTMLSpanElement {
         const element = document.createElement("span");
         element.title = "Add tag";
         element.style.display = "inline-flex";
@@ -344,10 +359,11 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         element.style.backgroundColor = color.background.dark;
         element.append(iconElement(PlusIcon, 12, 12));
         element.addEventListener("click", this.model.handleAddTagClick);
+        listeners.push(() => element.removeEventListener("click", this.model.handleAddTagClick));
         return element;
     }
 
-    private createTagElement(tag: string, index: number): HTMLSpanElement {
+    private createTagElement(tag: string, index: number, listeners: Array<() => void>): HTMLSpanElement {
         const element = document.createElement("span");
         element.style.display = "inline-flex";
         element.style.alignItems = "center";
@@ -367,9 +383,13 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         close.style.marginLeft = "2px";
         close.style.marginRight = "-3px";
         close.append(iconElement(CloseIcon, 12, 12));
-        close.addEventListener("click", (event) => this.model.handleTagDelete(event, index));
+        const onDelete = (event: MouseEvent): void => this.model.handleTagDelete(event, index);
+        close.addEventListener("click", onDelete);
+        listeners.push(() => close.removeEventListener("click", onDelete));
         element.append(label, close);
-        element.addEventListener("click", () => this.model.handleTagClick(index));
+        const onEdit = (): void => this.model.handleTagClick(index);
+        element.addEventListener("click", onEdit);
+        listeners.push(() => element.removeEventListener("click", onEdit));
         return element;
     }
 

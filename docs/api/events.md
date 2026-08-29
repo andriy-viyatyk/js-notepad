@@ -4,7 +4,7 @@
 
 Application event channels for scripting integration. Subscribe to events to add custom context menu items, modify bookmark dialogs, trigger custom open behavior, and more.
 
-Subscriptions are **auto-cleaned** when the script finishes — no manual `unsubscribe()` needed (though you can call it earlier if desired).
+Subscriptions are **auto-cleaned** when the script finishes. Each `subscribe()` call also returns a cleanup function for stopping that subscription earlier.
 
 ```javascript
 // Add a custom context menu item for package.json files
@@ -200,7 +200,7 @@ Every event channel exposes the same interface for subscribing and sending event
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `subscribe(handler)` | `ISubscriptionObject` | Register a handler. Newest subscribers run first in `sendAsync` (LIFO order). |
+| `subscribe(handler)` | `() => void` | Register a handler and return a cleanup function. Newest subscribers run first in `sendAsync` (LIFO order). |
 | `send(event)` | `void` | Fire an event synchronously. Subscribers run in registration order (FIFO). The event object is frozen — subscribers can observe but not modify it. |
 | `sendAsync(event)` | `Promise<boolean>` | Fire an event asynchronously. Subscribers run in LIFO order (newest first), each awaited in turn. Subscribers can modify the event. Stops early if `event.handled` is set to `true`. |
 
@@ -229,19 +229,18 @@ app.events.openLink.subscribe((event) => {
 
 Because `sendAsync()` runs subscribers in LIFO order (newest first), a script that subscribes and then sends will have its handler run before any built-in handlers.
 
-### ISubscriptionObject
+### Stopping a subscription
 
-| Method | Description |
-|--------|-------------|
-| `unsubscribe()` | Remove this handler from the channel. |
+Call the cleanup function returned by `subscribe()` to remove the handler early. Subscriptions are
+also cleaned up automatically when the script ends.
 
 ```javascript
-const sub = app.events.fileExplorer.itemContextMenu.subscribe((event) => {
+const release = app.events.fileExplorer.itemContextMenu.subscribe((event) => {
     // handle event
 });
 
-// Optional — unsubscribe early (auto-cleaned on script end regardless)
-sub.unsubscribe();
+// Optional — stop listening early
+release();
 ```
 
 ---

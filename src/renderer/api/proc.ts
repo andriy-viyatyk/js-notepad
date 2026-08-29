@@ -73,6 +73,8 @@ export const proc: IProc = {
                 send: (channel, msg) =>
                     ipcRenderer.sendMessage(channel as unknown as never, msg as never),
                 subscribe: (deliver) => {
+                    // Each execute handle owns these IPC listeners until its job settles
+                    // or the handle is released; no view/model owns the stream transport.
                     const offs = INBOUND.map((channel) =>
                         ipcRenderer.on(channel as unknown as never, (msg: RunnerInboundMsg) => {
                             if (msg.jobId === jobId) deliver(channel, msg);

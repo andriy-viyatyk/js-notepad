@@ -4,6 +4,87 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-075 — [Post-De-React Epic A: core contracts](EPIC-075.md)
+
+**Completed 2026-08-29. All four closing statements hold, one of them with its instrument rewritten.**
+Seven tasks, ~173 changed paths. `core/state/model.ts` lost **100 lines net**: `effect`,
+`EffectRegistration`, `_evaluateEffects`, `hasRegisteredEffects`, `mapProps`, `onUnmount`,
+`isFirstUse`, `oldProps`, the driver's throw branch, and the `postCreate` constructor timer every
+model in the app paid for. `TComponentModel` ends as `props` + `setProps` + `init` + `dispose` +
+`memo`. Renderer-wide: `this.effect(` **0**, `*Internal` callers outside `core/state/` **0**,
+`isFirstUse`/`oldProps` **0**, `.unsubscribe()` **0**. `AppEvent` and `SubscriptionObject` deleted.
+New: `core/utils/DisposableStore.ts` and `core/utils/scheduling.ts` (`Delayer`, `afterPaint`,
+`focusAfterPaint`). `memo`/`IMemo` survive by decision (A-3), annotated for Epic B.
+
+**Its largest finding is that the epic's own claims were the least reliable thing in it.** Five of
+its stated facts did not survive contact with the code, and every one was inferred from shape rather
+than observed:
+
+1. **A-4 called the two `window` `"message"` listeners "real leaks … with no registered removal",
+   and made that the justification for scoping US-1197 as a fix.** Neither leaked:
+   `html/HtmlBodyView.ts` already used `this.own(...)`, and `board/BoardWebview.ts` cleared a
+   `messageUnsubscribe` field in `onDispose()`.
+2. **A-4 called the five dialog focus timers copies of "the same" timer.** All five already cleared
+   on disposal, and two behave differently — `InputDialogView` *selects* rather than focuses, and
+   `CreateBoardDialogView` chooses between two inputs from a mount-time snapshot. US-1198 is
+   deduplication, not a leak fix.
+3. **The zero-delay `setTimeout` census was 28, not "~11"** — 23 remain for R8.
+4. **A-2's own correction was incomplete.** It recorded two teardown shapes; there were **three** —
+   `settings.onChanged` goes through `wrapSubscription` and exposed `{ dispose }`. Fixing only
+   `Subscription` would have left statement 4 false while looking done.
+5. **A-4's instruction for US-1194 was wrong.** It said to assign the replacement previous-value
+   field "at the **end** of `setProps`". `oldProps` is written unconditionally on every pump, but
+   `CategoryViewModel.setProps` has an early return: with `multiSelect` off, `selectedHref` moving
+   A → B takes that return and an end-assigned snapshot sticks at A, firing a selection seed later
+   that `oldProps` never would. All three conversions use **capture → compare → immediately assign**,
+   which is equivalent on every path by construction.
+
+**Statement 3's instrument had to be rewritten mid-epic, and the correction generalises.** It
+demanded "zero `private *Unsubscribe` / `*Subscription` teardown fields remain in views". **85
+remain, and that is correct** — the rebindable US-1152 pattern the epic itself mandates *requires*
+holding the release handle in a field (`this.pageStateUnsubscribe = this.ownSubscription(...)`).
+Driving the count to zero would mean deleting the ability to rebind. A-5 had already warned the
+field count *undercounts* (a differently-named field or a closure passes); it also **overcounts**, by
+scoring the prescribed pattern as a defect. The clause was struck and completion measured by a
+**354-site semantic census** built from `.subscribe(` / `.watch(` / `.on(` / `addEventListener(` call
+sites: **62 already owned, 198 converted, 94 deliberately unowned** — every exception carrying a
+source comment naming its owner. *A census keyed to how a construct is stored is not a census of the
+construct.*
+
+**Three silent-behaviour changes were caught in plan review, none of which would have failed a
+build.** (a) `onUnmountInternal` runs its cleanup loop *before* `dispose()`, and that loop was the
+only thing unsubscribing `eMcpStatusChanged`/`eMnemeStatusChanged` — with `_effects` empty it does
+nothing, leaking one listener per Settings open/close; `GitIntegrationModel` had **no** `dispose()`
+at all while its `setProbe` has no liveness guard. (b) `CustomEvent.detail` is **`null`** when
+nothing is sent, where a plain listener array passes `undefined` — `Subscription.send()` now
+normalizes. (c) DOM `dispatchEvent` surfaces a listener throw as an **uncaught** error; a naive
+`catch`/`console.error` would have preserved dispatch while silently downgrading error visibility,
+so `Emitter` re-throws asynchronously. A fourth was avoided by measurement rather than reasoning:
+the plan would have rewritten eight models whose `dispose` is a class-field arrow into prototype
+methods, and compiling that exact shape against `target: ESNext` showed it is accepted —
+`super.dispose()` from inside the field arrow included.
+
+**Scope discipline held in two places.** `RunOnceScheduler` and `Throttler` were dropped for having
+no call site — `Delayer` shipped only because its caller (`GraphLegendModel.scheduleDescription`)
+was converted with it. And US-1197 was split into two separately verified deliveries (11 behavioural
+sites, then the 198-site sweep) rather than one 218-site diff, with 62 already-correct `own(...)`
+calls left un-renamed so the sweep stayed reviewable.
+
+**Verified by use, not by grep**, across full renderer reloads: the `EventChannel.sendAsync` LIFO
+short-circuit driven end-to-end through `openRawLink` (page created, `handled === true`); Settings'
+MCP/Mneme/Git/Tor-port gates including same-value no-ops and unrelated-key isolation; page
+create/dispose cycles; menu reopen; tree expansion surviving a rebuild; notebook `syncTags`
+re-attach proven by removing a second tag from the *rebuilt* DOM; and four of the five focus dialogs.
+
+**Accepted unverified at close**, recorded with repro steps in the epic's Notes: the `selectedHref`
+reveal inside an Explorer editor (the virtualized tree defeated every DOM instrument tried), Browser
+Profiles add/remove/clear, `CreateBoardDialogView`'s two-input branch, toggling `mcp.enabled` (it
+severs the agent's own MCP transport), Default Browser registration, the Tor dialog's explicit
+`postCreate()`, `afterPaint`'s 100 ms fallback in a non-painting window, and `ComponentQueue`
+request/reply under a real editor workload.
+
+---
+
 ## EPIC-074 — [De-React Epic F: React confined](EPIC-074.md)
 
 **Completed 2026-08-28. The De-React programme is finished.** `react` and `react-dom` are importable

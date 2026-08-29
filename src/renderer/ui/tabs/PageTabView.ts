@@ -98,7 +98,7 @@ export class PageTabView extends VanillaView<PageTabProps> {
     private pinnedTooltip: TooltipAttachment | undefined;
     private editorUnsubscribe: () => void = () => undefined;
     private iconUnsubscribe: (() => void) | undefined;
-    private languageSettingsSubscription: { dispose(): void } | undefined;
+    private languageSettingsSubscription: (() => void) | undefined;
     private languageIconCleanup: (() => void) | undefined;
     private closeIconCleanup: (() => void) | undefined;
     private emptyIconCleanup: (() => void) | undefined;
@@ -168,10 +168,9 @@ export class PageTabView extends VanillaView<PageTabProps> {
         });
         this.iconUnsubscribe = subscribeFileIconElements(() => this.updateIcons());
         this.own(() => this.iconUnsubscribe?.());
-        this.languageSettingsSubscription = settings.onChanged.subscribe(({ key }) => {
+        this.languageSettingsSubscription = this.ownSubscription(settings.onChanged.subscribe(({ key }) => {
             if (key === "tab-recent-languages") this.updateLanguageMenu();
-        });
-        this.own(() => this.languageSettingsSubscription?.dispose());
+        }));
         this.bind(
             this.props.model.state,
             (state) => ({ pinned: state.pinned, mainEditorId: state.mainEditorId }),
@@ -228,9 +227,9 @@ export class PageTabView extends VanillaView<PageTabProps> {
         this.projection = emptyEditorProjection;
         if (editor) {
             this.projection = selectEditorState(editor.state.get() as EditorTabState);
-            this.editorUnsubscribe = editor.state.subscribe(
+            this.editorUnsubscribe = this.ownSubscription(editor.state.subscribe(
                 () => this.applyEditorProjection(selectEditorState(editor.state.get() as EditorTabState)),
-            );
+            ));
         }
         this.updateView();
     }

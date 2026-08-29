@@ -248,5 +248,7 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
 
     // --- lifecycle ---
 
-    init() {}
+    init() {
+        this.own(() => this.cancelResize());
+    }
 }

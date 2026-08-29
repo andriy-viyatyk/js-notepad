@@ -101,8 +101,10 @@ export function showTorInfoDialog(partition: string) {
             note: "",
         }),
     );
-    return showDialog({
+    const result = showDialog({
         viewId: torInfoDialogId,
         model,
-    }) as Promise<void>;
+    });
+    model.postCreate?.();
+    return result as Promise<void>;
 }

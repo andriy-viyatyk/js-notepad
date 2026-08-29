@@ -56,7 +56,7 @@ export class TrustedBoardsListView extends VanillaView<TrustedBoardsListProps> {
         const settingsSubscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "pinned-editors") this.refresh();
         });
-        this.own(() => settingsSubscription.dispose());
+        this.own(settingsSubscription);
 
         this.refresh();
         void boardTrust.load().then(this.refreshIfAlive, this.refreshIfAlive);

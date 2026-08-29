@@ -2,7 +2,6 @@ import { EditorModel, type EditorStateBase, type RestoreData } from "../base/Edi
 import { MemoryIcon } from "../../theme/icons";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import type { IPageHost } from "../../api/pages/IPageHost";
-import type { ISubscriptionObject } from "../../api/types/events";
 import type { EditorDescriptor } from "../../../shared/persistence";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import { mnemeConnection } from "../../api/mneme-connection";
@@ -142,7 +141,7 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
     treeState: TreeProviderViewSavedState | undefined = undefined;
 
     /** Connection-status subscription, so a late connection self-resolves. */
-    private _statusSub: ISubscriptionObject | null = null;
+    private _statusSub: (() => void) | null = null;
 
     getIconElement = (): SVGElement | undefined => MemoryIcon.createElement({ color: MEMORY_ICON_COLOR });
 
@@ -389,7 +388,7 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
     }
 
     async dispose(): Promise<void> {
-        this._statusSub?.unsubscribe();
+        this._statusSub?.();
         this._statusSub = null;
         this.treeProvider?.dispose();
         this.treeProvider = null;

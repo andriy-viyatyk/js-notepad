@@ -111,8 +111,6 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
         this.overlaySpinner.mount();
         this.applyProjection(selectMermaidProjection(this.model.state.get()));
         this.subscribeToModel();
-        this.own(() => this.modelSubscription?.());
-        this.own(() => this.queueSubscription?.());
         this.own(() => this.contentSwap.dispose());
     }
 
@@ -131,13 +129,13 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
     }
 
     private subscribeToModel(): void {
-        this.modelSubscription = this.model.state.subscribe(
+        this.modelSubscription = this.ownSubscription(this.model.state.subscribe(
             (projection) => this.applyProjection(projection),
             selectMermaidProjection,
-        );
-        this.queueSubscription = this.model.typedQueue.subscribe(() => {
+        ));
+        this.queueSubscription = this.ownSubscription(this.model.typedQueue.subscribe(() => {
             // PV8: deliberate no-op; drain the focus queue to keep its lifecycle clean.
-        });
+        }));
     }
 
     private unsubscribeFromModel(): void {

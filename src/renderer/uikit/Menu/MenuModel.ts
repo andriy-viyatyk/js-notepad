@@ -82,22 +82,26 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
 
     // --- internal timer (not state — flipping it must not re-render) ---
     private subTimerId: number | null = null;
+    private previousOpen: boolean | undefined;
+    private previousItems: MenuItem[] | undefined;
 
     /** Prop-driven state transitions replace the former React-timed effects. */
     setProps = (): void => {
-        const previous = this.oldProps;
         const props = this.props;
-        const opening = props.open && previous?.open !== true;
-        const closing = !props.open && previous?.open === true;
-        const itemsChanged = previous?.items !== props.items;
+        const previousOpen = this.previousOpen;
+        const previousItems = this.previousItems;
+        const opening = props.open && previousOpen !== true;
+        const closing = !props.open && previousOpen === true;
+        const itemsChanged = previousItems !== props.items;
+        const reset = closing || (!props.open && (previousOpen === undefined || itemsChanged));
 
-        if (closing || (!props.open && (previous === undefined || itemsChanged))) {
+        this.previousOpen = props.open;
+        this.previousItems = props.items;
+
+        if (reset) {
             this.state.set({ ...defaultMenuState });
             this.clearSubTimer();
-            return;
-        }
-
-        if (props.open && (opening || itemsChanged)) {
+        } else if (props.open && (opening || itemsChanged)) {
             const initial = props.items.find((item) => item.selected && !item.invisible);
             this.state.update((state) => {
                 if (opening) {

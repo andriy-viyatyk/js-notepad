@@ -1,3 +1,4 @@
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { CheckboxView } from "../../uikit/Checkbox/CheckboxView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
@@ -30,8 +31,6 @@ export class LibrarySetupDialogView extends VanillaView<DialogViewProps> {
     private readonly linkButton: ButtonView;
     private readonly cancelButton: ButtonView;
     private folderElement: HTMLInputElement | undefined;
-    private focusTimer: ReturnType<typeof setTimeout> | undefined;
-    private viewDisposed = false;
 
     public constructor(props: DialogViewProps) {
         const model = props.model as LibrarySetupDialogModel;
@@ -122,11 +121,6 @@ export class LibrarySetupDialogView extends VanillaView<DialogViewProps> {
         this.copyExamplesCheckbox = this.child(copyExamplesCheckbox);
         this.linkButton = this.child(linkButton);
         this.cancelButton = this.child(cancelButton);
-        this.own(() => {
-            this.viewDisposed = true;
-            if (this.focusTimer !== undefined) clearTimeout(this.focusTimer);
-            this.focusTimer = undefined;
-        });
         this.own(model.disposeView);
     }
 
@@ -161,15 +155,7 @@ export class LibrarySetupDialogView extends VanillaView<DialogViewProps> {
             });
         });
         this.bind(this.model.state, (state) => state.linking, () => this.syncLinkButton());
-        this.scheduleFocus();
-    }
-
-    private scheduleFocus(): void {
-        this.focusTimer = setTimeout(() => {
-            this.focusTimer = undefined;
-            if (this.viewDisposed) return;
-            this.folderElement?.focus();
-        }, 0);
+        this.own(focusAfterPaint(this.folderElement));
     }
 
     private syncLinkButton(): void {

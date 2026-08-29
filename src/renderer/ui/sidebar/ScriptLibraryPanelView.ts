@@ -75,7 +75,7 @@ export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps>
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "script-library.path") this.refresh();
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
         this.refresh();
     }
 

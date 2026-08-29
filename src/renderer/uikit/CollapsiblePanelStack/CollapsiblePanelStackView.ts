@@ -110,7 +110,7 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             ownedHeaderNodes: [],
         };
         this.records.set(root, record);
-        header.addEventListener("click", (event) => {
+        this.listen(header, "click", (event) => {
             const target = event.target as Element | null;
             if (target?.closest('[data-part="header-buttons"]')) return;
             this.togglePanel(panel.id);
@@ -162,7 +162,7 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             if (!record.buttonsHost) {
                 record.buttonsHost = document.createElement("span");
                 record.buttonsHost.dataset.part = "header-buttons";
-                record.buttonsHost.addEventListener("click", (event) => event.stopPropagation());
+                this.listen(record.buttonsHost, "click", (event) => event.stopPropagation());
             }
             record.ownedHeaderNodes.push(record.buttonsHost);
             record.buttonsCleanup = fillSlot(record.buttonsHost, panel.buttons);

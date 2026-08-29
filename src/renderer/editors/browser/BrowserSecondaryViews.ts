@@ -43,9 +43,13 @@ export class BrowserSecondaryViewsView extends VanillaView<{ host: BrowserPanelH
         return { views: this.host.panelEditors, state: this.nav.state.get(), setState: this.host.setSecondaryViewsState };
     }
 
+    // Binder helper calls above are not subscriptions themselves; this method owns the
+    // two actual state subscriptions and replaces them on host changes.
     private subscribe(): void {
-        this.navSubscription = this.nav.state.subscribe(() => this.sync());
-        this.hostSubscription = this.host.state.subscribe(() => this.sync(), (state) => state.version);
+        this.navSubscription = this.ownSubscription(this.nav.state.subscribe(() => this.sync()));
+        this.hostSubscription = this.ownSubscription(
+            this.host.state.subscribe(() => this.sync(), (state) => state.version),
+        );
     }
     private unsubscribe(): void { this.navSubscription?.(); this.hostSubscription?.(); this.navSubscription = undefined; this.hostSubscription = undefined; }
     private readonly sync = (): void => { this.secondary.update(this.childProps()); };

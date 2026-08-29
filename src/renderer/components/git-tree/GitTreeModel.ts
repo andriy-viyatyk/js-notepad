@@ -5,8 +5,8 @@
  * actions for the `<GitTree>` view (model-view pattern). The component is a pure
  * renderer over `state`; all fetching lives here. Owned + disposed by the
  * owning editor — the Git Tree editor holds one; the File Diff editor holds two
- * (the from/to commit pickers). NOT created via `useComponentModel` (the owner
- * controls its lifecycle, so it survives view remounts / popover open-close).
+ * (the from/to commit pickers). The owner controls its lifecycle, so it survives
+ * view remounts / popover open-close.
  *
  * Gated by the "git.enabled" setting via the renderer git API — when off, no
  * git activity happens at all.

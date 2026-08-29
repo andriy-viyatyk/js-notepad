@@ -98,6 +98,8 @@ function doFetch(
                     return;
                 }
 
+                // The active HTTP response owns this end listener until the redirect
+                // response is drained; a view/model disposer must not touch the request.
                 // Drain the redirect response body
                 res.resume();
                 res.on("end", () => {});
@@ -174,6 +176,8 @@ function doFetch(
                 responseStream = res.pipe(z.createZstdDecompress());
             }
 
+            // The response/readable stream owns these callbacks until it ends or is
+            // cancelled; they are request-lifetime resources, not view/model resources.
             if (responseStream !== res) {
                 responseStream.on("error", (err) => {
                     console.error("nodeFetch decompression error:", err);
@@ -246,6 +250,7 @@ function doFetch(
             );
         });
 
+        // The request owns its timeout/error listeners through completion or failure.
         req.on("timeout", () => {
             req.destroy();
             reject(new Error(`Request timeout [${timeout}ms]: ${url}`));

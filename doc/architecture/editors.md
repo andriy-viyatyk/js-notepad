@@ -189,7 +189,7 @@ lifecycle those editors would otherwise each reimplement:
 - A **host-subscription registry**: subclasses attach domain subscriptions via
   `registerHostSubscription(unsub)`; the whole set is torn down together on re-adopt, on
   trait extraction (switch-away), and on dispose — a subclass cannot leak a subscription by
-  forgetting an unsubscribe field.
+  forgetting a release handle.
 - A **content echo guard**: editors that serialize back into the host call
   `writeToHost(content, byUser?)`, and read external changes via
   `subscribeHostContent(handler)` — the handler skips the echo of the editor's own writes.

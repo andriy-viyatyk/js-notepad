@@ -246,11 +246,11 @@ export class GridBodyView extends VanillaView<GridBodyViewProps> {
         if (!this.model.contentHost || this.modelSubscription || this.queueSubscription) return;
 
         this.applyProjection(selectGridProjection(this.model.state.get()));
-        this.modelSubscription = this.model.state.subscribe(
+        this.modelSubscription = this.ownSubscription(this.model.state.subscribe(
             (projection) => this.applyProjection(projection),
             selectGridProjection,
-        );
-        this.queueSubscription = this.model.typedQueue.subscribe(this.handleQueue);
+        ));
+        this.queueSubscription = this.ownSubscription(this.model.typedQueue.subscribe(this.handleQueue));
     }
 
     private unsubscribeFromModel(): void {

@@ -86,24 +86,19 @@ export interface IFileTarget {
 /** Concrete type alias for file explorer context menu events. */
 export type FileContextMenuEvent = IContextMenuEvent<IFileTarget>;
 
-/** Subscription handle returned by subscribe(). */
-export interface ISubscriptionObject {
-    unsubscribe(): void;
-}
-
 /**
  * A typed event channel. Subscribe to receive events.
  *
  * @example
- * const sub = channel.subscribe((event) => {
+ * const release = channel.subscribe((event) => {
  *     console.log("Event received:", event);
  * });
- * // Later: sub.unsubscribe();
+ * // Later: release();
  */
 export interface IEventChannel<T extends { handled?: boolean }> {
     /** Register a handler (sync or async). In sendAsync: newest subscriber runs first (LIFO). */
-    subscribe(handler: (event: T) => void | Promise<void>): ISubscriptionObject;
-    /** Send an event synchronously. Calls all subscribers in LIFO order. */
+    subscribe(handler: (event: T) => void | Promise<void>): () => void;
+    /** Send an event synchronously. Calls all subscribers in FIFO order. */
     send(event: T): void;
     /** Send an event asynchronously. Calls subscribers in LIFO order, awaiting each.
      *  Returns `true` when completed (always true in current implementation). */

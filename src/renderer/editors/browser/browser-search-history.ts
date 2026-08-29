@@ -108,6 +108,8 @@ class SearchHistoryStorage extends TModel<SearchHistoryState> {
 
     dispose = () => {
         this.fileWatcher?.dispose();
+        // Drain the model's DisposableStore after existing teardown.
+        super.dispose();
     };
 }
 

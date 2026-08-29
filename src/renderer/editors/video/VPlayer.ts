@@ -162,6 +162,8 @@ export class VPlayerView extends VanillaView<VPlayerProps> {
             muted: this.props.muted ?? false,
             fill: true,
         });
+        // video.js owns these player callbacks and releases them with the player; they
+        // must not be routed through a view store that could outlive/reuse the player.
         this.player.on("loadstart", () => { if (!this.inert) this.props.onStateChange?.("loading"); });
         this.player.on("playing", () => { if (!this.inert) this.props.onStateChange?.("playing"); });
         this.player.on("pause", () => { if (!this.inert) this.props.onStateChange?.("paused"); });

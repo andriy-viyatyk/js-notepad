@@ -6,7 +6,7 @@ import {
 } from "../base/EditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor } from "../../../shared/persistence";
-import { globalKeyDown, SubscriptionObject } from "../../core/state/events";
+import { globalKeyDown } from "../../core/state/events";
 import { pagesModel } from "../../api/pages";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
 import { GlobeIcon } from "../../theme/icons";
@@ -60,7 +60,7 @@ export class BrowserEditor extends EditorModel<
 
     readonly typedQueue: ComponentQueue<BrowserQueueEvent, BrowserQueueRequest>;
 
-    private keyDownSub: SubscriptionObject;
+    private keyDownSub: () => void;
 
     constructor(state: TComponentState<BrowserEditorState>) {
         super(state);
@@ -75,6 +75,7 @@ export class BrowserEditor extends EditorModel<
         this.bookmarksUI = new BrowserBookmarksUIModel(this);
         this.target = new BrowserTargetModel(this);
         this.keyDownSub = globalKeyDown.subscribe((e) => this.handleGlobalKeyDown(e));
+        this.own(this.keyDownSub);
     }
 
     /** Electron session partition string, derived from profile state. */
@@ -90,7 +91,6 @@ export class BrowserEditor extends EditorModel<
     toggleTorOverlay = () => this.tor.toggleOverlay();
 
     async dispose(): Promise<void> {
-        this.keyDownSub.unsubscribe();
         this.bookmarksUI.dispose();
 
         const s = this.state.get();

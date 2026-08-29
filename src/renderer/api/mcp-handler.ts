@@ -11,6 +11,8 @@ export { showMcpRequestLog } from "./mcp/request-log";
 
 /** Registers the renderer half of the main-process MCP IPC bridge. */
 export function initMcpHandler(): void {
+    // The renderer's application bootstrap owns this main-process bridge for the
+    // process lifetime; it is not a view/model subscription.
     ipcRenderer.on(MCP_EXECUTE, async (
         _event: IpcRendererEvent,
         requestId: string,

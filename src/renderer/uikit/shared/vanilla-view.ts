@@ -1,4 +1,5 @@
 import type { IState } from "../../core/state/state";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 /**
  * The minimal surface a parent needs in order to own a child view.
@@ -45,7 +46,7 @@ export abstract class VanillaView<P> implements IOwnedView {
 
     private mounted = false;
     private disposed = false;
-    private readonly disposers: Cleanup[] = [];
+    private readonly disposers = new DisposableStore();
     private readonly children: IOwnedView[] = [];
 
     protected constructor(props: P, root: HTMLElement = document.createElement("div")) {
@@ -111,9 +112,8 @@ export abstract class VanillaView<P> implements IOwnedView {
         this.disposed = true;
 
         const children = this.children.slice();
-        const disposers = this.disposers.slice();
         this.children.length = 0;
-        this.disposers.length = 0;
+        const disposers = this.disposers.closeAndTake();
 
         let firstError: unknown;
         let hasError = false;
@@ -144,7 +144,15 @@ export abstract class VanillaView<P> implements IOwnedView {
     /** Register a resource cleanup owned by this view. */
     protected own(dispose: Cleanup): void {
         this.assertActive();
-        this.disposers.push(dispose);
+        this.disposers.add(dispose);
+    }
+
+    /**
+     * Alias for ownReleasable: this is a deliberate greppable alias; its name
+     * is the ownership marker used by A-1 statement 3's renderer-wide subscription census.
+     */
+    protected ownSubscription(disposer: () => void): () => void {
+        return this.ownReleasable(disposer);
     }
 
     /**
@@ -161,16 +169,7 @@ export abstract class VanillaView<P> implements IOwnedView {
      */
     private ownReleasable(dispose: Cleanup): Cleanup {
         this.assertActive();
-        let released = false;
-        const release: Cleanup = () => {
-            if (released) return;
-            released = true;
-            const index = this.disposers.indexOf(release);
-            if (index !== -1) this.disposers.splice(index, 1);
-            dispose();
-        };
-        this.disposers.push(release);
-        return release;
+        return this.disposers.add(dispose);
     }
 
     /**

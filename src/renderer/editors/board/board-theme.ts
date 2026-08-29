@@ -38,6 +38,8 @@ let themeSubscription: (() => void) | null = null;
 /** Start the single renderer-to-board theme notification path once. */
 export function ensureBoardThemeSubscription(): void {
     if (themeSubscription) return;
+    // The board-theme module owns this single process-lifetime subscription; no view
+    // or model should dispose the app-to-board notification path.
     themeSubscription = themeState.subscribe(() => {
         void api.updateBoardTheme(computeBoardThemePalette());
     });

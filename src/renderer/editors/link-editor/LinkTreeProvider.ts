@@ -6,7 +6,6 @@ import type {
     ITreeTagInfo,
     ICategorySegment,
 } from "../../api/types/io.tree";
-import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink, relativeCategorySegments } from "../../content/tree-providers/tree-provider-link";
 import { getHostname } from "../../components/icons/favicon-cache";
 import { fpBasename } from "../../core/utils/file-path";
@@ -291,7 +290,7 @@ export class LinkTreeProvider implements ITreeProvider {
     // Watch
     // =========================================================================
 
-    watch(callback: () => void): ISubscriptionObject {
+    watch(callback: () => void): () => void {
         // Rebuild the tree ONLY when the structural input (`data.links`) changes —
         // add / edit / delete / move / import all replace the `links` reference
         // (immer copy-on-write). Transient UI state on the same editor
@@ -309,7 +308,7 @@ export class LinkTreeProvider implements ITreeProvider {
             lastLinks = nextLinks;
             callback();
         });
-        return { unsubscribe: unsub };
+        return unsub;
     }
 
     // =========================================================================

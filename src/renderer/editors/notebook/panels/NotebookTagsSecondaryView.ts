@@ -40,7 +40,6 @@ export default class NotebookTagsSecondaryView extends VanillaView<SecondaryView
             icon: this.props.iconElement,
             title: "Tags",
         });
-        this.own(() => this.stateUnsubscribe?.());
         this.own(() => this.header?.dispose());
         this.updateHeader(this.props);
     }
@@ -88,10 +87,10 @@ export default class NotebookTagsSecondaryView extends VanillaView<SecondaryView
     }
 
     private subscribeToEditor(editor: NotebookEditor): void {
-        this.stateUnsubscribe = editor.state.subscribe(() => {
+        this.stateUnsubscribe = this.ownSubscription(editor.state.subscribe(() => {
             if (this.editor !== editor) return;
             this.list?.update(this.listProps(editor));
-        });
+        }));
     }
 
     private listProps(editor: NotebookEditor): CategoryListProps {

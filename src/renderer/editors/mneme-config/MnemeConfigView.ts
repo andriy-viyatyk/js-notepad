@@ -99,7 +99,7 @@ export class MnemeConfigEditorView extends VanillaView<MnemeConfigEditorViewProp
     protected onDispose(): void { this.live = false; this.stateSubscription?.(); this.stateSubscription = undefined; this.inventoryGeneration++; this.pageModel = undefined; }
     private subscribeToModel(model: MnemeConfigEditorModel): void {
         this.stateSubscription?.(); this.stateSubscription = undefined; this.connected = false;
-        this.stateSubscription = model.state.subscribe(() => { if (!this.live || this.model !== model) return; this.applyModelState(model); });
+        this.stateSubscription = this.ownSubscription(model.state.subscribe(() => { if (!this.live || this.model !== model) return; this.applyModelState(model); }));
         this.applyModelState(model);
     }
     private replaceModelSubscription(model: MnemeConfigEditorModel): void { this.stateSubscription?.(); this.stateSubscription = undefined; this.model = model; this.subscribeToModel(model); }

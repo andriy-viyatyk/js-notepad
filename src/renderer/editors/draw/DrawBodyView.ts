@@ -222,7 +222,7 @@ export class DrawBodyView extends VanillaView<{ model: DrawEditor }> {
             }
             this.model.clearExcalidrawApi();
         });
-        this.own(browserUrlChanged.subscribe(this.handleBrowserUrl).unsubscribe);
+        this.own(browserUrlChanged.subscribe(this.handleBrowserUrl));
         void guard("Failed to initialize drawing library", initDefaultLibraryPath);
         this.bind(
             this.model.state,

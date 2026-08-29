@@ -1,7 +1,6 @@
 import type { IContentPipe, IPipeDescriptor } from "../api/types/io.pipe";
 import type { IProvider } from "../api/types/io.provider";
 import type { ITransformer } from "../api/types/io.transformer";
-import type { ISubscriptionObject } from "../api/types/events";
 import { createProviderFromDescriptor } from "./registry";
 import { decodeBuffer, encodeString } from "./encoding";
 
@@ -140,7 +139,7 @@ export class ContentPipe implements IContentPipe {
 
     // ── Watch ───────────────────────────────────────────────────────
 
-    get watch(): ((callback: (event: string) => void) => ISubscriptionObject) | undefined {
+    get watch(): ((callback: (event: string) => void) => () => void) | undefined {
         if (!this.provider.watch) return undefined;
         return (callback) => this.provider.watch(callback);
     }

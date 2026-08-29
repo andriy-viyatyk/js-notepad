@@ -74,7 +74,7 @@ state.set(newValue);
 state.update((draft) => { draft.field = value; });
 
 // Subscribe to changes in a native view or model owner
-const unsubscribe = state.subscribe((next) => {
+const release = state.subscribe((next) => {
     renderField(next.field);
 });
 ```
@@ -231,9 +231,9 @@ props with `update()`, and register `dispose()` with the view owner.
 
 `TComponentModel` owns props, state, handlers, and computed behavior. A `VanillaView` uses
 `createComponentModelDriver` to pump props, mount the model, and dispose it. Driver-backed models
-must not register `TComponentModel.effect()` entries; those effects depended on the removed React
-render path. Put subscriptions, measurements, and asynchronous work in explicit view lifecycle
-hooks or model methods with clear cleanup.
+have an explicit `props` → `setProps` → `init` → `dispose` lifecycle. Put subscriptions and
+asynchronous work in `init()` or model methods with clear cleanup; put DOM measurements and layout
+reads in explicit view lifecycle hooks.
 
 The model remains independent of the DOM. The view owns a stable DOM root and uses native events;
 the model receives domain values and callbacks rather than framework-specific event objects.
@@ -323,6 +323,17 @@ protected onMount(): void {
 }
 ```
 
+For an event or state subscription that is owned by a view, use `ownSubscription()` so the single
+function-disposer contract is visible at the ownership boundary:
+
+```typescript
+this.ownSubscription(model.state.subscribe(this.handleStateChange));
+```
+
+Keep the returned release handle when the source can be replaced. Release the old subscription
+before registering the replacement; this prevents both stale callbacks and unbounded disposer
+growth during rebinding.
+
 DOM structure should use `document.createElement`, explicit properties, and `append`. Static,
 code-owned `innerHTML` is acceptable when clearer, but runtime data must never be interpolated
 into markup. `replaceChildren` is allowed for a region the view owns outright, never for a
@@ -393,19 +404,16 @@ conversion complete, inspect the original JSX and exercise each interaction path
   state restoration. Exercise the real path after the direct-DOM conversion, including cold mount,
   recycling, and teardown.
 
-## Effects and the vanilla driver
-
-Driver-backed native views cannot use model effects: the driver rejects registered effects at
-mount. Keep DOM measurement and layout reads in the View's mount/update hooks. Async model work
-must be cancellable and must not publish after disposal.
+## Explicit model lifecycle and updates
 
 For a vanilla view, use `createComponentModelDriver` from
 [`src/renderer/core/state/model.ts`](../../src/renderer/core/state/model.ts), pump updates through
 `driver.update(props)`, call `driver.mount()` from the view's mount hook, and register
-`driver.dispose()` with `own()` when the driver is constructed. The driver performs the initial
-prop pump and rejects registered effects. It also disposes an explicitly-owned model even when the
-view is disposed before mount; this differs from an uncommitted React render, which never runs its
-unmount effect.
+`driver.dispose()` with `own()` when the driver is constructed. The driver performs its initial
+prop pump during construction, before `mount()` calls `init()`. If `setProps()` only handles
+post-mount changes, guard it with an `initialized` flag and set that flag from `init()` after the
+initial state has been established. `dispose()` remains safe when the view is disposed before
+mount and drains model-owned resources.
 
 ## Choosing a boundary
 
@@ -480,44 +488,10 @@ class PathInputView extends VanillaView<PathInputViewProps> {
 
 The view shares the model and state contract directly; its slot and event APIs are native.
 
-## Effect and Memo Primitives
+## Memo Primitive
 
-`TComponentModel` provides `effect()` and `memo()` for model-level derived work. Native
-`createComponentModelDriver` views must not register `effect()`; use explicit lifecycle hooks for
-subscriptions and measurements.
-
-### effect(callback, depsFactory?)
-
-Register a side effect with dependency tracking. Call in `init()` to set up effects that react to prop/state changes.
-
-```typescript
-class MyViewModel extends TComponentModel<MyState, MyProps> {
-    init() {
-        // Effect with deps — re-runs when filePath changes
-        // Cleanup runs automatically before re-run and on unmount
-        this.effect(
-            () => {
-                const watcher = new FileWatcher(this.props.filePath, this.onChange);
-                return () => watcher.dispose(); // cleanup function
-            },
-            () => [this.props.filePath] // deps factory
-        );
-
-        // Effect with no deps — runs once (like useEffect(fn, []))
-        this.effect(() => {
-            window.addEventListener("resize", this.onResize);
-            return () => window.removeEventListener("resize", this.onResize);
-        });
-    }
-}
-```
-
-**How it works:**
-- Effects are registered in `init()` (called once after first render)
-- `setPropsInternal()` evaluates all effect deps on each render cycle
-- If deps changed: run cleanup of previous execution, then run callback
-- `onUnmountInternal()` runs all remaining cleanups
-- No deps = runs once on init, cleanup on unmount
+`TComponentModel` provides `memo()` for cached model computations. It is a value-level cache, not
+a lifecycle or subscription mechanism.
 
 ### memo(computeFn, depsFactory)
 
@@ -545,18 +519,18 @@ class MyViewModel extends TComponentModel<MyState, MyProps> {
 
 | Primitive | Where to Define | When Evaluated |
 |-----------|-----------------|-----------------|----------------|
-| `this.effect(cb)` | `init()` | Rejected by native driver; use explicit subscriptions |
-| `this.effect(cb, deps)` | `init()` | Rejected by native driver; use explicit updates |
 | `this.memo(fn, deps)` | Class body or `init()` | On `.value` access when deps change |
 | `init()` | Class | On explicit driver mount |
-| `dispose()` | Class | On explicit driver/view disposal |
+| `setProps(props)` | Class | After each driver prop pump, including the initial pump |
+| `dispose()` | Class | On explicit driver/view disposal; owned cleanup is drained |
 
 ### Native update constraint
 
-The native driver pumps props explicitly through `driver.update(props)` and rejects models that
-register `effect()` entries. Keep prop-to-state seeding behind an identity guard in `setProps()`;
-put DOM measurement and layout reads in the View's mount/update hooks, and make asynchronous model
-work cancellable so it cannot publish after disposal.
+The native driver pumps props explicitly through `driver.update(props)`. Keep prop-to-state seeding
+behind an identity guard in `setProps()` when the initial constructor pump must not trigger it; a
+fixed-length `DepsGate` is appropriate when several inputs control the same update. Put DOM
+measurement and layout reads in the View's mount/update hooks, and make asynchronous model work
+cancellable so it cannot publish after disposal.
 
 When a model state has many fields, subscribe to only the stored fields the View actually renders
 with `VanillaView.bind(state, selector, render)`. Return stored values from selectors; put derived
@@ -611,7 +585,7 @@ setContainerRef = (ref: HTMLDivElement | null) => {
 };
 ```
 
-### Move useEffect to Model Effects
+### Move useEffect to explicit lifecycle
 
 ```typescript
 // Before — useEffect in View
@@ -624,17 +598,27 @@ useEffect(() => {
     viewModel.updateFitScale();
 }, [src]);
 
-// After — auto init/dispose + this.effect() in Model
+// After — explicit model lifecycle and prop handling
 class MyViewModel extends TComponentModel<State, Props> {
+    private initialized = false;
+    private previousSrc: string | undefined;
+
     init() {
-        this.effect(
-            () => { this.updateFitScale(); },
-            () => [this.state.get().src]
-        );
+        this.previousSrc = this.props.src;
+        this.initialized = true;
+        this.updateFitScale();
     }
-    dispose() { /* cleanup */ }
+
+    setProps = (props: Props) => {
+        const previousSrc = this.previousSrc;
+        this.previousSrc = props.src;
+        if (!this.initialized || previousSrc === props.src) return;
+        this.updateFitScale();
+    }
+
+    dispose() { /* release model-owned resources */ }
 }
-// View: no useEffect needed at all
+// View: driver.mount(), driver.update(props), and driver.dispose()
 ```
 
 ### Move useMemo to Model Memo
@@ -660,7 +644,7 @@ class MyViewModel extends TComponentModel<State, Props> {
 | `GridEditor` | `GridPageModel` | Complex data grid with filters, sorting |
 | `MarkdownView` | `MarkdownViewModel` | Markdown preview with scroll state |
 | `ImageViewer` | `ImageViewModel` | Image viewer with zoom/pan |
-| Settings sections | `BrowserProfilesSectionModel`, `McpSectionModel`, `DefaultBrowserSectionModel` | Async settings operations and external status subscriptions |
+| Settings sections | `BrowserProfilesSectionModel`, `McpSectionModel`, and models in `SettingsSections.ts` | Async settings operations and external status subscriptions |
 
 ## Benefits
 
@@ -676,7 +660,7 @@ class MyViewModel extends TComponentModel<State, Props> {
 1. **Don't put rendering logic in model** - Model computes values, view renders them
 2. **Don't call hooks in model** - Hooks only in component function
 3. **Don't access DOM directly in model** - Use refs and methods
-4. **Don't use useEffect/useMemo in View for logic** - Use `this.effect()` and `this.memo()` in the Model instead
-5. **Don't register effects outside init()** - Effects should be registered in `init()`, not in `setProps()` or event handlers (would create duplicates on each call)
-6. **Don't use model effects for commit-timed DOM work** - Keep layout reads and measurement in the View's `useEffect`
-7. **Don't synchronously write across model boundaries from an effect** - Use an event/command boundary or defer the bridge until after commit
+4. **Don't use React hooks in native views** - Use explicit `VanillaView` lifecycle methods and model methods
+5. **Don't treat `setProps()` as a pre-init hook** - The driver performs an initial prop pump before `init()`; guard post-mount work when necessary
+6. **Don't use a selector for plain model fields** - Subscribe to reactive state and use explicit prop/update handling for plain fields
+7. **Don't leave asynchronous model work uncancellable** - Release subscriptions and reject or cancel deferred work during `dispose()`

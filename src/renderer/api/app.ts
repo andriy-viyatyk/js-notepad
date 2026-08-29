@@ -308,6 +308,8 @@ class App {
             }
         }, 1500);
 
+        // App.initEvents() owns this process-lifetime wiring; it is not a view/model resource.
+        // Keep these subscriptions alive until the renderer process exits.
         // Watch for mcp.enabled setting changes
         this._settings.onChanged.subscribe(({ key, value }) => {
             if (key === "mcp.enabled") {

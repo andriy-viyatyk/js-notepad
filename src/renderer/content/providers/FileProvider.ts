@@ -1,5 +1,4 @@
 import type { IProvider, IProviderDescriptor, IProviderStat } from "../../api/types/io.provider";
-import type { ISubscriptionObject } from "../../api/types/events";
 import { debounce } from "../../../shared/utils";
 import { fpBasename } from "../../core/utils/file-path";
 
@@ -49,7 +48,7 @@ export class FileProvider implements IProvider {
         }
     }
 
-    watch(callback: (event: string) => void): ISubscriptionObject {
+    watch(callback: (event: string) => void): () => void {
         const debouncedCallback = debounce((event: string) => {
             callback(event);
         }, 300);
@@ -58,13 +57,9 @@ export class FileProvider implements IProvider {
             const watcher = nodefs.watch(this.filePath, (eventType: string) => {
                 debouncedCallback(eventType);
             });
-            return {
-                unsubscribe: () => watcher.close(),
-            };
+            return () => watcher.close();
         } catch {
-            return {
-                unsubscribe: () => { /* watch failed — no-op */ },
-            };
+            return () => { /* watch failed — no-op */ };
         }
     }
 
@@ -77,6 +72,6 @@ export class FileProvider implements IProvider {
 
     dispose(): void {
         // No resources to release. Watch subscriptions are managed
-        // by the caller via the returned ISubscriptionObject.
+        // by the caller via the returned disposer.
     }
 }

@@ -155,6 +155,8 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
     dispose(): void {
         this.pathsSub?.();
         this.pathsSub = undefined;
+        // Drain the model's DisposableStore after existing teardown.
+        super.dispose();
     }
 }
 

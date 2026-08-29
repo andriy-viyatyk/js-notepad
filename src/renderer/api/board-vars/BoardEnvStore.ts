@@ -37,6 +37,8 @@ class BoardEnvStore {
     private parsed: BoardVarsFile = {};
 
     constructor() {
+        // This session singleton owns the setting listener for the renderer lifetime;
+        // no view/model instance should dispose it.
         // Drop the model when the configured path changes so the next call reloads.
         settings.onChanged.subscribe(({ key }) => {
             if (key === "board-vars.file") this.reset();

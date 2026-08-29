@@ -33,6 +33,7 @@ export class BoardContentEditorModel extends BoardEditorModel {
 
     constructor(state: TComponentState<BoardEditorState>) {
         super(state);
+        this.own(() => this._hostStateUnsub?.());
         const trait: IContentHostTrait = {
             extractContentHost: (): IContentHost => {
                 const host = this._host;

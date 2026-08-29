@@ -19,6 +19,7 @@ import {
 } from "../../../ipc/search-ipc";
 import { settings } from "../../api/settings";
 import { fpBasename } from "../../core/utils/file-path";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 const { ipcRenderer } = require("electron");
 
@@ -104,7 +105,7 @@ export class FileSearchModel {
 
     private currentSearchId: string | null = null;
     private disposed = false;
-    private ipcListeners: Array<{ channel: string; handler: (...args: any[]) => void }> = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    private readonly disposables = new DisposableStore();
     private rootPath: string;
     private onStateChange?: (state: FileSearchState) => void;
 
@@ -135,7 +136,7 @@ export class FileSearchModel {
             if (!this.disposed) callback(data);
         };
         ipcRenderer.on(channel, handler);
-        this.ipcListeners.push({ channel, handler });
+        this.disposables.add(() => ipcRenderer.removeListener(channel, handler));
     }
 
     private subscribeToIpc = () => {
@@ -385,9 +386,6 @@ export class FileSearchModel {
             const cancel: SearchCancel = { searchId };
             ipcRenderer.send(SearchChannel.cancel, cancel);
         }
-        this.ipcListeners.forEach(({ channel, handler }) => {
-            ipcRenderer.removeListener(channel, handler);
-        });
-        this.ipcListeners = [];
+        this.disposables.dispose();
     };
 }

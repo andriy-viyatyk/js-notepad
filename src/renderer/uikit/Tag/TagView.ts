@@ -138,7 +138,7 @@ export class TagView extends VanillaView<TagProps> {
                 this.removeButton = document.createElement("button");
                 this.removeButton.type = "button";
                 this.removeButton.dataset.part = "remove";
-                this.removeButton.addEventListener("click", this.onRemoveClick);
+                this.listen(this.removeButton, "click", this.onRemoveClick);
                 this.removeButton.append(createIconElement("close"));
                 this.root.append(this.removeButton);
             }

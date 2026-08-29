@@ -497,7 +497,7 @@ Interface definitions: `/src/renderer/api/types/*.d.ts`
 
 ## Auto-Cleanup Lifecycle
 
-Editor facades are stateless wrappers — there is nothing to release when a script ends. Event subscriptions made through `app.events`, however, ARE tracked and unsubscribed automatically. A shared `releaseList` ensures cleanup:
+Editor facades are stateless wrappers — there is nothing to release when a script ends. Event subscriptions made through `app.events`, however, are tracked and released automatically. A shared `releaseList` ensures cleanup:
 
 ```
 1. Script starts → new ScriptContext() creates releaseList = []
@@ -506,18 +506,18 @@ Editor facades are stateless wrappers — there is nothing to release when a scr
    → no entry added to releaseList
 3. Script calls app.events.fileExplorer.itemContextMenu.subscribe(handler)
    → events proxy intercepts subscribe(), calls real subscribe()
-   → releaseList.push(() => sub.unsubscribe())
-   → return SubscriptionObject
+   → releaseList.push(release)
+   → return release
 4. Script completes (or throws)
 5. context.dispose() iterates releaseList
-   → sub.unsubscribe()  (removes event handler)
+   → release()  (removes event handler)
 ```
 
-The `releaseList` is shared across all wrappers: `AppWrapper → PageCollectionWrapper → PageWrapper → Facades`. Event subscriptions made through `app.events` from any path are automatically unsubscribed when the script completes.
+The `releaseList` is shared across all wrappers: `AppWrapper → PageCollectionWrapper → PageWrapper → Facades`. Event subscriptions made through `app.events` from any path are automatically released when the script completes.
 
 ### Events Proxy
 
-`AppWrapper.events` returns a recursive proxy that wraps `app.events`. When a script calls `subscribe()` on any EventChannel, the proxy intercepts the call, subscribes on the real channel, and pushes the `unsubscribe()` handle to the `releaseList`. This means scripts never need to manually unsubscribe — cleanup happens automatically when `ScriptContext.dispose()` is called. The proxy also exposes `send()` and `sendAsync()` methods, allowing scripts to trigger events through the pipeline (e.g., `app.events.openRawLink.sendAsync(event)`).
+`AppWrapper.events` returns a recursive proxy that wraps `app.events`. When a script calls `subscribe()` on any EventChannel, the proxy intercepts the call, subscribes on the real channel, and pushes the returned `() => void` disposer to the `releaseList`. This means scripts never need to manually release subscriptions — cleanup happens automatically when `ScriptContext.dispose()` is called. The proxy also exposes `send()` and `sendAsync()` methods, allowing scripts to trigger events through the pipeline (e.g., `app.events.openRawLink.sendAsync(event)`).
 
 ## Wrapper Architecture
 

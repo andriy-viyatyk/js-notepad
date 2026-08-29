@@ -412,6 +412,8 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         this.io.dispose();
         this.script.dispose();
         await appFs.deleteCacheFiles(this.state.get().id);
+        // Drain the model's DisposableStore after existing teardown.
+        await super.dispose();
     }
 
     // =========================================================================

@@ -17,7 +17,7 @@ All state primitives live in `/src/renderer/core/state/`.
 | `TGlobalState<T>` | Application-wide state (cleared on logout) | `api/` modules |
 | `TComponentState<T>` | Component-scoped state | `TComponentModel` instances |
 | `TModel<T>` | Stateful business logic (non-React) | Models, services |
-| `TComponentModel<T, P>` | Component model with props, effects, and memos; driven by an explicit lifecycle adapter | `VanillaView` classes |
+| `TComponentModel<T, P>` | Component model with props, state, handlers, and cached computations; driven by an explicit lifecycle adapter | `VanillaView` classes |
 | `TDialogModel<T, R>` | Dialog/modal with async result | Dialogs |
 | `EditorModel<T, R>` | Editor instance (every editor subclasses this) | Editors |
 
@@ -132,7 +132,9 @@ is needed. The subscription is synchronous and must be disposed with the owning 
 
 ### TModel\<T\>
 
-Base class for stateful business logic. Holds a `state` property.
+Base class for stateful business logic. Holds a `state` property and provides protected `own()` plus
+an idempotent `dispose()` for model-owned cleanup functions. Cleanup functions are released in
+registration order; all are attempted and the first failure is rethrown.
 
 ```typescript
 class MyModel extends TModel<MyState> {
@@ -144,20 +146,19 @@ class MyModel extends TModel<MyState> {
 
 ### TComponentModel\<T, P\>
 
-Component model with props tracking, effects, and memos. Framework-free views use
-`createComponentModelDriver` from `core/state/model.ts`.
+Component model with props tracking, explicit lifecycle hooks, and cached computations.
+Framework-free views use `createComponentModelDriver` from `core/state/model.ts`.
 
 ```typescript
 class MyComponentModel extends TComponentModel<State, Props> {
     init() {
-        // Called once when the model is initialized
-        this.effect(() => {
-            console.log("value changed:", this.props.value);
-        }, () => [this.props.value]);
+        // Called once by driver.mount()
+        this.own(() => { /* release model-owned resources */ });
     }
 
-    dispose() {
-        // Called on unmount
+    setProps = (props: Props) => {
+        // Called after props are assigned, including the initial prop pump
+        console.log("props changed:", props.value);
     }
 }
 
@@ -167,26 +168,24 @@ driver.mount();
 
 **Lifecycle:**
 1. Construction: creates the model and performs the initial prop pump
-2. `mount()`: initializes the model and evaluates its lifecycle
-3. `update(props)`: pumps new props and evaluates registered effects
-4. `dispose()`: cleans up model resources
+2. `mount()`: calls `init()` once
+3. `update(props)`: pumps new props through `setProps()`
+4. `dispose()`: calls the model's cleanup hook and drains owned resources
 
-The driver performs the initial prop pump, exposes explicit `mount()` / `update()` / `dispose()`
-operations, and rejects models that
-register `effect()` callbacks when it is driven by a native view. A model shared with a vanilla view
-must put DOM work in the view lifecycle or in explicit model methods, and must keep asynchronous
-work cancellable after disposal.
+The driver performs the initial prop pump before `mount()`, so a model that only responds to
+post-mount updates should guard `setProps()` with an initialization flag. A model shared with a
+vanilla view must put DOM work in the view lifecycle or in explicit model methods, and must keep
+asynchronous work cancellable after disposal.
 
 **Primitives:**
-- `this.effect(callback, depsFactory?)` — side effect with dependency tracking
 - `this.memo(computeFn, depsFactory)` — cached computation (like `useMemo`)
 
 See [Model-View Pattern](/doc/standards/model-view-pattern.md) for full documentation.
 
-Dependency-based model effects are evaluated by the driver during `update()` after the model has
-been initialized. Keep those effects free of synchronous writes that can re-enter the same model;
-such writes can trigger a notification loop. DOM reads and other lifecycle work belong in the
-`VanillaView` mount/update hooks. Effects must be cancellable and explicitly idempotent.
+For dependency-gated prop work, keep a fixed-length dependency signature in the model and compare
+it explicitly (the shared `depsChanged` helper and `uikit/shared/deps-gate.ts` use
+`Object.is` slot comparison). Model subscriptions belong in `init()` and are released through
+`own()`; DOM reads and layout work belong in the `VanillaView` mount/update hooks.
 
 ### TDialogModel\<T, R\>
 
@@ -269,11 +268,25 @@ interface IPipeDescriptor {
 
 ## Disposable Pattern
 
-Located in `/src/renderer/api/types/common.d.ts` and `/src/renderer/api/internal.ts`.
+Renderer-owned cleanup uses function disposers. `DisposableStore` is the common primitive for
+grouping them; it lives in `/src/renderer/core/utils/DisposableStore.ts`.
+
+```typescript
+const store = new DisposableStore();
+const release = store.add(event.subscribe(handler));
+// Release one item early, or let the owner drain the store:
+release();
+store.dispose();
+```
+
+`DisposableStore.add()` returns an idempotent release handle and rejects new registrations after
+the store is closed. `dispose()` snapshots and clears the store, attempts every cleanup in FIFO
+order, and rethrows the first failure after the sweep.
 
 ### IDisposable
 
-Universal cleanup contract. Matches Monaco's own `IDisposable`.
+Resource object contract used by Monaco and other APIs that expose an object-based resource.
+It is separate from the renderer's subscription disposer shape.
 
 ```typescript
 interface IDisposable {
@@ -283,28 +296,30 @@ interface IDisposable {
 
 ### IEvent\<T\>
 
-Subscribable event. Returns `IDisposable` for uniform cleanup.
+Subscribable event. Its `subscribe()` returns a `() => void` disposer.
 
 ```typescript
 interface IEvent<T> {
-    subscribe(handler: (data: T) => void): IDisposable;
+    subscribe(handler: (data: T) => void): () => void;
 }
 ```
 
 ### DisposableCollection
 
-Groups multiple disposables for bulk cleanup. Used by Object Model implementations.
+Groups `IDisposable` resource objects for bulk cleanup. It is retained for object-based resources;
+event subscriptions use function disposers and belong in `DisposableStore` or a view/model owner.
 
 ```typescript
 const disposables = new DisposableCollection();
-disposables.add(event.subscribe(handler));
-disposables.add(anotherEvent.subscribe(otherHandler));
+disposables.add(monacoResource);
+disposables.add(anotherMonacoResource);
 // Later: disposables.dispose();
 ```
 
 ### wrapSubscription
 
-Adapts the older `Subscription<T>` (from `core/state/events.ts`) to the `IEvent<T>` interface.
+Adapts the internal `Subscription<T>` (from `core/state/events.ts`) to the public `IEvent<T>`
+interface. Both expose a function disposer.
 
 ```typescript
 import { wrapSubscription } from "../api/internal";
@@ -313,14 +328,19 @@ const onChanged: IEvent<string> = wrapSubscription(mySubscription);
 
 ### Subscription\<T\>
 
-Event system in `core/state/events.ts`. Built on `EventTarget`. Used internally.
+Compatibility event wrapper in `core/state/events.ts`, implemented on the same listener-array
+primitive as `Emitter<T>`. It is used for the renderer's named global broadcasts.
 
 ```typescript
 const event = new Subscription<string>();
 event.send("hello");                    // emit
-const sub = event.subscribe(data => {}); // listen
-sub.unsubscribe();                       // cleanup
+const release = event.subscribe(data => {}); // listen
+release();                               // cleanup
 ```
+
+`Emitter<T>` exposes the underlying `event` function and `fire(value)` operation. Its listener
+array is snapshotted for dispatch, and each subscription returns the one renderer teardown shape:
+`() => void`.
 
 ### EventChannel\<T\>
 
@@ -336,10 +356,13 @@ channel.send(event);
 const ok = await channel.sendAsync(event);
 
 // Subscribe (sync or async handlers)
-const sub = channel.subscribe((event) => { event.items.push({ label: "Custom", onClick: () => {} }); });
+const release = channel.subscribe((event) => { event.items.push({ label: "Custom", onClick: () => {} }); });
 ```
 
-Unlike `Subscription<T>`, `EventChannel` uses a handler array (not `EventTarget`) and supports async pipelines with sequential execution. `send()` uses FIFO order (all handlers always run). `sendAsync()` uses LIFO order (newest subscriber runs first) and short-circuits when `event.handled` is set — this allows scripts registered after bootstrap to intercept events before app handlers.
+`EventChannel` supports async pipelines with sequential execution. `send()` uses FIFO order (all
+handlers always run). `sendAsync()` uses LIFO order (newest subscriber runs first) and
+short-circuits when `event.handled` is set — this allows scripts registered after bootstrap to
+intercept events before app handlers. Its `subscribe()` also returns `() => void`.
 
 ## Object Model State Pattern
 
@@ -407,7 +430,7 @@ whenever the decision point is already a renderer→main message.
 ### Via Object Model
 
 ```typescript
-const unsubscribe = app.settings.onChanged.subscribe(({ key, value }) => {
+const release = app.settings.onChanged.subscribe(({ key, value }) => {
     if (key === "theme") updateTheme(value);
 });
 ```
@@ -439,10 +462,10 @@ driver.update(props);
 
 ```typescript
 // Selective subscription; the listener receives the selected value.
-const unsubscribe = state.subscribe((title) => updateTitle(title), (value) => value.title);
+const release = state.subscribe((title) => updateTitle(title), (value) => value.title);
 
 // Use a full listener only when the whole state is relevant.
-const unsubscribeAll = model.state.subscribe(() => refreshAll());
+const releaseAll = model.state.subscribe(() => refreshAll());
 ```
 
 ### 2. Derive Computed Values Inside the Selector
@@ -454,7 +477,7 @@ part of the selector's result, the view never updates when it changes.
 
 ```typescript
 // GOOD — derive inside the selector, so it participates in comparison.
-const unsubscribe = model.state.subscribe(
+const release = model.state.subscribe(
     ({ searchText, viewMode }) => render(searchText, viewMode),
     (state) => ({ searchText: state.searchText, viewMode: model.getViewMode(state) }),
 );

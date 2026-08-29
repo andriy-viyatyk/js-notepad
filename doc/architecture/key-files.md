@@ -32,7 +32,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |
 | Path utilities           | `/src/renderer/core/utils/file-path.ts`           |
 | State primitives         | `/src/renderer/core/state/`                        |
-| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
+| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen`, `ownSubscription`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
 | Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
 | Conditional subtree ownership (stable `PropertyKey` keys, replacement-before-disposal, and root detachment) | `/src/renderer/uikit/shared/subtree-swap.ts` |
 | Callback-backed asynchronous DOM references used by virtualized views | `/src/renderer/uikit/shared/async-ref.ts` |
@@ -41,8 +41,11 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Excalidraw React island root adapter (`mountReactHandle`, `MountedReactRoot`, and `data-react-root` observability marker) | `/src/renderer/editors/draw/react-island.ts` |
 | Native slot-content bridge (`SlotContent`; host ownership and superseded cleanup) | `/src/renderer/uikit/shared/fill-slot.ts` |
 | Native attributes/events/refs bridge (`applyRestProps`, `bindRef`, and listener cleanup) | `/src/renderer/uikit/shared/dom-props.ts` |
-| Non-React component model driver (initial prop pump, explicit mount/update/dispose, and zero-effect guard) | `/src/renderer/core/state/model.ts` |
+| Component model lifecycle (initial prop pump, explicit `mount`/`update`/`dispose`, model-owned cleanup, and cached `memo`) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
+| Shared cleanup store (function disposers, early release, ordered error-isolated drain) | `/src/renderer/core/utils/DisposableStore.ts` |
+| Named scheduling helpers (`Delayer`, paint-boundary callbacks, and focus-after-paint cancellation) | `/src/renderer/core/utils/scheduling.ts` |
+| Renderer event primitive (`Emitter<T>`, `Event<T>`, and compatibility `Subscription<T>` broadcasts) | `/src/renderer/core/state/events.ts` |
 | Framework-free virtualization engine (render-window calculation, pooled cells, sticky regions, scroll/resize handling, and scheduled repaint) | `/src/renderer/uikit/VirtualGrid/` |
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
 | Git-root detection for Markdown wiki links (walk up to nearest `.git`, cached) | `/src/renderer/editors/markdown/detect-git-root.ts` |
@@ -266,7 +269,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Shared tree-provider item/background menus (single-item operations, writable-provider gates, and terminal/open actions) | `/src/renderer/components/tree-provider/item-menus.ts` |
 | Tree-provider trait-drop dispatcher (resolves same-source moves, link imports, and file imports while applying self/descendant guards) | `/src/renderer/components/tree-provider/drop-dispatch.ts` |
 | Tree-provider href helpers (case-insensitive selection equality and normalized self/descendant-drop comparisons) | `/src/renderer/components/tree-provider/href-utils.ts` |
-| Provider live-refresh capability (`watch(callback)` → `{ unsubscribe }` — opt-in and duck-typed, deliberately NOT on the `ITreeProvider` interface, so both the tree view model and the folder page test for it with `typeof provider.watch === "function"`. Implemented by the file provider (one recursive `fs.watch`, debounced 500ms), the Mneme provider (`resources/list_changed`) and link collections (the editor's `links` array identity); archive providers have none) | `/src/renderer/content/tree-providers/FileTreeProvider.ts` |
+| Provider live-refresh capability (`watch(callback)` → disposer — opt-in and duck-typed, deliberately NOT on the `ITreeProvider` interface, so both the tree view model and the folder page test for it with `typeof provider.watch === "function"`. Implemented by the file provider (one recursive `fs.watch`, debounced 500ms), the Mneme provider (`resources/list_changed`) and link collections (the editor's `links` array identity); archive providers have none) | `/src/renderer/content/tree-providers/FileTreeProvider.ts` |
 | Explorer tree OS-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer — context menu + Ctrl+C/X/V; file provider only; recursive copy/move via `core/utils/copy-files.ts`. `copyPathsToOsClipboard(paths, cut)` is the real entry point — N paths in one CF_HDROP write — with `copyPathToOsClipboard` a single-path shim over it) | `/src/renderer/components/tree-provider/os-clipboard.ts` |
 | Open-with-default-app helper (`shell.openPath` over `Endpoint.openPath`; shared by the tree context menu's "Open with Default App" and the Explorer panel's file double-click. `shell.openPath` reports failure by RESOLVING with an error string rather than throwing, so this reports it as a toast — the older `showFolder`/`showItemInFolder` endpoints discard it, which is why a separate endpoint exists. See [context-menu.md](context-menu.md) for the files-only rule) | `/src/renderer/content/open-with-default-app.ts` |
 | Sidebar-focus guard (`isFocusInSidebar` — navigation from a sidebar panel doesn't steal editor focus; page activation still autofocuses) | `/src/renderer/core/utils/focus-utils.ts` |

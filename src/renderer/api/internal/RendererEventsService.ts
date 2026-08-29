@@ -16,6 +16,8 @@ import type { PageDescriptor } from "../../../shared/types";
  */
 export class RendererEventsService {
     async init(): Promise<void> {
+        // App.initEvents() owns these process-lifetime IPC subscriptions; no view/model
+        // owns the application event bus wiring.
         // Page operations (currently delegates to pagesModel)
         rendererEvents.eOpenFile.subscribe(this.handleOpenFile);
         rendererEvents.eOpenDiff.subscribe(this.handleOpenDiff);

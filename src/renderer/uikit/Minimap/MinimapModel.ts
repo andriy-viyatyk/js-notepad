@@ -198,15 +198,12 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapModelProp
 
     init = () => {
         window.addEventListener("resize", this.syncEverything);
+        this.own(() => window.removeEventListener("resize", this.syncEverything));
+        this.own(() => this.scrollContainer?.removeEventListener("scroll", this.syncEverything));
     };
 
     dispose = () => {
         this.observer?.disconnect();
         this.observer = null;
-        this.scrollContainer?.removeEventListener(
-            "scroll",
-            this.syncEverything,
-        );
-        window.removeEventListener("resize", this.syncEverything);
     };
 }

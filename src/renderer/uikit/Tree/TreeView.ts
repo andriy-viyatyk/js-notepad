@@ -100,7 +100,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         this.model.onStateApplied = this.refresh;
 
         // Registration order is load-bearing: disposal runs these FIFO, and the grid and the row
-        // views must go before the driver, whose `onUnmount` reports `onModel(null)` to the host.
+        // views must go before the driver, whose disposal reports `onModel(null)` to the host.
         this.own(() => { this.inert = true; });
         this.own(() => { this.model.onStateApplied = null; });
         this.own(() => {
@@ -489,44 +489,44 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
      * `preventDefault`" both mean "drop not allowed".
      */
     private installCellListeners(wrapper: HTMLElement): void {
-        wrapper.addEventListener("click", (event) => {
+        this.listen(wrapper, "click", (event) => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemClick(record.index, event);
         });
-        wrapper.addEventListener("dblclick", () => {
+        this.listen(wrapper, "dblclick", () => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemDoubleClick(record.index);
         });
-        wrapper.addEventListener("mouseenter", () => {
+        this.listen(wrapper, "mouseenter", () => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemMouseEnter(record.index);
         });
-        wrapper.addEventListener("contextmenu", (event) => {
+        this.listen(wrapper, "contextmenu", (event) => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemContextMenu(event, record.index);
         });
 
-        wrapper.addEventListener("dragstart", (event) => {
+        this.listen(wrapper, "dragstart", (event) => {
             const index = this.dragIndex(wrapper);
             if (index != null) this.model.onDragStart(event, index);
         });
-        wrapper.addEventListener("dragend", () => {
+        this.listen(wrapper, "dragend", () => {
             const index = this.dragIndex(wrapper);
             if (index != null) this.model.onDragEnd();
         });
-        wrapper.addEventListener("dragenter", (event) => {
+        this.listen(wrapper, "dragenter", (event) => {
             const index = this.dropIndex(wrapper);
             if (index != null) this.model.onDragEnter(event, index);
         });
-        wrapper.addEventListener("dragover", (event) => {
+        this.listen(wrapper, "dragover", (event) => {
             const index = this.dropIndex(wrapper);
             if (index != null) this.model.onDragOver(event, index);
         });
-        wrapper.addEventListener("dragleave", (event) => {
+        this.listen(wrapper, "dragleave", (event) => {
             const index = this.dropIndex(wrapper);
             if (index != null) this.model.onDragLeave(event, index);
         });
-        wrapper.addEventListener("drop", (event) => {
+        this.listen(wrapper, "drop", (event) => {
             const index = this.dropIndex(wrapper);
             if (index != null) this.model.onDrop(event, index);
         });

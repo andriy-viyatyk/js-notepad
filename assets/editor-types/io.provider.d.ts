@@ -1,4 +1,3 @@
-import type { ISubscriptionObject } from "./events";
 
 /** Serializable provider descriptor for persistence. */
 export interface IProviderDescriptor {
@@ -51,8 +50,8 @@ export interface IProvider {
     writeBinary?(data: Buffer): Promise<void>;
     /** Get resource metadata (size, modified date, existence). */
     stat?(): Promise<IProviderStat>;
-    /** Watch for external changes. Returns subscription to stop watching. */
-    watch?(callback: (event: string) => void): ISubscriptionObject;
+    /** Watch for external changes. Returns a disposer to stop watching. */
+    watch?(callback: (event: string) => void): () => void;
     /** Serialize to descriptor for persistence. */
     toDescriptor(): IProviderDescriptor;
     /** Release resources (file handles, connections, etc.). */

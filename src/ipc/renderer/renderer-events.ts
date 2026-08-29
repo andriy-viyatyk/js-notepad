@@ -14,12 +14,10 @@ class RendererEventObject<T> implements EventObject<T> {
     subscribe(callback: (data: T) => void) {
         this.subscribers.push(callback);
 
-        return {
-            unsubscribe: () => {
-                this.subscribers = this.subscribers.filter(
-                    (cb) => cb !== callback
-                );
-            },
+        return () => {
+            this.subscribers = this.subscribers.filter(
+                (cb) => cb !== callback
+            );
         };
     }
 

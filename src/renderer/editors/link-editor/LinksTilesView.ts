@@ -348,7 +348,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
             isDragging: false,
             imageSource: null,
         };
-        primaryImage.addEventListener("error", () => {
+        this.listen(primaryImage, "error", () => {
             const current = this.cells.get(record.cell);
             if (!current || this.inert || !current.imageSource) return;
             current.failedSrc = current.imageSource;

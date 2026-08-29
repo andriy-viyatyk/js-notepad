@@ -1,4 +1,5 @@
 import { TDialogModel } from "../../core/state/model";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
@@ -34,8 +35,6 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
     private passwordElement: HTMLInputElement | undefined;
     private confirmElement: HTMLInputElement | undefined;
     private errorElement: HTMLSpanElement | undefined;
-    private focusTimer: ReturnType<typeof setTimeout> | undefined;
-    private viewDisposed = false;
 
     public constructor(props: DialogViewProps) {
         const model = props.model as PasswordDialogModel;
@@ -160,21 +159,7 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
         this.bind(this.model.state, (state) => state.error, (error) => {
             this.syncError(error);
         });
-        this.scheduleFocus();
-    }
-
-    protected onDispose(): void {
-        this.viewDisposed = true;
-        if (this.focusTimer !== undefined) clearTimeout(this.focusTimer);
-        this.focusTimer = undefined;
-    }
-
-    private scheduleFocus(): void {
-        this.focusTimer = setTimeout(() => {
-            this.focusTimer = undefined;
-            if (this.viewDisposed) return;
-            this.passwordElement?.focus();
-        }, 0);
+        this.own(focusAfterPaint(this.passwordElement));
     }
 
     private syncError(error: string): void {

@@ -232,6 +232,8 @@ export async function executeTool(tool: RegisteredTool, args?: unknown): Promise
             });
         };
 
+        // The proc execution handle owns these stream callbacks for this run; a view/model
+        // disposer must not release a still-running tool operation.
         handle.on("stdout", (c) => stdoutChunks.push(c));
         handle.on("stderr", (c) => stderrChunks.push(c));
         handle.on("exit", (info) => finalize(info.code, info.signal));

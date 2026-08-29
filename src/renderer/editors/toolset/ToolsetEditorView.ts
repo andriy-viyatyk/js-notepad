@@ -144,15 +144,13 @@ export class ToolsetEditorView extends VanillaView<{ model: ToolsetEditorModel }
         this.openLogButton.mount();
 
         this.applyProjection(selectToolsetState(this.model.state.get()));
-        this.modelSubscription = this.model.state.subscribe(
+        this.modelSubscription = this.ownSubscription(this.model.state.subscribe(
             (next) => this.applyProjection(next),
             selectToolsetState,
-        );
-        this.own(() => this.modelSubscription?.());
+        ));
 
-        this.trustSubscription = toolsTrust.subscribePaths(() => this.applyTrustState());
+        this.trustSubscription = this.ownSubscription(toolsTrust.subscribePaths(() => this.applyTrustState()));
         this.applyTrustState();
-        this.own(() => this.trustSubscription?.());
         this.own(() => this.branchSwap.dispose());
     }
 
@@ -163,10 +161,10 @@ export class ToolsetEditorView extends VanillaView<{ model: ToolsetEditorModel }
         this.modelSubscription?.();
         this.model = props.model;
         this.applyProjection(selectToolsetState(props.model.state.get()));
-        this.modelSubscription = props.model.state.subscribe(
+        this.modelSubscription = this.ownSubscription(props.model.state.subscribe(
             (next) => this.applyProjection(next),
             selectToolsetState,
-        );
+        ));
     }
 
     private applyProjection(projection: ToolsetProjection): void {

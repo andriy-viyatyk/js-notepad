@@ -141,8 +141,8 @@ function isSyncSource(source: unknown): boolean {
 
 /**
  * Sentinel for "no `items` reference has been applied yet", so the first prop pump counts as a
- * change. `undefined` cannot serve: it is a legal (if useless) `items` value, and `effect()`'s
- * first-run semantics — which this replaces — always ran once.
+ * change. `undefined` cannot serve: it is a legal (if useless) `items` value, and the first prop
+ * pump always runs once.
  */
 const NO_SOURCE = Symbol("select-no-items-source");
 
@@ -225,9 +225,9 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
     private _loadId = 0;
 
     /**
-     * The `items` reference the load cache currently reflects. Owned by the loader rather than read
-     * from `this.oldProps`, which is written for every consumer of the base class and cannot tell
-     * "never pumped" from "pumped undefined". See `setProps`.
+     * The `items` reference the load cache currently reflects. Owned by the loader rather than
+     * derived from a previous-props snapshot, which cannot tell "never pumped" from "pumped
+     * undefined". See `setProps`.
      */
     private appliedItemsSource: unknown = NO_SOURCE;
 
@@ -640,8 +640,8 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
     // --- lifecycle ---
 
     /*
-     * This model registers **no** `effect()`, so `createComponentModelDriver` can own it
-     * (EPIC-056 C3-6 rows 5-8). Where the four went:
+     * This model's prop-driven lifecycle is owned by `createComponentModelDriver`
+     * (EPIC-056 C3-6 rows 5-8). Where the four former reactions went:
      *
      * - `:520` items-source reset -> `setProps` below, behind an identity guard.
      * - `:535` load trigger -> `resetItemsCache` for sync sources, `startLoadIfNeeded` from the open
@@ -650,11 +650,9 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
      * - `:577` `activeIndex` seed -> `openInto` on the open transition, and `commitLoaded` when the
      *   rows arrive.
      *
-     * Two of those carried a `queueMicrotask`, and both are gone: the deferral existed only because
-     * an effect with deps was evaluated inside `setPropsInternal`, i.e. during React's render phase,
-     * where a synchronous `state.update` trips "cannot update a component while rendering". A vanilla
-     * driver pumps props outside any render phase. The one surviving `queueMicrotask` in this file
-     * clears `_suppressFocusOpen` and is not a render-phase workaround.
+     * Two of those carried a `queueMicrotask`, and both are gone: the transitions now write their
+     * state at the mutation sites that own them. The one surviving `queueMicrotask` in this file
+     * clears `_suppressFocusOpen` after the synchronous focus event.
      */
 
     /**

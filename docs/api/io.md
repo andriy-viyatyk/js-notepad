@@ -188,18 +188,18 @@ await pipe.writeBinary(buffer);
 
 ### Watching
 
-#### watch(callback) -> `ISubscriptionObject`
+#### watch(callback) -> `() => void`
 
 Watch for external changes to the underlying resource (e.g., file modified on disk). Not all providers support watching.
 
 ```javascript
 const pipe = io.createPipe(new io.FileProvider("C:/data/config.json"));
-const sub = pipe.watch((event) => {
+const release = pipe.watch((event) => {
     console.log("File changed:", event);
 });
 
 // Stop watching
-sub.unsubscribe();
+release();
 ```
 
 ### Cloning

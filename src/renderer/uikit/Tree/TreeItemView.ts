@@ -244,7 +244,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         button.tabIndex = -1;
         // Read the handler from the live props at event time: this element outlives the row it was
         // created for, so a captured closure would call the previous row's callback.
-        button.addEventListener("click", (event) => {
+        this.listen(button, "click", (event) => {
             this.props.onChevronClick?.(event);
         });
         this.chevronButton = button;

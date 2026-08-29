@@ -692,6 +692,8 @@ export class RestClientEditor extends TextHostEditorModel<RestClientEditorState,
                     const nodeStream = fs.createReadStream(request.binaryFilePath);
                     body = new ReadableStream({
                         start(controller) {
+                            // The request's Node stream owns these callbacks until the
+                            // response body completes; a view disposer must not abort it.
                             nodeStream.on("data", (chunk: Buffer) => controller.enqueue(chunk));
                             nodeStream.on("end", () => controller.close());
                             nodeStream.on("error", (err: Error) => controller.error(err));

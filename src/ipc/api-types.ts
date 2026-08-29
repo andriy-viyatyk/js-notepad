@@ -287,12 +287,8 @@ export enum EventEndpoint {
     eBoardInstallProgress = "eBoardInstallProgress",
 }
 
-export interface EventSubscription {
-    unsubscribe: () => void;
-}
-
 export interface EventObject<T> {
-    subscribe: (callback: (data: T) => void) => EventSubscription;
+    subscribe: (callback: (data: T) => void) => () => void;
     send: (data: T) => void;
 }
 

@@ -7,6 +7,8 @@ import { appWindow } from "../window";
  */
 export class WindowStateService {
     async init(): Promise<void> {
+        // App.initEvents() owns these process-lifetime IPC subscriptions; window state is
+        // application state, not a resource belonging to a view/model.
         rendererEvents.eWindowMaximized.subscribe((isMaximized) => {
             appWindow.setMaximized(isMaximized);
         });

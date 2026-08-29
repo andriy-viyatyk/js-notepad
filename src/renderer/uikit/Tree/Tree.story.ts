@@ -276,7 +276,7 @@ class TreeDemoView extends VanillaView<DemoProps> {
         row.setAttribute("role", "treeitem");
         row.setAttribute("aria-level", String(context.level + 1));
         if (context.hasChildren) row.setAttribute("aria-expanded", String(context.expanded));
-        row.addEventListener("click", () => { if (context.hasChildren) context.toggleExpanded(); });
+        this.listen(row, "click", () => { if (context.hasChildren) context.toggleExpanded(); });
         const chevron = document.createElement("span"); chevron.style.opacity = "0.5"; chevron.style.marginRight = "6px"; chevron.textContent = context.hasChildren ? (context.expanded ? "▼" : "▶") : "·";
         const level = document.createElement("span"); level.style.opacity = "0.6"; level.style.marginRight = "6px"; level.textContent = `L${context.level}`;
         row.append(chevron, level, document.createTextNode(typeof context.item.label === "string" ? context.item.label : String(context.item.value)));

@@ -177,7 +177,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
     private expandedTarget: HTMLElement | null = null;
     private stateUnsubscribe: (() => void) | undefined;
     private queueUnsubscribe: (() => void) | undefined;
-    private panelUnsubscribe: { unsubscribe: () => void } | undefined;
+    private panelUnsubscribe: (() => void) | undefined;
 
     public constructor(props: NotebookBodyViewProps) {
         const editor = props.model;
@@ -191,22 +191,19 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
 
     protected onMount(): void {
         this.root.append(this.notesList);
-        this.stateUnsubscribe = this.editor.state.subscribe(
+        this.stateUnsubscribe = this.ownSubscription(this.editor.state.subscribe(
             this.handleState,
             selectProjection,
-        );
-        this.queueUnsubscribe = this.editor.typedQueue.subscribe(() => undefined);
-        this.panelUnsubscribe = panelExpanded.subscribe((event) => {
+        ));
+        this.queueUnsubscribe = this.ownSubscription(this.editor.typedQueue.subscribe(() => undefined));
+        this.panelUnsubscribe = this.ownSubscription(panelExpanded.subscribe((event) => {
             if (event?.pageId !== this.editor.page?.id) return;
             const panel = {
                 "notebook-categories": "categories",
                 "notebook-tags": "tags",
             }[event.panelId];
             if (panel) this.editor.setExpandedPanel(panel);
-        });
-        this.own(() => this.stateUnsubscribe?.());
-        this.own(() => this.queueUnsubscribe?.());
-        this.own(() => this.panelUnsubscribe?.unsubscribe());
+        }));
         this.applyProjection(this.projection);
         queueMicrotask(() => this.syncExpandedOverlay());
     }

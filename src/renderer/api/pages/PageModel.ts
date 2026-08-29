@@ -13,6 +13,7 @@ import { fs } from "../fs";
 import { NavBackStack } from "./NavBackStack";
 import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
 import { panelKey, parsePanelKey, panelIdOf, isCompositePanelKey } from "../../ui/secondary-views/panel-key";
+import { DisposableStore } from "../../core/utils/DisposableStore";
 
 /** Unwrap a text-bearing editor to its TextFileModel host, so legacy consumers
  *  (tab strip, OpenTabsList, PageTabs) see `filePath` / `language` / `encrypted`
@@ -108,6 +109,7 @@ export class PageModel implements IPageHost {
     // ── Per-editor slice subscriptions (walkthrough 03 / N1) ───────────
 
     private _editorSubs = new Map<string, () => void>();
+    private readonly subscriptions = new DisposableStore();
 
     // ── Transient state (not persisted) ────────────────────────────
 
@@ -268,10 +270,10 @@ export class PageModel implements IPageHost {
         editor.setPage(this);
         const prior = this._editorSubs.get(editor.id);
         prior?.();
-        const unsub = editor.state.subscribe(
+        const unsub = this.subscriptions.add(editor.state.subscribe(
             () => this.onEditorPanelsChanged(editor),
             (s) => (s as { secondaryView?: string[] }).secondaryView,
-        );
+        ));
         this._editorSubs.set(editor.id, unsub);
         this.state.update((s) => {
             s.version++;
@@ -623,9 +625,9 @@ export class PageModel implements IPageHost {
             // Bump version so UI knows sidebar exists. Persistence subscription
             // is in PagesModel.attachPage — it watches page.state for save
             // triggers, so navigator mutations ride the same channel.
-            this.secondaryViewsModel.state.subscribe(() => {
+            this.subscriptions.add(this.secondaryViewsModel.state.subscribe(() => {
                 this.state.update((s) => { s.version++; });
-            });
+            }));
             this.state.update((s) => { s.hasSidebar = true; });
         }
         return this.secondaryViewsModel;
@@ -714,8 +716,8 @@ export class PageModel implements IPageHost {
     // ── Cleanup ──────────────────────────────────────────────────────
 
     async dispose(): Promise<void> {
-        // Defensively drain slice subscriptions.
-        for (const unsub of this._editorSubs.values()) unsub();
+        // Defensively drain slice subscriptions before disposing editors.
+        this.subscriptions.dispose();
         this._editorSubs.clear();
 
         for (const editor of this.editors) {

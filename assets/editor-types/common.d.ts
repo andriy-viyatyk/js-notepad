@@ -13,13 +13,13 @@ export interface IDisposable {
  * then call dispose() on the returned object to unsubscribe.
  *
  * @example
- * const subscription = app.settings.onChanged.subscribe((e) => {
+ * const release = app.settings.onChanged.subscribe((e) => {
  *     console.log(`Setting ${e.key} changed to`, e.value);
  * });
- * // Later: subscription.dispose();
+ * // Later: release();
  */
 export interface IEvent<T> {
-    subscribe(handler: (data: T) => void): IDisposable;
+    subscribe(handler: (data: T) => void): () => void;
 }
 
 /** Editor type identifier. */

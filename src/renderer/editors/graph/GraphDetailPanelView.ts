@@ -111,7 +111,7 @@ class GraphDetailModel extends TComponentModel<GraphDetailState, GraphDetailPane
         }
     }
 
-    onUnmount = (): void => {
+    dispose = (): void => {
         this.props.onHighlightSet?.(null);
         this.props.onExternalHover?.("");
     };

@@ -241,7 +241,7 @@ export class AudioVisualizerView extends VanillaView<AudioVisualizerProps> {
             if (this.inert || key !== "visualizer-effect") return;
             this.applyEffectSelection(selectedEffect(value));
         });
-        this.own(() => settingsSubscription.dispose());
+        this.own(settingsSubscription);
 
         this.own(() => {
             const context = this.audioContext;

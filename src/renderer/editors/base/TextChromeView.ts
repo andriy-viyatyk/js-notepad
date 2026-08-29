@@ -291,7 +291,7 @@ export class TextChromeView extends VanillaView<TextChromeViewProps> {
         const focusSubscription = pagesModel.onFocus.subscribe(this.handlePageFocus);
         this.own(() => {
             this.clearFocusTimer();
-            focusSubscription.unsubscribe();
+            focusSubscription();
         });
     }
 

@@ -1,5 +1,5 @@
 import { settings } from "../../../api/settings";
-import { TComponentState } from "../../../core/state/state";
+import { createComponentModelDriver, type ComponentModelDriver } from "../../../core/state/model";
 import { ColorizedCodeView } from "../../shared/ColorizedCodeView";
 import { ButtonView } from "../../../uikit/Button/ButtonView";
 import type { ButtonProps } from "../../../uikit/Button/ButtonView";
@@ -91,6 +91,7 @@ class McpStatusView extends VanillaView<StatusProps> {
 }
 
 export class McpSectionView extends VanillaView<Record<string, never>> {
+    private driver: ComponentModelDriver<McpSectionState, McpSectionProps, McpSectionModel> | undefined;
     private model: McpSectionModel | undefined;
     private mcpEnabledCheckbox: CheckboxView | undefined;
     private browserToolsCheckbox: CheckboxView | undefined;
@@ -107,10 +108,15 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
     }
 
     protected onMount(): void {
-        const model = new McpSectionModel(new TComponentState(defaultMcpSectionState));
+        const driver = createComponentModelDriver(
+            this.currentProps(),
+            McpSectionModel,
+            defaultMcpSectionState,
+        );
+        this.driver = driver;
+        const model = driver.model;
         this.model = model;
-        model.setPropsInternal(this.currentProps());
-        model._initInternal();
+        this.own(() => driver.dispose());
 
         this.root.append(
             panel({ paddingBottom: "lg" }, text("MCP Server", { bold: true, size: "sm" })),
@@ -188,20 +194,21 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
         (this.root.lastElementChild as HTMLDivElement).append(copyButton.root);
         this.own(() => this.mcpStatusSwap?.dispose());
         this.own(() => this.mnemeStatusSwap?.dispose());
-        this.own(() => model.onUnmountInternal());
         this.configCode.mount();
         copyButton.mount();
+        driver.mount();
         this.bind(model.state, (state) => state, (state) => this.syncState(state));
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "mcp.enabled" || key === "mcp.port" || key === "mcp.browser-tools.enabled" || key === "mneme.enabled" || key === "mneme.port") {
-                model.setPropsInternal(this.currentProps());
+                driver.update(this.currentProps());
                 this.syncState(model.state.get());
             }
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void {
+        this.driver = undefined;
         this.model = undefined;
         this.mcpEnabledCheckbox = undefined;
         this.browserToolsCheckbox = undefined;

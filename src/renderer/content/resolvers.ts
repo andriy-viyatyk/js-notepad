@@ -103,7 +103,8 @@ async function openLinkInBrowser(data: ILinkData): Promise<void> {
  * - fileResolver registered first → runs last (fallback)
  * - httpResolver registered after → runs first (matches http/https URLs)
  *
- * Call during app bootstrap, before scripts load.
+ * Call during app bootstrap, before scripts load. The bootstrap resolver registry
+ * owns these process-lifetime handlers; no view/model should dispose them.
  */
 export function registerResolvers(): void {
     // File resolver — fallback, handles plain file paths and virtual paths (tree-category://)

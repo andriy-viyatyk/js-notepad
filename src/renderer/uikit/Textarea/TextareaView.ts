@@ -91,6 +91,7 @@ function flexValue(value: TextareaProps["flex"]): string | undefined {
 export class TextareaView extends VanillaView<TextareaProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private editableListenersAttached = false;
+    private editableListenerReleases: Array<() => void> = [];
     private lastSyncedValue: string | undefined;
     private previousAutoFocus = false;
     private autoFocusTimer: ReturnType<typeof setTimeout> | undefined;
@@ -190,6 +191,11 @@ export class TextareaView extends VanillaView<TextareaProps> {
             this.root.addEventListener("input", this.handleInput);
             this.root.addEventListener("paste", this.handlePaste);
             this.root.addEventListener("keydown", this.handleKeyDown);
+            this.editableListenerReleases = [
+                this.ownSubscription(() => this.root.removeEventListener("input", this.handleInput)),
+                this.ownSubscription(() => this.root.removeEventListener("paste", this.handlePaste)),
+                this.ownSubscription(() => this.root.removeEventListener("keydown", this.handleKeyDown)),
+            ];
         } else {
             this.detachEditableListeners();
         }
@@ -198,9 +204,7 @@ export class TextareaView extends VanillaView<TextareaProps> {
 
     private detachEditableListeners(): void {
         if (!this.editableListenersAttached) return;
-        this.root.removeEventListener("input", this.handleInput);
-        this.root.removeEventListener("paste", this.handlePaste);
-        this.root.removeEventListener("keydown", this.handleKeyDown);
+        this.editableListenerReleases.splice(0).forEach((release) => release());
         this.editableListenersAttached = false;
     }
 

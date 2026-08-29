@@ -112,10 +112,10 @@ class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
 
     private bindState(): void {
         this.stateSubscription?.();
-        this.stateSubscription = this.model.state.subscribe(
+        this.stateSubscription = this.ownSubscription(this.model.state.subscribe(
             (projection: MermaidToolbarProjection) => this.sync(projection),
             selectMermaidToolbar,
-        );
+        ));
     }
 
     private sync(projection: MermaidToolbarProjection): void {

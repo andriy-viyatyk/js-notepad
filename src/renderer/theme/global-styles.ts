@@ -159,6 +159,8 @@ export function installGlobalStyles(): () => void {
     document.head.append(style);
     style.textContent = buildGlobalStyles();
 
+    // Global style installation owns this process-lifetime subscription; it updates the
+    // singleton stylesheet and is not a resource of any view/model.
     const unsubscribe = themeState.subscribe(
         () => {
             style.textContent = buildGlobalStyles();

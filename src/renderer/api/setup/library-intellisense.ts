@@ -21,6 +21,8 @@ export function loadLibraryIntelliSense(): void {
     registerLibraryFiles();
     registerPathCompletionProvider();
 
+    // IntelliSense setup is a process-lifetime singleton; this listener belongs to
+    // the library service/bootstrap boundary, not to any view or model.
     libraryService.state.subscribe(() => {
         disposeExtraLibs();
         registerLibraryFiles();

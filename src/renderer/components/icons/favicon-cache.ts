@@ -209,7 +209,9 @@ function downloadToBuffer(url: string): Promise<Buffer | null> {
                 return;
             }
             const chunks: Buffer[] = [];
-            res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        // The HTTP response/request owns these callbacks until completion or failure;
+        // they are short-lived request resources, not view/model subscriptions.
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
             res.on("end", () => resolve(Buffer.concat(chunks)));
             res.on("error", () => resolve(null));
         });

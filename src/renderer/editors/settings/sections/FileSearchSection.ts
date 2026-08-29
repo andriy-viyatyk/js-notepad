@@ -57,7 +57,7 @@ export class FileSearchSectionView extends VanillaView<Record<string, never>> {
             if (key === "search-extensions") this.syncExtensions();
             if (key === "search-exclude") this.syncExclude();
         });
-        this.own(() => subscription.dispose());
+        this.own(subscription);
     }
 
     protected onDispose(): void {
