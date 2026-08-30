@@ -5,6 +5,7 @@ import { createTextElement } from "../../uikit/Text/text-style";
 import { MeasuredRowGrid } from "../../uikit/DataGrid";
 import type { MeasuredRowCellFunc, MeasuredRowGridOptions, Percent } from "../../uikit/DataGrid";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { applyCellStyle } from "../../uikit/shared/cell-style";
 import { ExpandedNoteView, type ExpandedNoteViewProps } from "./ExpandedNoteView";
 import { NoteItemView } from "./NoteItemView";
 import type { NoteItem } from "./notebookTypes";
@@ -116,6 +117,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
                 : undefined;
         const cell = previous ?? params.recycle?.(kind) ?? document.createElement("div");
         params.setReuseKey?.(cell, kind);
+        applyCellStyle(cell, params.style, params.row, params.col, params.renderInfo.input.columnCount);
         let record = this.cells.get(cell);
 
         // A cell whose subtree threw is not reused: its views are disposed and rebuilt.

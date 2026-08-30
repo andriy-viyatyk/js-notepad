@@ -103,13 +103,29 @@ function buildGlobalStyles(): string {
             outline: none;
         }
 
-        /* VSCode-like scrollbar: hidden by default, thumb fades in on hover */
-        .scroll-container {
+        /* VSCode-like scrollbar: hidden by default, thumb fades in on hover.
+         *
+         * The second selector covers av-grid's scroll container, which RenderGrid builds itself.
+         * The retired uikit/VirtualGrid fork added scroll-container to its own container inside
+         * VirtualGridView, so every grid built on it inherited this treatment and no consumer
+         * could forget it. We no longer own that class, so the single place that cannot be
+         * forgotten is this rule -- and putting the selector here, rather than restating the
+         * declarations in DataGrid.css, keeps one definition of what a scrollbar looks like.
+         *
+         * This deliberately covers the DataGrid too: av-grid ships no scrollbar styling of its
+         * own, so those grids had the browser default. Every grid in the app now scrolls the
+         * same way.
+         *
+         * No backticks in this comment on purpose -- the whole block is a template literal, and
+         * one would end it. */
+        .scroll-container,
+        [data-type="render-grid-scroll"] {
             scrollbar-color: transparent transparent;
             scrollbar-width: thin;
             transition: scrollbar-color 0.3s ease;
         }
-        .scroll-container:hover {
+        .scroll-container:hover,
+        [data-type="render-grid-scroll"]:hover {
             scrollbar-color: ${color.background.scrollBarThumb} transparent;
         }
 

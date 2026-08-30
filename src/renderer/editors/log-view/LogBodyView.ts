@@ -7,6 +7,7 @@ import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { LogEntry } from "./logTypes";
 import type { LogRenderChange, LogViewEditor, LogViewEditorState } from "./LogViewEditor";
 import { LogEntryWrapperView } from "./LogEntryWrapper";
+import { applyCellStyle } from "../../uikit/shared/cell-style";
 
 const RIGHT_GUTTER = 40;
 const AUTO_SCROLL_THRESHOLD = 50;
@@ -70,6 +71,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         const previous = params.previous && (!previousRecord || previousRecord.kind === kind) ? params.previous : undefined;
         const cell = previous ?? params.recycle?.(kind) ?? document.createElement("div");
         params.setReuseKey?.(cell, kind);
+        applyCellStyle(cell, params.style, params.row, params.col, params.renderInfo.input.columnCount);
         let record = this.cells.get(cell);
         if (record?.failed) { this.discardRecord(record); record = undefined; }
         try {
