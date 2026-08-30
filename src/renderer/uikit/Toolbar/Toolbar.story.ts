@@ -43,10 +43,8 @@ class ToolbarDemoView extends VanillaView<ToolbarProps> {
         this.spacerView = this.child(new SpacerView(this.spacerProps()));
         this.segmentedView = this.child(new SegmentedControlView(this.segmentedProps(this.props.background)));
         // Handed to ToolbarView as `children` rather than appended into its root.
-        // `ToolbarView.onUpdate` calls `fillSlot(this.root, props.children)`, and `fillSlot`
-        // starts with an unconditional `replaceChildren()` — so anything appended directly is
-        // wiped by the first prop change. Appending looked correct only because mount's
-        // fillSlot runs before the append and nothing had updated yet (US-1187).
+        // `ToolbarView.onUpdate` owns that slot through `fillSlot`; matching nodes stay in place,
+        // but direct writes would still violate the slot ownership contract.
         this.contents = [
             this.demoLabel,
             this.buttonView.root,
@@ -72,8 +70,8 @@ class ToolbarDemoView extends VanillaView<ToolbarProps> {
     private toolbarProps(props: ToolbarProps): ToolbarProps {
         return {
             ...props,
-            // `null` until onMount has built the four child views. Re-passing the same stable
-            // nodes on every update is what fillSlot expects; it re-appends them in order.
+            // `null` until onMount has built the child views. Re-passing the same stable nodes on
+            // every update lets fillSlot preserve them in place.
             children: this.contents ?? null,
         };
     }

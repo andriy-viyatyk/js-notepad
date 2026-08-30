@@ -209,12 +209,13 @@ looks exactly like a failed fix. Worth closing so the class is finished rather t
 
 ### `ToolbarView` lets a caller append into its root, then wipes it
 
-`ToolbarView.onUpdate` calls `fillSlot(this.root, props.children)`, and `fillSlot` opens with an
-unconditional `replaceChildren()` — so anything a caller appended directly into the toolbar's root is
-destroyed by the first prop change. **Both** of its callers did exactly that: `Toolbar.story.ts` (live
-defect, fixed as US-1187) and `StorybookEditorView.ts:81`, which escapes only because it never calls
-`this.toolbar.update(...)` — latent, and one future `update()` from an empty application toolbar. Two
-of two callers making the same mistake reads as an under-documented contract rather than carelessness.
+`ToolbarView.onUpdate` calls `fillSlot(this.root, props.children)`, which owns the root and can destroy
+anything a caller appended directly when the requested children differ or are empty. Matching slot
+nodes now remain in place, but direct appends still violate the contract. **Both** of its callers did
+that: `Toolbar.story.ts` (live defect, fixed as US-1187) and `StorybookEditorView.ts:81`, which escapes
+only because it never calls `this.toolbar.update(...)` — latent, and one future `update()` from an
+empty application toolbar. Two of two callers making the same mistake reads as an under-documented
+contract rather than carelessness.
 Options: document it on `ToolbarProps.children`, or make `ToolbarView` refuse/absorb a manual append
 so the hazard cannot be hit. Cheap either way, and it removes a trap rather than a bug.
 

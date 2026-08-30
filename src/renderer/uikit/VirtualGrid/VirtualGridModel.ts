@@ -595,8 +595,10 @@ export class VirtualGridModel {
         if (!container) return;
         if (e && e.currentTarget !== container) return;
 
-        // Ignore scroll events fired while hidden — `display: none` resets scrollTop to 0,
-        // and acting on that would lose the user's position.
+        // Ignore scroll events fired while hidden. A `display: none` element *reports*
+        // `scrollTop` as 0 because it has no scroll box; Chromium gives the real value back when
+        // it is shown again (measured 2026-08-30, across both a synchronous and a 900ms hide), so
+        // the position is not lost — but adopting the reported 0 here would lose it for real.
         if (!container.offsetHeight && !container.offsetWidth) return;
 
         const { scrollLeft: x, scrollTop: y } = container;

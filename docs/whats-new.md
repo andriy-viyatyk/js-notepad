@@ -42,6 +42,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **File Explorer search restores expanded folders** — Clearing a tree search could leave folders collapsed when their expansion had been restored from saved state. Clearing the search now brings those previously expanded folders back.
 
+- **File Explorer keeps its place after tab activity** — Opening or closing another tab could send a long Explorer tree back to the top and leave its first visible rows blank. The tree now keeps its scroll position and rendered rows when unrelated page activity updates the sidebar.
+
 - **Script panels over Grid editors stay usable** — The script panel now appears the first time you open it, and dragging its splitter keeps both the panel and the grid visible and accessible as either side grows or shrinks.
 
 - **Git change lists now fill and resize with the panel** — With many changed files, the **Unstaged** list could leave empty space below it, and the splitter between the **Unstaged** and **Staged** lists could move down but not back up. The lists now fill their panes, and dragging the splitter in either direction makes them grow or shrink with the available space. Content that exceeds a panel's bounds now stays inside the panel and scrolls instead of spilling outside.

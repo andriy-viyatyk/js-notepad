@@ -612,13 +612,16 @@ not to a generic adapter prop.
 
 For a native slot inside a vanilla view, use `fillSlot` from
 [`uikit/shared/fill-slot.ts`](../../src/renderer/uikit/shared/fill-slot.ts). It owns the supplied
-host and replaces text or DOM-node content with generation-safe cleanup. Do not mutate a fill-slot
+host and replaces text or DOM-node content with generation-safe cleanup. If the requested native
+nodes already exactly match the host's direct children, it leaves them attached while still
+advancing the generation; text content is deliberately not compared. Do not mutate a fill-slot
 host directly; the host's direct-child shape is part of the component contract. The draw editor's
 `react-island.ts` is the only place that may create a React root.
 
-Never pass a `DocumentFragment` as a slot value: slot filling appends the supplied node, which
-consumes a fragment on the first fill and leaves later refills empty. Use a persistent element or a
-mounted view root for content that may be projected more than once.
+Do not reuse a `DocumentFragment` as a slot value: slot filling appends the supplied node, which
+consumes a fragment on the first fill and leaves later refills empty. A one-shot fragment is valid
+when it will not be handed to `fillSlot` again; use an array, persistent element, or mounted view
+root for content that may be projected more than once.
 
 The React root created by draw's `mountReactHandle` marks its host with
 `data-react-root`; disposal removes the marker. A root created directly by that helper is not

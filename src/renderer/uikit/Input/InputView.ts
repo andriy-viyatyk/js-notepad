@@ -81,13 +81,12 @@ export class InputView extends VanillaView<InputProps> {
     private readonly slotHosts = new Map<"start" | "end", HTMLDivElement>();
     private readonly slotCleanups = new Map<"start" | "end", () => void>();
     /**
-     * The last value handed to `fillSlot` per slot. `fillSlot`'s node path runs
-     * `replaceChildren()` then `append()`, and `updateSlot` is called on every update — so without
-     * this gate a vanilla parent passing a stable element (`Select`'s chevron button) would have it
-     * detached and re-appended on every keystroke: layout invalidation, a restarted transition, and
-     * a spurious `MutationObserver` record, for identical content.
+     * The last value handed to `fillSlot` per slot. `updateSlot` is called on every update, so this
+     * gate avoids a new fill generation for an unchanged value. It is also useful for text and
+     * fragment values, which `fillSlot` deliberately does not compare by content.
      *
-     * Safe for both arms. The same `Node` means the same content, and an inline subtree value is always new, so a genuinely changed subtree has a new identity.
+     * Safe for both arms. The same `Node` means the same content, and an inline subtree value is
+     * always new, so a genuinely changed subtree has a new identity.
      */
     private readonly appliedSlots = new Map<"start" | "end", SlotContent>();
     private previousAutoFocus = false;

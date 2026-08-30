@@ -82,8 +82,10 @@ empty `<svg>` is never a valid fallback.
 
 `SlotContent` is the native slot-content type exported by `uikit/shared/fill-slot.ts`; it accepts
 text, DOM nodes, and arrays of those values. `fillSlot` owns replacement and cleanup for a
-view-owned DOM region. React values are not part of the UIKit slot contract; the sole React
-island is the Excalidraw vendor boundary under `editors/draw/`.
+view-owned DOM region. When the requested native nodes are already the host's exact direct
+children, it preserves them in place while still advancing its generation; text content is not
+compared. React values are not part of the UIKit slot contract; the sole React island is the
+Excalidraw vendor boundary under `editors/draw/`.
 
 For a `Tree` row's right-side content, use `renderTrailing` for a slot value that may be rebuilt,
 and `trailingElement` for a stable, caller-owned DOM node. The direct-node form is identity-aware:

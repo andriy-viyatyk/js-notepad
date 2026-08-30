@@ -63,14 +63,53 @@ function appendNativeSlot(parent: Node, slot: SlotContent): boolean {
 }
 
 /**
+ * Do `host`'s children already match exactly what `slot` would put there?
+ *
+ * Re-appending a node that is already in place is not a no-op. `replaceChildren()` detaches the
+ * subtree, and Chromium resets the scroll position of every scroller inside it — silently, with no
+ * scroll event, so nothing downstream can notice the loss and correct it. Panels are refilled from
+ * `CollapsiblePanelStackView.updateContent` on *every* update, including ones provoked by an
+ * unrelated page, and the panel content is a retained view root rather than a fresh node. That is
+ * how closing a background tab sent the Explorer tree back to the top while its rows stayed
+ * painted where the old offset put them, leaving the first screenful blank.
+ *
+ * Only node content is compared. Text is cheap to rebuild and carries no state worth preserving,
+ * and a `DocumentFragment` never matches: appending one moves its children out, so by the time a
+ * caller hands the same fragment back it has already emptied itself.
+ */
+function slotMatchesHost(host: HTMLElement, slot: SlotContent): boolean {
+    const expected: Node[] = [];
+    const collect = (value: SlotContent): boolean => {
+        if (isEmptySlot(value)) return true;
+        if (value instanceof Node) {
+            if (value.nodeType === Node.DOCUMENT_FRAGMENT_NODE) return false;
+            expected.push(value);
+            return true;
+        }
+        if (Array.isArray(value)) return value.every(collect);
+        return false;
+    };
+    if (!collect(slot)) return false;
+
+    const actual = host.childNodes;
+    if (actual.length !== expected.length) return false;
+    return expected.every((node, index) => actual[index] === node);
+}
+
+/**
  * Fill a view-owned DOM region with native text, nodes, fragments, or arrays of those values.
  *
  * Callers must not run a previous cleanup before calling again: this function owns the transition,
  * and superseded cleanups become no-ops on their own.
+ *
+ * A fill that would reproduce the children already present is skipped at the DOM level but still
+ * takes a new generation, so the bookkeeping is identical either way — see `slotMatchesHost` for
+ * why touching the DOM anyway is not free.
  */
 export function fillSlot(host: HTMLElement, slot: SlotContent): () => void {
     const generation = (activeSlots.get(host)?.generation ?? 0) + 1;
-    host.replaceChildren();
+    const alreadyFilled = slotMatchesHost(host, slot);
+    if (!alreadyFilled) host.replaceChildren();
 
     const active: ActiveSlot = isEmptySlot(slot)
         ? { kind: "empty", generation }
@@ -78,7 +117,7 @@ export function fillSlot(host: HTMLElement, slot: SlotContent): () => void {
             ? { kind: "text", generation }
             : { kind: "node", generation };
 
-    if (!isEmptySlot(slot) && !appendNativeSlot(host, slot)) {
+    if (!isEmptySlot(slot) && !alreadyFilled && !appendNativeSlot(host, slot)) {
         active.kind = "empty";
     }
     activeSlots.set(host, active);

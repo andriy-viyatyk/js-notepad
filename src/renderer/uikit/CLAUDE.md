@@ -638,10 +638,13 @@ keep slot ownership safe:
   failure mode is an attribute reverting one update later, not an exception.
 - `fillSlot` **owns the host element it is given.** Call it again to change the content; never run
   the previous cleanup first, and never write to that host directly (`replaceChildren`, `append`,
-  `textContent`) behind its back. It replaces native content on each call and makes a superseded
-  cleanup a no-op. When a view needs several nodes in one slot
-  (an icon plus a label), pass a `DocumentFragment`, so the children still land as direct children
-  of the host and the host's own `gap` still applies.
+  `textContent`) behind its back. It replaces native content when the requested direct children do
+  not already match, and preserves an exact node match in place; either path advances the fill
+  generation, and a superseded cleanup is a no-op. Text content is deliberately not compared. When
+  a view needs several nodes in one slot (an icon plus a label), pass an array of nodes or a
+  one-shot `DocumentFragment`, so the children still land as direct children of the host and the
+  host's own `gap` still applies. Do not reuse a `DocumentFragment`: appending it consumes its
+  children, so it never matches a later fill.
 
 ### Converting an existing React component
 

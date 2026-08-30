@@ -355,10 +355,9 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
 
     /** The earlier renderer attached `<span className="tree-trailing">…` when trailing content was present. */
     private setTrailing(trailing: SlotContent, trailingElement?: Node): void {
-        // A caller-owned DOM node takes the identity-checked arm. `fillSlot` replaces the host's
-        // children unconditionally, so re-filling with the same node detaches and re-appends it —
-        // which drops focus and hover on an interactive control and churns the DOM on every
-        // virtual-scroll render. Comparing identity first keeps the node mounted.
+        // A caller-owned DOM node takes the identity-checked arm. Comparing identity first avoids
+        // a new fill generation on every virtual-scroll render; `fillSlot` also preserves matching
+        // native children when it is called.
         if (trailingElement !== undefined) {
             if (!this.trailingAttached) {
                 this.root.append(this.trailingHost);
