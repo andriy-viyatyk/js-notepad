@@ -6,6 +6,8 @@ import {
     type NativeHTMLAttributes,
     type RestPropsState,
 } from "../shared/dom-props";
+import { overlayRegistry } from "../shared/overlayRegistry";
+import { restoreFocus } from "../shared/focus-restore";
 import { VanillaView } from "../shared/vanilla-view";
 
 // --- Types ---
@@ -93,6 +95,11 @@ export class DialogView extends VanillaView<DialogProps> {
 
         this.applyProps(this.props);
         applyRestProps(this.root, this.getRestProps(this.props), this.restPropsState);
+        // Restored after the rest pass for the same reason `position` is: `applyRestProps` writes
+        // attributes wholesale, so a stray `class` in the rest bag would replace the structural
+        // class rather than add to it. Losing `dialog-shell` costs the shell its
+        // `position: absolute` overlay and drops the dialog into normal flow below the page.
+        this.root.classList.add("dialog-shell");
         this.root.dataset.position = this.props.position ?? "center";
         this.listen(this.root, "click", this.onClick);
         this.listen(this.root, "keydown", this.onKeyDown);
@@ -106,6 +113,14 @@ export class DialogView extends VanillaView<DialogProps> {
         this.childrenCleanup = fillSlot(this.childrenHost, nativeChildren);
         this.runFocusPass();
 
+        // A modal suppresses page tooltips for as long as it is open. `overlayRegistry`'s own
+        // header names dialogs as one of the surfaces that should do this, but until now only
+        // context menus and the data grid ever registered, so a tooltip could sit over an open
+        // modal — and a tooltip whose show delay started before the modal opened still fired.
+        // Registering the shell also opts *in* any tooltip inside the dialog, which is why the
+        // shell is the right element rather than a global flag.
+        overlayRegistry.register(this.root);
+        this.own(() => overlayRegistry.unregister(this.root));
         this.own(() => this.childrenCleanup?.());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
@@ -123,7 +138,7 @@ export class DialogView extends VanillaView<DialogProps> {
     protected onDispose(): void {
         const previous = this.previousFocus;
         if (previous && document.contains(previous)) {
-            previous.focus();
+            restoreFocus(previous);
         }
         this.previousFocus = null;
     }

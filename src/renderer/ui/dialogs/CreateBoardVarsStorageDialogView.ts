@@ -3,7 +3,6 @@ import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { InputView } from "../../uikit/Input/InputView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
@@ -96,13 +95,12 @@ export class CreateBoardVarsStorageDialogView extends VanillaView<DialogViewProp
             children: contentChildren,
         });
         const dialogView = new DialogView({
-            className: props.className,
             name: "create-board-vars-storage-dialog",
             autoFocus: false,
             onKeyDown: (event) => model.handleKeyDown(event),
             onEscape: () => { void model.close(undefined); },
             children: contentView.root,
-        } as DialogProps & { className?: string });
+        });
 
         super(props, dialogView.root);
         this.model = model;

@@ -3,7 +3,6 @@ import { ButtonView } from "../../uikit/Button/ButtonView";
 import { CheckboxView } from "../../uikit/Checkbox/CheckboxView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { InputView } from "../../uikit/Input/InputView";
 import { LabelView } from "../../uikit/Label/LabelView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
@@ -104,13 +103,12 @@ export class LibrarySetupDialogView extends VanillaView<DialogViewProps> {
             children: contentChildren,
         });
         const dialogView = new DialogView({
-            className: props.className,
             name: "library-setup-dialog",
             autoFocus: false,
             onKeyDown: (event) => model.handleKeyDown(event),
             onEscape: () => { void model.close(undefined); },
             children: contentView.root,
-        } as DialogProps & { className?: string });
+        });
 
         super(props, dialogView.root);
         this.model = model;

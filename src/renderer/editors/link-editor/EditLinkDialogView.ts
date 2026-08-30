@@ -1,7 +1,6 @@
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
 import { PathInputView } from "../../uikit/PathInput/PathInputView";
@@ -336,13 +335,12 @@ export class EditLinkDialogView extends VanillaView<DialogViewProps> {
             children: contentChildren,
         }));
         const dialogView = this.child(new DialogView({
-            className: this.props.className,
             name: "edit-link-dialog",
             onKeyDown: (event) => this.model.handleKeyDown(event),
             onEscape: () => { void this.model.close(undefined); },
             autoFocus: false,
             children: contentView.root,
-        } as DialogProps & { className?: string }));
+        }));
         this.root.append(dialogView.root);
         contentView.mount();
         dialogView.mount();

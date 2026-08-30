@@ -8,6 +8,7 @@ import { CopyIcon, CursorIcon, EmptyIcon } from "../../../theme/icons";
 import { VanillaView } from "../../../uikit/shared/vanilla-view";
 import { TComponentState } from "../../../core/state/state";
 import { overlayRegistry } from "../../../uikit/shared/overlayRegistry";
+import { restoreFocus } from "../../../uikit/shared/focus-restore";
 import { api } from "../../../../ipc/renderer/api";
 import type { DialogViewProps } from "../dialog-view-registry";
 import { registerDialogView } from "../dialog-view-registry";
@@ -241,5 +242,5 @@ export const showAppPopupMenu = async (
     });
 
     // Restore focus after menu closes
-    previouslyFocused?.focus();
+    if (previouslyFocused) restoreFocus(previouslyFocused);
 };

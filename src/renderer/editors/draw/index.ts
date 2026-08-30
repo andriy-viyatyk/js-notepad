@@ -17,6 +17,7 @@ import { fs } from "../../api/fs";
 import { api } from "../../../ipc/renderer/api";
 import { pagesModel } from "../../api/pages";
 import { fpBasename } from "../../core/utils/file-path";
+import { restoreFocus } from "../../uikit/shared/focus-restore";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 import { guard } from "../../core/utils/guard";
@@ -320,7 +321,7 @@ class DrawToolbarView extends VanillaView<{ model: DrawEditor }> {
     private readonly handleMenuClose = (): void => {
         this.saveMenu = undefined;
         this.openMenu = undefined;
-        if (this.previousFocus instanceof HTMLElement) this.previousFocus.focus();
+        if (this.previousFocus instanceof HTMLElement) restoreFocus(this.previousFocus);
         this.previousFocus = null;
     };
 

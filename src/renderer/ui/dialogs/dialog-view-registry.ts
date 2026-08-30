@@ -3,7 +3,6 @@ import type { VanillaViewCtor } from "../../uikit/shared/vanilla-view";
 
 export interface ViewProps<M extends TModel<T>, T = unknown> {
     model: M;
-    className?: string;
 }
 
 export interface IViewData<M extends TModel<T>, T = unknown> {

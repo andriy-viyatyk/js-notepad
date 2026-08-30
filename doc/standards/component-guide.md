@@ -42,6 +42,11 @@ prevents the browser default and invokes `onEscape`, while other keys only reach
 Dialog-specific Enter behavior may remain on the input, and dialogs embedding Monaco may keep
 their own keyboard boundary when the generic contract would interfere with editor handling.
 
+When a transient surface restores the element that was focused before it opened, call
+`restoreFocus()` from [`uikit/shared/focus-restore.ts`](../../src/renderer/uikit/shared/focus-restore.ts)
+instead of calling `element.focus()` directly. This marks the synchronous `focusin` event as
+programmatic so focus-based consumers such as tooltips do not treat teardown as a new user action.
+
 Native attribute props are compatibility surfaces, not permission to forward every browser
 attribute forever. A component may replace a broad `Omit<Native...>` with an explicit `Pick` only
 after sweeping its callers, stories, and targeted setter paths; preserve every key that is

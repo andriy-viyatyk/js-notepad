@@ -4,6 +4,7 @@ import { openMenu, type MenuHandle, type MenuAttachOptions } from "../../uikit/M
 import type { MenuItem } from "../../uikit/Menu/types";
 import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { restoreFocus } from "../../uikit/shared/focus-restore";
 import { DrawIcon } from "../../theme/language-icons";
 import type { ImageEditor } from "./ImageEditor";
 export interface ImageToolbarViewProps {
@@ -97,7 +98,7 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
 
     private readonly onMenuClose = (): void => {
         this.menuHandle = undefined;
-        this.focusedBeforeMenu?.focus();
+        if (this.focusedBeforeMenu) restoreFocus(this.focusedBeforeMenu);
         this.focusedBeforeMenu = null;
     };
 

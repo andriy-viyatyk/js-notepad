@@ -3,7 +3,6 @@ import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { InputView } from "../../uikit/Input/InputView";
 import { LabelView } from "../../uikit/Label/LabelView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
@@ -106,12 +105,11 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
             children: contentChildren,
         });
         const dialogView = new DialogView({
-            className: props.className,
             name: "password-dialog",
             autoFocus: false,
             onEscape: () => { void model.close(undefined); },
             children: contentView.root,
-        } as DialogProps & { className?: string });
+        });
 
         super(props, dialogView.root);
         this.model = model;

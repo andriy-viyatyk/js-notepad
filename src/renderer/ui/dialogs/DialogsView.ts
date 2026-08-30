@@ -76,7 +76,6 @@ export class DialogsView extends VanillaView<undefined> {
     ): DialogSlot {
         const props: DialogViewProps = {
             model: dialog.model,
-            className: "dialog",
         };
         if (!nativeCtor) {
             throw new Error(
@@ -95,7 +94,6 @@ export class DialogsView extends VanillaView<undefined> {
     private updateSlot(slot: DialogSlot, dialog: IDialogViewData): void {
         const props: DialogViewProps = {
             model: dialog.model,
-            className: "dialog",
         };
         slot.nativeView.update(props);
     }

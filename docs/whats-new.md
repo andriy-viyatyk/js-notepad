@@ -56,6 +56,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **The Browser bookmarks drawer opens at a usable width** — The first time you opened the bookmarks drawer on a newly opened browser page, it could appear as a zero-width sliver and be effectively invisible. It now opens at a usable width the first time.
 
+- **Unsaved-changes dialogs stay centered over the page** — The save prompt could appear below the page instead of as a modal overlay. It now remains visible in the center while you choose whether to save, discard, or cancel.
+
+- **Tooltips keep their normal styling** — Tooltips could appear as bare, unstyled text. Their background, border, and shadow now render normally again.
+
+- **Tooltips no longer reappear over closing dialogs** — A page tooltip could remain visible near an open dialog or reopen briefly when a transient surface closed. Tooltips are now suppressed while a dialog is open and stay closed during that focus transition.
+
 ---
 
 ## Version 4.0.22

@@ -2,7 +2,6 @@ import { TDialogModel } from "../../core/state/model";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -61,11 +60,10 @@ export class NamespaceCollisionDialogView extends VanillaView<DialogViewProps> {
             children: contentChildren,
         });
         const dialogView = new DialogView({
-            className: props.className,
             name: "namespace-collision-dialog",
             onEscape: () => model.close(false),
             children: contentView.root,
-        } as DialogProps & { className?: string });
+        });
 
         super(props, dialogView.root);
         this.model = model;

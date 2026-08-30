@@ -768,7 +768,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── Progress/           # Progress overlay + screen lock
 │   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool; VirtualGridView and VirtualFlexGridView
 │   ├── DataGrid/           # av-grid mounting boundary (filters, sorting, editing, selection)
-│   └── shared/             # Internal helpers (overlay layer, native slots, and view lifecycle)
+│   └── shared/             # Internal helpers (overlay layer, focus restoration, native slots, and view lifecycle)
 │       ├── async-ref.ts    # Callback-backed asynchronous DOM reference
 │       ├── vanilla-view.ts # Framework-free view lifecycle, ownership, binding, and cleanup
 │       ├── keyed-list.ts   # Keyed DOM reconciliation with minimal cursor moves
@@ -777,6 +777,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── element-id.ts   # Shared DOM id allocation for generated elements
 │       ├── fill-slot.ts    # Native slot-content filling and generation-safe cleanup
 │       ├── dom-props.ts    # Native attributes/events, targeted residual props, and listener cleanup
+│       ├── focus-restore.ts # Marks synchronous focus restoration so focusin consumers can ignore it
 │       └── slots.ts        # Neutral icon and slot-content types/resolution
 │
 ├── components/             # Persephone-Coupled Components (KEEP-only)

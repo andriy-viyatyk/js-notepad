@@ -1,7 +1,6 @@
 import { TDialogModel } from "../../core/state/model";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
@@ -44,11 +43,10 @@ export class ConfirmationDialogView extends VanillaView<DialogViewProps> {
             children: contentChildren,
         });
         const dialogView = new DialogView({
-            className: props.className,
             name: "confirmation-dialog",
             onEscape: () => { void model.close(undefined); },
             children: contentView.root,
-        } as DialogProps & { className?: string });
+        });
 
         super(props, dialogView.root);
         this.model = model;

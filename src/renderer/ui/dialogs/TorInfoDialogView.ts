@@ -1,7 +1,6 @@
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { SpinnerView } from "../../uikit/Spinner/SpinnerView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
@@ -136,11 +135,10 @@ export class TorInfoDialogView extends VanillaView<DialogViewProps> {
             children: contentChildren,
         });
         const dialogView = new DialogView({
-            className: props.className,
             name: "tor-info-dialog",
             onEscape: () => { void model.close(undefined); },
             children: contentView.root,
-        } as DialogProps & { className?: string });
+        });
 
         super(props, dialogView.root);
         this.model = model;

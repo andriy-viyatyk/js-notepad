@@ -10,7 +10,9 @@ import {
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { getOverlayLayer } from "../shared/overlayLayer";
 import { overlayRegistry } from "../shared/overlayRegistry";
+import { isRestoringFocus } from "../shared/focus-restore";
 import { tooltipRegistry } from "../shared/tooltipRegistry";
+import "./Tooltip.css";
 
 export interface TooltipOptions {
     content: SlotContent;
@@ -203,7 +205,13 @@ export function attachTooltip(
 
     const onMouseEnter = (): void => show();
     const onMouseLeave = (): void => scheduleHide();
-    const onFocusIn = (): void => show();
+    const onFocusIn = (): void => {
+        // A transient surface handing focus back is not the user focusing this control, and a
+        // tooltip that opens under a pointer which left seconds ago reads as a ghost. `focusin`
+        // fires synchronously inside `restoreFocus()`, so the flag is exact for this event.
+        if (isRestoringFocus()) return;
+        show();
+    };
     const onFocusOut = (event: FocusEvent): void => {
         const relatedTarget = event.relatedTarget;
         if (relatedTarget instanceof Node && trigger.contains(relatedTarget)) return;

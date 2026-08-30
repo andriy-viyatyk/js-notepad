@@ -9,6 +9,7 @@ import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { DrawIcon } from "../../theme/language-icons";
 import { createIconComponentElement } from "../../theme/icons";
 import { savePngViaDialog } from "../shared/image-export";
+import { restoreFocus } from "../../uikit/shared/focus-restore";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
@@ -120,7 +121,7 @@ class HtmlToolbarBitsView extends VanillaView<{ model: HtmlEditor }> {
 
     private readonly handleMenuClose = (): void => {
         this.menuHandle = undefined;
-        this.focusedBeforeMenu?.focus();
+        if (this.focusedBeforeMenu) restoreFocus(this.focusedBeforeMenu);
         this.focusedBeforeMenu = null;
     };
 

@@ -41,6 +41,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Excalidraw React island root adapter (`mountReactHandle`, `MountedReactRoot`, and `data-react-root` observability marker) | `/src/renderer/editors/draw/react-island.ts` |
 | Native slot-content bridge (`SlotContent`; host ownership and superseded cleanup) | `/src/renderer/uikit/shared/fill-slot.ts` |
 | Native attributes/events and residual-props bridge (`applyRestProps`, targeted `setRestProp`, and listener cleanup) | `/src/renderer/uikit/shared/dom-props.ts` |
+| Transient-surface focus restoration (`restoreFocus` marks synchronous programmatic focus and `isRestoringFocus` lets `focusin` consumers distinguish it from user focus) | `/src/renderer/uikit/shared/focus-restore.ts` |
 | Component model lifecycle (initial prop pump, explicit `mount`/`update`/`dispose`, model-owned cleanup, and derive-on-write fields) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
 | Shared cleanup store (function disposers, early release, ordered error-isolated drain) | `/src/renderer/core/utils/DisposableStore.ts` |

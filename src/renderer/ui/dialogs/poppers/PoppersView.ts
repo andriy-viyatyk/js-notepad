@@ -68,7 +68,6 @@ export class PoppersView extends VanillaView<undefined> {
     ): PopperSlot {
         const props: DialogViewProps = {
             model: popper.model,
-            className: "dialog",
         };
         if (!nativeCtor) {
             throw new Error(
@@ -87,7 +86,6 @@ export class PoppersView extends VanillaView<undefined> {
     private updateSlot(slot: PopperSlot, popper: IPopperViewData): void {
         const props: DialogViewProps = {
             model: popper.model,
-            className: "dialog",
         };
         slot.nativeView.update(props);
     }

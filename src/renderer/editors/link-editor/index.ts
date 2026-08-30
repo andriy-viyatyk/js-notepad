@@ -12,6 +12,7 @@ import { TextChromeView } from "../base/TextChromeView";
 import { LinkEditor, defaultLinkEditorState, type LinkEditorState } from "./LinkEditor";
 import { LinkBodyView } from "./LinkBody";
 import type { LinkViewMode } from "./linkTypes";
+import { restoreFocus } from "../../uikit/shared/focus-restore";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
@@ -307,7 +308,7 @@ export class LinkActionView extends VanillaView<{ model: LinkEditor }> {
 
     private readonly handleMenuClose = (): void => {
         this.menu = undefined;
-        if (this.previousFocus instanceof HTMLElement) this.previousFocus.focus();
+        if (this.previousFocus instanceof HTMLElement) restoreFocus(this.previousFocus);
         this.previousFocus = null;
     };
 

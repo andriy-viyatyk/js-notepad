@@ -8,6 +8,7 @@ import {
     type RestPropsState,
 } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
+import "./TruncatedText.css";
 
 export interface TruncatedTextProps
     extends Omit<NativeHTMLAttributes<HTMLSpanElement>, "style" | "className" | "children"> {
