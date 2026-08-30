@@ -28,7 +28,7 @@ type CellKind = "item" | "section" | "custom";
  * The pool deliberately does **not** reset a released element — its children, classes, attributes
  * and listeners all survive — so this map is how a recycled wrapper is recognised on its way back
  * in. `index` is rewritten on every render and read by the listeners installed once at creation,
- * which is why the row index never has to appear as a `data-*` attribute (the React DOM had none).
+ * which is why the row index never has to appear as a `data-*` attribute (the DOM contract has none).
  */
 interface CellRecord {
     kind: CellKind;
@@ -48,15 +48,15 @@ const defaultIndentSize = 16;
  *
  * - **`renderCell` is a bound field, not a closure.** `VirtualGridModel.inputChanged()` compares it
  *   by identity, so a per-update closure would make the engine repaint every visible cell on every
- *   update — which is what the React version did, and what the repaint gate exists to stop.
+ *   update — which would repaint every visible cell on every update, and what the repaint gate exists to stop.
  * - **A state change arrives through `model.onStateApplied`, not through props.** Expansion, lazy
  *   loading and drag state all live in `TreeState`, and a vanilla driver pumps only props. The
  *   model's `mutate()` funnel calls `refresh()` here, and `refresh` re-runs the *render pass* rather
  *   than only repainting cells — see the comment on it.
- * - **The three arms are three DOM states of one stable root.** React returned three different
+ * - **The three arms are three DOM states of one stable root.** The prior implementation returned three different
  *   trees; here `applyArm()` owns every attribute that differs between them, including the removals.
  * - **The engine is created on entry to the real arm and disposed on leaving it**, which is what
- *   React did. Keeping it alive behind `display: none` would be cheaper but would hand a stale
+ *   The prior implementation did. Keeping it alive behind `display: none` would be cheaper but would hand a stale
  *   scroll offset to a dataset that was replaced while the tree showed a spinner.
  */
 export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
@@ -135,7 +135,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         this.gridHost.dataset.part = "grid";
         this.gridHost.style.display = "contents";
 
-        // `contextmenu` is on all three React arms; `keydown` and `mouseleave` were on the real arm
+        // `contextmenu` is on all three arms; `keydown` and `mouseleave` were on the real arm
         // only, so they are gated. A listener is not in a DOM snapshot, so permanence is free.
         this.listen(this.root, "contextmenu", (event) => this.model.onRootContextMenu(event));
         this.listen(this.root, "keydown", (event) => {
@@ -176,8 +176,8 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
      * This re-runs the **render pass**, not just a cell repaint, because root attributes can be
      * state-derived: `aria-activedescendant` reads `rows.length` for its bounds check *and*
      * `rows.value[i].value` for the id itself, so a `collapseAll()` with a high `activeIndex` has to
-     * remove the attribute, and an in-range collapse has to rewrite it. React got that for free by
-     * re-rendering the whole root.
+     * remove the attribute, and an in-range collapse has to rewrite it. The previous renderer got that by rebuilding
+     * the whole root.
      *
      * Three things it deliberately does not do:
      * - it does not call `applyRestProps`, which removes and re-adds every `on*` listener on every
@@ -216,7 +216,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     /**
      * Bring the DOM to the arm `props` implies, then write every root attribute.
      *
-     * Every per-arm attribute is written in both directions. React expressed the arms as three
+     * Every per-arm attribute is written in both directions. The prior implementation expressed the arms as three
      * different elements, so an attribute it simply omitted in one arm has to be *removed* here —
      * and `root.tabIndex = -1` is not the same as no `tabindex` at all.
      */
@@ -253,7 +253,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 
         setOrRemove(root, "id", this.model.rootId);
         setOrRemove(root, "data-name", props.name);
-        // Unlike ListBox, these two are on all three React arms (Tree.tsx's three Root variants).
+        // Unlike ListBox, these two are on all three arms of the former tree renderer.
         toggle(root, "data-keyboard-nav", props.keyboardNav ?? false);
         toggle(root, "data-focus-selection", focusAware);
         toggle(root, "data-loading", arm === "loading");
@@ -341,7 +341,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             overscanRow: 2,
             fitToWidth: true,
             // `TreeProps.growToHeight` is a CSS height, so it may be a bare number; the engine's
-            // prop is a string, and React would have added the unit itself.
+            // prop is a string, and the old style writer would have added the unit itself.
             growToHeight: cssLength(props.growToHeight),
             whiteSpaceY: props.whiteSpaceY,
         };
@@ -370,7 +370,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 
         const dndEnabled = this.model.isDndEnabled;
         const canDrag = dndEnabled && this.model.canDragRow(p.row);
-        // React wrote `draggable={canDrag || undefined}`. Use the IDL property, not
+        // The prior renderer omitted the attribute when dragging was disabled. Use the IDL property, not
         // `setAttribute`: `draggable` is an enumerated attribute whose only valid keywords are
         // "true" and "false", and `""` falls back to `auto`, i.e. not draggable.
         wrapper.draggable = canDrag;
@@ -482,9 +482,8 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
      * re-adding them on recycle would stack an unbounded set on every pooled cell.
      *
      * The drag gates are inside the handlers because a pooled wrapper outlives the row that decided
-     * whether it could drag. A gated no-op is behaviourally identical to React's `undefined`
-     * handler: for `dragenter`/`dragover`, "no handler" and "a handler that does not
-     * `preventDefault`" both mean "drop not allowed".
+     * whether it could drag. A gated no-op is behaviourally identical to having no handler: for
+     * `dragenter`/`dragover`, "no handler" and "a handler that does not `preventDefault`" both mean "drop not allowed".
      */
     private installCellListeners(wrapper: HTMLElement): void {
         this.listen(wrapper, "click", (event) => {
@@ -564,7 +563,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 
     /**
      * The engine queues the request itself when it has no usable size yet and flushes it on its
-     * first real measurement, which is what the React version's `setTimeout(0)` was approximating
+     * first real measurement, which is what the previous `setTimeout(0)` was approximating
      * without being able to test the actual condition.
      *
      * `afterPaint` is set when the row set changed in the same update: `scrollTop` clamps to the
@@ -613,7 +612,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     }
 }
 
-/** React adds `px` to a bare number in a style value; a DOM prop typed as a string cannot. */
+/** A DOM property typed as a string does not add `px` to a bare number; normalize numeric lengths before writing it. */
 function cssLength(value: NativeCSSProperties["height"]): string | undefined {
     if (value === undefined || value === null) return undefined;
     return typeof value === "number" ? `${value}px` : String(value);

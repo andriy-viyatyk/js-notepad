@@ -1,10 +1,8 @@
 /**
  * Show av-grid's context menu through Persephone's own popup menu.
  *
- * This is the file [EPIC-057 C4-5](../../../../../doc/epics/EPIC-057.md) moves the
- * `showAppPopupMenu` call *into*. The old React grid performed this handoff in UIKit; the current
- * exemption until US-1023 deletes it with the rest of the React grid — nothing here changes that
- * file.
+ * This app-side adapter is the deliberate boundary for current DataGrid/av-grid context menus:
+ * UIKit supplies the event and items, while the app shell supplies its popup and icons.
  *
  * It lives app-side because that is the whole point: `uikit/` may not reach into `ui/`, and a grid
  * that wants the application's menu therefore hands the event outward through
@@ -21,7 +19,7 @@
  * goes through `fillSlot`, which writes a string as `textContent` — so an unadapted item renders
  * its own `<svg …>` markup as visible text in the menu. That is what the stable `avg-` ids exist
  * for: match on the id, swap in the Persephone icon element, and the menu is indistinguishable
- * from the one the React grid drew.
+ * from the one the previous grid rendered.
  */
 
 import { CopyIcon, DeleteIcon, PasteIcon, PlusIcon } from "../../../theme/icons";
@@ -58,7 +56,8 @@ const ICONS: Record<string, () => Node> = {
  * Two rules, both about not breaking a host's own items:
  *
  *  • Only ids starting `avg-` are touched. Items a host contributed through
- *    `getContextMenuItems` share this array, and their icons are already React elements.
+ *    `getContextMenuItems` share this array, and their icons already arrive as icon elements
+ *    rather than the SVG source strings av-grid's own built-ins carry.
  *  • An unrecognised `avg-` id **drops** the icon rather than throwing. `showAppPopupMenu`
  *    substitutes `EmptyIcon` when any sibling has one, so a future built-in this table does not
  *    know degrades to alignment padding instead of raw SVG text.

@@ -165,14 +165,14 @@ export interface TreeProps<T = ITreeItem>
     getTooltip?: (item: T, level: number) => SlotText;
     /**
      * Optional direct DOM icon for the default row renderer. The returned node is attached as-is,
-     * without a React root. Keep its identity stable while the same row remains visible.
+     * without rebuilding its DOM subtree. Keep its identity stable while the same row remains visible.
      */
     getIconElement?: (item: T, level: number) => Node | undefined;
     /** Optional per-row chevron suppression. The default is the existing Tree behavior. */
     getHideChevron?: (item: T, level: number) => boolean;
     /** Optional per-row trailing visibility for the default row renderer. */
     getTrailingVisibility?: (item: T, level: number) => "always" | "hover";
-    /** Optional right-side React compatibility slot for the default row renderer. */
+    /** Optional right-side compatibility slot for the default row renderer. */
     renderTrailing?: (item: T, level: number) => SlotContent;
     /** Optional direct DOM trailing content for the default row renderer. */
     trailingElement?: (item: T, level: number) => Node | undefined;

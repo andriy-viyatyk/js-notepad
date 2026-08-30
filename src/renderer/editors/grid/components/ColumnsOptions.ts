@@ -24,7 +24,7 @@ const maxHeight = 300;
 /**
  * The popover's own columns — and none of them is a status column any more.
  *
- * All three carried `isStatusColumn: true` under the React grid, where it only affected the
+ * All three carried `isStatusColumn: true` under the previous grid, where it only affected the
  * *header*: no resize, no drag-reorder. av-grid reads it as "not a data column" and therefore
  * **refuses to edit it** (`EditingModel`), which would have made this popover — whose entire job
  * is editing these three fields — read-only. The header intent that still matters is expressed
@@ -275,7 +275,7 @@ class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
         if (!this.validate()) {
             return;
         }
-        // Rows first, then columns — the order matters now, where it did not under the React
+        // Rows first, then columns — the order matters now, where it did not in the previous grid
         // grid. `setColumns` validates the new keys against the rows the grid currently holds,
         // and exempts only keys it already has, so applying a **rename** before the row data
         // carries the new key throws `Unknown column`. Rewriting the rows first means every new

@@ -28,7 +28,7 @@ const defaultMaxVisibleItems = 10;
  *
  * - **No row renderer.** The rows are ordinary `ListItem`s with `checkbox: true` (EPIC-056 US-1016),
  *   which is what discharges US-1014's obligation: no consumer of `ListBox`'s `renderItem` hatch
- *   remains inside `uikit/`, so a settled scroll here creates zero React roots.
+ *   remains inside `uikit/`, so a settled scroll here creates no new slot subtrees.
  * - **State is read with one compound `bind`, not a `mutate`/`onStateApplied` funnel.** Both of this
  *   model's state fields (`searchText`, `activeIndex`) *are* child props, which is the case Rule 9
  *   sends to `bind()`. `Tree`'s funnel exists for internal state whose consequence is a render pass
@@ -209,7 +209,7 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
         toggle(root, "data-disabled", !!props.disabled);
         toggle(root, "data-readonly", !!props.readOnly);
 
-        // React passed no `style` at all when both were undefined, leaving the stylesheet's
+        // When both width values are undefined, leave the inline width empty, leaving the stylesheet's
         // `width: 100%` in charge; an empty string reproduces that exactly.
         root.style.width = props.width === undefined ? "" : cssLength(props.width);
         root.style.height = props.height === undefined ? "" : cssLength(props.height);
@@ -264,8 +264,8 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
     }
 
     /**
-     * The tri-state value is computed once and written to both attributes. The React version derived
-     * it three times from two getters, each of which walks the filtered item list.
+     * The tri-state value is computed once and written to both attributes. The earlier implementation derived it
+     * three times from two getters, each of which walks the filtered item list.
      */
     private syncSelectAll(props: MultiListBoxProps<T>): void {
         const selectAllRow = this.selectAllRow;
@@ -283,7 +283,7 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
         if (this.appliedCheckState !== checkState) {
             selectAllRow.dataset.checked = checkState;
             selectAllRow.setAttribute("aria-checked", checkState);
-            // Direct DOM, never `fillSlot`: an `IconName` needs no React root. Gated on the applied
+            // Direct DOM, never `fillSlot`: an `IconName` is rendered directly as an SVG. Gated on the applied
             // value so a re-sync does not rebuild the `svg`.
             const next = createIconElement(
                 checkState === "true" ? "checked" : checkState === "mixed" ? "indeterminate" : "unchecked",
@@ -365,7 +365,7 @@ export class MultiListBoxView<T = IListBoxItem> extends VanillaView<MultiListBox
     }
 }
 
-/** React adds `px` to a bare number in a style value; a DOM write cannot. */
+/** A DOM property typed as a string does not add `px` to a bare number; normalize numeric lengths before writing it. */
 function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;
 }

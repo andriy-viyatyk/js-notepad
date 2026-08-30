@@ -152,7 +152,8 @@ export class MultiListBoxModel<T = IListBoxItem> extends TComponentModel<
      * `ListBoxModel.repaintSignature()` moves, and this predicate is the only slot that can carry a
      * parent-owned selection — `value` is never forwarded to the inner list. With a stable identity,
      * checking a row would move no slot at all and the box would keep its old glyph until some
-     * unrelated input changed (the self-healing form of the masked defect in `doc/de-react.md` §6.1).
+     * unrelated input changed (the self-healing form of the masked-defect class recorded in
+     * `doc/epics/completed.md:625-632` under `## EPIC-067 — De-React Epic E9: the editor chrome contract`).
      */
     isSelected = this.isSelectedForSource.bind(this);
 

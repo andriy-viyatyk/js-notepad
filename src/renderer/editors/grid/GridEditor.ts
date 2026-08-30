@@ -94,7 +94,7 @@ function toColumnSetting(column: Column): GridColumnSetting {
  * Two jobs. It restores the user's column order, widths, hidden flags and types — and it
  * **drops settings whose key is no longer in the data**, which is not housekeeping but a
  * correctness requirement: av-grid rejects a column set with a key nothing carries, so feeding
- * a stale remembered set into `create()` would fail the grid outright where the old React grid
+ * a stale remembered set into `create()` would fail the grid outright while the previous grid
  * rendered an empty column. Persisted settings describe the file as it was, and files change
  * between sessions.
  */

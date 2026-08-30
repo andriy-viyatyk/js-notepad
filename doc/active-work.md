@@ -20,7 +20,30 @@ Marker convention: `[ ]` = open · `[ ] **implemented**` = code is in and gated,
 batched `/review`, `/document`, `/userdoc` pass · `[x]` = reviewed and done. Standalone tasks are
 reviewed in batches by user decision (2026-08-29), the same deferred model epics use.
 
-*(nothing in progress)*
+- **EPIC-077** — [Post-De-React Epic C: proportional work](epics/EPIC-077.md) — R4, R5, R7,
+  R8's residue, and R6's deferred type half. Cut 2026-08-30 with its figures re-measured against
+  commit `9ca76ea5`; **nine corrections to the plan page**, including a cited file at a
+  non-existent path, a stated symptom that is fiction, two R8 bullets already delivered by Epic A,
+  and a `setTimeout` census stale by more than half. Read
+  [§C-2](epics/EPIC-077.md) before writing any task doc for this epic.
+  - Strand 1 — proportional work (closes the epic's four statements)
+    - [ ] US-1208: The `listen()`-on-update sweep, and Breadcrumb
+    - [ ] US-1209: Minimap — move the DOM mirror into the view, make it incremental
+    - [ ] US-1210: `CategoryViewImpl` — hoist the rebuild behind its own gate
+    - [ ] US-1211: The app-shell rebuild tail — `SecondaryViewsView` and the sidebar trio
+    - [ ] US-1212: The editor rebuild tail
+    - [ ] US-1213: Re-derive and fix the ungated `{ all: true }` sites
+    - [ ] US-1214: R5 — log-view entries out of immer
+    - [ ] US-1215: R5 — notebook notes out of immer
+    - [ ] US-1216: R5 — graph nodes out of immer
+  - Strand 2 — shape (closes nothing; cut first if the epic needs to be smaller)
+    - [ ] US-1217: The dialog shell — lift Escape once, then collapse the thin models
+    - [ ] US-1218: Merge the types-only component files
+    - [ ] US-1219: R7 residue — `FileList`, `ImageViewport`, `VirtualFlexGridModel`
+    - [ ] US-1220: R6's type half — narrow the contracts, shrink `dom-props.ts`
+  - Strand 3 — residue
+    - [ ] US-1221: The timing residue
+
 
 ## Planned
 

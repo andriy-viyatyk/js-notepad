@@ -1,11 +1,11 @@
 sequenceDiagram
     participant E as Electron
-    participant R as renderer.tsx
+    participant R as renderer.ts
     participant App as app (App class)
     participant S as Services
     participant P as Pages
     participant Ev as Event Services
-    participant UI as React UI
+    participant UI as Native UI
 
     E->>R: Window loaded
 
@@ -81,7 +81,7 @@ sequenceDiagram
         Note over R,UI: Ready
         R->>E: api.windowReady()
         Note right of E: Main process now<br/>sends IPC events
-        R->>UI: setContent(<AppContent />)
-        UI->>UI: React renders MainPage
+        R->>UI: mount(container)
+        UI->>UI: Native views mount MainPage
         Note right of UI: Tabs + Active Editor<br/>User can interact ✓
     end

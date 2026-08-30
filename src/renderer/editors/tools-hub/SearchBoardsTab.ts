@@ -55,7 +55,12 @@ export class SearchBoardsTabView extends VanillaView<Record<string, never>> {
     private readonly cards = new Map<string, BoardCardView>();
 
     public constructor(props: Record<string, never>) {
-        const root = createPanelElement({ direction: "column", flex: 1, minHeight: 0 });
+        const root = createPanelElement({
+            name: "search-boards-tab",
+            direction: "column",
+            flex: 1,
+            minHeight: 0,
+        });
         root.dataset.type = "search-boards-tab";
         super(props, root);
     }

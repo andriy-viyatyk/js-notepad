@@ -81,6 +81,7 @@ export class BoardInfoEditorView extends VanillaView<{ model: EditorModel }> {
 
     public constructor(props: { model: EditorModel }) {
         const root = createPanelElement({
+            name: "board-info-editor",
             direction: "column",
             width: "100%",
             height: "100%",

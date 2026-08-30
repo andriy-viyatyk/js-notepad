@@ -788,6 +788,8 @@ return JSON.stringify({ total: all.length, iconArms: iconArms.length,
     directRoots: all.length - slotArms.length });
 ```
 
+Current selector after US-1223: use `[data-react-root],[data-part=children-slot]`; split native children hosts with `dataset.part === "children-slot"`.
+
 Two `execute_script` traps cost a round trip each and are recorded so the next measurement does not
 repeat them: a `//` line comment anywhere in the script fails to parse, and a script whose helper
 functions contain `return` needs an **explicit top-level `return`** — otherwise the runner yields

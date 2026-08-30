@@ -336,7 +336,6 @@ export class ForceGraphRenderer {
     }
 
     // =========================================================================
-    // Canvas event handlers (bound for React)
     // =========================================================================
 
     onClick = (event: MouseEvent): void => {

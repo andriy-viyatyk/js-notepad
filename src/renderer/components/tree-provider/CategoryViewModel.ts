@@ -658,7 +658,7 @@ export class CategoryViewModel extends TComponentModel<
 
         // Layer 2: Event channel — type-specific items (Open in New Tab/Window,
         // Show in File Explorer, Open in Browser, …) added by the handlers registered
-        // in tree-context-menus.tsx, based solely on the item's href/isDirectory. This
+        // in tree-context-menus.ts, based solely on the item's href/isDirectory. This
         // is the same flow the Explorer tree (TreeProviderViewModel) uses, so the
         // folder-content view gets identical link items from one central place.
         // Set contextMenuPromise so GlobalEventService waits for the async handlers

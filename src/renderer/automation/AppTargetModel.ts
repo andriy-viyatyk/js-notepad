@@ -4,7 +4,7 @@ import { APP_WINDOW_CDP_KEY } from "../../ipc/api-types";
 
 /**
  * `IBrowserTarget` adapter for Persephone's OWN main window (US-810), letting the
- * existing `browser_*` MCP automation tools drive the app's React UI itself — page
+ * existing `browser_*` MCP automation tools drive the app's own UI — page
  * tabs, sidebar, toolbars, dialogs, and the active editor. Selected explicitly via
  * `pageId: "app"` (never by fallback — see `getTarget` in commands.ts).
  *

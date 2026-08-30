@@ -96,7 +96,7 @@ export class ProgressBarView extends VanillaView<ProgressBarProps> {
             children: _children,
             ...rest
         } = props;
-        // ariaProps precede residual props in the React face, so callers can override these attrs.
+        // `ariaProps` precede residual props, so callers can override these attributes.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 }

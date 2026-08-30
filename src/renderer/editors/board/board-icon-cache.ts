@@ -69,7 +69,7 @@ export function invalidateBoardIcon(boardRoot: string): void {
     void resolveBoardIcon(boardRoot);
 }
 
-/** Subscribe non-React owners to board icon probe/invalidation notifications. */
+/** Subscribe DOM-owning consumers to board icon probe/invalidation notifications. */
 export function subscribeBoardIconChanges(callback: () => void): () => void {
     listeners.add(callback);
     return () => listeners.delete(callback);

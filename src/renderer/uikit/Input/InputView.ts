@@ -3,7 +3,7 @@ import type { NativeInputHTMLAttributes, RestPropsState } from "../shared/dom-pr
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 // Owned by the view, not the shim: a vanilla parent may compose `InputView` directly (MultiListBox
-// does), and the stylesheet has to travel with the DOM rather than with the React face.
+// does), and the stylesheet has to travel with the DOM-owning view.
 import "./Input.css";
 
 export interface InputProps
@@ -31,7 +31,7 @@ export interface InputProps
     tone?: "default" | "accent";
     /**
      * Content rendered inside the input chrome, before the text. A DOM `Node` is appended directly
-     * with no React root — that is how a vanilla parent supplies a composed view's root
+     * as a DOM node — that is how a native parent supplies a composed view's root
      * (`Select` passes its chevron `IconButtonView`'s root here).
      */
     startSlot?: SlotContent;
@@ -68,8 +68,7 @@ export class InputView extends VanillaView<InputProps> {
      * detached and re-appended on every keystroke: layout invalidation, a restarted transition, and
      * a spurious `MutationObserver` record, for identical content.
      *
-     * Safe for both arms. The same `Node` means the same content, and a React element built inline
-     * is always a new object, so a genuinely-changed subtree always has a new identity.
+     * Safe for both arms. The same `Node` means the same content, and an inline subtree value is always new, so a genuinely changed subtree has a new identity.
      */
     private readonly appliedSlots = new Map<"start" | "end", SlotContent>();
     private previousAutoFocus = false;

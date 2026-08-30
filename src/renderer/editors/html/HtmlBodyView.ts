@@ -70,9 +70,9 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
 
     private applyContent(content: string): void {
         // Assigning `srcdoc` navigates the nested document — it reloads the
-        // preview and re-runs its scripts. React only wrote the attribute when
-        // the value actually changed, and `onUpdate` fires on every shell
-        // re-render, so an unguarded write would reload the preview (losing
+        // preview and re-runs its scripts. The previous view wrote the attribute only when
+        // the value actually changed, and `onUpdate` fires on every shell re-render, so an
+        // unguarded write would reload the preview (losing
         // scroll position) on updates that did not touch the content.
         const next = content + injectedScript;
         if (next === this.appliedSrcdoc) return;

@@ -4,7 +4,7 @@
 
 persephone uses a custom context menu system that replaces the native browser context menu. Right-click anywhere in the application shows a styled popup menu with context-specific items. The system uses **DOM event bubbling** — child components attach menu items to the native `contextmenu` event, and a global listener collects and displays them.
 
-> **Boards are the exception.** A board runs in a cross-origin `board://` iframe and cannot reach the renderer's React tree or `showAppPopupMenu`, so it can't participate in the bubbling system described here. Instead, the injected board shim (`src/board-shim.ts`) renders its **own** minimal, vanilla-DOM context menu inside the frame — Open/Copy Link, Open Image in New Tab / Copy Image / Save Image As…, Cut/Copy/Paste, and Copy — themed from the injected `--p-*` variables. A board opts out by calling `preventDefault()` on the `contextmenu` event (bubble phase), the same convention it uses for Ctrl+S and link-click routing.
+> **Boards are the exception.** A board runs in a cross-origin `board://` iframe and cannot reach the renderer's UI tree or `showAppPopupMenu`, so it can't participate in the bubbling system described here. Instead, the injected board shim (`src/board-shim.ts`) renders its **own** minimal, vanilla-DOM context menu inside the frame — Open/Copy Link, Open Image in New Tab / Copy Image / Save Image As…, Cut/Copy/Paste, and Copy — themed from the injected `--p-*` variables. A board opts out by calling `preventDefault()` on the `contextmenu` event (bubble phase), the same convention it uses for Ctrl+S and link-click routing.
 
 ## Event Flow
 
@@ -32,7 +32,7 @@ GlobalEventService.handleContextMenu()
     v
 AppPopupMenuModel
     -> Adds default items (Copy, Paste, Inspect)
-    -> Shows Menu component via portal
+    -> Shows the native Menu view via the popper host
 ```
 
 ## ContextMenuEvent on the Native Event

@@ -6,7 +6,7 @@ let overlayLayer: HTMLDivElement | undefined;
  * Return the one shared DOM host for global overlays in this renderer document.
  *
  * The host intentionally has no styling. Its children own their positioning and
- * stacking behavior, and the host remains available for future non-React views.
+ * stacking behavior, and the host remains available for future native views.
  */
 export function getOverlayLayer(): HTMLDivElement {
     if (

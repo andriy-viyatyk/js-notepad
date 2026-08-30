@@ -143,7 +143,7 @@ class App {
     /**
      * Load interface wrappers via dynamic import().
      * Must be called AFTER the main bundle has loaded (so stores are in the
-     * module cache). Called from bootstrap (renderer.tsx) before React renders.
+     * module cache). Called during renderer bootstrap before the initial UI is built.
      * Not exposed to scripts.
      */
     async initServices(): Promise<void> {

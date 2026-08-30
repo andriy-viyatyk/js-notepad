@@ -46,7 +46,7 @@ export interface VirtualGridProps extends VirtualGridOptions {
     growToHeight?: string;
     growToWidth?: string;
     /**
-     * Receives the live view on mount and `null` on dispose — the way a React host or a story
+     * Receives the live view on mount and `null` on dispose — the way an imperative host or a story
      * reaches the imperative surface (`view.model.update(...)`, `view.stats`).
      *
      * A vanilla host does not need it: it owns the view through `this.child(...)` and reads

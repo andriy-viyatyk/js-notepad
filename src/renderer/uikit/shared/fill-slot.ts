@@ -37,7 +37,10 @@ function isTextSlot(slot: SlotContent): boolean {
     return typeof slot === "string" || typeof slot === "number" || typeof slot === "bigint";
 }
 
-/** Append the native subset of SlotContent without creating a React root. */
+/**
+ * Append SlotContent's native values; active-record cleanup prevents stale handles from clearing
+ * a newer fill on the same host.
+ */
 function appendNativeSlot(parent: Node, slot: SlotContent): boolean {
     if (isEmptySlot(slot)) return true;
     if (slot instanceof Node) {

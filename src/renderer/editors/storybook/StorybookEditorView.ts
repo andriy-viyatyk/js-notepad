@@ -43,6 +43,7 @@ function requireStorybookModel(model: EditorModel): StorybookEditorModel {
 export class StorybookEditorView extends VanillaView<{ model: EditorModel }> {
     private model: StorybookEditorModel;
     private toolbar: ToolbarView | undefined;
+    private readonly toolbarChildren: Node[] = [];
     private backgroundControl: SegmentedControlView | undefined;
     private leftSplitter: SplitterView | undefined;
     private rightSplitter: SplitterView | undefined;
@@ -78,7 +79,7 @@ export class StorybookEditorView extends VanillaView<{ model: EditorModel }> {
         const rightSplitter = this.child(new SplitterView(this.rightSplitterProps(state.rightPanelWidth)));
         this.propertyEditor = this.child(new PropertyEditorView({ model: this.model }));
 
-        this.toolbar.root.append(
+        this.toolbarChildren.push(
             toolbarLeading,
             spacer.root,
             createTextElement("Background:", { size: "sm", color: "light" }),
@@ -137,6 +138,7 @@ export class StorybookEditorView extends VanillaView<{ model: EditorModel }> {
         return {
             borderBottom: true,
             "aria-label": "Storybook editor toolbar",
+            children: this.toolbarChildren,
         };
     }
 

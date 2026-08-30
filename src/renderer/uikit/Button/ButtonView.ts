@@ -138,7 +138,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
 
     /**
      * `fillSlot` owns the transition between content arms — it must not be
-     * pre-cleared, or the React root it caches per host is discarded and the
+     * pre-cleared, or the cached slot state is discarded and the
      * next call builds a second root on the same element.
      */
     private updateContent(icon: IconRef | undefined, children: SlotContent): void {
@@ -159,8 +159,8 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
         }
 
         if (icon != null) {
-            // Separate display-contents hosts keep a DOM icon outside React while the label may
-            // remain a React subtree. Both hosts stay layout-transparent, so the button's own
+            // Separate display-contents hosts keep a DOM icon separate from the label while the label may
+            // remain in its own subtree. Both hosts stay layout-transparent, so the button's own
             // flex `gap` still measures the icon and label as adjacent direct children.
             this.contentCleanup?.();
             this.contentCleanup = undefined;
@@ -187,7 +187,7 @@ export class ButtonView extends VanillaView<ButtonViewProps> {
             this.childrenHost.style.display = "contents";
         }
         // Append only when not already parented. `append` on an attached node is a *move*, and the
-        // children host can own a live React root (fillSlot's React arm) plus focused content — so
+        // children host can own focused content plus the slot-managed subtree — so
         // re-appending on every update would detach and reattach that subtree for no reason.
         if (this.iconHost.parentNode !== this.root || this.childrenHost.parentNode !== this.root) {
             this.root.append(this.iconHost, this.childrenHost);

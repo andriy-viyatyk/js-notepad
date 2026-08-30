@@ -17,11 +17,11 @@ const defaultIndentSize = 16;
  * the flat list has no concept of.
  *
  * The label host is `display: contents`, so it is not a layout box and the label's content remains a
- * direct flex item of the row exactly as it was in the React DOM. It exists because `fillSlot` needs
+ * direct flex item of the row. It exists because `fillSlot` needs
  * a host it owns outright.
  *
  * The guides carry no `.tree-indent` class here — section rows are never selected, so the
- * selected-state border override has nothing to target. That matches the React `SectionItem`, which
+ * selected-state border override has nothing to target. That matches the earlier `SectionItem`, which
  * omitted the class too.
  */
 export class SectionItemView extends VanillaView<SectionItemProps> {

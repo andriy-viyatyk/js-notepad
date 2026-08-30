@@ -559,7 +559,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
 
     /** Drop the live `<iframe>` reference and the board frame's CDP registration on
      *  teardown. `BoardWebview`'s unmount normally unregisters the frame, but `dispose()`
-     *  can run without a clean React unmount (forced close / window teardown), so clear
+     *  can run without the normal board-frame teardown (forced close / window teardown), so clear
      *  it here too — both are idempotent. Also the FINAL job teardown (US-799):
      *  `reapBoardOwner` tree-kills every job this board owner kept alive while busy —
      *  page close overrides busy ("page closed → kill anyway"). */

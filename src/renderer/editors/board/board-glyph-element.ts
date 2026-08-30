@@ -1,7 +1,7 @@
 import { BoardIcon } from "../../theme/icons";
 import { getBoardIconPathSync, resolveBoardIcon } from "./board-icon-cache";
 
-/** Create the non-React board glyph used by DOM-owned file-icon surfaces. */
+/** Create the native board glyph used by DOM-owned file-icon surfaces. */
 export function createBoardGlyphElement(boardRoot?: string, size = 16): Element {
     const path = getBoardIconPathSync(boardRoot);
     if (path) {

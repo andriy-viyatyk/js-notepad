@@ -115,7 +115,7 @@ Each internal tab has its own `<webview>` element. All webviews are rendered in 
 
 Webview elements are hosted by `PageManagerView` (`src/renderer/components/page-manager/`). The view owns imperatively-created placeholder divs, appends new placeholders with `appendChild`, and mounts one native `BrowserTabPageView` per tab. Each page view owns its `BrowserWebviewItemView` and its blank-page overlay, so no React island is needed for internal tabs. This prevents `<webview>` elements from being destroyed and recreated when the tab array changes (tabs closed, reordered).
 
-Without PageManager, React's list reconciliation would detach and reinsert DOM nodes when array positions shift — even with stable keys. Reinserted `<webview>` elements are treated as new by the browser and reload, losing user data.
+Without PageManager, rebuilding the tab list would detach and reinsert DOM nodes when array positions shift. Reinserted `<webview>` elements are treated as new by the browser and reload, losing user data.
 
 **How it works:**
 1. For each tab ID, a stable placeholder `<div>` is created via `document.createElement()` and newly-created placeholders are appended to the manager root
@@ -165,7 +165,7 @@ did-navigate (url)       →  BrowserChannel  →  onBrowserEvent handler
                                                  → model.updateFromWebview(...)
 ```
 
-**CRITICAL:** Navigation events update `model.tabs.currentUrls` and `setUrlInput()` directly. They do **NOT** update `state.url`. If you update `state.url` from a navigation event, React will re-render `<webview src>` with the new URL, causing the webview's `attributeChangedCallback` to trigger a redundant navigation → ERR_ABORTED.
+**CRITICAL:** Navigation events update `model.tabs.currentUrls` and `setUrlInput()` directly. They do **NOT** update `state.url`. If you update `state.url` from a navigation event, the native view will treat the observed URL as a new navigation target and call `loadURL()` again, causing a redundant navigation → ERR_ABORTED.
 
 The rule: `state.url` = navigation target (set by user action only). `model.tabs.currentUrls` = actual current URL in each webview.
 
@@ -505,7 +505,7 @@ gap, not a leak — such requests already fail closed.
 #### The proxy covers the webview, not the renderer
 
 The SOCKS proxy is attached to the **page's session partition**, so it covers only what the
-`<webview>` loads. Renderer-side React code runs in the app window's own session (`nopersist`),
+`<webview>` loads. Renderer-side code runs in the app window's own session (`nopersist`),
 which is unproxied. Any feature that fetches a remote URL from the renderer on behalf of a Tor page
 therefore bypasses Tor unless it is routed deliberately.
 
@@ -693,7 +693,6 @@ A right-anchored native overlay that renders the Link Editor with Categories/Tag
 - The parent builds drawer props at use time. The drawer may recover a zero initial width during
   `mount()` by writing the measured width back to browser state, so a post-mount update must read
   the current state rather than reuse a pre-mount props snapshot.
-- Portal refs passed via `LinkEditorProps` (`toolbarRefFirst`, `toolbarRefLast`, `footerRefLast`) — each consumer provides its own portal targets so multiple LinkEditor instances don't conflict
 - Closes on Escape, backdrop click, or link click navigation
 
 ### Embedded Link Editor Composition
@@ -802,14 +801,14 @@ Consequently `callOnRef`'s `fn` argument must be a plain `function () {…}` exp
 
 ### App-Window Target (`pageId: "app"`)
 
-`AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own React UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the page-interaction commands (snapshot / click / type / press_key / evaluate / screenshot) are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`).
+`AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own native UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the page-interaction commands (snapshot / click / type / press_key / evaluate / screenshot) are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`).
 
 Two design points make it self-contained:
 
 - **No registration needed.** Unlike browser pages (`getWebContents` resolver) and boards (`registerBoardFrame`), the app target uses a sentinel CDP regKey — `APP_WINDOW_CDP_KEY` (`"__app-window__"`, in `src/ipc/api-types.ts`). MCP commands are already routed to a specific window's renderer (`windowIndex` → `sendToRenderer`), and `CdpSession.send` is an `ipcRenderer.invoke` from that renderer, so in `cdp-service.ts` the calling `event.sender` **is** the window to automate. The three IPC handlers (`cdpAttach`/`cdpDetach`/`cdpSend`) short-circuit the sentinel to `event.sender`, running commands on its top-level session (the app UI). The debugger is shared with boards on the same webContents, so detach is a no-op. Multi-window is automatic.
 - **Snapshot shows only the active page.** Inactive pages stay mounted but hidden via `display: none` on their `PageManager` placeholders, and Chromium's accessibility tree excludes hidden subtrees — so the app snapshot naturally contains the app chrome plus the active page's content only, regardless of how many tabs are open. To reach another page, the agent clicks its tab.
 
-`focusWebview()` is a no-op: `automation/input.ts` drives everything through JS events (`el.click()`, `KeyboardEvent` dispatch, native-setter fill), which need no OS focus, and a no-op avoids stealing the user's window focus. This carries the same synthetic-input limitations as the browser/board targets — e.g. a menu that handles Escape via a focus-scoped React `onKeyDown` won't close on a synthetic `browser_press_key`, whereas a component with a document-level Escape listener (like `PopoverModel`) will. Content editing should go through `set_page_content` / `execute_script`, not synthetic typing into Monaco. The app target sits behind the same `mcp.browser-tools.enabled` gate as the other targets; no new setting or privilege tier (`execute_script` already grants full Node access).
+`focusWebview()` is a no-op: `automation/input.ts` drives everything through JS events (`el.click()`, `KeyboardEvent` dispatch, native-setter fill), which need no OS focus, and a no-op avoids stealing the user's window focus. This carries the same synthetic-input limitations as the browser/board targets — e.g. a menu that handles Escape only from a focused element won't close on a synthetic `browser_press_key`, whereas a component with a document-level Escape listener (like `PopoverModel`) will. Content editing should go through `set_page_content` / `execute_script`, not synthetic typing into Monaco. The app target sits behind the same `mcp.browser-tools.enabled` gate as the other targets; no new setting or privilege tier (`execute_script` already grants full Node access).
 
 ### Playwright Parameter Compatibility
 
@@ -856,12 +855,12 @@ Key implementation details:
 
 ### Navigation Race Condition (Two-Phase Wait)
 
-`browser_navigate` and `browser_navigate_back` use a **two-phase wait** to avoid a race condition caused by React's async rendering model:
+`browser_navigate` and `browser_navigate_back` use a **two-phase wait** because the native view schedules the webview navigation while the guest document changes asynchronously:
 
-- `target.navigate(url)` / `target.back()` update React state, which schedules a new `<webview src>` value via a React effect (async).
+- `target.navigate(url)` / `target.back()` update the native browser model; the view then calls `webview.loadURL()` while the guest document changes asynchronously.
 - If the automation code immediately polls `document.readyState`, the old page is still loaded and `readyState === 'complete'` is already true — the poll exits immediately, returning a snapshot of the previous page.
 
-**Phase 1 (bridge the React async gap):** Poll every 50 ms (up to 2 s) for either the URL to change OR `readyState` to go non-`complete`. This detects that navigation has started. The `catch(() => {})` silently ignores errors from the old page context being destroyed mid-poll.
+**Phase 1 (bridge the navigation-start gap):** Poll every 50 ms (up to 2 s) for either the URL to change OR `readyState` to go non-`complete`. This detects that navigation has started. The `catch(() => {})` silently ignores errors from the old page context being destroyed mid-poll.
 
 **Phase 2 (wait for load):** Poll every 100 ms (up to 10 s) for `readyState === 'complete'`. Again ignores errors — the new page context may not be ready immediately.
 
@@ -877,9 +876,9 @@ Additionally, `LinkViewModel.onGetLinkMenuItems` is an optional callback that al
 
 1. **Never update `state.url` from navigation events.** Only update it from user-initiated `model.navigate()`. Use the `model.tabs.currentUrls` map for tracking the actual URL per internal tab.
 
-2. **The webview's `src` attribute is set once at creation.** The initial URL is captured in a ref. Subsequent navigations use `webview.loadURL()` from a React effect, gated by `webviewReady`.
+2. **The webview's `src` attribute is set once at creation.** The initial URL is assigned when `BrowserWebviewItemView` constructs the element. Subsequent navigations use `webview.loadURL()` from `BrowserWebviewModel.navigateWebview()`, gated by `webviewReady`.
 
-3. **Never include `tab.url` in the IPC registration effect dependencies.** This causes the effect to re-run on every navigation, clearing `webviewReady` and breaking subsequent navigations.
+3. **Keep IPC registration separate from URL projection.** URL changes must not tear down the `dom-ready` registration or clear `webviewReady`; doing so breaks subsequent navigations.
 
 4. **Call `loadURL()` only after dom-ready.** New tabs created via `addTab(url)` must wait for the webview to fire `dom-ready` before `loadURL()` is called. The `webviewReady` Set tracks this.
 
@@ -895,4 +894,4 @@ Additionally, `LinkViewModel.onGetLinkMenuItems` is an optional callback that al
 
 10. **DRM / Widevine CDM.** The app uses [Castlabs Electron (ECS)](https://github.com/castlabs/electron-releases) — a fork with Widevine DRM support. At startup, `components.whenReady()` in `main-setup.ts` ensures the CDM is downloaded. Production builds require VMP signing via Castlabs EVS (`scripts/vmp-sign.mjs`). Without VMP signing, DRM works on test pages but not on Netflix/Disney+.
 
-11. **MCP navigation must use a two-phase wait.** After calling `target.navigate()` / `target.back()`, React schedules the webview URL update asynchronously. A single `readyState === 'complete'` check will see the *old* page still loaded and return immediately. Always use Phase 1 (wait for URL change or `readyState` non-complete) followed by Phase 2 (wait for `readyState === 'complete'`). See the "Navigation Race Condition" note in the Browser Automation section above.
+11. **MCP navigation must use a two-phase wait.** After calling `target.navigate()` / `target.back()`, the native view starts the webview navigation asynchronously. A single `readyState === 'complete'` check will see the *old* page still loaded and return immediately. Always use Phase 1 (wait for URL change or `readyState` non-complete) followed by Phase 2 (wait for `readyState === 'complete'`). See the "Navigation Race Condition" note in the Browser Automation section above.

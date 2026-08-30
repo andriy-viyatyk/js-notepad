@@ -12,8 +12,8 @@
  * expandable nodes (not section headers) so the user can collapse/expand them.
  * Side-effect-free: the builder emits plain-string labels and no icons — the view
  * (`decorateNodes`) attaches icons and may replace a label with a styled node. The
- * only React-backed values are the explicit `SlotText`/`IconRef` arms on
- * `GitRefNode.label`/`icon`; the builder itself creates no React elements.
+ * only slot-backed values are the explicit `SlotText`/`IconRef` arms on
+ * `GitRefNode.label`/`icon`; the builder itself creates no elements.
  */
 import type { IconRef } from "../../uikit/shared/slots";
 import type { GitRefs } from "../../../ipc/git-ipc";

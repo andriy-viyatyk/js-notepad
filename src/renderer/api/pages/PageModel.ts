@@ -54,7 +54,7 @@ const defaultPageState: IPageState = {
 };
 
 export class PageModel implements IPageHost {
-    /** Stable page UUID — tab identity, React key, cache key. Never changes. */
+    /** Stable page UUID — tab identity and cache key. Never changes. */
     readonly id: string;
 
     /** Reactive page-level state. UI subscribes directly for re-rendering. */

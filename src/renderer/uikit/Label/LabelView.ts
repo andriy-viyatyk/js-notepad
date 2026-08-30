@@ -48,7 +48,7 @@ export class LabelView extends VanillaView<LabelProps> {
             disabled,
             children: _children,
             // These four fields intentionally remain in the residual props. The
-            // React Label has always forwarded them to <label> without applying
+            // The previous Label implementation forwarded them to <label> without applying
             // them to its nested Text; Epic F owns their eventual cleanup.
             ..._rest
         } = props;

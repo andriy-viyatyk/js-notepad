@@ -31,7 +31,7 @@ type CellKind = "item" | "section" | "custom";
  * in. Do not "helpfully" clear elements in `CellPool.release()`: this view depends on the opposite.
  *
  * `index` is rewritten on every render and read by the listeners installed once at creation, which
- * is why the row index never has to appear as a `data-*` attribute (the React DOM has none either).
+ * is why the row index never has to appear as a `data-*` attribute.
  */
 interface CellRecord {
     kind: CellKind;
@@ -50,11 +50,11 @@ const defaultRowHeight = 24;
  *
  * - **`renderCell` is a bound field, not a closure.** `VirtualGridModel.inputChanged()` compares it
  *   by identity, so a per-update closure would make the engine repaint every visible cell on every
- *   update — which is exactly what the React version did, and what the repaint gate exists to stop.
- * - **The three arms are three DOM states of one stable root.** React returned three different
+ *   update — which would repaint every visible cell on every update, and what the repaint gate exists to stop.
+ * - **The three arms are three DOM states of one stable root.** The prior implementation returned three different
  *   trees; here `applyArm()` owns every attribute that differs between them, including the removals.
  * - **The engine is created on entry to the real arm and disposed on leaving it**, which is what
- *   React did too. Keeping it alive behind `display: none` would be cheaper but would hand a stale
+ *   The prior implementation did too. Keeping it alive behind `display: none` would be cheaper but would hand a stale
  *   scroll offset to a dataset that was replaced while the list was showing a spinner.
  */
 export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> {
@@ -66,7 +66,13 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
 
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private readonly repaintGate: DepsGate = createDepsGate();
-    /** Every row view ever created, so disposal can reach the ones the pool still holds. */
+    /**
+     * Every item/section view created during the current real-arm lifetime, including views held
+     * by pooled wrappers. CellPool is bounded at maxSize = 2000: recycled wrappers keep their
+     * view, while only a pool-full discard detaches a wrapper without removing its view from this
+     * set. ListBox never approaches that bound in practice, and teardown disposes the set
+     * wholesale after the grid.
+     */
     private readonly rowViews = new Set<ListItemView | SectionItemView>();
     private readonly cells = new WeakMap<HTMLElement, CellRecord>();
 
@@ -172,7 +178,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         this.layout = this.layoutProps(this.props);
         this.emptyMessage = this.props.emptyMessage;
 
-        // Both listeners are permanent. `contextmenu` is on all three React arms; `keydown` is on
+        // Both listeners are permanent. `contextmenu` is on all three arms; `keydown` is on
         // the real arm only, but it is gated below and a listener is not in a DOM snapshot.
         this.listen(this.root, "contextmenu", (event) => this.model.onRootContextMenu(event));
         this.listen(this.root, "keydown", (event) => {
@@ -220,7 +226,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     /**
      * Bring the DOM to the arm `props` implies, then write every root attribute.
      *
-     * Every per-arm attribute is written in both directions. React expressed the arms as three
+     * Every per-arm attribute is written in both directions. The prior implementation expressed the arms as three
      * different elements, so an attribute it simply omitted in one arm has to be *removed* here —
      * and `root.tabIndex = -1` is not the same as no `tabindex` at all.
      */
@@ -331,8 +337,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             fitToWidth: true,
             // `ListBoxProps.growToHeight` is a CSS height, so it may be a bare number — and two
             // real call sites pass one (`UrlSuggestionsDropdown` 400, `Select`
-            // maxVisibleItems * rowHeight). The engine's prop is a string, and React would have
-            // added the unit itself.
+            // maxVisibleItems * rowHeight). The engine's prop is a string, and the old style writer would have added the unit itself.
         };
     }
 
@@ -479,8 +484,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
 
     /**
      * One unconditional call. The engine queues the request itself when it has no usable size yet
-     * and flushes it on its first real measurement, which is what the React version's
-     * `setTimeout(0)` was approximating without being able to test the actual condition.
+     * and flushes it on its first real measurement, which is what the previous `setTimeout(0)` was approximating without being able to test the actual condition.
      *
      * `afterPaint` is set when the item set changed in the same update. `scrollTop` clamps to the
      * scrollable extent, and the extent is written inside the *next* paint — so a list that grew
@@ -522,7 +526,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     }
 }
 
-/** React adds `px` to a bare number in a style value; a DOM prop typed as a string cannot. */
+/** A DOM property typed as a string does not add `px` to a bare number; normalize numeric lengths before writing it. */
 function cssLength(value: NativeCSSProperties["height"]): string | undefined {
     if (value === undefined || value === null) return undefined;
     return typeof value === "number" ? `${value}px` : String(value);

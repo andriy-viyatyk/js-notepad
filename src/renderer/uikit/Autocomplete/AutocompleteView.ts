@@ -136,10 +136,10 @@ class AutocompleteContentView extends VanillaView<AutocompleteContentProps> {
     }
 
     /**
-     * Replaces the `Panel` + `Spacer` composition the React implementation used (EPIC-056 US-1018
+     * Replaces the `Panel` + `Spacer` composition the previous implementation used (EPIC-056 US-1018
      * D4) — `Panel`'s last consumer inside `uikit/`. The two slot hosts are `display: contents`, as
-     * `fillSlot`'s own React container is, so the header content and the action stay flex items of
-     * the row exactly as they were when React rendered them as direct children.
+     * `fillSlot`'s slot host is, so the header content and the action stay flex items of
+     * the row as direct children.
      */
     private createHeaderRow(): HTMLDivElement {
         const row = document.createElement("div");
@@ -169,7 +169,7 @@ class AutocompleteContentView extends VanillaView<AutocompleteContentProps> {
  * - **`data-state` and "the popover exists" are different facts.** The popover opens on
  *   `model.popoverOpen`, which is false for an open component whose filter matched nothing and that
  *   has no `emptyMessage`. `data-state` still reports `state.open`. Do not collapse them.
- * - **The width props go to the inner `Input`, not to the root.** The React implementation forwarded
+ * - **The width props go to the inner `Input`, not to the root.** The previous implementation forwarded
  *   `width`/`minWidth`/`maxWidth` to `Input` and wrote no inline style on the root at all. `Select`
  *   does the opposite. Both are preserved as they were.
  * - **The `contentView` factory does not append anything**, because `AutocompleteContentView` adopts
@@ -260,8 +260,8 @@ export class AutocompleteView extends VanillaView<AutocompleteViewProps> {
         toggle(root, "data-disabled", !!props.disabled);
         toggle(root, "data-readonly", !!props.readOnly);
 
-        // No inline size: the width trio is forwarded to the inner Input, which is what the React
-        // implementation did. `Autocomplete.css`'s `width: 100%` owns the root.
+        // No inline size: the width trio is forwarded to the inner Input, which is what the previous implementation
+        // did. `Autocomplete.css`'s `width: 100%` owns the root.
     }
 
     // -----------------------------------------------------------------------

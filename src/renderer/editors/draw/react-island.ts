@@ -16,9 +16,9 @@ export function mountReactHandle(
 ): MountedReactRoot {
     const root = createRoot(host);
     // Mark the host so every vanilla-to-React island is countable from the DOM. The De-React
-    // programme's Rule 4 measurements count React roots, and `fillSlot`'s own span carries
-    // `data-part="react-slot"` — without a marker here a `mountReactHandle` island is invisible
-    // to that query and a sidebar with a live React subtree measures zero (EPIC-063 E5-3).
+    // programme's Rule 4 measurements count live roots separately from native `fillSlot` hosts,
+    // which carry `data-part="children-slot"`; this direct mount host is neither, so it needs its
+    // own marker or a live Excalidraw island would be invisible to the root query (EPIC-063 E5-3).
     host.dataset.reactRoot = "";
     root.render(element);
 

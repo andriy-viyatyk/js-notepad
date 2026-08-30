@@ -34,7 +34,7 @@ export type MultiSelectViewProps<T = IListBoxItem> = MultiSelectProps<T>;
  * - **`matchAnchorWidth` is a real prop**, defaulted in the view. `Select` hardcodes it.
  * - **The list carries `id = model.popoverId`.** The trigger has always advertised
  *   `aria-controls="…-popover"` and nothing ever carried that id, so the reference dangled in the
- *   React implementation. C3-5 obliges this task to assert the aria pairing resolves, which a
+ *   previous implementation. C3-5 obliges this task to assert the aria pairing resolves, which a
  *   verbatim port cannot do — see US-1018 D8. This is the task's one intentional DOM delta.
  *
  * `applyRoot` stays off the state path: it runs `applyRestProps`, which removes and re-adds every
@@ -130,7 +130,7 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
         toggle(root, "data-disabled", !!props.disabled);
         toggle(root, "data-readonly", !!props.readOnly);
 
-        // React passed no `style` at all when all three were undefined, leaving `MultiSelect.css`'s
+        // When all three width values are undefined, leave the inline width empty, leaving `MultiSelect.css`'s
         // `width: 100%` in charge; an empty string reproduces that exactly.
         root.style.width = props.width === undefined ? "" : cssLength(props.width);
         root.style.minWidth = props.minWidth === undefined ? "" : cssLength(props.minWidth);
@@ -222,8 +222,8 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
 
     /**
      * The icon is an `IconName` string, which takes `IconButtonView.updateIcon`'s DOM branch —
-     * `createIconElement`, no React root. The React implementation passed
-     * `renderIcon("chevron-down")`, so every `MultiSelect` on screen carried a retained React root
+     * `createIconElement`; the previous implementation passed
+     * `renderIcon("chevron-down")`, so every `MultiSelect` carried a retained icon subtree
      * inside its chevron even while closed.
      */
     private chevronProps(): IconButtonProps {
@@ -296,7 +296,7 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
 
     /**
      * One identity for this view's whole life, so `InputView` binds it exactly once. A per-update
-     * merged closure — the literal translation of the React `useCallback` — would make
+     * merged closure — the literal translation of the previous stable callback — would make
      * `InputView.updateRef`'s identity gate fire on every update, and its `clearRef` calls
      * `ref(null)`, so `model.inputRef` would go transiently null each time.
      */
@@ -350,7 +350,7 @@ export class MultiSelectView<T = IListBoxItem> extends VanillaView<MultiSelectVi
     }
 }
 
-/** React adds `px` to a bare number in a style value; a DOM write cannot. */
+/** A DOM property typed as a string does not add `px` to a bare number; normalize numeric lengths before writing it. */
 function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;
 }

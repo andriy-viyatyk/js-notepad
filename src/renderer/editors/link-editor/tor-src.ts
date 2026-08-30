@@ -4,7 +4,7 @@
  * A Tor browser page's SOCKS proxy lives on its Electron session partition and
  * therefore covers only the page's `<webview>`. The Link editor rendered on that
  * page's blank tab (and its bookmarks drawer, tooltips and Edit-Link dialog) is
- * ordinary React in the app renderer, so its `<img src="https://…">` would go out
+ * an app-rendered `<img src="https://…">`, so the URL would go out
  * un-proxied. `resolveTorSrc` rewrites such URLs to the `tor-src://` scheme,
  * which the main process fetches through the page's Tor session instead.
  *

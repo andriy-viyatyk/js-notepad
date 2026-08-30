@@ -31,7 +31,6 @@ ScriptRunner.run(script, page?, language?)
     │       ├── preventOutput()   ← suppresses default grouped-page output
     │       ├── customRequire    ← context-bound require with library/ resolution
     │       ├── console          ← native or MCP-capturing
-    │       ├── React             ← React library
     │       └── ScriptOutputFlags ← tracks output suppression state
     │
     ├── ScriptRunnerBase.execute(script, context, language?)
@@ -372,10 +371,6 @@ app.events.openRawLink.sendAsync(io.createLinkData("C:\\file.txt"));
 await app.events.openRawLink.sendAsync(io.createLinkData(url));
 ```
 
-### `React`
-
-The React library is available for advanced use cases.
-
 ### Full Node.js Access
 
 With `nodeIntegration: true`, scripts can use:
@@ -442,7 +437,7 @@ The script panel toolbar includes a **script selector dropdown** (Select) and a 
 
 **State:** `ScriptPanelState` includes `selectedScript: string | null` (file path) and `dirty: boolean` (modification indicator). Both are persisted to cache and restored on app restart.
 
-- Implementation: `/src/renderer/editors/text/ScriptPanel.ts` (ScriptPanelModel and React compatibility face) and `ScriptPanelView.ts` (native view)
+- Implementation: `/src/renderer/editors/text/ScriptPanel.ts` (ScriptPanelModel) and `ScriptPanelView.ts` (native view)
 
 ### Library Setup Wizard
 
@@ -659,7 +654,7 @@ The constructor:
    }
    ```
 4. Creates `customRequire` — a context-bound require function. Resolves `library/` paths to the library folder. Sets `globalThis.__activeScriptContext__` before calling native `require()` so extension handlers inject the correct context prefix. Always clears the specific module from `require.cache` before loading (always-fresh). If library not linked, throws a descriptive error.
-5. Adds `styledText` and `React` as instance properties
+5. Adds `styledText` as an instance property
 6. **Stack-based `ui` getter** on `globalThis` — saves the previous `ui` property descriptor (if any, e.g., autoload's getter), then defines a new lazy getter via `Object.defineProperty`. Creates `UiFacade` on first access, then installs console forwarding. Must be on `globalThis` (not in prefix) to preserve laziness — `var ui=this.ui` would eagerly trigger the getter.
 7. `dispose()` restores the previous `ui` getter (or deletes if none), then releases all ViewModels and unsubscribes all event subscriptions made through `app.events`
 
@@ -842,7 +837,7 @@ Two injection mechanisms exist:
 - **Top-level scripts:** `SCRIPT_PREFIX` reads from `this` — `var app=this.app, page=this.page, io=this.io, require=this.customRequire, ...`
 - **Library modules (require'd):** `MODULE_CONTEXT_PREFIX` reads from `globalThis.__activeScriptContext__` — set by `customRequire()` during the synchronous `require()` call
 
-Both produce the same result: `app`, `page`, `React`, `styledText`, `preventOutput`, `require`, and `console` are available as local variables in scripts and modules.
+Both produce the same result: `app`, `page`, `io`, `ai`, `styledText`, `preventOutput`, `require`, and `console` are available as local variables in scripts and modules. The `ui` global remains a separate lazy getter.
 
 - **`require()`** — context-bound `customRequire` on `ScriptContext`. Supports `library/` path resolution. Always clears specific module from cache before loading (always-fresh). Falls back to Node.js native `require` for non-library paths.
 - **`ui`** — lazy getter on `globalThis` (not a local variable, not in prefix). Stack-based: each `ScriptContext` saves the previous getter and restores it on dispose. Eagerly accessing `ui` creates a Log View page.

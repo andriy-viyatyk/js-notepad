@@ -122,7 +122,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     // --- ids ---
     private _elementId = "";
-    /** Fed by the view from `nextElementId("tree")` — replaces React's `useId` (EPIC-056 C3-5). */
+    /** Fed by the view from `nextElementId("tree")` — replaces the former generated-ID source (EPIC-056 C3-5). */
     setElementId = (elementId: string) => {
         this._elementId = elementId;
     };
@@ -759,7 +759,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             // The row set just grew, so the scrollable extent is stale until the paint that
             // `mutate` scheduled writes it. `scrollTop` clamps to the current extent, so scrolling
             // now would land short with nothing re-issuing the request — the one deferral on this
-            // path that was NOT a React workaround. See `scrollToRowAfterPaint`.
+            // path that was not a framework workaround. See `scrollToRowAfterPaint`.
             this.gridRef?.scrollToRowAfterPaint(idx, align ?? "nearest");
             return;
         }

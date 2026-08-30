@@ -431,9 +431,9 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         // its subtree, and clicking the body lands focus on a descendant — Monaco's textarea, the
         // grid, an input. The non-bubbling `focus` only fires when the root itself receives it,
         // which is why activation used to work by clicking the drag indicator (a plain child, so
-        // focus fell through to the root) and nowhere else. React's onFocus/onBlur, which this was
-        // converted from, are delegated through the bubbling pair — hence the containment check
-        // below, which is only meaningful for `focusout`.
+        // focus fell through to the root) and nowhere else. The former delegated `onFocus`/`onBlur` behavior
+        // is represented by the bubbling pair — hence the containment check below, which is only meaningful
+        // for `focusout`.
         this.listen(this.root, "focusin", () => {
             if (this.focused) return;
             this.focused = true;

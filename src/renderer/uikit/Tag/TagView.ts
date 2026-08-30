@@ -156,7 +156,7 @@ export class TagView extends VanillaView<TagProps> {
         if (props.children != null && props.children !== false) {
             if (!this.childrenHost) {
                 this.childrenHost = document.createElement("span");
-                this.childrenHost.dataset.part = "react-slot";
+                this.childrenHost.dataset.part = "children-slot";
                 this.childrenHost.style.display = "contents";
                 this.root.append(this.childrenHost);
             }

@@ -78,7 +78,7 @@ async function getTarget(
     const profileName = typeof params?.profileName === "string" ? params.profileName : undefined;
 
     // The app window (US-810) is automatable via the "app" sentinel — it drives
-    // Persephone's own React UI. Explicit only: the fallback branch must NEVER return
+    // Persephone's own UI. Explicit only: the fallback branch must NEVER return
     // it, so an agent aiming at a web page can't accidentally click the app chrome.
     if (pageId === "app") return appTarget;
 

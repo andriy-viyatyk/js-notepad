@@ -184,9 +184,13 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         if (!this.messagePanel) {
             this.messagePanel = document.createElement("div");
             this.messagePanel.className = "panel-root";
+            this.messagePanel.dataset.component = "panel";
             this.root.append(this.messagePanel);
         }
         this.messagePanel.dataset.type = kind === "error"
+            ? "tree-provider-error"
+            : "tree-provider-empty";
+        this.messagePanel.dataset.name = kind === "error"
             ? "tree-provider-error"
             : "tree-provider-empty";
         this.messagePanel.dataset.direction = "row";
@@ -213,6 +217,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
 
         this.searchPanel = document.createElement("div");
         this.searchPanel.className = "panel-root";
+        this.searchPanel.dataset.component = "panel";
         this.searchPanel.dataset.type = "tree-provider-search";
         this.searchPanel.dataset.name = "tree-provider-search";
         this.searchPanel.dataset.direction = "row";

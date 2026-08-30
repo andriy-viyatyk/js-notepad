@@ -39,7 +39,7 @@ export class RestRequestTreeView extends VanillaView<RestRequestTreeViewProps> {
     public constructor(props: RestRequestTreeViewProps) {
         super(props, document.createElement("div"));
         this.root.dataset.type = "rest-request-tree";
-        // `display: contents` because the React `RequestTree` this replaces returned `<Tree>`
+        // `display: contents` because the replaced `RequestTree` returned `<Tree>`
         // directly and contributed no DOM of its own — the tree was a flex child of the panel
         // pane. A plain block wrapper here breaks that chain: the pane is a definite-height flex
         // column and `TreeView` sizes itself with `flex: 1`, which against an auto-height block

@@ -286,7 +286,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
         // Explorer uses synchronous selectionState (works before navigation).
         // Link panels use selectByHref → vm.selectLink which must run AFTER navigation
         // completes, otherwise the openRawLink pipeline's synchronous state changes
-        // cause React to batch-render with a stale selectedLinkId snapshot.
+        // cause the navigation update and selection update to observe different selectedLinkId snapshots.
         if (this.page) {
             for (const editor of this.page.panelEditors) {
                 if (!("treeProvider" in editor)) continue;
@@ -312,8 +312,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
             }),
         ).then(() => {
             // Update link panel selection AFTER navigation completes.
-            // Use requestAnimationFrame to ensure React has flushed the navigation
-            // render before we trigger another state update for selection.
+            // Use requestAnimationFrame to ensure the navigation update has reached the DOM before we trigger another state update for selection.
             requestAnimationFrame(() => {
                 if (!page) return;
                 for (const editor of page.panelEditors) {

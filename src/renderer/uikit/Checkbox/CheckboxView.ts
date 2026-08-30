@@ -82,7 +82,7 @@ export class CheckboxView extends VanillaView<CheckboxProps> {
     }
 
     private readonly handleClick = (event: MouseEvent): void => {
-        // JSX spread was last in the React implementation, so a caller's
+        // JSX spread was last in the previous implementation, so a caller's
         // onClick replaced the default toggle handler. Keep that contract.
         if (typeof this.props.onClick === "function" || this.props.disabled) return;
         event.preventDefault();

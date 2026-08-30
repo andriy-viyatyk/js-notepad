@@ -130,7 +130,7 @@
      * caller-supplied trailing controls.
      */
     [data-type="tree-item"] > .tree-icon > svg,
-    [data-type="tree-item"] > .tree-icon > [data-part="react-slot"] > svg {
+    [data-type="tree-item"] > .tree-icon > [data-part="children-slot"] > svg {
         width: var(--size-icon-md, 16px);
         height: var(--size-icon-md, 16px);
     }

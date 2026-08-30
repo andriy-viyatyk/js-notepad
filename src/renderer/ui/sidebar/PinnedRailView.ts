@@ -240,7 +240,7 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
         // Read the hover index BEFORE moving. `movePin` persists synchronously, which re-runs
         // `refresh()` and replaces `record.rowData` with this row's post-move data — so reading
         // the index afterwards yields the hovered item's new index instead of the position the
-        // dragged item was just moved to. The React original captured `index` in a render
+        // dragged item was just moved to. The previous renderer captured `index` during rendering
         // closure, which is why it could read it either side of the move.
         const hoverIndex = record.rowData.index;
         movePin(draggingPinnedIndex, hoverIndex);

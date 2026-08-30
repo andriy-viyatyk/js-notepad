@@ -108,7 +108,7 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
 
     // --- ids ---
     private _elementId = "";
-    /** Fed by the view from `nextElementId("multiselect")` — replaces React's `useId` (C3-5). */
+    /** Fed by the view from `nextElementId("multiselect")` — replaces the former generated-ID source (C3-5). */
     setElementId = (elementId: string) => {
         this._elementId = elementId;
     };

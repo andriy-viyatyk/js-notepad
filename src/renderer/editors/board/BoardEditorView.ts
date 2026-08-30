@@ -122,7 +122,7 @@ class BoardHostView extends VanillaView<BoardHostViewProps> {
 
     protected onUpdate(): void {
         // BoardWebview is intentionally not retargeted. The parent branch key
-        // gives it the same remount semantics as React's keyed element.
+        // gives it stable-key replacement semantics: a changed key gets a fresh board element.
     }
 
     private readonly updateStatus = (statusText: string | undefined): void => {

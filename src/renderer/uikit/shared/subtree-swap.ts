@@ -77,8 +77,8 @@ export class SubtreeSwap<K extends PropertyKey> {
             hasError = true;
             firstError = error;
         } finally {
-            // SubtreeSwap owns the managed root's DOM attachment, unlike the
-            // VanillaView base whose adapter controls root detachment.
+            // SubtreeSwap owns the managed root's DOM attachment; VanillaView
+            // releases behavior, while its container removes the root afterward.
             branch.view.root.parentNode?.removeChild(branch.view.root);
         }
 

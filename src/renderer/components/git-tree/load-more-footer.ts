@@ -8,7 +8,7 @@
  * overlay, not something the cell pool recycles.
  *
  * av-grid's own stylesheet positions `.avg-extra` as a full-width band at the bottom of the
- * scrolling content, so the four positioning declarations the React version hand-wrote are gone
+ * scrolling content, so the four positioning declarations the earlier renderer hand-wrote are gone
  * (US-1021 F5). The band is taller than the default 20px trailing slack, so the caller pairs it
  * with `whiteSpaceY`.
  */

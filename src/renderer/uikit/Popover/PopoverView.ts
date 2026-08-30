@@ -153,7 +153,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         this.applyVisualState(this.props);
         // The size middleware is the last writer for viewport max-height and
         // anchor width. Re-run it after a manual-size state change so the
-        // ordering remains the same as the React implementation.
+        // ordering remains: the size middleware is the last writer for viewport max-height and anchor width.
         this.position();
     }
 

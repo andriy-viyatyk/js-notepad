@@ -7,13 +7,13 @@ export interface PageManagerProps {
     pageIds: string[];
     /** ID of the currently active (visible) page. */
     activeId: string;
-    /** Render function — receives page ID, returns a React node. */
+    /** Page factory — receives a page ID and returns a native page view. */
     renderPage: (id: string) => VanillaViewCtor<PageSlotViewProps>;
     /** Optional CSS class for the container div. */
     className?: string;
 }
 
-/** Native host for browser internal tabs with one retained React island per tab. */
+/** Native host for browser internal tabs with one retained page view per tab. */
 export class PageManagerView extends VanillaView<PageManagerProps> {
     private readonly slots = new Map<string, PageSlot>();
 

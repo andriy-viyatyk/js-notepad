@@ -20,7 +20,7 @@ export interface AppPageManagerProps {
     className?: string;
 }
 
-/** Native application-page host with deferred React page islands and CSS grouping. */
+/** Native application-page host with deferred page views and CSS grouping. */
 export class AppPageManagerView extends VanillaView<AppPageManagerProps> {
     private readonly slots = new Map<string, PageSlot>();
     private readonly groupContainers = new Map<string, GroupContainer>();

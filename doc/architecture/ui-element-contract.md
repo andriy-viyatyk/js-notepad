@@ -1,6 +1,6 @@
 # UI Element Addressing Contract
 
-How elements of the Persephone shell are addressed from outside the React tree — by MCP agents
+How elements of the Persephone shell are addressed by MCP agents
 driving the app window (`browser_snapshot`/`browser_click` with `pageId: "app"`), by injected
 overlay scripts, and by tests.
 
@@ -28,6 +28,7 @@ Four distinct roles, and the tab strip uses all of them:
 | `data-name` | What kind of element this is | `data-name="page-tab"` |
 | `data-type` | Structural marker used by component logic and Emotion selectors | `data-type="page-tab"` |
 | `data-part` | A named part *inside* a component | `data-part="title-label"` |
+| `data-component` | Stable kind marker for an inspectable native component root | `data-component="panel"` |
 | `data-*` state | Which instance / what state | `data-active`, `data-pinned`, `data-modified` |
 
 `data-name` is not unique when an element repeats. Every open tab carries
@@ -42,6 +43,11 @@ Four distinct roles, and the tab strip uses all of them:
 `data-type` and `data-part` are **load-bearing** — `TabsModel.scrollToActive` queries
 `[data-type="page-tab"][data-active]`, and `PageTabRoot`'s styles select on `data-part`. Never
 remove or rename them in the course of adding a `data-name`.
+
+`data-component` is an additive inspection marker. Native `Panel` roots emit both
+`data-component="panel"` and `data-type="panel"`; the component marker remains stable when an
+app-specific caller must override `data-type` for its own styling. It is not a replacement for
+`data-type`, `data-part`, or state attributes.
 
 ## The public-contract rule
 
@@ -128,6 +134,25 @@ Two tab shapes do not match the common case, and both occur in ordinary use:
 | Sidebar panel container (only when a page has panels open) | `[data-name="secondary-views-container"]` |
 | Sidebar panel stack | `[data-name="secondary-views-stack"]` |
 | Sidebar width splitter | `[data-name="secondary-views-splitter"]` |
+
+### Inspectable panel roots
+
+Panel roots that are useful inspection targets expose the stable selector
+`[data-component="panel"][data-name="…"]`. The current named roots are:
+
+| Panel | Selector |
+|---|---|
+| TreeProvider error / empty message | `[data-component="panel"][data-name="tree-provider-error"]` / `[data-component="panel"][data-name="tree-provider-empty"]` |
+| TreeProvider search | `[data-component="panel"][data-name="tree-provider-search"]` |
+| Board Info | `[data-component="panel"][data-name="board-info-editor"]` |
+| Search boards | `[data-component="panel"][data-name="search-boards-tab"]` |
+| Tools hub | `[data-component="panel"][data-name="tools-hub"]` |
+| Toolset | `[data-component="panel"][data-name="toolset-editor"]` |
+| Script library | `[data-component="panel"][data-name="sidebar-script-library"]` |
+
+These names are debug/inspection handles rather than uniqueness guarantees. Existing app-specific
+`data-type` values remain available to component CSS; in particular, TreeProvider message and
+search roots retain their `tree-provider-*` types.
 
 ## Scope
 

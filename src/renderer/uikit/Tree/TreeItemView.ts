@@ -20,7 +20,7 @@ const defaultIndentSize = 16;
  * The tree row, and the single source of truth for its DOM.
  *
  * `TreeView` builds one per pooled cell and calls `update()` as that cell is re-pointed at
- * different rows. It is the sole driver: the `TreeItem` React face that once wrapped this class for
+ * different rows. It is the sole driver: the `TreeItem` face that once wrapped this class for
  * app-layer JSX callers was deleted in EPIC-074, and `TreeItem.ts` now holds only `TreeItemProps`.
  * The class stays the single implementation because a second one — a row with six state attributes,
  * a four-way chevron column, N level guides and three slots — would drift, and nothing in the build
@@ -32,12 +32,12 @@ const defaultIndentSize = 16;
  * `root.replaceChildren()` would leave that cache pointing at detached elements, and the next
  * `setIcon`/`setLabel` would render into a detached container with no error at all — a row with the
  * right height, the right background, working handlers and no content. It would also strand mounted
- * React roots on detached trees and kill the chevron's listener while the row-level handlers (which
+ * slot subtrees on detached trees and kill the chevron's listener while the row-level handlers (which
  * live on the cell wrapper, not here) kept working, so the symptom would read as "chevron bug".
  *
  * The icon and trailing hosts are real boxes rather than `display: contents`, because they were real
- * boxes in the React DOM (`<span className="tree-icon">` / `"tree-trailing"`) and carry their own
- * flex rules. React rendered each only when its content was present, so both are attached and
+ * boxes in the earlier DOM (`<span className="tree-icon">` / `"tree-trailing"`) and carry their own
+ * flex rules. The earlier renderer attached each only when its content was present, so both are attached and
  * detached rather than left empty in the flex flow.
  */
 export type TreeItemViewProps = TreeItemProps;
@@ -140,8 +140,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
             hideChevron: _hideChevron,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onChevronClick: _onChevronClick,
-            // The row callback is owned by this view and must not enter the React-compatible
-            // residual-prop listener path.
+            // The row callback is owned by this view and must not enter the residual-prop listener path.
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onContextMenu: _onContextMenu,
             trailing,
@@ -220,7 +219,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     // -----------------------------------------------------------------------
 
     /**
-     * Transcribed from the React ternary chain: hidden, else spinner while loading, else a button
+     * Transcribed from the former ternary chain: hidden, else spinner while loading, else a button
      * when the row is expandable, else a same-width stub so every row's content lines up.
      */
     private setChevron(props: TreeItemProps): void {
@@ -300,7 +299,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     // Slots
     // -----------------------------------------------------------------------
 
-    /** An icon *name* becomes a DOM `svg` with no React root. */
+    /** An icon *name* becomes a DOM `svg`. */
     private setIcon(icon: IconRef | undefined, iconElement: Node | undefined): void {
         if (iconElement === undefined && icon == null) {
             this.directIconElement = undefined;
@@ -351,7 +350,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         this.labelCleanup = fillSlot(this.labelHost, label);
     }
 
-    /** React rendered `{trailing != null && <span className="tree-trailing">…}`. */
+    /** The earlier renderer attached `<span className="tree-trailing">…` when trailing content was present. */
     private setTrailing(trailing: SlotContent, trailingElement?: Node): void {
         // A caller-owned DOM node takes the identity-checked arm. `fillSlot` replaces the host's
         // children unconditionally, so re-filling with the same node detaches and re-appends it —

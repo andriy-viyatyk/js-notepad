@@ -8,7 +8,7 @@ Detailed organization of the codebase. Verified against actual source files.
 persephone/
 ├── src/                    # Source code
 │   ├── main/               # Electron main process
-│   ├── renderer/           # React + VanillaView frontend (see below)
+│   ├── renderer/           # Native VanillaView frontend plus the Excalidraw React island (see below)
 │   ├── ipc/                # IPC communication layer
 │   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine)
 │   ├── renderer.ts          # Async bootstrap; calls renderer/index.ts mount(container)
@@ -314,7 +314,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   │   └── types.ts
 │   │   └── index.ts
 │   └── secondary-views/    # SecondaryViews — native controlled panel host
-│       ├── SecondaryViewsView.ts    # Native panel host; retains headerRef portal compatibility
+│       ├── SecondaryViewsView.ts    # Native panel host; retains headerRef ownership
 │       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
 │       ├── LazySecondaryViewView.ts  # Native dynamic panel loader (vanilla arm)
 │       ├── SideBarPanelHeaderView.ts # React-free DOM header factory
@@ -334,9 +334,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   ├── editor-switch.ts          # switchMainEditor — switch-widget transition (host transfer / rebuild)
 │   │   ├── PageToolbarView.ts        # Native page toolbar — NavPanel + switch widget auto-slots
 │   │   ├── TextChromeView.ts         # Native host-aware chrome (toolbar, script panel, footer)
-│   │   ├── EditorToolbar.ts          # Editor toolbar model
 │   │   ├── EditorToolbarView.ts      # Native toolbar root used by individual editors
-│   │   ├── ContentHostFooter.ts      # Shared text-host footer model
 │   │   ├── ContentHostFooterView.ts  # Native text-host footer
 │   │   ├── ContentHostFooter.css     # Footer styles
 │   │   ├── EditorConfig.ts            # Editor configuration value and empty default
@@ -572,7 +570,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   │   ├── SettingsSections.ts
 │   │   │   └── settings-native.ts   # Shared native settings helpers
 │   │   └── index.ts
-│   ├── storybook/          # Native Storybook editor with React story compatibility arm
+│   ├── storybook/          # Native Storybook editor and component gallery
 │   │   ├── StorybookEditorModel.ts   # EditorModel — component browser, live preview
 │   │   ├── StorybookEditorView.ts
 │   │   ├── ComponentBrowser.ts
@@ -606,12 +604,12 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── archive/            # Archive editor (non-text, with sidebar panel)
 │   │   ├── ArchiveEditor.ts          # EditorModel — archive state, tree provider, navigation survival
 │   │   ├── ArchiveEditorView.ts       # Main content view
-│   │   ├── ArchiveSecondaryView.ts    # Secondary panel — tree view with portaled header
+│   │   ├── ArchiveSecondaryView.ts    # Secondary panel — tree view with native header
 │   │   └── index.ts
 │   ├── explorer/           # File explorer (non-text, sidebar-only)
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── page-explorer.ts          # Explorer provisioning for a page — toggleNavigator, auto-init
-│   │   ├── ExplorerSecondaryView.ts   # "explorer" panel — tree view with portaled header
+│   │   ├── ExplorerSecondaryView.ts   # "explorer" panel — tree view with native header
 │   │   ├── SearchSecondaryView.ts  # "search" panel — file search with native header
 │   │   ├── BoardsSecondaryView.ts # "boards" panel — Boards/Tools body switch: trusted boards (BoardsTree) or registered toolsets (ToolsTree) under the Explorer root; "+ New board" in the switch row
 │   │   └── index.ts
@@ -668,14 +666,12 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── tools-tree-build.ts       # Pure builder: toolset path list → compacted folder/toolset node tree (leaf label = manifest name)
 │   ├── shared/             # Shared editor utilities and Monaco widget hosts
 │   │   ├── link-open-menu.ts
-│   │   ├── MonacoEditorHostView.ts   # VanillaView host for monaco.editor.create
 │   │   ├── MonacoEditorHostView.ts   # VanillaView host for the single-editor host
 │   │   ├── MonacoEditorHostView.css  # Single-editor host flex geometry
-│   │   ├── MonacoDiffEditorHostView.ts # VanillaView host for createDiffEditor
 │   │   ├── MonacoDiffEditorHostView.ts # VanillaView host for the diff host
 │   │   ├── MonacoDiffEditorHostView.css # Diff-host flex geometry
 │   │   ├── ColorizedCodeView.ts      # Native syntax-highlighted code via Monaco colorize()
-│   │   └── ColorizedCodeView.ts      # Native syntax-highlighted code
+│   │   └── FindBarView.ts            # Native browser find bar
 │   │
 │   ├── register-editors.ts # Editor registration — table-driven (EDITORS rows + loop) + content-host module preload
 │   ├── types.ts            # View-module prop types (required native EditorModule.View)
@@ -772,14 +768,14 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── Progress/           # Progress overlay + screen lock
 │   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool; VirtualGridView and VirtualFlexGridView
 │   ├── DataGrid/           # av-grid mounting boundary (filters, sorting, editing, selection)
-│   └── shared/             # Internal helpers (overlay layer, slots, and React/vanilla seams)
+│   └── shared/             # Internal helpers (overlay layer, native slots, and view lifecycle)
 │       ├── async-ref.ts    # Callback-backed asynchronous DOM reference
 │       ├── vanilla-view.ts # Framework-free view lifecycle, ownership, binding, and cleanup
 │       ├── keyed-list.ts   # Keyed DOM reconciliation with minimal cursor moves
 │       ├── subtree-swap.ts # Owned conditional subtree replacement
 │       ├── deps-gate.ts    # Fixed-length repaint/dependency identity gate
 │       ├── element-id.ts   # Shared DOM id allocation for generated elements
-│       ├── fill-slot.ts    # React-valued slot bridge
+│       ├── fill-slot.ts    # Native slot-content filling and generation-safe cleanup
 │       ├── dom-props.ts    # Native attributes/events, targeted residual props, and listener cleanup
 │       └── slots.ts        # Neutral icon and slot-content types/resolution
 │
@@ -851,14 +847,15 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── language-icons.ts   # Language-specific DOM-built icons
 │   ├── palette-colors.ts   # Color palette definitions
 │   ├── style-layers.css    # Shared cascade-layer order for static CSS
-│   ├── root.css            # Static #root geometry, before any React commit
+│   ├── root.css            # Static #root geometry, before renderer mount
 │   ├── theme-state.ts      # Shared active-theme snapshot and subscriptions
 │   ├── token-vars.ts       # App token CSS-variable generation and installation
 │   └── themes/             # Theme definitions and color resolution (9 themes)
 │
 ├── types/                  # Global Type Declarations
 │   ├── window.d.ts         # Window interface extension
-│   └── events.d.ts         # MouseEvent extension
+│   ├── events.d.ts         # MouseEvent extension
+│   └── vite-env.d.ts       # Vite import.meta.env declarations
 │
 └── index.ts                # mount(container): application composition root
 ```

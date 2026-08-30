@@ -15,9 +15,8 @@ type CategoriesMap = {
 function createCategoryLabel(name: string, size: number | undefined): Node {
     // `width: "100%"` and NOT `flex: true` + `width: 0`: the Tree's `.label` host is a plain
     // block, so a flex-grow on this element is inert and an explicit `width: 0` wins outright —
-    // the name collapsed to zero width and only the shrink-proof count stayed visible. The React
-    // original wrapped its parts in a `display: flex; width: 100%; min-width: 0` span for exactly
-    // this reason; mirror it.
+    // the name collapsed to zero width and only the shrink-proof count stayed visible. The previous implementation
+    // wrapped its parts in a `display: flex; width: 100%; min-width: 0` span for exactly this reason; mirror it.
     const label = createPanelElement({
         name: "notebook-category-label",
         direction: "row",

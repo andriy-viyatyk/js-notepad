@@ -4,8 +4,8 @@ import { DisposableStore } from "../../core/utils/DisposableStore";
 /**
  * The minimal surface a parent needs in order to own a child view.
  *
- * Keeping this interface independent from VanillaView also lets a later adapter
- * register a view implemented by another runtime without exposing its internals.
+ * Keeping this interface independent from VanillaView lets a structural helper
+ * own any compatible view without exposing its internals.
  */
 export interface IOwnedView {
     readonly root: HTMLElement;
@@ -17,7 +17,7 @@ export type VanillaViewCtor<P> = new (props: P) => VanillaView<P>;
 type Cleanup = () => void;
 
 // Ownership is deliberately not inferred from DOM containment. A view can be
-// owned before its root is mounted, and an owned root may be moved by an adapter.
+// owned before its root is mounted, and an owned root may be moved by its container.
 const ownedViews = new WeakSet<object>();
 
 /** Claim a view for exactly one parent owner for the rest of its lifetime. */
@@ -101,8 +101,9 @@ export abstract class VanillaView<P> implements IOwnedView {
      * Every cleanup is attempted. If more than one cleanup throws, the first
      * error is rethrown after the complete snapshot has run.
      *
-     * The view releases behavior but deliberately does not detach root. Its
-     * adapter or structural helper owns that DOM ordering operation.
+     * The view releases behavior and owned resources but deliberately does not detach root. The
+     * container that attached it, or a structural helper such as SubtreeSwap, owns that DOM
+     * ordering operation.
      */
     dispose(): void {
         if (this.disposed) {
@@ -128,8 +129,8 @@ export abstract class VanillaView<P> implements IOwnedView {
             }
         };
 
-        // Depth-first ownership order is important for adapters that mount a
-        // nested root: the child must unmount before the host is removed.
+        // Depth-first ownership order is important when a container or structural helper owns a
+        // nested root: the child must be disposed before its host is removed.
         children.forEach((child) => runCleanup(() => child.dispose()));
         disposers.forEach(runCleanup);
         if (this.mounted) {
@@ -229,8 +230,6 @@ export abstract class VanillaView<P> implements IOwnedView {
     /**
      * Bind a selected state value to a DOM update.
      *
-     * React view: state.use(s => ({ title: s.title }))
-     * Vanilla view:
      * this.bind(model.state, s => s.title, value => {
      *     this.titleElement.textContent = value;
      * });

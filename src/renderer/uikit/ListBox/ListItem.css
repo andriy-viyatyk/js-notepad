@@ -108,9 +108,9 @@
      * icons inside caller-supplied controls.
      */
     [data-type="list-item"] > [data-part="icon"] > svg,
-    [data-type="list-item"] > [data-part="icon"] > [data-part="react-slot"] > svg,
+    [data-type="list-item"] > [data-part="icon"] > [data-part="children-slot"] > svg,
     [data-type="list-item"] > [data-part="trailing"] > svg,
-    [data-type="list-item"] > [data-part="trailing"] > [data-part="react-slot"] > svg {
+    [data-type="list-item"] > [data-part="trailing"] > [data-part="children-slot"] > svg {
         width: var(--size-icon-md, 16px);
         height: var(--size-icon-md, 16px);
         flex-shrink: 0;

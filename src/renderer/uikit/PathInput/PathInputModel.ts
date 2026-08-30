@@ -283,7 +283,7 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
     // --- lifecycle ---
 
     init() {
-        // The vanilla view performs the input-ref completion after the nested React
+        // The vanilla view performs the input-ref completion after the nested view
         // bridge commits, so there are no lifecycle effects for the model driver to run.
     }
 

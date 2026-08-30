@@ -85,7 +85,7 @@ export class BrowserWebviewItemView extends VanillaView<BrowserWebviewItemProps>
             );
         }
         this.model.webview.webviewRefs.set(this.tabId, this.webview);
-        // Delete only our OWN entry. The React original deleted unconditionally, but its
+        // Delete only our OWN entry. The earlier implementation deleted unconditionally, but its
         // duplicate-mount warning above exists precisely because "a new view mounted before
         // the old one unmounted" has been observed for this tab key (US-806, trigger unknown).
         // In that ordering an unconditional delete removes the *live* webview from the map, so

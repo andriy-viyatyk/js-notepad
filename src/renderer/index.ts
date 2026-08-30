@@ -21,9 +21,9 @@ export function mount(container: HTMLElement): () => void {
     container.append(progress.root);
     progress.mount();
 
-    // `AlertsBar` is only a React face over `AlertsBarView`, so mounting the face
-    // would create a React root purely to wrap a vanilla view — the one thing D9 exists to remove.
-    // The startup path creates no React root at all.
+    // `AlertsBar` is already a native face over `AlertsBarView`.
+    // mounting a wrapper would create an unnecessary framework root purely to wrap a vanilla view — the one thing D9 exists to remove.
+    // The startup path creates no extra framework root.
     const alerts = new AlertsBarView({});
     container.append(alerts.root);
     alerts.mount();

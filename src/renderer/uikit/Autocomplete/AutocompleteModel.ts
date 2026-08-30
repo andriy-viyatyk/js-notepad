@@ -60,7 +60,7 @@ export interface AutocompleteProps
     size?: "sm" | "md";
     autoFocus?: boolean;
     /** Content rendered inside the input chrome, before the text. A DOM `Node` is appended
-     *  directly with no React root. Forwarded verbatim to `InputProps.startSlot`. */
+     *  directly as a DOM node. Forwarded verbatim to `InputProps.startSlot`. */
     startSlot?: SlotContent;
     /** Content rendered inside the input chrome, after the text. See `startSlot`. */
     endSlot?: SlotContent;
@@ -144,7 +144,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
 
     // --- ids ---
     private _elementId = "";
-    /** Fed by the view from `nextElementId("autocomplete")` — replaces React's `useId` (C3-5). */
+    /** Fed by the view from `nextElementId("autocomplete")` — replaces the former generated-ID source (C3-5). */
     setElementId = (elementId: string) => {
         this._elementId = elementId;
     };
@@ -287,7 +287,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
         this.state.update((s) => this.closeInto(s));
         this.props.onChange?.(next);
         // Keep focus on the input — many flows (KV editor) expect Tab to move to the next field
-        // after commit. Called inline: the React implementation deferred this on a microtask to
+        // after commit. Called inline: the previous implementation deferred this on a microtask to
         // "defer past the popover close", but closing is not a focus operation — the floating
         // branch's disposal never touches `document.activeElement`, and this input is a sibling of
         // the popover rather than inside the closing branch. `SelectModel.commitSelection` calls it

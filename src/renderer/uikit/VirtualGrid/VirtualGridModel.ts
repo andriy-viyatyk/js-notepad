@@ -9,8 +9,8 @@
  * | Option changes | `setOptions(partial)`, called explicitly |
  * | Size tracking | A `ResizeObserver` attached in `attach()` |
  * | Lifecycle | `_disposed` guards and `dispose()` |
- * | `rerender()` bumps state so React repaints | `requestRepaint()` calls one `onRepaintNeeded` |
- * | `React.UIEvent` | `Event` |
+ * | `rerender()` used state to request a repaint | `requestRepaint()` calls one `onRepaintNeeded` |
+ * | `UIEvent` | `Event` |
  *
  * **Why there is no store here** (EPIC-056 decision C3-2). This model's state is consulted by a
  * paint loop that already knows exactly what changed — the `RerenderInfo` dirty set — so a
@@ -164,11 +164,11 @@ export class VirtualGridModel {
     /**
      * Replace some or all of the options.
      *
-     * The reference did this from `setProps` on every React render; here it is an explicit
+     * The reference did this from `setProps` on every framework render; here it is an explicit
      * call, which is the same work without the surrounding framework.
      *
      * Note the reference passed `inRender: true` at this point to avoid a setState during
-     * React's render phase — React was about to repaint regardless. Nothing repaints on its
+     * the render phase — a repaint was about to happen regardless. Nothing repaints on its
      * own here, so the notification must actually be sent.
      */
     setOptions = (options: Partial<VirtualGridOptions>): void => {
@@ -290,7 +290,7 @@ export class VirtualGridModel {
         ) {
             this.size = newSize;
             // A size change invalidates the geometry, so recompute rather than only
-            // repainting — the reference relied on React re-running setProps to do this.
+            // repainting — the reference relied on `setProps` being run again to do this.
             if (this.inputChanged()) {
                 this.updateRenderInfo({ all: true });
             } else {

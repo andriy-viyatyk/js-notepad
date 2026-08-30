@@ -75,7 +75,7 @@ export interface DataGridProps<R = any>
     /**
      * Receives the live grid on mount and `null` on dispose.
      *
-     * The only way a React host reaches the imperative surface. Changes to this prop after mount
+     * The only supported host path reaches the imperative surface. Changes to this prop after mount
      * are ignored, like every other callback prop.
      */
     onGrid?: (grid: DataGridInstance<R> | null) => void;

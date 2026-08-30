@@ -97,7 +97,9 @@ The renderer has a framework-free application shell. `src/renderer.ts` performs 
 bootstrap and calls the `mount(container)` export from `src/renderer/index.ts`. The shell,
 coupled components, editor bodies, and Storybook are `VanillaView` classes. React is confined to
 the Excalidraw vendor island in `editors/draw/ExcalidrawIsland.tsx`; its root adapter lives beside
-that editor in `editors/draw/react-island.ts`. Global styles are installed by the native
+that editor in `editors/draw/react-island.ts`. The `react` and `react-dom` runtime entries in
+`package.json` are retained solely for this island: `ExcalidrawIsland.tsx` uses React and the
+adjacent adapter uses `react-dom/client` to mount it. Global styles are installed by the native
 `theme/global-styles.ts` module, so startup creates no React root.
 
 ```

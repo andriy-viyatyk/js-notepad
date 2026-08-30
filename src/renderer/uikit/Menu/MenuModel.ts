@@ -85,7 +85,7 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
     private previousOpen: boolean | undefined;
     private previousItems: MenuItem[] | undefined;
 
-    /** Prop-driven state transitions replace the former React-timed effects. */
+    /** Prop-driven state transitions replace the former deferred effects. */
     setProps = (): void => {
         const props = this.props;
         const previousOpen = this.previousOpen;

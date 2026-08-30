@@ -30,6 +30,7 @@ function findFocusable(element: Element): HTMLElement | null {
 export class ToolbarView extends VanillaView<ToolbarProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private childrenCleanup: (() => void) | undefined;
+    private slotChildNodes: Node[] | undefined;
     private activeIndex = 0;
     private observer: MutationObserver | undefined;
 
@@ -41,6 +42,7 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
         this.applyProps(this.props);
         this.applyConstructionRestProps(this.props);
         this.childrenCleanup = fillSlot(this.root, this.props.children as SlotContent);
+        if (import.meta.env.DEV) this.snapshotSlotChildren();
         this.listen(this.root, "keydown", this.onKeyDown);
         this.listen(this.root, "focusin", this.onFocusIn, { capture: true });
         this.observer = new MutationObserver(() => this.applyRovingTabIndex());
@@ -53,7 +55,9 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
 
     protected onUpdate(props: ToolbarProps): void {
         this.applyProps(props);
+        if (import.meta.env.DEV) this.warnIfSlotRootMutated();
         this.childrenCleanup = fillSlot(this.root, props.children as SlotContent);
+        if (import.meta.env.DEV) this.snapshotSlotChildren();
         this.applyRovingTabIndex();
     }
 
@@ -95,6 +99,22 @@ export class ToolbarView extends VanillaView<ToolbarProps> {
         } = props;
         // Toolbar's callbacks remain separate from its roving listeners.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+    }
+
+    private snapshotSlotChildren(): void {
+        this.slotChildNodes = Array.from(this.root.childNodes);
+    }
+
+    private warnIfSlotRootMutated(): void {
+        const expected = this.slotChildNodes;
+        const current = this.root.childNodes;
+        if (
+            expected
+            && (current.length !== expected.length
+                || expected.some((node, index) => current[index] !== node))
+        ) {
+            console.warn("ToolbarView root children were mutated outside its children slot.");
+        }
     }
 
     private collectStops(): HTMLElement[] {

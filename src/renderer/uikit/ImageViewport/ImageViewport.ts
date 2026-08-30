@@ -145,7 +145,6 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
         }
     };
 
-    // Mouse wheel zoom (called from native event listener, not React)
     handleWheel = (e: WheelEvent) => {
         e.preventDefault();
         const { scale } = this.state.get();

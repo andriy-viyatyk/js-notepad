@@ -1,7 +1,7 @@
 /**
  * Hover a clipped cell, read its full value.
  *
- * The React grid this replaces wrapped every string cell in `<TruncatedText>`, which gave each one
+ * The previous grid wrapped every string cell in `<TruncatedText>`, which gave each one
  * an ellipsis and a tooltip; av-grid gives the ellipsis (2.2.3) and no tooltip, because a
  * framework-free published grid cannot own Persephone's tooltip component, its delay, its theme,
  * or its coordination with the app's overlay and drag registries. So the tooltip is restored here,

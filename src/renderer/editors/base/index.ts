@@ -11,8 +11,7 @@ export type EditorOrHost = EditorModel | TextFileModel;
 
 import type { IEditorState } from "../../../shared/types";
 
-/** Default `IEditorState` factory consumed by preserved standalone shim files
- *  for their state defaults. */
+/** Create the base `IEditorState` fields that editor-specific default-state factories extend. */
 export function getDefaultEditorModelState(): IEditorState {
     return {
         id: crypto.randomUUID(),

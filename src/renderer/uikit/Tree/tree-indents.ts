@@ -20,7 +20,7 @@ export class TreeIndents {
      * @param host the row root the indents are inserted into.
      * @param anchor the first stable element after the indents; new indents insert before it.
      * @param extraClassName `"tree-indent"` for `TreeItem` (the hook its selected-state override
-     *        targets). Section rows are never selected, so they pass nothing — matching the React
+     *        targets). Section rows are never selected, so they pass nothing — matching the earlier row renderer
      *        `SectionItem`, which omitted the class.
      */
     constructor(

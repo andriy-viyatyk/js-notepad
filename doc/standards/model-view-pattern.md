@@ -593,8 +593,8 @@ mounted view root for content that may be projected more than once.
 
 The React root created by draw's `mountReactHandle` marks its host with
 `data-react-root`; disposal removes the marker. A root created directly by that helper is not
-inside the `[data-part="react-slot"]` host used by `fillSlot`, so DOM measurements of React
-islands must query both `[data-part="react-slot"]` and `[data-react-root]`.
+inside the `[data-part="children-slot"]` host used by `fillSlot`, so DOM measurements of React
+islands must query both `[data-part="children-slot"]` and `[data-react-root]`.
 
 When checking a converted panel, assert visibility separately from content: `textContent`
 includes text in a `display: none` subtree. Use `offsetParent` for ordinary-flow elements; for

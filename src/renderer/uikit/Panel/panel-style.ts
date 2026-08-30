@@ -305,6 +305,7 @@ export function applyPanelAttributes(
     attributes: PanelElementAttributes,
 ): void {
     element.dataset.type = "panel";
+    element.dataset.component = "panel";
     const dataValues: Record<string, string | boolean | undefined> = {
         name: attributes.name,
         direction: attributes.direction,

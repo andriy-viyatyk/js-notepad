@@ -13,7 +13,7 @@ graph TB
         I3["browser-ipc.ts<br/><i>Webview ↔ Main</i>"]
     end
 
-    subgraph RENDERER["Renderer Process (React + Monaco)"]
+    subgraph RENDERER["Renderer Process (VanillaView + Monaco)"]
         direction TB
 
         subgraph API["Object Model (/api/)"]
@@ -59,7 +59,7 @@ graph TB
 
         subgraph COMP["Components (/components/) — persephone-coupled (KEEP-only)"]
             C1["icons/<br/><i>FileIcon, LanguageIcon</i>"]
-            C2["page-manager/<br/><i>Portal-based page host</i>"]
+            C2["page-manager/<br/><i>Native placeholder page host</i>"]
             C3["file-search/<br/><i>File content search</i>"]
             C4["tree-provider/<br/><i>TreeProviderView</i>"]
         end

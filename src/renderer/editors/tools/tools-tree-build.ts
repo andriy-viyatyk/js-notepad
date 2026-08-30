@@ -1,7 +1,7 @@
 /**
  * Pure builder for the registered-tools tree (EPIC-038 / US-805). Turns a finite set of
  * toolset-root paths into a nested tree of containing folders down to each toolset, with
- * VSCode-style single-child folder compaction. No React, no filesystem walk — the input is the
+ * VSCode-style single-child folder compaction. No filesystem walk — the input is the
  * known registered-toolset list, so the whole tree is built in memory and rendered fully expanded.
  *
  * A near-copy of `boards-tree-build.ts` (US-759), kept separate so the boards code stays

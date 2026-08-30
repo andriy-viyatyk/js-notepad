@@ -13,7 +13,7 @@ import "./ListItem.css";
  * The list row, and the single source of truth for its DOM.
  *
  * `ListBoxView` builds one per pooled cell and calls `update()` as that cell is re-pointed at
- * different rows. It is the sole driver: the `ListItem` React face that once wrapped this class for
+ * different rows. It is the sole driver: the `ListItem` face that once wrapped this class for
  * app-layer JSX callers was deleted in EPIC-074, and `ListItem.ts` now holds only the props type.
  * The class stays the single implementation because a second one — a row with six state attributes,
  * three slots, three variants x three selection styles and a drop state — would drift, and nothing
@@ -21,13 +21,13 @@ import "./ListItem.css";
  *
  * **Slot hosts are stable for the view's lifetime.** Each of the three slots owns its own host
  * element and is written only through `fillSlot` (or, for a string label, `highlightInto`), because
- * `fillSlot` caches per-host state and re-renders an existing React root rather than building a new
+ * `fillSlot` caches per-host state and updates the existing slot rather than building a new
  * one. Combined with the cell pool never resetting a recycled element, that is what makes a scrolled
- * list create React roots only during warm-up and none at all once it settles.
+ * list create new slot subtrees only during warm-up and none once it settles.
  *
  * The icon and trailing hosts are `display: contents`, so they are not layout boxes: the icon `svg`
  * remains a flex item of the row and its `flex-shrink: 0` still applies. They exist because
- * `fillSlot` needs a host it owns outright — a documented, layout-neutral deviation from React's
+ * `fillSlot` needs a host it owns outright — a documented, layout-neutral deviation from the earlier DOM
  * DOM, which put the `svg` directly under the row.
  */
 export class ListItemView extends VanillaView<ListItemProps> {
@@ -202,8 +202,8 @@ export class ListItemView extends VanillaView<ListItemProps> {
     /**
      * The leading checkbox glyph of a `checkbox` row.
      *
-     * `createIconElement` is called directly rather than through `fillSlot` because an `IconName`
-     * never needs a React root, and the host is owned outright by this view. The gate on
+     * `createIconElement` is called directly rather than through `fillSlot` because an `IconName` is rendered
+     * directly as an SVG, and the host is owned outright by this view. The gate on
      * `appliedChecked` is what keeps a scroll from rebuilding an `svg` for every pooled cell on every
      * repaint — the pool re-points a cell at a new row far more often than a row's checked state
      * actually changes.
@@ -229,7 +229,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
         this.appliedChecked = checked;
     }
 
-    /** An icon *name* becomes a DOM `svg` with no React root. */
+    /** An icon *name* becomes a DOM `svg`. */
     private setIcon(icon: IconRef | undefined, iconElement: Node | undefined): void {
         if (iconElement !== undefined) {
             if (this.appliedIconElement === iconElement) return;
@@ -283,7 +283,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
             this.trailingCleanup = fillSlot(this.trailingHost, trailing);
             return;
         }
-        // Transcribed from the React default-trailing expression, plus the `checkbox` arm: a leading
+        // Transcribed from the default-trailing expression, plus the `checkbox` arm: a leading
         // box already reports the selected state, and the row it replaces had no trailing check.
         if (selected && showSelectionIcon && selectionStyle !== "focus" && !checkbox) {
             const name = selectionStyle === "accent" ? "chevron-right" : "check";

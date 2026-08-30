@@ -7,7 +7,7 @@ import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
 // Owned by the view, not the shim: a vanilla parent may compose `IconButtonView` directly (`Select`
 // does, for its chevron), and it imports `IconButton` type-only — which erases at compile time — so
-// the stylesheet has to travel with the DOM rather than with the React face. Matches `InputView`.
+// the stylesheet has to travel with the DOM-owning view. Matches `InputView`.
 import "./IconButton.css";
 
 export interface IconButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
@@ -120,7 +120,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
 
     /**
      * `fillSlot` owns the transition between icon arms — it must not be
-     * pre-cleared, or the React root it caches per host is discarded and the
+     * pre-cleared, or the cached slot state is discarded and the
      * next call builds a second root on the same element.
      */
     private updateIcon(icon: IconRef): void {

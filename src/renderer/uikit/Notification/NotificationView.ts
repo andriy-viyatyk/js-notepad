@@ -133,7 +133,7 @@ export class NotificationView extends VanillaView<NotificationProps> {
             children: _children,
             ...rest
         } = props;
-        // Match the React component: residual attributes are applied after the owned markers.
+        // Residual attributes are applied after the owned markers so callers can override them.
         applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
     }
 

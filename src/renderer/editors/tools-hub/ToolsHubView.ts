@@ -30,7 +30,13 @@ export class ToolsHubEditorView extends VanillaView<{ model: EditorModel }> {
     private modelSubscription: (() => void) | undefined;
 
     public constructor(props: { model: EditorModel }) {
-        const root = createPanelElement({ direction: "row", width: "100%", height: "100%", minHeight: 0 });
+        const root = createPanelElement({
+            name: "tools-hub",
+            direction: "row",
+            width: "100%",
+            height: "100%",
+            minHeight: 0,
+        });
         root.dataset.type = "tools-hub";
         super(props, root);
         this.model = requireToolsHubModel(props.model);

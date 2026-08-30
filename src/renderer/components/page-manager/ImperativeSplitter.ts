@@ -1,5 +1,5 @@
 /**
- * Imperative vertical splitter for use outside React's component tree.
+ * Imperative vertical splitter for the native page layout.
  * Positions two sibling placeholder divs side-by-side using absolute
  * positioning (no reparenting to avoid iframe/webview reload).
  *

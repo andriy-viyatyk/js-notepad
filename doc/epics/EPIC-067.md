@@ -689,6 +689,8 @@ Array.from(document.querySelectorAll('[data-hide-when-empty]'))
     .map(e => [e.dataset.name, getComputedStyle(e).display, e.childElementCount])
 ```
 
+Current selector after US-1223: use `[data-name="page-editor"] [data-part="children-slot"][data-react-root]` when inspecting the renamed native host.
+
 **Visual checks that no query can stand in for**, listed because each one is a behaviour a converted
 view can silently lose: the script panel opening and closing with the `script` footer button; the
 splitter dragging the panel height; typing in the script editor without the caret jumping (the

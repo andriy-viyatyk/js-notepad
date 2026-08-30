@@ -423,6 +423,8 @@ recorded at open used the pre-correction selector and a different set of open pa
 observed is not a comparable number and claiming it as an epic result would be the same
 apples-to-oranges error E5-3's methodology note exists to prevent.
 
+Current selector after US-1223: the native slot term is `[data-part="children-slot"]`; retain `[data-react-root]` as the live-root marker.
+
 `editors/` is now **124 `.tsx` / 19,903 lines**, from 145 / 23,235 at open — but note that spans
 US-1069…US-1076 plus the deletions they collected, not conversion alone.
 

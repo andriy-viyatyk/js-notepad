@@ -76,7 +76,7 @@ export interface RerenderInfo {
 }
 
 /**
- * The model surface shared by the React and vanilla grid engines. `fromRow` is a geometry
+ * The model surface shared by the imperative and DOM grid engines. `fromRow` is a geometry
  * invalidation, not a content invalidation.
  */
 export interface GridModelCapability {

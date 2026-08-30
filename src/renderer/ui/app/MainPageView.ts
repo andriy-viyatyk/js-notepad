@@ -127,9 +127,9 @@ export class MainPageView extends VanillaView<object> {
 
     /**
      * `PersephoneIcon` is the one icon whose glyph depends on the theme: its DOM builder bakes the
-     * light/dark background in at build time (`themeState.get()`), where the React component read
-     * `themeState.use()` and re-rendered on a flip. A builder that returns a detached element cannot
-     * own a subscription without leaking it, so keeping the glyph current is the owner's job —
+     * light/dark background in at build time (`themeState.get()`), whereas the previous component read
+     * `themeState.use()` and refreshed on a flip. A builder that returns a detached element cannot own a
+     * subscription without leaking it, so keeping the glyph current is the owner's job —
      * this view rebuilds it. Without this, switching theme left the app-menu glyph on the previous
      * background until something else rebuilt the header (EPIC-064 E6-6 concern 1).
      */

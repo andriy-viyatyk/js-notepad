@@ -6,7 +6,7 @@ import "./SectionItem.css";
 
 /**
  * A non-interactive section header row. Pure DOM: its label is a `string`, so there is no slot, no
- * React root and no tooltip.
+ * DOM subtree and no tooltip.
  */
 export class SectionItemView extends VanillaView<SectionItemProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();

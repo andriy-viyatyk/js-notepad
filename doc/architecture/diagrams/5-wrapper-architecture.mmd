@@ -1,7 +1,6 @@
 graph TD
     CTX["ScriptContext"] --> AW["AppWrapper<br/><i>mirrors IApp</i>"]
     CTX --> PW["PageWrapper<br/><i>mirrors IPage</i>"]
-    CTX --> RE["React"]
 
     AW --> |"app.pages"| PCW["PageCollectionWrapper<br/><i>mirrors IPageCollection</i>"]
     AW --> |"app.settings"| SET["settings (direct)"]

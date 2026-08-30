@@ -67,7 +67,7 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
 
     /**
      * `fillSlot` owns the transition between content arms — it must not be
-     * pre-cleared, or the React root it caches per host is discarded and the
+     * pre-cleared, or the cached slot state is discarded and the
      * next call builds a second root on the same element.
      */
     private updateContent(children: SlotContent): void {

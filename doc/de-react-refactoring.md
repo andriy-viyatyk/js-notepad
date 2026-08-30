@@ -1,8 +1,18 @@
 # De-React Refactoring Proposals
 
 **Status:** Accepted — the high-level plan for the post-De-React refactoring programme. Epic A
-(R1, R3, R10.1–3) and Epic B (R2, R6's pump half, R10.4–6) are complete; R4, R5, R7, R8, R9 and
-R6's type half remain forward work.
+(R1, R3, R10.1–3) and Epic B (R2, R6's pump half, R10.4–6) are complete; Epic C (R4, R5, R7, R8,
+R6's type half) is cut and planned; Epic D (R9 + the De-React residuals) is **complete**.
+**All ten proposals are now delivered or scheduled.**
+
+> **Read the epic docs, not these figures.** Three epics have now re-measured this page's counts on
+> the way in, and every one found substantial drift — Epic B withdrew three counts as
+> non-comparable, Epic C found nine errors including a cited file at a path that does not exist and
+> a stated symptom that is fiction, and Epic D found ten more including a "shim" that was never a
+> shim and whose deletion would have caused a visible regression. This page is a durable statement
+> of *what is wrong and why it matters*. Its numbers and line citations are a snapshot of
+> 2026-08-29 and are no longer load-bearing — the instrument that worked every time was reading the
+> code a claim is about before acting on it.
 **Epics cut so far:**
 [EPIC-075](epics/EPIC-075.md) — Epic A, core contracts (R1, R3, R10.1-3), **completed 2026-08-29**
 (see [completed.md](epics/completed.md)) ·
@@ -11,8 +21,16 @@ R10.4-6), **completed 2026-08-30** (see [completed.md](epics/completed.md)); `me
 gone, as are `ElementRef`/`bindRef` and every component `ref?:` channel. Epic B re-measured
 the figures below and **withdrew three of them as non-comparable** (the `onClick`-closure, props-builder,
 and `last*`-guard counts) — see [EPIC-076 §B-2](epics/EPIC-076.md) for the corrected baseline and
-its instruments before reusing any number on this page. Next after it: **Epic C** — targeted fixes
-(R4, R5, R7, R8) plus R6's remaining type-narrowing half.
+its instruments before reusing any number on this page. ·
+[EPIC-077](epics/EPIC-077.md) — Epic C, proportional work (R4, R5, R7, R8's residue, and R6's type
+half), **cut 2026-08-30, planned**; see its §C-2 for nine corrections to this page's R4/R7/R8
+figures. ·
+[EPIC-078](epics/EPIC-078.md) — the close-out (R9 plus the four De-React residuals recorded in
+[`backlog.md`](tasks/backlog.md)), **completed 2026-08-30**; ten corrections to R9 in its §D-2.
+**With EPIC-078 closed, every proposal on this page is delivered or scheduled: R1, R2, R3, R6, R9
+and R10 are done; R4, R5, R7, R8 and R6's type half are cut as [EPIC-077](epics/EPIC-077.md).**
+This page is now a historical record — read the epic docs for what actually happened, and see
+EPIC-077 §C-2 and EPIC-078 §D-2 for the nineteen corrections the two close-outs made to it.
 **Tracked on:** [active-work.md](active-work.md)
 **Date:** 2026-08-29
 **Scope:** Post-migration review of the whole renderer (uikit, ui, components, editors, core/state), looking for React-era artifacts that survived the De-React migration, plus vanilla-world patterns worth adopting.
@@ -105,6 +123,12 @@ handle, and every census site is owned or has an explicit exception rationale.
 
 ## R4. Fix the genuine full-rebuild sites
 
+> **Status:** Cut as [EPIC-077](epics/EPIC-077.md) strand 1 (US-1208 through US-1213). **Do not use
+> the table below as a work list.** EPIC-077 §C-2 corrections 1, 2 and 4 apply to it directly: the
+> `git-tree` path is wrong (the file is under `editors/`, not `components/`), Breadcrumb's stated
+> symptom is false while its real defect — unbounded `this.listen` disposer growth — goes unnamed,
+> and four of the five cited `{ all: true }` sites are already gated, three of them correctly.
+
 **Problem.** A short tail of views still rebuild DOM wholesale on every update — the literal transcription of a JSX `.map()` body:
 
 | Site | Issue |
@@ -126,6 +150,10 @@ handle, and every census site is owned or has an explicit exception rationale.
 
 ## R5. Move large collections out of immer state
 
+> **Status:** Cut as [EPIC-077](epics/EPIC-077.md) US-1214 through US-1216. All three sites
+> re-verified 2026-08-30 and unchanged; this is the one proposal on the page whose citations
+> survived both prior epics intact.
+
 **Problem.** `state-management.md` already documents the rule ("Large Accumulating Collections Don't Belong in State") and `GridEditor.ts:126` / `FileSearchModel.ts:64,102` follow it — but three editors don't:
 
 - `log-view/LogViewEditor.ts:390-396` — `updateEntryAt` runs `produce` over the **entire `entries: LogEntry[]`** to mutate one entry: O(n) structural-share pass + deep freeze per edit on a growing log.
@@ -141,8 +169,10 @@ handle, and every census site is owned or has an explicit exception rationale.
 > **Status:** Split. The **pump-entangled half** — the `ElementRef`/`bindRef`/`onModel` channels,
 > the 20 `memo()` chains, and `applyRestProps` running on the update path — is cut as
 > [EPIC-076](epics/EPIC-076.md) US-1204 through US-1206. The **type half** — narrowing the 21
-> `Omit<NativeHTMLAttributes<…>>` contracts and shrinking `dom-props.ts` — is deferred to Epic C,
-> where R7 opens the same 40 components. Rationale in EPIC-076 §B-3: the two halves are
+> `Omit<NativeHTMLAttributes<…>>` contracts and shrinking `dom-props.ts` — is cut as
+> [EPIC-077](epics/EPIC-077.md) US-1220, where R7 opens the same 40 components. The count is now
+> **26 sites across 25 files**, not 33 (EPIC-077 §C-2); the 22 `on*` handlers and the ~40
+> `applyRestProps` files verified unchanged. Rationale in EPIC-076 §B-3: the two halves are
 > independent, and splitting there lets Epic B close on a behavioural property rather than a
 > type-shape opinion.
 
@@ -162,6 +192,13 @@ handle, and every census site is owned or has an explicit exception rationale.
 
 ## R7. Collapse trivial Model/View splits and types-only files
 
+> **Status:** Cut as [EPIC-077](epics/EPIC-077.md) strand 2 (US-1217 through US-1219), which the
+> epic marks as the part to drop first if it needs to be smaller. Two bullets below are stale —
+> `MultiListBoxModel` has zero memos since EPIC-076 US-1205, and `PopoverModel.init()` is no longer
+> empty. The "17 types-only files" count is right for the class described but must not be applied as
+> a sweep: uikit holds 29 declaration-free files, four of which are large, correctly-shared type
+> modules. See EPIC-077 §C-2 corrections 6 and 7.
+
 **Problem.** The Model/View split earns its keep when the model has behavior (`TreeModel` 823 lines, `SelectModel` 721 — keep). But:
 
 - **~8 dialog models** are just an Escape handler + one or two setters: `ConfirmationDialog.ts:21-30`, `TextDialog.ts:38-55`, `InputDialog.ts:35-63`, `RegisterToolsetDialog`, `TrustBoardDialog`, `NamespaceCollisionDialog`, `OpenUrlDialog`, `PasswordDialog`. The Escape handler is duplicated verbatim ≥5×: it is dialog-**shell** behavior — lift it into `TDialogModel`/`DialogView` once, then collapse.
@@ -173,6 +210,14 @@ handle, and every census site is owned or has an explicit exception rationale.
 ---
 
 ## R8. Lifecycle & timing hygiene
+
+> **Status:** Largely delivered already; the residue is [EPIC-077](epics/EPIC-077.md) US-1221.
+> **Three of the five bullets below are dead.** The `postCreate` timer is gone; the five-dialog
+> focus timer was extracted as `focusAfterPaint` in EPIC-075 and all five dialogs use it; and
+> EPIC-076 withdrew all three re-entrancy allegations, because `TOneState` dispatch is copy-on-write.
+> The `setTimeout(…, 0)` census is stale by more than half — 16 renderer-wide and 11 in editors, not
+> 23 — and three survivors are correct idioms that must not be converted. See EPIC-077 §C-2
+> corrections 3 and 5.
 
 **Problem.** Ordering hacks and force-update idioms translated literally from React (the
 constructor-wide `postCreate` timer listed below has since been removed):
@@ -188,6 +233,16 @@ constructor-wide `postCreate` timer listed below has since been removed):
 ---
 
 ## R9. Sweep stale React comments, shims, and dependencies
+
+> **Status:** **Delivered** in [EPIC-078](epics/EPIC-078.md), completed 2026-08-30 — the programme's close-out, paired with the four
+> De-React residuals in [`backlog.md`](tasks/backlog.md) so neither rots alone. **Ten corrections
+> apply to the text below** (EPIC-078 §D-2): the `BrowserWebviewModel` citation is dead, the
+> automation item is archaeology rather than a code-review item, `grid-context-menu.ts` was **never a
+> shim** — it is a live adapter with four callers whose deletion, as this proposal advised, would
+> have rendered raw SVG markup as visible text in every grid context menu —
+> `react-slot` is a seven-site coordinated rename rather than one line, the ESLint
+> scoping is already done, and the mention count is ~194 — with 79 `reactive`/`reactivity` decoys
+> that a naive `grep -i react` would corrupt silently.
 
 **Problem.** ~80–100 React mentions survive in comments/identifiers. Most are harmless archaeology, but several **actively mislead**, and two justify live timing workarounds with mechanisms that no longer exist — those are code-review items, not comment edits:
 
@@ -247,5 +302,12 @@ Items 1–3 are implemented in Epic A; items 4–6 remain forward-looking and co
 A sensible epic split: **EPIC A — core contracts** (R1, R3, R10.1-3), **EPIC B — the pump** (R2, R6, R10.4-6), **EPIC C — targeted fixes** (R4, R5, R7, R8), **standalone** (R9).
 
 **As actually cut:** A = [EPIC-075](epics/EPIC-075.md), done. B = [EPIC-076](epics/EPIC-076.md),
-planned — R2 + R10.4-6 + only the pump-entangled half of R6; R6's type narrowing moved to C so
-it lands beside R7, which opens the same components. C therefore = R4, R5, R7, R8, and R6-types.
+done — R2 + R10.4-6 + only the pump-entangled half of R6; R6's type narrowing moved to C so it
+lands beside R7, which opens the same components. C = [EPIC-077](epics/EPIC-077.md), planned —
+R4, R5, R7, R8's residue and R6-types, in three strands, of which only strand 1 carries the epic's
+closing property. R9 remains standalone and uncut.
+
+The risk column above has not aged well either. R4 and R8 are marked **Low** and **S**; in practice
+R8 turned out to be two-thirds already done, while R4 contains a memory leak nobody had noticed
+(EPIC-077 §C-2 correction 2) and a conversion that silently produces stale cells if done
+mechanically (correction 4). Size estimates on this page predate any measurement.

@@ -1,7 +1,7 @@
 /**
  * Pure builder for the boards tree (EPIC-036 / US-759). Turns a finite set of board-root
  * paths into a nested tree of containing folders down to each board, with VSCode-style
- * single-child folder compaction. No React, no filesystem walk — the input is the known
+ * single-child folder compaction. No filesystem walk — the input is the known
  * trusted-board list, so the whole tree is built in memory and rendered fully expanded.
  *
  * Two modes share one builder:

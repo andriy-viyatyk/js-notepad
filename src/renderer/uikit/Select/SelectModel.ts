@@ -166,8 +166,9 @@ export interface SelectState {
      * deliberately absent from `SelectView`'s `bind` selector.
      *
      * Adding an error arm to the dropdown requires adding the slot at the same time. An arm rendered
-     * from an unsubscribed field is the masked defect of doc/de-react.md §6.1 in its purest form: it
-     * would appear only after some unrelated state moved, and read as a rendering glitch.
+     * from an unsubscribed field is the masked-defect class recorded in
+     * `doc/epics/completed.md:653-656` under `## EPIC-067 — De-React Epic E9: the editor chrome contract` in its
+     * purest form: it would appear only after some unrelated state moved, and read as a rendering glitch.
      */
     itemsError: unknown;
 }
@@ -205,7 +206,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
 
     // --- ids ---
     /**
-     * Replaces React's `useId` (EPIC-056 C3-5). The value is opaque and generated either way; the
+     * Replaces the former generated-ID source (EPIC-056 C3-5). The value is opaque and generated either way; the
      * *relationship* it encodes is the contract — `data-id` on the root is interpolated into the
      * popover's `outsideClickIgnoreSelector`, and `listboxId` is the `Input`'s `aria-controls` and
      * the list's `id`, which `aria-activedescendant` is derived from.
@@ -466,7 +467,7 @@ export class SelectModel<T = IListBoxItem> extends TComponentModel<SelectState, 
         if (source === undefined) return;
         this.props.onChange?.(source);
         // Set before the write, and now load-bearing for a second reason: the popover subtree is
-        // detached *inside* `closePopover`'s synchronous dispatch, where React detached it after the
+        // detached *inside* `closePopover`'s synchronous dispatch, where the previous renderer detached it after the
         // handler returned. If focus was inside the popover it is on `<body>` by the time `focus()`
         // runs, so `focus()` becomes a real focus change and `onInputFocus` fires synchronously.
         this._suppressFocusOpen = true;

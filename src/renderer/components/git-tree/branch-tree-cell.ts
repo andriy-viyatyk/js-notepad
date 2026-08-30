@@ -4,7 +4,7 @@
  *
  * A dumb painter of one row's swimlane slice (computed by `swimlane-layout.ts`). Under av-grid a
  * `render` hook supplies cell *content* inside the library's own pooled `.avg-data-cell`, so
- * everything the React version had to paint for itself — the absolute box, the forwarded
+ * everything the earlier renderer had to paint for itself — the absolute box, the forwarded
  * `className`, the background, the borders, `overflow: hidden` — belongs to the cell now, and the
  * hover and selection tints land on this cell exactly as they land on a text cell.
  *
@@ -53,7 +53,7 @@ function edgePath(x1: number, y1: number, x2: number, y2: number): string {
  * only when what we wrote is what the serializer emits. Which means: explicit closing tags (never
  * `/>` — the serializer writes `></path>`), double-quoted values, `viewBox` cased exactly so (the
  * parser adjusts `viewbox` and the serializer emits the adjusted name), dashed property names
- * (`stroke-width`, not React's `strokeWidth`), a stable attribute order, and no character that gets
+ * (`stroke-width`, not the camel-case property name), a stable attribute order, and no character that gets
  * escaped on the way out. Break any of those and the graph column re-parses on every hover move for
  * nothing.
  *

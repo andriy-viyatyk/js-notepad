@@ -38,7 +38,7 @@ export class NoteItemActiveEditorView extends VanillaView<NoteItemActiveEditorVi
     public constructor(props: NoteItemActiveEditorViewProps) {
         super(props, document.createElement("div"));
         this.root.dataset.type = "note-active-editor";
-        // `display: contents` because the React component this replaces contributed no DOM: the
+        // `display: contents` because the component this replaces contributed no DOM: the
         // body's own root was a direct child of whatever laid it out. A plain block wrapper here
         // breaks the flex chain the expanded overlay depends on — the content panel is a definite
         // -height flex column and the bodies size themselves with `flex: 1`, which against an

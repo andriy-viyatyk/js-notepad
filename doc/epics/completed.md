@@ -1,3 +1,60 @@
+## EPIC-078 — Post-De-React close-out: make the codebase stop claiming React
+
+**Completed 2026-08-30.** Final epic of the post-De-React programme
+(`../de-react-refactoring.md`): R9's comment/shim/dependency sweep plus the four De-React residuals
+recorded in [`backlog.md`](../tasks/backlog.md). Seven tasks, 127 changed files.
+
+- **EPIC-078** — [Post-De-React close-out](EPIC-078.md) — R9 plus the backlog residuals. Cut
+  2026-08-30 with **ten corrections to R9's citations**, including one live finding (a "shim" that
+  outlived the task meant to delete it and turned out never to be a shim), one dead citation, one
+  misread code-review item, and a sweep hazard: 79 correct uses of the project's own "reactive"
+  vocabulary sit inside `grep -i react`'s blast radius. Started and completed 2026-08-30.
+  - [x] [US-1222: The four decisions — adapter fiction, `fill-slot` generation, janitor, the US-1023 shim](../tasks/US-1222-react-residue-decisions/README.md)
+  - [x] [US-1223: Rename `data-part="react-slot"` to `children-slot`](../tasks/US-1223-rename-react-slot/README.md)
+  - [x] [US-1224: Dependency and documentation cleanup — drop `clsx`, fix the false shim comment](../tasks/US-1224-dependency-cleanup/README.md)
+  - [x] [US-1225: The React archaeology sweep](../tasks/US-1225-react-archaeology-sweep/README.md)
+  - [x] [US-1226: `ToolbarView`'s append-then-wipe trap](../tasks/US-1226-toolbar-append-trap/README.md)
+  - [x] [US-1227: Panel roots — restore a stable inspection contract](../tasks/US-1227-panel-inspection-contract/README.md)
+  - [x] [US-1228: Answer the `ListBoxView` `rowViews` retention question](../tasks/US-1228-listbox-rowviews-question/README.md)
+
+**What closed.** React mentions in renderer `.ts` outside `editors/draw/` went 194 → **20**, each
+load-bearing. All 79 `reactive`/`reactivity`/`reaction*` decoys are untouched — verified by counting
+before and after *and* by confirming no changed line in the whole diff contains a decoy token.
+`data-part="react-slot"` is gone from authored source (now `children-slot`); `data-react-root`, the
+one marker that still means what it says, is retained. `clsx` is removed. `/review` fixed two
+further stale comments; `/document` updated 13 developer documents; `/userdoc` correctly found
+nothing user-facing to change.
+
+**The finding that outlives the epic.** R9's recommendation for `ui/dialogs/poppers/grid-context-menu.ts`
+— "self-declared shim, check US-1023's status and delete" — would have caused a visible regression.
+It is a live adapter with four callers that replaces av-grid's **SVG source-string** icons with icon
+elements; because `fillSlot` writes a string as `textContent`, deleting it would render raw
+`<svg …>` markup as visible text in every grid context menu. Its header was a **garbled sentence**
+whose exemption referred to the old React grid's UIKit-side handoff — a different file US-1023 did
+delete. The lesson generalises: an exemption that survived its own deletion task deserves
+investigation, not deletion on sight.
+
+**Three defects a green build did not catch**, all found by verification: US-1227 shipped
+half-applied (`searchPanel` never got the marker while its own acceptance criterion claimed
+otherwise); a `declare global { interface ImportMeta … }` made a leaf uikit component the global
+owner of a platform type; and two comments fell in the **seam** between US-1222 and US-1225, because
+those files were excluded from the sweep as "owned by US-1222" while US-1222's scope was only the
+four decisions. Partitioning a sweep by file rather than by line leaves seams.
+
+**Where the epic was wrong and said so.** C-3 preferred "a trap removed beats a trap explained" for
+`ToolbarView` and named a specific option. That option was not available — `collectStops()` treats
+each direct root child as a toolbar stop and the CSS layout depends on direct children, so a wrapper
+restructures focus and layout rather than containing anything. A dev-only child-identity snapshot
+landed instead. Separately, the backlog's premise for US-1227 (callers override `data-type` "through
+residual props") was obsolete — there is no props channel; the override is a post-construction
+`dataset.type =` assignment — but the conclusion survived for a better reason: the custom values are
+load-bearing CSS selectors, so an additive marker is the only safe option.
+
+**Accepted unverified.** No panel with an overridden `data-type` rendered during verification, so the
+new `data-component="panel"` marker's actual purpose is unexercised; likewise US-1226's dev warning
+firing on a real manual append, and the `searchPanel` marker. A 44/44 panel match is not evidence for
+the overridden case.
+
 ## EPIC-076 — Post-De-React Epic B: the props pump
 
 **Completed 2026-08-30.** Second epic of the post-De-React programme (`de-react-refactoring.md`):

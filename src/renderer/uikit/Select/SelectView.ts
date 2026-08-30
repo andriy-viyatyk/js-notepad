@@ -20,10 +20,10 @@ export type SelectViewProps<T = IListBoxItem> = SelectProps<T>;
  *
  * Five things in here are load-bearing:
  *
- * - **Zero React roots, open or closed.** The dropdown uses `PopoverView`'s `contentView` seam, so
+ * - **Zero retained slot subtrees, open or closed.** The dropdown uses `PopoverView`'s `contentView` seam, so
  *   the floating root's children are native DOM, and the chevron's icon is passed as an `IconName`
- *   *string* rather than a React node. The latter is a change in kind: the React implementation
- *   passed `renderIcon("chevron-down")`, so every `Select` on screen carried a retained React root
+ *   *string* rather than an icon subtree. The latter is a change in kind: the previous implementation
+ *   passed `renderIcon("chevron-down")`, so every `Select` carried a retained icon subtree
  *   inside its chevron even while closed.
  * - **The popover is not an update channel.** `PopoverFloatingView.onUpdate` forwards nothing to its
  *   content view, so this view pushes the `ListBox`'s props itself, from `syncChildren()`. Do not
@@ -150,7 +150,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
         toggle(root, "data-disabled", !!props.disabled);
         toggle(root, "data-readonly", !!props.readOnly);
 
-        // React passed no `style` at all when all three were undefined, leaving `Select.css`'s
+        // When all three width values are undefined, leave the inline width empty, leaving `Select.css`'s
         // `width: 100%` in charge; an empty string reproduces that exactly.
         root.style.width = props.width === undefined ? "" : cssLength(props.width);
         root.style.minWidth = props.minWidth === undefined ? "" : cssLength(props.minWidth);
@@ -246,9 +246,9 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
 
     /**
      * The icon is an `IconName` string, which takes `IconButtonView.updateIcon`'s DOM branch —
-     * `createIconElement`, no React root. `chevron-up` and `chevron-down` are distinct registry
-     * glyphs; do not substitute a CSS rotation, which would make the DOM incomparable to the React
-     * implementation an agent may be querying.
+     * `createIconElement`, with no retained slot subtree. `chevron-up` and `chevron-down` are distinct registry
+     * glyphs; do not substitute a CSS rotation, which would make the DOM incomparable to the implementation an
+     * agent may be querying.
      */
     private chevronProps(): IconButtonProps {
         const props = this.props;
@@ -321,7 +321,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
 
     /**
      * One identity for this view's whole life, so `InputView` binds it exactly once. A per-update
-     * merged closure — the literal translation of the React `useCallback` — would make
+     * merged closure — the literal translation of the previous stable callback — would make
      * `InputView.updateRef`'s identity gate fire on every keystroke, and its `clearRef` calls
      * `ref(null)`, so `model.inputRef` would go transiently null each time the user typed.
      */
@@ -330,7 +330,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
      * previous ref is released (its own cleanup, or `ref(null)`) before the next one receives the
      * element. A purely stable callback reading `this.props.ref` live would never hand the element to
      * a replacement ref. The cell editor passes a stable host callback, which is exactly what
-     * the React `useCallback([model, ref])` re-bound too.
+     * the previous `[model, ref]` callback re-bound too.
      */
     public get inputElement(): HTMLInputElement | null {
         return this.input?.inputElement ?? null;
@@ -376,7 +376,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
     }
 }
 
-/** React adds `px` to a bare number in a style value; a DOM write cannot. */
+/** A DOM property typed as a string does not add `px` to a bare number; normalize numeric lengths before writing it. */
 function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;
 }

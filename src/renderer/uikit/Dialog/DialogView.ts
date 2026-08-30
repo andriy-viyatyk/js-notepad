@@ -68,7 +68,7 @@ export class DialogView extends VanillaView<DialogProps> {
         this.listen(this.root, "keydown", this.onKeyDown);
 
         this.childrenHost = document.createElement("span");
-        this.childrenHost.dataset.part = "react-slot";
+        this.childrenHost.dataset.part = "children-slot";
         this.childrenHost.style.display = "contents";
         this.root.append(this.childrenHost);
         const children = this.props.children;

@@ -118,7 +118,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
 
     // --- ids ---
     private _elementId = "";
-    /** Fed by the view from `nextElementId("lb")` — replaces React's `useId` (EPIC-056 C3-5). */
+    /** Fed by the view from `nextElementId("lb")` — replaces the former generated-ID source (EPIC-056 C3-5). */
     setElementId = (elementId: string) => {
         this._elementId = elementId;
     };

@@ -402,8 +402,8 @@ class GraphContentView extends VanillaView<GraphContentProps> {
     }
 
     protected onMount(): void {
-        // Hand the canvas to the renderer. The React original did this in its `canvasRef`
-        // callback (`editor.renderer.setCanvas(el); canvasRefSetter?.(el);`) — the conversion
+        // Hand the canvas to the renderer. The previous view did this in its canvas-ref callback
+        // (`editor.renderer.setCanvas(el); canvasRefSetter?.(el);`) — the conversion
         // kept only the unmount half (`setCanvas(null)` in onDispose), so the renderer never
         // received a canvas: no simulation, no drag/zoom, no `handleResize()` — which left the
         // backing store at the HTML default 300x150 while the element measured 1557x949 — no
