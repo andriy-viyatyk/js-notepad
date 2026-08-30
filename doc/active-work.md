@@ -8,22 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(no epic)* — EPIC-079 fallout, both found by the user after the epic closed
-  - [ ] US-1242: The custom scrollbar style stopped applying after the av-grid migration
-    — the retired fork added `scroll-container` to its own container inside `VirtualGridView`, so
-    every grid inherited the hover-reveal treatment. `RenderGrid` builds its own container, so the
-    class had nowhere to land. Fixed by extending the global rule in `theme/global-styles.ts` with
-    a `[data-type="render-grid-scroll"]` selector rather than adding the class at seven
-    construction sites, which would have reintroduced the can-be-forgotten failure the fork
-    did not have. Applies to the DataGrid too, at the user's request.
-  - [ ] US-1243: Log View and Notebook rendered all rows at the top with a 2-3x oversized scroll area
-    — **the measured-height renderers never applied cell geometry.** The fork's
-    `VirtualFlexGridView` called `applyCellStyle` itself (line 43), so `LogBodyView` and
-    `NotebookBodyView` never had to; av-grid's `MeasuredRowGrid` delegates it to the renderer like
-    any `RenderGrid` renderer, and av-grid's own usage example shows the call. The migration missed
-    it because all five *fixed*-height consumers already did it in their own renderers. Cells fell
-    into normal flow and stacked at the top while the area kept the model's computed extent.
-    Fixed in both renderers; verified 0px uncovered at both ends and the extent settling at 6158px.
+_Nothing active._
 
 ## Planned
 

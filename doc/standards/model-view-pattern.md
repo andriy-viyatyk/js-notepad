@@ -521,9 +521,12 @@ and geometry calculation. Both forms expose the actual scroll element and consum
 small `GridModelCapability` shape rather than leaking more engine details.
 
 The cell contract is deliberately framework-free: `renderCell` returns an `HTMLElement` or
-`undefined`, and the engine applies the computed pixel geometry to that element. A cell renderer
-should update an existing `previous` element when possible, use `recycle()` only for a detached
-pooled element, and overwrite every property it owns because pooled elements retain their previous
+`undefined`, and the renderer applies the computed pixel geometry to that element with
+`applyCellStyle` from [`uikit/shared/cell-style.ts`](../../src/renderer/uikit/shared/cell-style.ts).
+This is required for both fixed-height and measured-row grids: `MeasuredRowGrid` owns observation
+and row-height updates, but delegates cell positioning to each renderer. A cell renderer should
+update an existing `previous` element when possible, use `recycle()` only for a detached pooled
+element, and overwrite every property it owns because pooled elements retain their previous
 contents, attributes, classes, and listeners. The engine's `RerenderInfo` is a dirty set: report the
 smallest changed scope (`cells`, `rows`, `columns`, or `all`) so a state change does not repaint
 unrelated visible cells.

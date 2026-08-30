@@ -30,6 +30,7 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
     private readonly confirmLabel: LabelView | undefined;
     private readonly bodyPanel: HTMLDivElement;
     private readonly submitButton: ButtonView;
+    private readonly cancelButton: ButtonView;
     private passwordElement: HTMLInputElement | undefined;
     private confirmElement: HTMLInputElement | undefined;
     private errorElement: HTMLSpanElement | undefined;
@@ -122,7 +123,7 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
         this.confirmInput = confirmInput ? this.child(confirmInput) : undefined;
         this.confirmLabel = confirmLabel ? this.child(confirmLabel) : undefined;
         this.submitButton = this.child(submitButton);
-        this.child(cancelButton);
+        this.cancelButton = this.child(cancelButton);
     }
 
     protected onMount(): void {
@@ -131,6 +132,7 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
         this.confirmLabel?.mount();
         this.confirmInput?.mount();
         this.submitButton.mount();
+        this.cancelButton.mount();
         this.contentView.mount();
         this.dialogView.mount();
         this.passwordElement = this.passwordInput.root.querySelector<HTMLInputElement>("input") ?? undefined;
@@ -173,6 +175,14 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
     }
 
     private readonly handleInputKeyDown = (event: KeyboardEvent): void => {
-        if (event.key === "Enter") this.model.submit();
+        if (event.key !== "Enter") return;
+        // `submit()` closes the dialog from inside this listener, and DialogView restores focus to
+        // whatever opened it. Enter's default action -- activate the focused element -- runs after
+        // the listeners, so it lands on that restored control and clicks it. Without this the
+        // browser's bookmarks button re-fires and the password prompt reappears the instant it
+        // closes. The bug is invisible wherever re-activation is idempotent, which is why the text
+        // editor's decrypt icon looked fine: by then the file is already decrypted.
+        event.preventDefault();
+        this.model.submit();
     };
 }
