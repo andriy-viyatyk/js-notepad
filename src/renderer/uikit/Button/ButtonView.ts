@@ -7,12 +7,13 @@ import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
 import type { SlotContent } from "../shared/fill-slot";
 
-export interface ButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onKeyDown" | "children"> {
+export interface ButtonProps extends Pick<NativeButtonHTMLAttributes<HTMLButtonElement>, "autoFocus" | "type" | "onClick" | "role" | "tabIndex" | "hidden" | `aria-${string}` | `data-${string}`> {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
     title?: string;
     onKeyDown?: (event: KeyboardEvent) => void;
+    disabled?: boolean;
     variant?: "default" | "primary" | "ghost" | "danger" | "link";
     size?: "sm" | "md";
     icon?: IconRef;

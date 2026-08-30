@@ -239,8 +239,13 @@ have an explicit `props` → `setProps` → `init` → `dispose` lifecycle. Put 
 asynchronous work in `init()` or model methods with clear cleanup; put DOM measurements and layout
 reads in explicit view lifecycle hooks.
 
-The model remains independent of the DOM. The view owns a stable DOM root and uses native events;
-the model receives domain values and callbacks rather than framework-specific event objects.
+The model remains independent of DOM creation and rendering. The view owns a stable DOM root and
+uses native events; the model receives domain values and callbacks rather than framework-specific
+event objects. Two narrow exceptions are intentional: a model may read DOM geometry when that
+measurement is the model's purpose (for example, `VirtualGridModel` measures its grid and scroll
+container), and it may own listeners for a bounded pointer-capture gesture that it starts and
+cleans up as one operation (as `PopoverModel` does during resize). These exceptions must not become
+general rendering or document-querying responsibilities.
 
 ## Vanilla lifecycle
 
@@ -296,6 +301,22 @@ Never replace a UIKit primitive's generated `data-type` with an app-specific val
 is keyed by that attribute, so overriding it detaches every attribute-keyed rule for the primitive,
 including selection, drag, hover, and slot styling. Add a class or a separate data attribute for
 application-specific state.
+
+`VanillaView.listen()` returns an idempotent release function in addition to registering the normal
+dispose cleanup. Keep that handle when the target can be removed or replaced while the view stays
+alive, and call it before detaching the target. A stable root listener can be installed once and
+delegated to current descendants instead. Virtualized cell wrappers are a deliberate third case:
+`ListBoxView`, `TreeView`, `LinksListView`, and `LinksTilesView` install their base listeners once
+per retained wrapper, not once per occupant; pooled wrappers keep those listeners while they are
+recycled, and their owning view disposes them. Do not convert that bounded wrapper strategy into
+per-render registration or dispose a row view merely because its wrapper left the visible window.
+
+```typescript
+const release = this.listen(transientButton, "click", this.handleClick);
+// Before replacing/removing transientButton:
+release();
+transientButton.remove();
+```
 
 ## Binding and direct DOM work
 
@@ -521,6 +542,14 @@ depends on a scrollbar or a newly attached container is recomputed from the view
 and scroll-to-row requests that arrive before a usable paint remain pending until the paint path
 can satisfy them.
 
+When a plain collection changes without replacing every rendered row, publish the invalidation
+scope beside the version signal in the same state notification. The scope may be a row index set,
+a contiguous range, or an explicit `"all"` sentinel for a full replacement. The view maps it to
+the grid's dirty-row update; it must not consume a side channel that assumes exactly one reader.
+Keep a full invalidation for changes that alter every row's projection, such as a global display
+option or a complete filtered projection. In development, an assertion or warning should catch a
+version change with unchanged row count and an empty invalidation scope.
+
 ### Direct-DOM conversion checklist
 
 React supplies several behaviours implicitly; direct DOM and `VanillaView` do not. Before calling a
@@ -685,6 +714,17 @@ objects of those values from selectors; never allocate an array in a selector. D
 in the apply callback or maintain them as model fields at the write site, depending on ownership,
 so structural/reference comparison does not turn a selector into an always-fire path. See [The props-pump
 convention](#the-props-pump-convention).
+
+### Deferred work and focus
+
+A deferred callback must name the lifecycle, layout, or event boundary it waits for. If no such
+dependency exists, make the call directly. For a callback that needs the next visible paint, use
+`afterPaint()` or `focusAfterPaint()` from
+[`core/utils/scheduling.ts`](../../src/renderer/core/utils/scheduling.ts), retain the returned
+cancellation function, and release it from the owning view. A timer or animation frame that can
+run after disposal must be cancelled or guarded by the owner's liveness generation. Monotonic
+`revealVersion`-style values are command tokens consumed by a view; they are not substitutes for a
+render signal and must not be removed merely because the command's argument repeats.
 
 ---
 

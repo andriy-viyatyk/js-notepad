@@ -142,7 +142,7 @@ export function afterPaint(run: () => void): () => void {
     };
 }
 
-/** Schedules focus, or selection when requested, after the next paint. */
+/** Schedules focus after the next paint; selection is additive and never replaces focusing. */
 export function focusAfterPaint(
     element: HTMLElement | null | undefined,
     options?: { select?: boolean | (() => boolean) },
@@ -153,7 +153,7 @@ export function focusAfterPaint(
             ? options.select()
             : options?.select === true;
         const selectableElement = element as HTMLInputElement | HTMLTextAreaElement;
+        element.focus();
         if (select && typeof selectableElement.select === "function") selectableElement.select();
-        else element.focus();
     });
 }

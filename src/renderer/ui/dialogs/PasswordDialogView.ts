@@ -3,7 +3,7 @@ import { focusAfterPaint } from "../../core/utils/scheduling";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/Dialog";
+import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { InputView } from "../../uikit/Input/InputView";
 import { LabelView } from "../../uikit/Label/LabelView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
@@ -19,7 +19,6 @@ type PasswordDialogModel = TDialogModel<PasswordDialogState, string> & {
     setConfirm(confirm: string): void;
     setError(error: string): void;
     submit(): void;
-    handleKeyDown(event: KeyboardEvent): void;
 };
 
 export class PasswordDialogView extends VanillaView<DialogViewProps> {
@@ -110,7 +109,7 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
             className: props.className,
             name: "password-dialog",
             autoFocus: false,
-            onKeyDown: (event) => model.handleKeyDown(event),
+            onEscape: () => { void model.close(undefined); },
             children: contentView.root,
         } as DialogProps & { className?: string });
 
@@ -177,6 +176,5 @@ export class PasswordDialogView extends VanillaView<DialogViewProps> {
 
     private readonly handleInputKeyDown = (event: KeyboardEvent): void => {
         if (event.key === "Enter") this.model.submit();
-        else if (event.key === "Escape") void this.model.close(undefined);
     };
 }

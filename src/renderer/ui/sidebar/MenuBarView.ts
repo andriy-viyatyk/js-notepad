@@ -13,7 +13,6 @@ import type {
     TreeProviderViewModel,
     TreeProviderViewSavedState,
 } from "../../components/tree-provider";
-import { FileListModel } from "../../components/file-list/FileList";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
@@ -141,7 +140,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
     private readonly folderDragStates = new Map<string, { dragEnterCount: number }>();
     private rightView: VanillaView<unknown> | undefined;
     private rightViewKey = "";
-    private fileListModel: FileListModel | null = null;
+    private recentFileListView: RecentFileListView | null = null;
     private treeViewModel: TreeProviderViewModel | null = null;
     private readonly expandStateMap = new Map<string, TreeProviderViewSavedState>();
     private readonly providerMap = new Map<string, FileTreeProvider>();
@@ -475,7 +474,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             this.rightView.update(this.rightViewProps(this.rightViewKey));
             return;
         }
-        this.fileListModel = null;
+        this.recentFileListView = null;
         this.treeViewModel = null;
         this.rightView?.dispose();
         this.rightView?.root.remove();
@@ -487,7 +486,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         this.contentPanel.append(view.root);
         this.child(view).mount();
         if (view instanceof RecentFileListView) {
-            this.fileListModel = view.model;
+            this.recentFileListView = view;
         } else if (view instanceof ScriptLibraryPanelView || view instanceof TreeProviderViewImpl) {
             this.treeViewModel = view.model;
         }
@@ -589,7 +588,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         } else if (event.ctrlKey && event.code === "KeyF" && this.leftItemId !== openTabsId) {
             event.preventDefault();
             this.treeViewModel?.showSearch();
-            this.fileListModel?.showSearch();
+            this.recentFileListView?.showSearch();
         }
     }
 }

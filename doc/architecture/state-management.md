@@ -87,6 +87,21 @@ The view then depends on `resultsVersion` rather than the array, and reads the r
 when it rebuilds. Batch the producer as well where you control it — one state write per flush
 rather than per item. `components/file-search/FileSearchModel.ts` does both.
 
+When a versioned update changes only part of a rendered collection, publish its invalidation scope
+next to the version in the same state write. A consumer can use an index list, a contiguous range,
+or `"all"` for a full replacement; it should pass the smallest valid scope to the virtualized
+grid. The scope is state, not a destructive model-side `consume` operation, so multiple readers
+observe the same update. `LogViewEditor` uses `renderChange` with all three forms, while
+`FileSearchModel` publishes its first changed row. Both views retain a development-only warning
+when the version advances with an unchanged row count but no rows are marked, catching a producer
+that forgot to describe its change.
+
+Plain model collections may use shallow copy-on-write records when several interactive producers
+hold references to them. Shallow-freeze a record at the model boundary when accidental mutation
+must fail loudly, replace the record on edit, and leave nested containers governed by their own
+ownership rules. Rendering adapters may also shallow-copy a source record when they must add
+view-derived or simulation fields; the serialized source stays untouched.
+
 This is a scale exception, not a general licence: ordinary component state stays in `TOneState`,
 where Immer's copying is what makes selective subscription and change detection work.
 

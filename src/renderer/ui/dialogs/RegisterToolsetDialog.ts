@@ -21,19 +21,10 @@ export interface RegisterToolsetDialogProps {
     tools: { name: string; description: string }[];
 }
 
-class RegisterToolsetDialogModel extends TDialogModel<RegisterToolsetDialogProps, boolean> {
-    handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(false);
-        }
-    };
-}
-
 registerDialogView(registerToolsetDialogId, RegisterToolsetDialogView);
 
 export function showRegisterToolsetDialog(props: RegisterToolsetDialogProps): Promise<boolean> {
-    const model = new RegisterToolsetDialogModel(new TComponentState(props));
+    const model = new TDialogModel<RegisterToolsetDialogProps, boolean>(new TComponentState(props));
     return showDialog({
         viewId: registerToolsetDialogId,
         model,

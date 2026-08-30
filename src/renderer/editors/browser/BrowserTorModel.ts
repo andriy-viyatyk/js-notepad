@@ -13,6 +13,9 @@ export class BrowserTorModel {
     private readonly torId = crypto.randomUUID();
     private torArmed = false;
     private readonly disposables = new DisposableStore();
+    private readonly overlayHideTimers = new Set<ReturnType<typeof setTimeout>>();
+    private lifecycleGeneration = 0;
+    private disposed = false;
 
     constructor(readonly model: BrowserEditorModel) {
         this.disposables.add(windowClosing.subscribe(() => this.handleWindowClosing()));
@@ -44,6 +47,8 @@ export class BrowserTorModel {
 
     /** Start Tor proxy for this page's partition. Shows overlay with progress. */
     init = async (): Promise<{ success: boolean; error?: string }> => {
+        const generation = this.lifecycleGeneration;
+        if (this.disposed) return { success: false, error: "Tor model disposed." };
         this.model.state.update((s) => {
             s.torStatus = "connecting";
             s.torOverlayVisible = true;
@@ -59,6 +64,7 @@ export class BrowserTorModel {
         const result = await ipcRenderer.invoke(
             TorChannel.start, torExePath, socksPort, this.partition,
         );
+        if (this.disposed || generation !== this.lifecycleGeneration) return result;
 
         this.model.state.update((s) => {
             s.torStatus = result.success ? "connected" : "error";
@@ -66,9 +72,7 @@ export class BrowserTorModel {
                 s.torLog += (s.torLog ? "\n" : "") + result.error;
             }
             if (result.success) {
-                setTimeout(() => {
-                    this.model.state.update((s2) => { s2.torOverlayVisible = false; });
-                }, 500);
+                this.scheduleOverlayHide(generation);
             }
         });
         return result;
@@ -76,9 +80,12 @@ export class BrowserTorModel {
 
     /** Reconnect Tor after a restored session or daemon restart. */
     reconnect = async (): Promise<void> => {
+        const generation = this.lifecycleGeneration;
+        if (this.disposed) return;
         try {
             await this.armProxy();
         } catch (err) {
+            if (this.disposed || generation !== this.lifecycleGeneration) return;
             this.model.state.update((s) => {
                 s.torStatus = "error";
                 s.torOverlayVisible = true;
@@ -87,6 +94,7 @@ export class BrowserTorModel {
             });
             return;
         }
+        if (this.disposed || generation !== this.lifecycleGeneration) return;
         await this.init();
     };
 
@@ -95,6 +103,10 @@ export class BrowserTorModel {
     };
 
     dispose = () => {
+        this.disposed = true;
+        this.lifecycleGeneration++;
+        for (const timer of this.overlayHideTimers) clearTimeout(timer);
+        this.overlayHideTimers.clear();
         this.disposables.dispose();
         const s = this.model.state.get();
         if (s.isTor) {
@@ -103,6 +115,7 @@ export class BrowserTorModel {
     };
 
     private torLogListener = (_event: unknown, line: string) => {
+        if (this.disposed) return;
         this.model.state.update((s) => {
             s.torLog += (s.torLog ? "\n" : "") + line;
         });
@@ -112,6 +125,7 @@ export class BrowserTorModel {
         _event: unknown,
         payload: { status: TorStatus; error?: string },
     ) => {
+        if (this.disposed) return;
         this.model.state.update((s) => {
             s.torStatus = payload.status;
             if (payload.error) {
@@ -122,11 +136,19 @@ export class BrowserTorModel {
             }
         });
         if (payload.status === "connected") {
-            setTimeout(() => {
-                this.model.state.update((s) => { s.torOverlayVisible = false; });
-            }, 500);
+            this.scheduleOverlayHide(this.lifecycleGeneration);
         }
     };
+
+    private scheduleOverlayHide(generation: number): void {
+        // Wait 500 ms so the successful connection overlay remains visible before hiding it.
+        const timer = setTimeout(() => {
+            this.overlayHideTimers.delete(timer);
+            if (this.disposed || generation !== this.lifecycleGeneration) return;
+            this.model.state.update((s) => { s.torOverlayVisible = false; });
+        }, 500);
+        this.overlayHideTimers.add(timer);
+    }
 
     private handleWindowClosing = () => {
         if (this.model.state.get().isTor) {

@@ -39,9 +39,18 @@ function compareSelection(a: unknown, b: unknown): boolean {
     return a === b;
 }
 
+/**
+ * One registered subscriber. `active` exists so a listener retired *during* a dispatch is not
+ * called later in that same pass — see `stateChanged`.
+ */
+interface StateListener {
+    readonly notify: () => void;
+    active: boolean;
+}
+
 export class TOneState<T> implements IState<T> {
     private currentState: T;
-    private listeners: (() => void)[] = [];
+    private listeners: StateListener[] = [];
     defaultState;
 
     constructor(defaultState: T) {
@@ -49,9 +58,45 @@ export class TOneState<T> implements IState<T> {
         this.currentState = defaultState;
     }
 
+    /**
+     * Notify subscribers. Two properties matter here, and both are the shape `Emitter.fire`
+     * (`core/state/events.ts`) already uses — this is that decision applied to the state
+     * primitive, not a new opinion.
+     *
+     * **A listener retired during this dispatch is skipped.** Unsubscribing replaced the array,
+     * which kept iteration safe but still called the removed listener in the pass that was already
+     * running. A view disposed by an earlier subscriber would therefore be notified after its
+     * disposal — and a subscriber that reaches `own()`/`ownSubscription()` throws there, because
+     * registering a resource on a disposed view is illegal. Found when switching editors: `attach`
+     * bumps `page.state.version`, an earlier subscriber rebuilt the toolbar and disposed the old
+     * `NavPanelButtonView`, and that view's own subscription then ran anyway.
+     *
+     * **One listener's failure does not cancel the rest.** Without the try/catch, a throw abandons
+     * the remaining subscribers mid-dispatch, so the work they were going to do — mounting the
+     * replacement editor, in the case above — silently never happens and the page renders empty.
+     * The error is rethrown asynchronously so it still reaches the host unswallowed.
+     */
     private readonly stateChanged = () => {
-        this.listeners.forEach((listener) => listener());
+        for (const listener of [...this.listeners]) {
+            if (!listener.active) continue;
+            try {
+                listener.notify();
+            } catch (error) {
+                setTimeout(() => { throw error; }, 0);
+            }
+        }
     };
+
+    /** Register a subscriber and return its idempotent unsubscribe. */
+    private register(notify: () => void): () => void {
+        const listener: StateListener = { notify, active: true };
+        this.listeners.push(listener);
+        return () => {
+            if (!listener.active) return;
+            listener.active = false;
+            this.listeners = this.listeners.filter((item) => item !== listener);
+        };
+    }
 
     get = () => this.currentState;
     set = (setter: SetStateAction<T>) => {
@@ -83,16 +128,10 @@ export class TOneState<T> implements IState<T> {
                     listener(next);
                 }
             };
-            this.listeners.push(wrapped);
-            return () => {
-                this.listeners = this.listeners.filter((item) => item !== wrapped);
-            };
+            return this.register(wrapped);
         }
         const listener = args[0] as () => void;
-        this.listeners.push(listener);
-        return () => {
-            this.listeners = this.listeners.filter((item) => item !== listener);
-        };
+        return this.register(listener);
     }) as IState<T>["subscribe"];
 }
 

@@ -2,7 +2,7 @@ import { TDialogModel } from "../../core/state/model";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/Dialog";
+import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -11,9 +11,7 @@ import type { RegisterToolsetDialogProps } from "./RegisterToolsetDialog";
 import "../../uikit/Button/Button.css";
 import "../../uikit/Dialog/Dialog.css";
 
-type RegisterToolsetDialogModel = TDialogModel<RegisterToolsetDialogProps, boolean> & {
-    handleKeyDown(event: KeyboardEvent): void;
-};
+type RegisterToolsetDialogModel = TDialogModel<RegisterToolsetDialogProps, boolean>;
 
 export class RegisterToolsetDialogView extends VanillaView<DialogViewProps> {
     private readonly model: RegisterToolsetDialogModel;
@@ -68,7 +66,7 @@ export class RegisterToolsetDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "register-toolset-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event),
+            onEscape: () => model.close(false),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

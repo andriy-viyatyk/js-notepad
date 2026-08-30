@@ -8,7 +8,7 @@ import { InputView } from "../Input/InputView";
 import { MultiListBoxView } from "../MultiListBox/MultiListBoxView";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import type { IListBoxItem } from "../ListBox/types";
-import type { MultiListBoxProps } from "../MultiListBox/MultiListBox";
+import type { MultiListBoxProps } from "../MultiListBox/MultiListBoxView";
 import type { IconButtonProps } from "../IconButton/IconButtonView";
 import type { InputProps } from "../Input/InputView";
 import { defaultMultiSelectState, MultiSelectModel, type MultiSelectProps } from "./MultiSelectModel";

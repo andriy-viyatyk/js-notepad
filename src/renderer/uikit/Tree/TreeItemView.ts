@@ -54,6 +54,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
 
     private chevronMode: ChevronMode | undefined;
     private chevronButton: HTMLButtonElement | undefined;
+    private chevronRelease: (() => void) | undefined;
     private chevronIcon: SVGElement | undefined;
     private chevronExpanded: boolean | undefined;
     private chevronSpinner: SpinnerView | undefined;
@@ -267,7 +268,7 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         button.tabIndex = -1;
         // Read the handler from the live props at event time: this element outlives the row it was
         // created for, so a captured closure would call the previous row's callback.
-        this.listen(button, "click", (event) => {
+        this.chevronRelease = this.listen(button, "click", (event) => {
             this.props.onChevronClick?.(event);
         });
         this.chevronButton = button;
@@ -286,6 +287,8 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
     }
 
     private clearChevron(): void {
+        this.chevronRelease?.();
+        this.chevronRelease = undefined;
         this.chevronSpinner?.dispose();
         this.chevronSpinner = undefined;
         this.chevronButton = undefined;

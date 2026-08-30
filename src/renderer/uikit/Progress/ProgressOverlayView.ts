@@ -3,10 +3,15 @@ import { applyTextAttributes, resolveTextAttributes } from "../Text/text-style";
 import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import { progressState } from "./progressModel";
-import type { ProgressOverlayProps } from "./ProgressOverlay";
 import "./Progress.css";
 import "../Spinner/Spinner.css";
 import "../Text/Text.css";
+
+export interface ProgressOverlayProps {
+    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
+     *  multiple instances in DOM inspector output. Never used for styling. */
+    name?: string;
+}
 
 const HEADER_HEIGHT = 32;
 const SYSTEM_BUTTONS_WIDTH = 130;

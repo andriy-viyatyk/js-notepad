@@ -14,6 +14,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Markdown minimaps stay smooth while you edit** — The minimap in Markdown Preview stays synchronized as the document changes, including for large previews, so editing remains responsive.
+
 - **Large notebooks stay responsive** — Long notebooks scroll more smoothly without disturbing note editing. Expanding and collapsing a note keeps its editor state, and scrolling over inactive note content continues to move the notebook.
 
 - **Long Log Views stay responsive** — Large log streams remain smooth to browse while preserving message and inline-output layout. If you are already at the bottom, new output continues to follow the latest entry; scrolling upward keeps your position.

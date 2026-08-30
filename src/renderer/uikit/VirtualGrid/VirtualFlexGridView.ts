@@ -27,6 +27,7 @@ export class VirtualFlexGridView extends VanillaView<VirtualFlexGridProps> {
     private observer: ResizeObserver | undefined;
     private rowByElement = new WeakMap<HTMLElement, number>();
     private nominatedByCell = new WeakMap<HTMLElement, HTMLElement>();
+    private readonly pendingMeasurementFrames = new Set<number>();
     private inert = false;
 
     /** Keep this renderer's identity stable: VirtualGridModel uses it as an input gate. */
@@ -83,12 +84,15 @@ export class VirtualFlexGridView extends VanillaView<VirtualFlexGridProps> {
         const row = this.rowByElement.get(target);
         if (row === undefined) return;
         this.measurement.setRowHeight(row, target.clientHeight);
-        requestAnimationFrame(() => {
+        // Measure once after the browser has laid out the newly attached cell.
+        const frame = requestAnimationFrame(() => {
+            this.pendingMeasurementFrames.delete(frame);
             if (this.inert) return;
             if (this.nominatedByCell.get(element) !== target) return;
             if (this.rowByElement.get(target) !== row) return;
             this.measurement.setRowHeight(row, target.clientHeight);
         });
+        this.pendingMeasurementFrames.add(frame);
     };
 
     /** The scrolling element of the grid this flex host owns — see `VirtualGridView`. */
@@ -119,7 +123,11 @@ export class VirtualFlexGridView extends VanillaView<VirtualFlexGridProps> {
 
         // VanillaView disposes these FIFO. The inner grid is deliberately not a child: it must be
         // disposed only after observers and delayed measurement callbacks are inert.
-        this.own(() => { this.inert = true; });
+        this.own(() => {
+            this.inert = true;
+            for (const frame of this.pendingMeasurementFrames) cancelAnimationFrame(frame);
+            this.pendingMeasurementFrames.clear();
+        });
         this.own(() => this.measurement.dispose());
         this.own(() => {
             this.observer?.disconnect();

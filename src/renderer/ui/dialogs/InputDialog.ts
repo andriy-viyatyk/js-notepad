@@ -36,11 +36,6 @@ export interface InputResult {
 
 class InputDialogModel extends TDialogModel<InputDialogProps, InputResult | undefined> {
     handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(undefined);
-        }
-
         if (e.key === "Enter") {
             e.preventDefault();
             const state = this.state.get();

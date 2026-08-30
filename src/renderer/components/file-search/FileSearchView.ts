@@ -43,6 +43,11 @@ type ChromeState = Pick<
     | "truncated"
 >;
 
+interface ResultsProjection {
+    resultsVersion: number;
+    firstChangedRow: number;
+}
+
 /** Native owner for the file-search shell and its pooled VirtualGrid cells. */
 export class FileSearchView extends VanillaView<FileSearchProps> {
     private readonly model: FileSearchModel;
@@ -70,6 +75,8 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
 
         this.model = new FileSearchModel(props.folder, props.state, props.onStateChange);
         this.iconSubscription = subscribeFileIconElements(() => {
+            // The shared file-icon projection is globally invalidated, and this view has no
+            // per-path dirty set for the visible results.
             this.grid?.model.update({ all: true });
         });
         this.own(() => this.iconSubscription?.());
@@ -137,10 +144,21 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
             totalFiles: state.totalFiles,
             truncated: state.truncated,
         }), this.applyChrome);
-        this.bind(this.model.state, (state) => state.resultsVersion, () => {
+        this.bind(this.model.state, (state): ResultsProjection => ({
+            resultsVersion: state.resultsVersion,
+            firstChangedRow: state.firstChangedRow,
+        }), (projection) => {
+            const previousRowCount = this.filtered.length;
             this.filtered = this.model.getFilteredResults();
             this.applyArm(this.model.state.get());
-            this.grid?.model.update({ all: true });
+            const rows = Array.from(
+                { length: Math.max(0, this.filtered.length - projection.firstChangedRow) },
+                (_, offset) => projection.firstChangedRow + offset,
+            );
+            if (import.meta.env.DEV && previousRowCount === this.filtered.length && rows.length === 0) {
+                console.warn("FileSearch resultsVersion changed without a published changed row");
+            }
+            this.grid?.model.update({ rows });
         });
 
         this.focusFrame = requestAnimationFrame(() => {

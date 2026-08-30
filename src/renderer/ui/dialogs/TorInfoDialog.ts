@@ -24,13 +24,6 @@ export class TorInfoDialogModel extends TDialogModel<TorInfoDialogState, void> {
         void this.load();
     };
 
-    handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            void this.close(undefined);
-        }
-    };
-
     private load = async (): Promise<string> => {
         if (this.viewDisposed) return "";
         this.state.update((state) => { state.loading = true; });

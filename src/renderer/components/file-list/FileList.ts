@@ -35,9 +35,6 @@ export const defaultFileListState: FileListState = {
 };
 
 export class FileListModel extends TComponentModel<FileListState, FileListProps> {
-    private focusSearchInput?: () => void;
-    private focusRoot?: () => void;
-
     setSearchText = (searchText: string) => {
         this.state.update((s) => { s.searchText = searchText; });
     };
@@ -52,7 +49,6 @@ export class FileListModel extends TComponentModel<FileListState, FileListProps>
 
     showSearch = () => {
         this.setSearchVisible(true);
-        setTimeout(() => this.focusSearchInput?.(), 0);
     };
 
     hideSearch = () => {
@@ -60,18 +56,4 @@ export class FileListModel extends TComponentModel<FileListState, FileListProps>
         this.setSearchText("");
     };
 
-    hideSearchAndFocus = () => {
-        this.hideSearch();
-        this.focusRoot?.();
-    };
-
-    setViewFocusHandlers = (focusSearchInput: () => void, focusRoot: () => void) => {
-        this.focusSearchInput = focusSearchInput;
-        this.focusRoot = focusRoot;
-    };
-
-    clearViewFocusHandlers = () => {
-        this.focusSearchInput = undefined;
-        this.focusRoot = undefined;
-    };
 }

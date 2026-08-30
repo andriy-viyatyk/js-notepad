@@ -3,12 +3,34 @@ import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
+    type NativeHTMLAttributes,
     type RestPropsState,
 } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
-import type { ToolbarProps } from "./Toolbar";
 import { applyToolbarAttributes } from "./toolbar-style";
 import "./Toolbar.css";
+
+// --- Types ---
+
+export interface ToolbarProps
+    extends Omit<
+        NativeHTMLAttributes<HTMLDivElement>,
+        "style" | "className" | "onKeyDown" | "onFocusCapture" | "children"
+    > {
+    onKeyDown?: (event: KeyboardEvent) => void;
+    onFocusCapture?: (event: FocusEvent) => void;
+    /**
+     * ToolbarView owns the toolbar root's direct children and may replace them during an update.
+     * Callers of an updatable toolbar must provide stable native nodes through this slot.
+     */
+    children?: NativeHTMLAttributes<HTMLDivElement>["children"];
+    orientation?: "horizontal" | "vertical";
+    background?: "default" | "light" | "dark";
+    borderTop?: boolean;
+    borderBottom?: boolean;
+    disabled?: boolean;
+    "aria-label"?: string;
+}
 
 function findFocusable(element: Element): HTMLElement | null {
     const candidates = element.querySelectorAll<HTMLElement>(

@@ -5,7 +5,7 @@ import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { VirtualFlexGridView, type VirtualFlexCellFunc, type VirtualFlexGridProps } from "../../uikit/VirtualGrid/VirtualFlexGridView";
 import type { Percent } from "../../uikit/VirtualGrid/types";
 import type { LogEntry } from "./logTypes";
-import type { LogViewEditor, LogViewEditorState } from "./LogViewEditor";
+import type { LogRenderChange, LogViewEditor, LogViewEditorState } from "./LogViewEditor";
 import { LogEntryWrapperView } from "./LogEntryWrapper";
 
 const RIGHT_GUTTER = 40;
@@ -13,7 +13,8 @@ const AUTO_SCROLL_THRESHOLD = 50;
 const columnWidth = (column: number): number | Percent => column === 0 ? "100%" : RIGHT_GUTTER;
 
 interface LogProjection {
-    entries: LogEntry[];
+    entriesVersion: number;
+    renderChange: LogRenderChange;
     entryCount: number;
     error: string | undefined;
     showTimestamps: boolean;
@@ -29,7 +30,13 @@ interface CellRecord {
 }
 
 function selectProjection(state: LogViewEditorState): LogProjection {
-    return { entries: state.entries, entryCount: state.entryCount, error: state.error, showTimestamps: state.showTimestamps };
+    return {
+        entriesVersion: state.entriesVersion,
+        renderChange: state.renderChange,
+        entryCount: state.entryCount,
+        error: state.error,
+        showTimestamps: state.showTimestamps,
+    };
 }
 
 export interface LogBodyViewProps { model: LogViewEditor; }
@@ -48,7 +55,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
     private stateUnsubscribe: (() => void) | undefined;
     private queueUnsubscribe: (() => void) | undefined;
     private readonly getInitialRowHeight = (row: number): number | undefined => {
-        const entry = this.projection.entries[row];
+        const entry = this.editor.getEntryAt(row);
         return entry ? this.editor.getEntryHeight(entry.id) : undefined;
     };
     private readonly getScrollElement = (): HTMLElement | undefined => this.grid.scrollElement;
@@ -56,7 +63,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
     /** Bound field: VirtualGridModel uses renderer identity as an input gate. */
     private readonly renderCell: VirtualFlexCellFunc = (params) => {
         if (params.col === 1) return undefined;
-        const entry = this.projection.entries[params.row];
+        const entry = this.editor.getEntryAt(params.row);
         if (!entry) return undefined;
         const kind = entry.type;
         const previousRecord = params.previous ? this.cells.get(params.previous) : undefined;
@@ -105,7 +112,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.stateUnsubscribe = this.ownSubscription(this.editor.state.subscribe(this.handleState, selectProjection));
         this.queueUnsubscribe = this.ownSubscription(this.editor.typedQueue.subscribe(this.handleQueue));
         this.applyProjection(this.projection);
-        this.applyRowsAndAutoScroll(this.projection.entryCount);
+        this.applyRowsAndAutoScroll(this.projection.entryCount, this.projection.renderChange);
         this.listenForScroll();
     }
 
@@ -128,8 +135,13 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         const previous = this.projection;
         this.projection = next;
         this.applyProjection(next);
-        if (previous.entries !== next.entries || previous.entryCount !== next.entryCount) this.applyRowsAndAutoScroll(next.entryCount);
-        if (previous.showTimestamps !== next.showTimestamps) this.grid.gridModel?.update({ all: true });
+        if (previous.entriesVersion !== next.entriesVersion || previous.entryCount !== next.entryCount) {
+            this.applyRowsAndAutoScroll(next.entryCount, next.renderChange);
+        }
+        if (previous.showTimestamps !== next.showTimestamps) {
+            // showTimestamps is a global entry format toggle read by every LogEntryWrapperView.
+            this.grid.gridModel?.update({ all: true });
+        }
     };
 
     private readonly handleQueue = (event: { type: "focus" | "scrollToBottom" }): void => {
@@ -148,9 +160,31 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.isAtBottom.value = element.scrollTop + element.clientHeight >= element.scrollHeight - AUTO_SCROLL_THRESHOLD;
     };
 
-    private applyRowsAndAutoScroll(count: number): void {
+    private applyRowsAndAutoScroll(count: number, change: LogRenderChange): void {
         this.clearScrollTimers();
-        this.grid.gridModel?.update({ all: true });
+        const rows = Array.isArray(change)
+            ? change
+            : change === "all"
+                ? undefined
+                : Array.from(
+                    { length: change.to - change.from },
+                    (_, offset) => change.from + offset,
+                );
+        if (
+            import.meta.env.DEV
+            && this.previousEntryCount === count
+            && (Array.isArray(change)
+                ? change.length === 0
+                : change !== "all" && change.from === change.to)
+        ) {
+            console.warn("Log entriesVersion changed without a published changed entry");
+        }
+        if (change === "all") {
+            // The model published a full parse or clear; every current entry projection was replaced.
+            this.grid.gridModel?.update({ all: true });
+        } else {
+            this.grid.gridModel?.update({ rows: rows ?? [] });
+        }
         if (count > this.previousEntryCount && this.isAtBottom.value && count > 0) {
             this.previousEntryCount = count;
             this.scheduleScrollToBottom();

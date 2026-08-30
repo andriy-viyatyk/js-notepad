@@ -10,10 +10,11 @@ import type { IconRef } from "../shared/slots";
 // the stylesheet has to travel with the DOM-owning view. Matches `InputView`.
 import "./IconButton.css";
 
-export interface IconButtonProps extends Omit<NativeButtonHTMLAttributes<HTMLButtonElement>, "title" | "onClick"> {
+export interface IconButtonProps extends Pick<NativeButtonHTMLAttributes<HTMLButtonElement>, "autoFocus" | "type" | "hidden" | "role" | "tabIndex" | "children" | `aria-${string}` | `data-${string}`> {
     name?: string;
     title?: string;
     onClick?: (event: MouseEvent) => void;
+    disabled?: boolean;
     // DOM Node icons support registry-excluded language icons.
     icon: IconRef;
     size?: "sm" | "md";

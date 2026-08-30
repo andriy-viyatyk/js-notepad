@@ -14,6 +14,8 @@ interface RadioItemState {
     labelText: Text;
     itemIconHost?: HTMLSpanElement;
     itemIconCleanup?: () => void;
+    clickRelease: () => void;
+    keydownRelease: () => void;
 }
 
 export class RadioGroupView extends VanillaView<RadioGroupProps> {
@@ -80,15 +82,18 @@ export class RadioGroupView extends VanillaView<RadioGroupProps> {
         button.type = "button";
         const stateIcon = createIconElement("radio-unchecked", { className: "radio-icon" });
         const labelText = document.createTextNode("");
-        this.itemStates.set(button, {
+        const state: RadioItemState = {
             item: radio,
             stateIcon,
             stateIconName: "radio-unchecked",
             labelText,
-        });
+            clickRelease: () => undefined,
+            keydownRelease: () => undefined,
+        };
+        this.itemStates.set(button, state);
         button.append(stateIcon, labelText);
-        this.listen(button, "click", this.handleItemClick);
-        this.listen(button, "keydown", this.handleItemKeyDown);
+        state.clickRelease = this.listen(button, "click", this.handleItemClick);
+        state.keydownRelease = this.listen(button, "keydown", this.handleItemKeyDown);
         return button;
     }
 
@@ -143,8 +148,8 @@ export class RadioGroupView extends VanillaView<RadioGroupProps> {
         if (!state) return;
         state.itemIconCleanup?.();
         state.itemIconHost?.remove();
-        button.removeEventListener("click", this.handleItemClick);
-        button.removeEventListener("keydown", this.handleItemKeyDown);
+        state.clickRelease();
+        state.keydownRelease();
         this.itemStates.delete(button);
     }
 

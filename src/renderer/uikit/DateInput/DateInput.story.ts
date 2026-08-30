@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { DateInputView } from "./DateInputView";
-import type { DateInputProps } from "./DateInput";
+import type { DateInputProps } from "./DateInputView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface DateInputDemoViewProps {

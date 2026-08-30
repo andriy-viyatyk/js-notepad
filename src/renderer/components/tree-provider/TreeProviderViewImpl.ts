@@ -406,7 +406,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
             event.preventDefault();
             event.stopPropagation();
             this.model.showSearch();
-            setTimeout(() => this.searchField?.focus(), 0);
+            this.searchField?.focus();
         }
         if (event.key === "Escape" && this.model.state.get().searchVisible) {
             event.preventDefault();

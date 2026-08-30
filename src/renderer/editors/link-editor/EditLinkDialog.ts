@@ -36,10 +36,6 @@ const editLinkDialogId = Symbol("editLinkDialog");
 export class EditLinkDialogModel extends TDialogModel<EditLinkDialogState, EditLinkResult> {
     handleKeyDown = (e: KeyboardEvent) => {
         if (e.defaultPrevented) return;
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(undefined);
-        }
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             this.save();

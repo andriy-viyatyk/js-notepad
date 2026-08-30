@@ -75,10 +75,6 @@ export class LibrarySetupDialogModel extends TDialogModel<LibrarySetupDialogStat
     };
 
     handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            void this.close(undefined);
-        }
         if (event.key === "Enter" && this.state.get().folderPath.trim()) {
             event.preventDefault();
             void this.link();

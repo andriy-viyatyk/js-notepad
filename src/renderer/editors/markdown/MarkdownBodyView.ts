@@ -8,7 +8,7 @@ import {
     type PanelStyleProps,
 } from "../../uikit/Panel/panel-style";
 import { MinimapView } from "../../uikit/Minimap/MinimapView";
-import type { MinimapProps } from "../../uikit/Minimap/Minimap";
+import type { MinimapProps } from "../../uikit/Minimap/MinimapView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorConfig } from "../base/EditorConfig";
 import { FindBarView, type FindBarProps } from "../shared/FindBarView";

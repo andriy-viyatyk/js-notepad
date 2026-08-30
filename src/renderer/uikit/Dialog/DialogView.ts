@@ -3,10 +3,40 @@ import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
+    type NativeHTMLAttributes,
     type RestPropsState,
 } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
-import type { DialogProps } from "./Dialog";
+
+// --- Types ---
+
+export type DialogPosition = "center" | "right";
+
+export interface DialogProps
+    extends Omit<
+        NativeHTMLAttributes<HTMLDivElement>,
+        "style" | "className" | "children" | "onKeyDown" | "onClick"
+    > {
+    /**
+     * Escape shorthand. DialogView calls onKeyDown first. If onKeyDown calls preventDefault(),
+     * onEscape is not called. If both hooks are supplied, onKeyDown runs first for every key;
+     * for an unhandled Escape, DialogView prevents default and then calls onEscape. Non-Escape
+     * keys never call onEscape.
+     */
+    onEscape?: () => void;
+    onKeyDown?: (event: KeyboardEvent) => void;
+    onClick?: (event: MouseEvent) => void;
+    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
+     *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
+    name?: string;
+    /** Where to anchor the dialog body. Default: "center". */
+    position?: DialogPosition;
+    /** Click on the backdrop (outside the dialog body). */
+    onBackdropClick?: () => void;
+    /** Auto-focus the first focusable child on mount. Default: true. */
+    autoFocus?: boolean;
+    children?: SlotContent;
+}
 
 const FOCUSABLE_SELECTOR = [
     "button:not([disabled])",
@@ -105,6 +135,7 @@ export class DialogView extends VanillaView<DialogProps> {
             onBackdropClick: _onBackdropClick,
             autoFocus: _autoFocus,
             children: _children,
+            onEscape: _onEscape,
             onKeyDown: _onKeyDown,
             onClick: _onClick,
             ..._rest
@@ -126,6 +157,7 @@ export class DialogView extends VanillaView<DialogProps> {
             onBackdropClick: _onBackdropClick,
             autoFocus: _autoFocus,
             children: _children,
+            onEscape: _onEscape,
             onKeyDown: _onKeyDown,
             onClick: _onClick,
             ...rest
@@ -148,6 +180,11 @@ export class DialogView extends VanillaView<DialogProps> {
 
     private readonly onKeyDown = (event: KeyboardEvent): void => {
         this.props.onKeyDown?.(event);
+        if (event.key === "Escape" && !event.defaultPrevented && this.props.onEscape) {
+            event.preventDefault();
+            this.props.onEscape();
+            return;
+        }
         if (event.defaultPrevented || event.key !== "Tab") return;
 
         const focusables = getFocusable(this.root);

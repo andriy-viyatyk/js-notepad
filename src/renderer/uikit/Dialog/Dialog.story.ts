@@ -7,8 +7,8 @@ import { SubtreeSwap } from "../shared/subtree-swap";
 import { VanillaView } from "../shared/vanilla-view";
 import { DialogView } from "./DialogView";
 import { DialogContentView } from "./DialogContentView";
-import type { DialogContentProps } from "./DialogContent";
-import type { DialogPosition } from "./Dialog";
+import type { DialogContentProps } from "./DialogContentView";
+import type { DialogPosition } from "./DialogView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface DialogDemoProps {

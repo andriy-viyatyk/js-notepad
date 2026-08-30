@@ -150,6 +150,7 @@ export class MermaidBlockView extends VanillaView<MermaidBlockProps> {
     private readonly driver: ComponentModelDriver<MermaidState, MermaidBlockProps, MermaidModel>;
     private image: HTMLImageElement | undefined;
     private copyButton: HTMLButtonElement | undefined;
+    private readonly toolbar = document.createElement("div");
     private copiedTimer: ReturnType<typeof setTimeout> | undefined;
     private mode: MermaidMode | undefined;
 
@@ -159,6 +160,7 @@ export class MermaidBlockView extends VanillaView<MermaidBlockProps> {
     }
 
     protected onMount(): void {
+        this.createControls();
         this.driver.mount();
         this.driver.model.start();
         this.bind(this.driver.model.state, (state) => state, (state) => this.applyState(state));
@@ -176,68 +178,69 @@ export class MermaidBlockView extends VanillaView<MermaidBlockProps> {
     private applyState(state: MermaidState): void {
         if (state.error) {
             if (this.mode === "error") {
-                this.root.textContent = state.error;
+                this.root.replaceChildren(document.createTextNode(state.error));
                 return;
             }
             this.mode = "error";
-            this.image = undefined;
-            this.copyButton = undefined;
             this.root.className = "mermaid-error";
-            this.root.textContent = state.error;
+            this.root.replaceChildren(document.createTextNode(state.error));
             return;
         }
 
         if (!state.svgUrl) {
             if (this.mode === "loading") return;
             this.mode = "loading";
-            this.image = undefined;
-            this.copyButton = undefined;
             this.root.className = "mermaid-diagram mermaid-loading";
-            this.root.textContent = "Rendering...";
+            this.root.replaceChildren(document.createTextNode("Rendering..."));
             return;
         }
 
         if (this.mode !== "diagram") {
+            const image = this.image;
+            if (!image) return;
             this.mode = "diagram";
             this.root.className = "mermaid-diagram";
             this.root.replaceChildren();
 
-            const image = document.createElement("img");
-            image.alt = "Mermaid Diagram";
-            const toolbar = document.createElement("div");
-            toolbar.className = "diagram-toolbar";
-
-            const openButton = document.createElement("button");
-            openButton.className = "toolbar-btn";
-            openButton.title = "Open in Editor";
-            const openIcon = OpenLinkIcon.createElement({ width: 14, height: 14 });
-            if (openIcon) openButton.append(openIcon);
-            this.listen(openButton, "click", () => {
-                pagesModel.addEditorPage("mermaid-view", "mermaid", "Mermaid Diagram", this.props.code);
-            });
-
-            const copyButton = document.createElement("button");
-            copyButton.className = "toolbar-btn";
-            copyButton.title = "Copy";
-            const copyIcon = CopyIcon.createElement({ width: 14, height: 14 });
-            if (copyIcon) copyButton.append(copyIcon);
-            this.listen(copyButton, "click", () => {
-                if (!this.image) return;
-                void copyImageToClipboard(this.image);
-                this.driver.model.setCopied(true);
-                if (this.copiedTimer !== undefined) clearTimeout(this.copiedTimer);
-                this.copiedTimer = setTimeout(() => this.driver.model.setCopied(false), 750);
-            });
-
-            toolbar.append(openButton, copyButton);
-            this.root.append(image, toolbar);
-            this.image = image;
-            this.copyButton = copyButton;
+            this.root.append(image, this.toolbar);
         }
 
         if (this.image && this.image.src !== state.svgUrl) this.image.src = state.svgUrl;
         this.copyButton?.classList.toggle("copied", state.copied);
     }
+
+    private createControls(): void {
+        const image = document.createElement("img");
+        image.alt = "Mermaid Diagram";
+        const openButton = document.createElement("button");
+        openButton.className = "toolbar-btn";
+        openButton.title = "Open in Editor";
+        const openIcon = OpenLinkIcon.createElement({ width: 14, height: 14 });
+        if (openIcon) openButton.append(openIcon);
+        const copyButton = document.createElement("button");
+        copyButton.className = "toolbar-btn";
+        copyButton.title = "Copy";
+        const copyIcon = CopyIcon.createElement({ width: 14, height: 14 });
+        if (copyIcon) copyButton.append(copyIcon);
+        this.toolbar.className = "diagram-toolbar";
+        this.toolbar.append(openButton, copyButton);
+        this.listen(openButton, "click", this.onOpenClick);
+        this.listen(copyButton, "click", this.onCopyClick);
+        this.image = image;
+        this.copyButton = copyButton;
+    }
+
+    private readonly onOpenClick = (): void => {
+        pagesModel.addEditorPage("mermaid-view", "mermaid", "Mermaid Diagram", this.props.code);
+    };
+
+    private readonly onCopyClick = (): void => {
+        if (!this.image) return;
+        void copyImageToClipboard(this.image);
+        this.driver.model.setCopied(true);
+        if (this.copiedTimer !== undefined) clearTimeout(this.copiedTimer);
+        this.copiedTimer = setTimeout(() => this.driver.model.setCopied(false), 750);
+    };
 }
 
 interface CodePreBlockProps {
@@ -258,8 +261,8 @@ class CodePreModel extends TComponentModel<CodePreState, Record<string, never>> 
 /** Fenced code wrapper with the existing copy-to-clipboard affordance. */
 class CodePreBlockView extends VanillaView<CodePreBlockProps> {
     private readonly driver: ComponentModelDriver<CodePreState, Record<string, never>, CodePreModel>;
-    private pre!: HTMLPreElement;
-    private copyButton!: HTMLButtonElement;
+    private pre: HTMLPreElement | undefined;
+    private copyButton: HTMLButtonElement | undefined;
     private copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
     public constructor(props: CodePreBlockProps) {
@@ -285,10 +288,12 @@ class CodePreBlockView extends VanillaView<CodePreBlockProps> {
         this.root.append(pre, copyButton);
         this.driver.mount();
         this.bind(this.driver.model.state, (state) => state.copied, (copied) => {
-            this.copyButton.classList.toggle("copied", copied);
+            this.copyButton?.classList.toggle("copied", copied);
         });
-        this.listen(this.copyButton, "click", () => {
-            void navigator.clipboard.writeText(this.pre.textContent || "");
+        this.listen(copyButton, "click", () => {
+            const pre = this.pre;
+            if (!pre) return;
+            void navigator.clipboard.writeText(pre.textContent || "");
             this.driver.model.setCopied(true);
             if (this.copiedTimer !== undefined) clearTimeout(this.copiedTimer);
             this.copiedTimer = setTimeout(() => this.driver.model.setCopied(false), 750);

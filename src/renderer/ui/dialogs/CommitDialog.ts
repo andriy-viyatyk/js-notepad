@@ -41,11 +41,6 @@ export class CommitDialogModel extends TDialogModel<CommitDialogProps, CommitRes
     onAction?: CommitAction;
 
     handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            void this.close(undefined);
-            return;
-        }
         if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
             event.preventDefault();
             const state = this.state.get();

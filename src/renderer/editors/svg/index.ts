@@ -9,7 +9,6 @@ import { createIconComponentElement } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
-import type { ImageViewportModel } from "../../uikit/ImageViewport/ImageViewport";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
@@ -26,12 +25,12 @@ function requireSvgModel(model: EditorModel): SvgEditor {
 
 interface SvgToolbarBitsViewProps {
     model: SvgEditor;
-    getImageModel: () => ImageViewportModel | null;
+    copyImage: () => void;
 }
 
 class SvgToolbarBitsView extends VanillaView<SvgToolbarBitsViewProps> {
     private model: SvgEditor;
-    private getImageModel: () => ImageViewportModel | null;
+    private copyImage: () => void;
     private openDrawButton: IconButtonView | undefined;
     private saveButton: IconButtonView | undefined;
     private copyButton: IconButtonView | undefined;
@@ -40,7 +39,7 @@ class SvgToolbarBitsView extends VanillaView<SvgToolbarBitsViewProps> {
     public constructor(props: SvgToolbarBitsViewProps) {
         super(props, createContentsRoot());
         this.model = props.model;
-        this.getImageModel = props.getImageModel;
+        this.copyImage = props.copyImage;
     }
 
     protected onMount(): void {
@@ -56,7 +55,7 @@ class SvgToolbarBitsView extends VanillaView<SvgToolbarBitsViewProps> {
 
     protected onUpdate(props: SvgToolbarBitsViewProps): void {
         this.model = props.model;
-        this.getImageModel = props.getImageModel;
+        this.copyImage = props.copyImage;
         this.openDrawButton?.update(this.openDrawButtonProps());
         this.saveButton?.update(this.saveButtonProps());
         this.copyButton?.update(this.copyButtonProps());
@@ -105,7 +104,7 @@ class SvgToolbarBitsView extends VanillaView<SvgToolbarBitsViewProps> {
             name: "svg-copy",
             size: "sm",
             title: "Copy Image to Clipboard (Ctrl+C)",
-            onClick: () => { void this.getImageModel()?.copyToClipboard(); },
+            onClick: this.copyImage,
             icon: "copy",
         };
     }
@@ -122,7 +121,7 @@ export class SvgEditorView extends VanillaView<{ model: EditorModel }> {
         const body = new SvgBodyView({ model });
         const toolbar = new SvgToolbarBitsView({
             model,
-            getImageModel: () => body.imageModel,
+            copyImage: body.copyImage,
         });
         const chrome = new TextChromeView({
             model: props.model,
@@ -145,7 +144,7 @@ export class SvgEditorView extends VanillaView<{ model: EditorModel }> {
     protected onUpdate(props: { model: EditorModel }): void {
         this.model = requireSvgModel(props.model);
         this.body.update({ model: this.model });
-        this.toolbar.update({ model: this.model, getImageModel: () => this.body.imageModel });
+        this.toolbar.update({ model: this.model, copyImage: this.body.copyImage });
         this.chrome.update({
             model: props.model,
             children: this.body.root,

@@ -4,6 +4,7 @@ import { InputView } from "../../uikit/Input/InputView";
 import { ListBoxView } from "../../uikit/ListBox/ListBoxView";
 import type { IListBoxItem, ListBoxProps } from "../../uikit/ListBox/types";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { createFileIconElement, createFolderIconElement, subscribeFileIconElements } from "../icons/icon-elements";
 import { defaultFileListState, FileListModel, type FileListItem, type FileListProps } from "./FileList";
 import "./FileList.css";
@@ -24,6 +25,7 @@ export class FileListView extends VanillaView<FileListProps> {
     private filteredSearch: string | undefined;
     private filteredRows: FileListRow[] = [];
     private iconCacheInvalid = false;
+    private searchFocusDisposer: (() => void) | undefined;
 
     public get model(): FileListModel {
         return this.driver.model;
@@ -49,11 +51,14 @@ export class FileListView extends VanillaView<FileListProps> {
             icon: "close",
             title: "Clear Search",
             size: "sm",
-            onClick: this.driver.model.hideSearchAndFocus,
+            onClick: () => this.hideSearchAndFocus(),
         }));
 
-        this.own(() => this.driver.model.clearViewFocusHandlers());
         this.own(() => this.driver.dispose());
+        this.own(() => {
+            this.searchFocusDisposer?.();
+            this.searchFocusDisposer = undefined;
+        });
     }
 
     protected onMount(): void {
@@ -62,14 +67,9 @@ export class FileListView extends VanillaView<FileListProps> {
         this.searchHost.append(this.input.root);
         this.root.append(this.list.root);
         this.input.mount();
-        const searchInput = this.input.inputElement;
         this.clearButton.mount();
         this.list.mount();
 
-        this.driver.model.setViewFocusHandlers(
-            () => searchInput.focus(),
-            () => this.root.focus(),
-        );
         this.own(() => this.iconSubscription?.());
         this.iconSubscription = subscribeFileIconElements(() => {
             this.iconCacheInvalid = true;
@@ -175,17 +175,31 @@ export class FileListView extends VanillaView<FileListProps> {
         if (event.key !== "Escape" || !this.driver.model.state.get().searchVisible) return;
         event.preventDefault();
         event.stopPropagation();
-        this.driver.model.hideSearchAndFocus();
+        this.hideSearchAndFocus();
     };
 
     private readonly onSearchKeyDown = (event: KeyboardEvent): void => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
-        this.driver.model.hideSearchAndFocus();
+        this.hideSearchAndFocus();
     };
 
     private readonly onSearchBlur = (): void => {
         if (!this.driver.model.state.get().searchText) this.driver.model.hideSearch();
     };
+
+    public showSearch(): void {
+        this.driver.model.showSearch();
+        this.searchFocusDisposer?.();
+        // MenuBar reveals the containing sidebar with a 10 ms transition, so visibility is not
+        // proven when the synchronously inserted search input is ready.
+        this.searchFocusDisposer = focusAfterPaint(this.input.inputElement);
+    }
+
+    public hideSearchAndFocus(): void {
+        this.driver.model.hideSearch();
+        this.root.focus();
+    }
+
 }

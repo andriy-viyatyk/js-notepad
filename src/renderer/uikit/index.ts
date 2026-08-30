@@ -47,7 +47,7 @@ export { attachTooltip } from "./Tooltip/attach-tooltip";
 export type { TooltipOptions, TooltipAttachment } from "./Tooltip/attach-tooltip";
 // Dialog and DialogContent are native-only; their public props remain type exports.
 export type { DialogProps, DialogPosition } from "./Dialog";
-export type { DialogContentProps } from "./Dialog/DialogContent";
+export type { DialogContentProps } from "./Dialog/DialogContentView";
 export { alertsBarModel } from "./Notification";
 export type { NotificationProps, NotificationSeverity, AlertData } from "./Notification";
 export { createProgress, showProgress, notifyProgress, addScreenLock, removeScreenLock } from "./Progress";

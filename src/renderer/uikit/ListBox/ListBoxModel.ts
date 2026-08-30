@@ -1,7 +1,7 @@
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
 import { VirtualGridModel } from "../VirtualGrid";
-import type { RowAlign } from "../VirtualGrid";
+import type { RerenderInfo, RowAlign } from "../VirtualGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     IListBoxItem,
@@ -52,22 +52,51 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     private liveActiveIndex: ListBoxProps<T>["activeIndex"] = undefined;
     private liveSearchText: ListBoxProps<T>["searchText"] = undefined;
     private liveLoading: ListBoxProps<T>["loading"] = undefined;
+    private liveRenderItem: ListBoxProps<T>["renderItem"] = undefined;
+    private liveGetTooltip: ListBoxProps<T>["getTooltip"] = undefined;
+    private liveVariant: ListBoxProps<T>["variant"] = undefined;
+    private liveSelectionStyle: ListBoxProps<T>["selectionStyle"] = undefined;
+    private liveCheckbox: ListBoxProps<T>["checkbox"] = undefined;
+    private hasLiveProps = false;
+    private pendingGlobalRepaint = false;
+    private pendingRowRepaint = false;
 
     setProps = (props: ListBoxProps<T>): void => {
         const itemsChanged = this.liveItems !== props.items;
-        const valueChanged = this.liveValue !== props.value;
+        const nextSelectedKey = this.resolveSelectedKey(props.value);
+        const selectedKeyChanged = !Object.is(this.selectedKey, nextSelectedKey);
+        const activeChanged = this.liveActiveIndex !== props.activeIndex;
+        const globalChanged = this.hasLiveProps && (
+            itemsChanged
+            || this.liveSearchText !== props.searchText
+            || this.liveRenderItem !== props.renderItem
+            || this.liveIsSelected !== props.isSelected
+            || this.liveGetTooltip !== props.getTooltip
+            || this.liveVariant !== props.variant
+            || this.liveSelectionStyle !== props.selectionStyle
+            || this.liveCheckbox !== props.checkbox
+        );
+        this.pendingGlobalRepaint ||= globalChanged;
+        this.pendingRowRepaint ||= this.hasLiveProps && (selectedKeyChanged || activeChanged);
         this.liveItems = props.items;
         this.liveValue = props.value;
         this.liveIsSelected = props.isSelected;
         this.liveActiveIndex = props.activeIndex;
         this.liveSearchText = props.searchText;
         this.liveLoading = props.loading;
+        this.liveRenderItem = props.renderItem;
+        this.liveGetTooltip = props.getTooltip;
+        this.liveVariant = props.variant;
+        this.liveSelectionStyle = props.selectionStyle;
+        this.liveCheckbox = props.checkbox;
         if (itemsChanged) this.resolved = this.resolveItems(props.items);
-        if (valueChanged) this.selectedKey = this.resolveSelectedKey(props.value);
+        if (selectedKeyChanged) this.selectedKey = nextSelectedKey;
+        this.hasLiveProps = true;
     };
 
     setItems = (items: ListBoxProps<T>["items"]): void => {
         if (this.liveItems === items) return;
+        this.pendingGlobalRepaint = true;
         this.liveItems = items;
         this.resolved = this.resolveItems(items);
     };
@@ -76,22 +105,32 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         isSelected: ListBoxProps<T>["isSelected"],
         selectionSignal?: unknown,
     ): void => {
+        if (this.liveIsSelected !== isSelected || this.liveSelectionSignal !== selectionSignal) {
+            this.pendingGlobalRepaint = true;
+        }
         this.liveIsSelected = isSelected;
         this.liveSelectionSignal = selectionSignal;
     };
 
     setActiveIndex = (activeIndex: ListBoxProps<T>["activeIndex"]): void => {
+        if (this.liveActiveIndex !== activeIndex) this.pendingRowRepaint = true;
         this.liveActiveIndex = activeIndex;
     };
 
     setSearchText = (searchText: ListBoxProps<T>["searchText"]): void => {
+        if (this.liveSearchText !== searchText) this.pendingGlobalRepaint = true;
         this.liveSearchText = searchText;
     };
 
     setValue = (value: ListBoxProps<T>["value"]): void => {
-        if (this.liveValue === value) return;
+        const nextSelectedKey = this.resolveSelectedKey(value);
+        if (Object.is(this.selectedKey, nextSelectedKey)) {
+            this.liveValue = value;
+            return;
+        }
+        this.pendingRowRepaint = true;
         this.liveValue = value;
-        this.selectedKey = this.resolveSelectedKey(value);
+        this.selectedKey = nextSelectedKey;
     };
 
     setLoading = (loading: ListBoxProps<T>["loading"]): void => {
@@ -170,6 +209,14 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         const key = this.selectedKey;
         if (key == null) return false;
         return item.value === key;
+    };
+
+    /** Visible row index of the current selection, or -1 when no row is selected. */
+    selectedRowIndex = (): number => {
+        for (let i = 0; i < this.resolved.resolved.length; i++) {
+            if (this.isSelectedAt(i)) return i;
+        }
+        return -1;
     };
 
     /**
@@ -329,6 +376,28 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
             this.props.selectionStyle,
             this.props.checkbox,
         ];
+    }
+
+    /** Classify a changed signature into row-local selection/active repaint or a global repaint. */
+    deriveRepaintChange(
+        contentChanged: boolean,
+        previousActiveIndex: number | null | undefined,
+        previousSelectedIndex: number,
+    ): RerenderInfo | undefined {
+        const globalChanged = this.pendingGlobalRepaint;
+        const rowChanged = this.pendingRowRepaint;
+        this.pendingGlobalRepaint = false;
+        this.pendingRowRepaint = false;
+        if (!contentChanged) return undefined;
+        if (globalChanged) return { all: true };
+        if (!rowChanged) return { rows: [] };
+        const rows = [...new Set([
+            previousActiveIndex,
+            this.activeIndex,
+            previousSelectedIndex,
+            this.selectedRowIndex(),
+        ].filter((row): row is number => row !== undefined && row !== null && row >= 0))];
+        return { rows };
     }
 
     // --- lifecycle ---

@@ -1,5 +1,5 @@
 import { CategoryListView } from "../../../uikit/CategoryList/CategoryListView";
-import type { CategoryListProps } from "../../../uikit/CategoryList/CategoryList";
+import type { CategoryListProps } from "../../../uikit/CategoryList/CategoryListView";
 import { createPanelElement } from "../../../uikit/Panel/panel-style";
 import "../../../uikit/Panel/Panel.css";
 import "../../../uikit/CategoryList/CategoryList.css";

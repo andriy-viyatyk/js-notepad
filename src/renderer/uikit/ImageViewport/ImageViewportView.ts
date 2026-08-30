@@ -1,12 +1,19 @@
 import { createComponentModelDriver } from "../../core/state/model";
 import { VanillaView } from "../shared/vanilla-view";
+import { imageElementToPngBlob } from "./image-raster";
 import {
     defaultImageViewportState,
+    type ImageViewportContainerBounds,
     ImageViewportModel,
-    type ImageViewportProps,
+    type ImageViewportImageDimensions,
     type ImageViewportState,
-} from "./ImageViewport";
+} from "./ImageViewportModel";
 import "./ImageViewport.css";
+
+export interface ImageViewportProps {
+    src: string;
+    alt?: string;
+}
 
 export class ImageViewportView extends VanillaView<ImageViewportProps> {
     private readonly driver;
@@ -17,7 +24,7 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
     private live = true;
     private visibilityReconcilePending = false;
 
-    constructor(props: ImageViewportProps) {
+    public constructor(props: ImageViewportProps) {
         super(props);
         this.driver = createComponentModelDriver(
             { src: props.src },
@@ -44,19 +51,17 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
         this.image.src = this.props.src;
         this.root.append(this.image, this.zoomIndicator);
 
-        const model = this.driver.model;
-        // These refs must be assigned before init() installs the wheel and resize behavior.
-        model.setContainerRef(this.root as HTMLDivElement);
-        model.setImageRef(this.image);
-
-        this.listen(this.root, "mousedown", model.handleMouseDown);
-        this.listen(this.root, "mousemove", model.handleMouseMove);
-        this.listen(this.root, "mouseup", model.handleMouseUp);
-        this.listen(this.root, "mouseleave", model.handleMouseUp);
-        this.listen(this.root, "dblclick", model.handleDoubleClick);
-        this.listen(this.root, "keydown", model.handleKeyDown);
-        this.listen(this.image, "load", model.handleImageLoad);
-        this.listen(this.zoomIndicator, "click", model.resetView);
+        this.listen(this.root, "mousedown", this.onMouseDown);
+        this.listen(this.root, "mousemove", this.onMouseMove);
+        this.listen(this.root, "mouseup", this.onMouseUp);
+        this.listen(this.root, "mouseleave", this.onMouseUp);
+        this.listen(this.root, "dblclick", this.onDoubleClick);
+        this.listen(this.root, "keydown", this.onKeyDown);
+        this.listen(this.image, "load", this.onImageLoad);
+        this.listen(this.zoomIndicator, "click", this.onResetView);
+        this.listen(window, "resize", this.onResize);
+        // Add wheel listener with passive: false to allow preventDefault
+        this.listen(this.root, "wheel", this.onWheel, { passive: false });
 
         this.driver.mount();
         this.scheduleSourceCheck(this.props.src);
@@ -84,6 +89,8 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
             clearTimeout(this.sourceTimer);
             this.sourceTimer = undefined;
         }
+        this.image = undefined;
+        this.zoomIndicator = undefined;
     }
 
     private scheduleSourceCheck(src: string): void {
@@ -93,9 +100,134 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
         this.sourceTimer = setTimeout(() => {
             this.sourceTimer = undefined;
             if (this.live && this.props.src === src && this.image?.complete) {
-                this.driver.model.handleImageLoad();
+                this.onImageLoad();
             }
         }, 50);
+    }
+
+    private readonly onImageLoad = (): void => {
+        const imageDimensions = this.getImageDimensions();
+        const containerBounds = imageDimensions.width
+            ? this.getContainerBounds()
+            : undefined;
+        this.driver.model.handleImageLoad(imageDimensions, containerBounds);
+    };
+
+    private readonly onWheel = (event: WheelEvent): void => {
+        event.preventDefault();
+        this.driver.model.zoomAtWheel(
+            event.deltaY,
+            event.clientX,
+            event.clientY,
+            this.getContainerBounds(),
+        );
+    };
+
+    private readonly onMouseDown = (event: MouseEvent): void => {
+        if (event.button !== 0) return;
+        this.driver.model.startDrag(event.clientX, event.clientY);
+    };
+
+    private readonly onMouseMove = (event: MouseEvent): void => {
+        this.driver.model.moveDrag(event.clientX, event.clientY);
+    };
+
+    private readonly onMouseUp = (): void => {
+        this.driver.model.endDrag();
+    };
+
+    private readonly onDoubleClick = (): void => {
+        this.resetView();
+    };
+
+    private readonly onResetView = (): void => {
+        this.resetView();
+    };
+
+    private readonly onKeyDown = (event: KeyboardEvent): void => {
+        const { scale } = this.driver.model.state.get();
+        const centerBounds = this.getContainerBounds();
+        const centerX = centerBounds.left + centerBounds.width / 2;
+        const centerY = centerBounds.top + centerBounds.height / 2;
+
+        switch (event.key) {
+            case "+":
+            case "=":
+                event.preventDefault();
+                this.driver.model.zoomAtPoint(
+                    scale * 1.2,
+                    centerX,
+                    centerY,
+                    this.getContainerBounds(),
+                );
+                break;
+            case "-":
+            case "_":
+                event.preventDefault();
+                this.driver.model.zoomAtPoint(
+                    scale / 1.2,
+                    centerX,
+                    centerY,
+                    this.getContainerBounds(),
+                );
+                break;
+            case "0":
+                event.preventDefault();
+                this.resetView();
+                break;
+            case "c":
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                    void this.copyToClipboard();
+                }
+                break;
+        }
+    };
+
+    private readonly onResize = (): void => {
+        const visibilityBounds = this.getContainerBounds();
+        if (!this.driver.model.isContainerVisible(visibilityBounds)) return;
+        const imageDimensions = this.getImageDimensions();
+        const calculationBounds = imageDimensions.width ? this.getContainerBounds() : undefined;
+        this.driver.model.handleResize(
+            visibilityBounds,
+            calculationBounds,
+            imageDimensions,
+        );
+    };
+
+    public copyToClipboard = async (): Promise<void> => {
+        const image = this.image;
+        if (!image) return;
+        const blob = await imageElementToPngBlob(image);
+        await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+        ]);
+    };
+
+    private resetView(): void {
+        const imageDimensions = this.getImageDimensions();
+        this.driver.model.resetView(
+            imageDimensions.width ? this.getContainerBounds() : undefined,
+            imageDimensions,
+        );
+    }
+
+    private getContainerBounds(): ImageViewportContainerBounds {
+        const rect = this.root.getBoundingClientRect();
+        return {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+        };
+    }
+
+    private getImageDimensions(): ImageViewportImageDimensions {
+        return {
+            width: this.image?.naturalWidth ?? 0,
+            height: this.image?.naturalHeight ?? 0,
+        };
     }
 
     private applyState(state: ImageViewportState): void {
@@ -124,11 +256,18 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
             const state = model.state.get();
             if (
                 state.scale === state.fitScale &&
-                model.isContainerVisible()
+                model.isContainerVisible(this.getContainerBounds())
             ) {
-                const currentFitScale = model.calculateFitScale();
+                const imageDimensions = this.getImageDimensions();
+                const currentFitScale = model.calculateFitScale(
+                    imageDimensions.width ? this.getContainerBounds() : undefined,
+                    imageDimensions,
+                );
                 if (Math.abs(currentFitScale - state.fitScale) > 0.001) {
-                    model.resetView();
+                    model.resetView(
+                        imageDimensions.width ? this.getContainerBounds() : undefined,
+                        imageDimensions,
+                    );
                 }
             }
         });

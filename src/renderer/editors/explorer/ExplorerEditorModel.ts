@@ -60,8 +60,8 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     /** Selection state — reactive. The Explorer view subscribes for highlight. */
     readonly selectionState = new TOneState<NavigationState>({ selectedHref: null });
 
-    /** Reveal request — reactive counter. View calls `revealItem(selectedHref)`
-     *  when this bumps. */
+    /** Monotonic reveal command token consumed by the secondary view. The view calls
+     *  `revealItem(selectedHref)` after the panel is available. */
     readonly revealVersion = new TOneState({ version: 0 });
 
     /** Search panel state. When defined, the search panel is visible. */
@@ -123,13 +123,13 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
             };
         }
         this.secondaryView = this.composeSecondaryView();
-        setTimeout(() => this.page?.expandPanel("search"), 0);
+        this.page?.expandPanel("search");
     }
 
     closeSearch(): void {
         this.searchState = undefined;
         this.secondaryView = this.composeSecondaryView();
-        setTimeout(() => this.page?.expandPanel("explorer"), 0);
+        this.page?.expandPanel("explorer");
     }
 
     setSearchState = (state: FileSearchState): void => {
@@ -141,13 +141,13 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     openBoards(): void {
         this.state.update((s) => { s.boardsOpen = true; });
         this.secondaryView = this.composeSecondaryView();
-        setTimeout(() => this.page?.expandPanel("boards"), 0);
+        this.page?.expandPanel("boards");
     }
 
     closeBoards(): void {
         this.state.update((s) => { s.boardsOpen = false; });
         this.secondaryView = this.composeSecondaryView();
-        setTimeout(() => this.page?.expandPanel("explorer"), 0);
+        this.page?.expandPanel("explorer");
     }
 
     // ── Root navigation ──────────────────────────────────────────────
@@ -213,7 +213,9 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         if (panelId === "explorer") {
             const href = this.selectionState.get().selectedHref;
             if (href) {
-                setTimeout(() => this.revealVersion.update((s) => { s.version++; }), 0);
+                // The monotonic token is a reveal command consumed by the secondary view, whose
+                // binding schedules the cancellable animation-frame reveal after the panel exists.
+                this.revealVersion.update((s) => { s.version++; });
             }
         }
     }

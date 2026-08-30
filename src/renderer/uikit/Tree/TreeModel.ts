@@ -1,7 +1,7 @@
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, Traited, TraitType } from "../../core/traits/traits";
 import { VirtualGridModel } from "../VirtualGrid";
-import type { RowAlign } from "../VirtualGrid";
+import type { RerenderInfo, RowAlign } from "../VirtualGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     ITreeItem,
@@ -50,6 +50,10 @@ export const defaultTreeState: TreeState = {
     dragOverValue: null,
 };
 
+export interface TreeStateChange {
+    rows: number[];
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -83,7 +87,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * Registered by the host view. Called after every state write, and the only thing that carries
      * a state change into the DOM — see `mutate`.
      */
-    onStateApplied: (() => void) | null = null;
+    onStateApplied: ((change: TreeStateChange) => void) | null = null;
 
     /**
      * The only place in `uikit/Tree/` that writes state.
@@ -96,18 +100,21 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * uikit/Tree/` must return exactly one hit, which is what makes the convention checkable.
      */
     private mutate(updater: (state: TreeState) => void, deriveRows = true): void {
-        if (deriveRows) {
-            const current = this.state.get();
-            const next = {
-                ...current,
-                expanded: { ...current.expanded },
-                loading: { ...current.loading },
-            };
-            updater(next);
-            this.deriveRows(next.expanded);
-        }
+        const current = this.state.get();
+        const previousRows = this.rows;
+        const next = {
+            ...current,
+            expanded: { ...current.expanded },
+            loading: { ...current.loading },
+        };
+        updater(next);
+        if (deriveRows) this.deriveRows(next.expanded);
+        const rows = [
+            ...this.diffRows(previousRows, this.rows),
+            ...this.transientRows(previousRows, this.rows, current, next),
+        ];
         this.state.update(updater);
-        this.onStateApplied?.();
+        this.onStateApplied?.({ rows: [...new Set(rows)] });
     }
 
     /** `TreeDndModel`'s narrow entry to the funnel, so it never touches `tree.state` directly. */
@@ -183,13 +190,28 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     private appliedGetHasChildren: TreeProps<T>["getHasChildren"] | undefined = undefined;
     private appliedDefaultExpandAll: TreeProps<T>["defaultExpandAll"] | undefined = undefined;
     private appliedDefaultExpandedValues: TreeProps<T>["defaultExpandedValues"] | undefined = undefined;
+    private appliedActiveIndex: TreeProps<T>["activeIndex"] = undefined;
+    private appliedSearchText: TreeProps<T>["searchText"] = undefined;
+    private appliedRenderItem: TreeProps<T>["renderItem"] = undefined;
+    private appliedIndentSize: TreeProps<T>["indentSize"] = undefined;
+    private appliedIsSelected: TreeProps<T>["isSelected"] = undefined;
+    private appliedGetTooltip: TreeProps<T>["getTooltip"] = undefined;
+    private appliedId: TreeProps<T>["id"] = undefined;
+    private appliedTraitTypeId: TreeProps<T>["traitTypeId"] = undefined;
+    private appliedGetDragData: TreeProps<T>["getDragData"] = undefined;
+    private appliedAcceptsDrop: TreeProps<T>["acceptsDrop"] = undefined;
+    private appliedOnDragStartOverride: TreeProps<T>["onDragStartOverride"] = undefined;
     private hasAppliedProps = false;
+    private pendingGlobalRepaint = false;
+    private pendingRowRepaint = false;
+    private pendingRows: number[] = [];
 
     rows: TreeRow<T>[] = [];
     indexByValue = new Map<string | number, number>();
     selectedKey: string | number | null = null;
 
     setProps = (): void => {
+        const previousRows = this.rows;
         const rowsChanged = !this.hasAppliedProps
             || this.appliedItems !== this.props.items
             || this.appliedGetChildren !== this.props.getChildren
@@ -199,13 +221,33 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         const selectionChanged = !this.hasAppliedProps
             || this.appliedValue !== this.props.value
             || this.appliedItems !== this.props.items;
+        const nextSelectedKey = this.props.value == null
+            ? null
+            : this.resolveSelectionValue(this.props.value).value;
+        const selectedKeyChanged = !Object.is(this.selectedKey, nextSelectedKey);
+        const activeChanged = this.appliedActiveIndex !== this.props.activeIndex;
+        const globalChanged = this.hasAppliedProps && (
+            this.appliedSearchText !== this.props.searchText
+            || this.appliedRenderItem !== this.props.renderItem
+            || this.appliedIndentSize !== this.props.indentSize
+            || this.appliedIsSelected !== this.props.isSelected
+            || this.appliedGetTooltip !== this.props.getTooltip
+            || this.appliedId !== this.props.id
+            || this.appliedTraitTypeId !== this.props.traitTypeId
+            || this.appliedGetDragData !== this.props.getDragData
+            || this.appliedAcceptsDrop !== this.props.acceptsDrop
+            || this.appliedOnDragStartOverride !== this.props.onDragStartOverride
+        );
 
-        if (rowsChanged) this.deriveRows(this.state.get().expanded);
-        if (selectionChanged) {
-            this.selectedKey = this.props.value == null
-                ? null
-                : this.resolveSelectionValue(this.props.value).value;
+        if (rowsChanged) {
+            this.deriveRows(this.state.get().expanded);
+            if (this.hasAppliedProps) this.pendingRows.push(...this.diffRows(previousRows, this.rows));
         }
+        if (selectionChanged) {
+            this.selectedKey = nextSelectedKey;
+        }
+        this.pendingGlobalRepaint ||= globalChanged;
+        this.pendingRowRepaint ||= this.hasAppliedProps && (selectedKeyChanged || activeChanged);
 
         this.appliedItems = this.props.items;
         this.appliedValue = this.props.value;
@@ -213,8 +255,75 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         this.appliedGetHasChildren = this.props.getHasChildren;
         this.appliedDefaultExpandAll = this.props.defaultExpandAll;
         this.appliedDefaultExpandedValues = this.props.defaultExpandedValues;
+        this.appliedActiveIndex = this.props.activeIndex;
+        this.appliedSearchText = this.props.searchText;
+        this.appliedRenderItem = this.props.renderItem;
+        this.appliedIndentSize = this.props.indentSize;
+        this.appliedIsSelected = this.props.isSelected;
+        this.appliedGetTooltip = this.props.getTooltip;
+        this.appliedId = this.props.id;
+        this.appliedTraitTypeId = this.props.traitTypeId;
+        this.appliedGetDragData = this.props.getDragData;
+        this.appliedAcceptsDrop = this.props.acceptsDrop;
+        this.appliedOnDragStartOverride = this.props.onDragStartOverride;
         this.hasAppliedProps = true;
     };
+
+    private diffRows(previous: TreeRow<T>[], next: TreeRow<T>[]): number[] {
+        const limit = Math.max(previous.length, next.length);
+        let firstChanged = -1;
+        for (let index = 0; index < limit; index++) {
+            const before = previous[index];
+            const after = next[index];
+            if (!before || !after || !this.sameRow(before, after)) {
+                firstChanged = index;
+                break;
+            }
+        }
+        if (firstChanged < 0) return [];
+        return Array.from(
+            { length: Math.max(0, next.length - firstChanged) },
+            (_, offset) => firstChanged + offset,
+        );
+    }
+
+    private sameRow(previous: TreeRow<T>, next: TreeRow<T>): boolean {
+        return previous.value === next.value
+            && previous.level === next.level
+            && previous.expanded === next.expanded
+            && previous.hasChildren === next.hasChildren
+            && previous.lazyChildren === next.lazyChildren
+            && previous.item.label === next.item.label
+            && previous.item.icon === next.item.icon
+            && previous.item.section === next.item.section
+            && previous.item.disabled === next.item.disabled;
+    }
+
+    private transientRows(
+        previousRows: TreeRow<T>[],
+        nextRows: TreeRow<T>[],
+        previous: TreeState,
+        next: TreeState,
+    ): number[] {
+        const changedValues = new Set<string | number>();
+        for (const row of previousRows) {
+            if (previous.loading[row.value] !== next.loading[row.value]
+                || (previous.draggingValue === row.value) !== (next.draggingValue === row.value)
+                || (previous.dragOverValue === row.value) !== (next.dragOverValue === row.value)) {
+                changedValues.add(row.value);
+            }
+        }
+        for (const row of nextRows) {
+            if (previous.loading[row.value] !== next.loading[row.value]
+                || (previous.draggingValue === row.value) !== (next.draggingValue === row.value)
+                || (previous.dragOverValue === row.value) !== (next.dragOverValue === row.value)) {
+                changedValues.add(row.value);
+            }
+        }
+        return nextRows
+            .map((row, index) => changedValues.has(row.value) ? index : -1)
+            .filter((index) => index >= 0);
+    }
 
     /** Derive the visible rows and its lookup together, before a state notification can run. */
     private deriveRows(expanded: Record<string | number, boolean>): void {
@@ -799,6 +908,34 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             this.props.acceptsDrop,
             this.props.onDragStartOverride,
         ];
+    }
+
+    /** Classify changed props into the model-owned row diff, row-local selection/active rows, or all rows. */
+    deriveRepaintChange(
+        contentChanged: boolean,
+        previousActiveIndex: number | null | undefined,
+        previousSelectedIndex: number,
+    ): RerenderInfo | undefined {
+        const globalChanged = this.pendingGlobalRepaint;
+        const rowChanged = this.pendingRowRepaint;
+        const changedRows = this.pendingRows;
+        this.pendingGlobalRepaint = false;
+        this.pendingRowRepaint = false;
+        this.pendingRows = [];
+        if (!contentChanged) return undefined;
+        if (globalChanged) return { all: true };
+        const rows = [...changedRows];
+        if (rowChanged) {
+            rows.push(
+                ...[
+                    previousActiveIndex,
+                    this.props.activeIndex,
+                    previousSelectedIndex,
+                    this.selectedRowIndex(),
+                ].filter((row): row is number => row !== undefined && row !== null && row >= 0),
+            );
+        }
+        return { rows: [...new Set(rows)] };
     }
 
     // --- lifecycle ---

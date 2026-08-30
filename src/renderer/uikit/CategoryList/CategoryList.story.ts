@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { CategoryListView } from "./CategoryListView";
-import type { CategoryListProps } from "./CategoryList";
+import type { CategoryListProps } from "./CategoryListView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface CategoryListDemoProps {

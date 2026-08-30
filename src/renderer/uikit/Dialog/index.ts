@@ -1,2 +1,2 @@
-export type { DialogProps, DialogPosition } from "./Dialog";
-export type { DialogContentProps } from "./DialogContent";
+export type { DialogProps, DialogPosition } from "./DialogView";
+export type { DialogContentProps } from "./DialogContentView";

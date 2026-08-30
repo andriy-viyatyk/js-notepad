@@ -1,1 +1,1 @@
-export type { MultiListBoxProps } from "./MultiListBox";
+export type { MultiListBoxProps } from "./MultiListBoxView";

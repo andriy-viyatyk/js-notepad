@@ -173,6 +173,12 @@ class NavPanelButtonView extends VanillaView<{ model: EditorModel }> {
     }
 
     private sync(): void {
+        // These are raw `state.subscribe` registrations, not `bind()`, so nothing guards the
+        // callback for us. A notification can still arrive for a view disposed earlier in the
+        // same dispatch, and `rebindSubscriptions()` would then call `ownSubscription()` on a
+        // disposed view and throw. `TOneState` now skips retired listeners, so this is the
+        // second line of defence rather than the only one — a parent may also call in.
+        if (this.isDisposed) return;
         this.rebindSubscriptions();
         const page = this.model.page;
         const target = this.model.getNavigatorTarget();

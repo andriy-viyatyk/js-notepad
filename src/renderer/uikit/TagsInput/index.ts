@@ -1,1 +1,1 @@
-export type { TagsInputProps } from "./TagsInput";
+export type { TagsInputProps } from "./TagsInputView";

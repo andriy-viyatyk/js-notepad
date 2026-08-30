@@ -5,7 +5,7 @@ export class NotebookEditorFacade {
     constructor(private readonly vm: NotebookEditor) {}
 
     get notes(): Array<{ readonly id: string; readonly title: string; readonly content: string; readonly category: string; readonly tags: readonly string[] }> {
-        return this.vm.state.get().data.notes.map(mapNote);
+        return this.vm.getNotes().map(mapNote);
     }
 
     get categories(): string[] {
@@ -57,6 +57,6 @@ function mapNote(note: NoteItem) {
         title: note.title,
         content: note.content.content,
         category: note.category,
-        tags: note.tags,
+        tags: [...note.tags],
     };
 }

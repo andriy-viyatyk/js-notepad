@@ -36,6 +36,17 @@ call `mount()` exactly once before inserting or returning its root; and a conver
 sets `display` needs a same-layer `<root-selector>[hidden] { display: none; }` counter-rule so
 `.hidden = ...` remains effective. The full lifecycle and styling details live in `uikit/CLAUDE.md`.
 
+`DialogView` owns the shared Escape boundary. Its `onKeyDown` callback runs first for every key;
+when it calls `preventDefault()`, the dialog does not invoke `onEscape`. Otherwise an Escape key
+prevents the browser default and invokes `onEscape`, while other keys only reach `onKeyDown`.
+Dialog-specific Enter behavior may remain on the input, and dialogs embedding Monaco may keep
+their own keyboard boundary when the generic contract would interfere with editor handling.
+
+Native attribute props are compatibility surfaces, not permission to forward every browser
+attribute forever. A component may replace a broad `Omit<Native...>` with an explicit `Pick` only
+after sweeping its callers, stories, and targeted setter paths; preserve every key that is
+actually forwarded and keep component-owned callbacks/fields separate from native attributes.
+
 When a parent composes a dynamic native child, `child()` establishes ownership only; it does not
 forward later model or prop changes. Retain children whose rendered output can change and update
 each of them from current state in the parent's `sync()`/`onUpdate()` path. Reviewing the update

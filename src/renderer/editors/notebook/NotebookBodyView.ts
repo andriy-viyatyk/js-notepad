@@ -18,12 +18,14 @@ export interface NotebookBodyViewProps {
 }
 
 interface NotebookProjection {
-    data: NotebookEditorState["data"];
     error: NotebookEditorState["error"];
     categories: NotebookEditorState["categories"];
     tags: NotebookEditorState["tags"];
     searchText: NotebookEditorState["searchText"];
-    filteredNotes: NotebookEditorState["filteredNotes"];
+    notesVersion: NotebookEditorState["notesVersion"];
+    notesCount: NotebookEditorState["notesCount"];
+    filteredVersion: NotebookEditorState["filteredVersion"];
+    filteredCount: NotebookEditorState["filteredCount"];
     expandedNoteId: NotebookEditorState["expandedNoteId"];
 }
 
@@ -64,12 +66,14 @@ const columnWidth = (() => "100%" as Percent) as (value: number) => Percent;
 
 function selectProjection(state: NotebookEditorState): NotebookProjection {
     return {
-        data: state.data,
         error: state.error,
         categories: state.categories,
         tags: state.tags,
         searchText: state.searchText,
-        filteredNotes: state.filteredNotes,
+        notesVersion: state.notesVersion,
+        notesCount: state.notesCount,
+        filteredVersion: state.filteredVersion,
+        filteredCount: state.filteredCount,
         expandedNoteId: state.expandedNoteId,
     };
 }
@@ -98,13 +102,13 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
     private readonly cellRecords = new Set<CellRecord>();
     private readonly ownedNoteViews = new Set<NoteItemView>();
     private readonly viewStates = new Map<string, import("monaco-editor").editor.ICodeEditorViewState>();
-    private readonly rowCount = (): number => this.projection.filteredNotes.length;
+    private readonly rowCount = (): number => this.projection.filteredCount;
     private readonly getInitialRowHeight = (row: number): number | undefined => {
-        const note = this.projection.filteredNotes[row];
+        const note = this.editor.getFilteredNoteAt(row);
         return note ? this.editor.getNoteHeight(note.id) : undefined;
     };
     private readonly renderCell: VirtualFlexCellFunc = (params) => {
-        const note = this.projection.filteredNotes[params.row];
+        const note = this.editor.getFilteredNoteAt(params.row);
         if (!note) return undefined;
 
         const kind = noteKind(note);
@@ -220,12 +224,16 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         this.projection = next;
         this.applyProjection(next);
         const cellsChanged = !previous
-            || previous.data !== next.data
             || previous.categories !== next.categories
             || previous.tags !== next.tags
             || previous.searchText !== next.searchText
-            || previous.filteredNotes !== next.filteredNotes;
-        if (cellsChanged) this.grid?.gridModel?.update({ all: true });
+            || previous.notesVersion !== next.notesVersion
+            || previous.filteredVersion !== next.filteredVersion;
+        if (cellsChanged) {
+            // Categories, tags, search, notes, and filtered projection changes are passed into
+            // every note cell or replace the complete filtered row projection.
+            this.grid?.gridModel?.update({ all: true });
+        }
         this.previousProjection = previous;
         this.syncExpandedOverlay();
     };
@@ -236,12 +244,12 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
             this.notesList.replaceChildren(this.errorPanel(projection.error));
             return;
         }
-        if (projection.data.notes.length === 0) {
+        if (projection.notesCount === 0) {
             this.leaveGrid();
             this.notesList.replaceChildren(this.emptyPanel());
             return;
         }
-        if (projection.filteredNotes.length === 0) {
+        if (projection.filteredCount === 0) {
             this.leaveGrid();
             this.notesList.replaceChildren(this.filterEmptyPanel());
             return;
@@ -332,7 +340,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
 
     private syncExpandedOverlay(): void {
         const note = this.projection.expandedNoteId
-            ? this.projection.data.notes.find((item) => item.id === this.projection.expandedNoteId)
+            ? this.editor.getNote(this.projection.expandedNoteId)
             : undefined;
         const target = this.editor.host?.editorOverlayRef ?? null;
         if (!note || !target) {

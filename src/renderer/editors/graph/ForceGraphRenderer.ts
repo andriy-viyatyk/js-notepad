@@ -435,7 +435,7 @@ export class ForceGraphRenderer {
         }
 
         // Re-apply position forces with new center (don't recreate link force)
-        setTimeout(() => this.updatePositionForces(), 0);
+        this.updatePositionForces();
     };
 
     // =========================================================================

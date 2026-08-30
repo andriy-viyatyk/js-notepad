@@ -5,7 +5,7 @@ import { createIconElement } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 
 export interface CheckboxProps
-    extends Omit<NativeLabelHTMLAttributes<HTMLLabelElement>, "onChange" | "children"> {
+    extends Pick<NativeLabelHTMLAttributes<HTMLLabelElement>, "onClick" | `aria-${string}` | `data-${string}`> {
     /** Optional debug label emitted as `data-name` on the root element. */
     name?: string;
     /** Checked state (controlled). */

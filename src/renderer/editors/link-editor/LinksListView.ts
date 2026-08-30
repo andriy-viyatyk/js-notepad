@@ -45,7 +45,9 @@ interface CellParts {
     additionalIconHost: HTMLElement;
     additionalIcon?: IconName;
     editButton?: IconButtonView;
+    editButtonRelease?: () => void;
     deleteButton?: IconButtonView;
+    deleteButtonRelease?: () => void;
     tooltip: TooltipAttachment;
     link: ILink;
     selected: boolean;
@@ -359,9 +361,12 @@ export class LinksListView extends VanillaView<LinksListProps> {
         enabled: boolean,
     ): void {
         const key = kind === "edit" ? "editButton" : "deleteButton";
+        const releaseKey = kind === "edit" ? "editButtonRelease" : "deleteButtonRelease";
         const existing = record[key];
         if (!enabled) {
             if (existing) {
+                record[releaseKey]?.();
+                record[releaseKey] = undefined;
                 existing.root.remove();
                 existing.dispose();
                 this.ownedViews.delete(existing);
@@ -383,7 +388,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         this.ownedViews.add(button);
         record[key] = button;
 
-        this.listen(button.root, "click", (event) => {
+        record[releaseKey] = this.listen(button.root, "click", (event) => {
             const current = this.cells.get(record.cell);
             if (!current || this.inert) return;
             event.stopPropagation();

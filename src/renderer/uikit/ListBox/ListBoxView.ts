@@ -84,6 +84,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     private layout: VirtualGridLayout = {};
     private emptyMessage: ListBoxProps<T>["emptyMessage"];
     private lastActiveIndex: number | null | undefined = undefined;
+    private lastSelectedIndex = -1;
     private lastEmptyMessage: ListBoxProps<T>["emptyMessage"] | undefined = undefined;
     /**
      * Set before anything else is torn down, so a cell listener that fires during disposal — the
@@ -195,6 +196,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
 
         this.syncActiveScroll(this.model.activeIndex, false);
         this.repaintGate.prime(this.model.repaintSignature());
+        this.lastSelectedIndex = this.model.selectedRowIndex();
     }
 
     protected onUpdate(props: ListBoxProps<T>): void {
@@ -209,8 +211,22 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     }
 
     private repaintRows(): boolean {
+        const previousActiveIndex = this.lastActiveIndex;
+        const previousSelectedIndex = this.lastSelectedIndex;
         const contentChanged = this.repaintGate.changed(this.model.repaintSignature());
-        if (contentChanged) this.grid?.model.update({ all: true });
+        const repaint = this.model.deriveRepaintChange(
+            contentChanged,
+            previousActiveIndex,
+            previousSelectedIndex,
+        );
+        this.lastSelectedIndex = this.model.selectedRowIndex();
+        if (repaint?.all) {
+            // Items, search, renderer, tooltip, variant, selection-style, and checkbox inputs
+            // change the rendered content of every ListBox row.
+            this.grid?.model.update({ all: true });
+        } else if (repaint) {
+            this.grid?.model.update(repaint);
+        }
         return contentChanged;
     }
 

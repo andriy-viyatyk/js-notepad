@@ -11,19 +11,10 @@ export interface NamespaceCollisionDialogProps {
     collidingRoot: string; // absolute root path of the already-trusted board using it
 }
 
-class NamespaceCollisionDialogModel extends TDialogModel<NamespaceCollisionDialogProps, boolean> {
-    handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(false);
-        }
-    };
-}
-
 registerDialogView(namespaceCollisionDialogId, NamespaceCollisionDialogView);
 
 export function showNamespaceCollisionDialog(namespace: string, collidingRoot: string) {
-    const model = new NamespaceCollisionDialogModel(
+    const model = new TDialogModel<NamespaceCollisionDialogProps, boolean>(
         new TComponentState({ namespace, collidingRoot }),
     );
     return showDialog({

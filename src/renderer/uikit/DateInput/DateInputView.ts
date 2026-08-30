@@ -1,8 +1,17 @@
 import { VanillaView } from "../shared/vanilla-view";
 import { InputView } from "../Input/InputView";
 import type { InputProps } from "../Input/InputView";
-import type { DateInputProps } from "./DateInput";
 import "../Input/Input.css";
+
+// --- Types ---
+
+export interface DateInputProps
+    extends Omit<InputProps, "type" | "value" | "onChange" | "startSlot" | "endSlot" | "tone"> {
+    /** Current value as an ISO `YYYY-MM-DD` string, or "" when unset. */
+    value: string;
+    /** Change handler — receives the ISO date string (empty string when cleared). */
+    onChange?: (value: string) => void;
+}
 
 /**
  * The native DateInput seam. The child is an InputView today; a future themed calendar can replace

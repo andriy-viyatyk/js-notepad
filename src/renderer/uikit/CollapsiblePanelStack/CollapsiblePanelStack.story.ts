@@ -3,7 +3,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { CollapsiblePanelStackView } from "./CollapsiblePanelStackView";
-import type { CollapsiblePanelProps, CollapsiblePanelStackProps } from "./CollapsiblePanelStack";
+import type { CollapsiblePanelProps, CollapsiblePanelStackProps } from "./CollapsiblePanelStackView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface CollapsiblePanelStackDemoProps {

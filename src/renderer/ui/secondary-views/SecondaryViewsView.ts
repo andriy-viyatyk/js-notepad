@@ -5,7 +5,7 @@ import {
 } from "../../uikit/CollapsiblePanelStack/CollapsiblePanelStackView";
 import type {
     CollapsiblePanelProps,
-} from "../../uikit/CollapsiblePanelStack/CollapsiblePanelStack";
+} from "../../uikit/CollapsiblePanelStack/CollapsiblePanelStackView";
 import { SplitterView } from "../../uikit/Splitter/SplitterView";
 import {
     applyPanelAttributes,
@@ -42,9 +42,8 @@ interface PanelRecord {
     iconElement?: Node;
     headerElement: HTMLDivElement | null;
     lazyView?: LazySecondaryViewView;
-    headerDirty: boolean;
     alive: boolean;
-    readonly headerRef: (element: HTMLDivElement | null) => void;
+    readonly childrenFactory: NonNullable<CollapsiblePanelProps["childrenFactory"]>;
 }
 
 /** Native controlled host for the secondary-view stack and splitter. */
@@ -109,7 +108,6 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             if (renderedKeys.has(key)) continue;
             record.alive = false;
             record.headerElement = null;
-            record.headerDirty = false;
             this.disposeLazyView(record);
             this.records.delete(key);
         }
@@ -128,24 +126,13 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
 
         const activeKey = this.resolveActiveKey(rendered);
         this.updateStack(activeKey, rendered);
-        this.drainHeaderUpdates(activeKey, rendered);
     }
 
     private updateStack(activeKey: string, rendered: RenderedPanel[]): void {
         this.requireStack().update(this.stackProps(
-            rendered.map((panel) => this.toPanelDescriptor(panel, activeKey)),
+            rendered.map((panel) => this.toPanelDescriptor(panel)),
             activeKey,
         ));
-    }
-
-    private drainHeaderUpdates(activeKey: string, rendered: RenderedPanel[]): void {
-        const dirtyRecords = Array.from(this.records.values()).filter(
-            (record) => record.alive && record.headerDirty,
-        );
-        if (!dirtyRecords.length) return;
-
-        for (const record of dirtyRecords) record.headerDirty = false;
-        this.updateStack(activeKey, rendered);
     }
 
     private getRenderedPanels(): RenderedPanel[] {
@@ -175,34 +162,34 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
             panelId: panel.panelId,
             ...this.resolveIcons(panel),
             headerElement: null,
-            headerDirty: false,
             alive: true,
-            headerRef: (element) => this.publishHeader(record, element),
+            childrenFactory: (header, isOpen) => this.updateRecordContent(record, header, isOpen),
         };
         return record;
     }
 
-    private publishHeader(record: PanelRecord, element: HTMLDivElement | null): void {
-        if (!record.alive || this.records.get(record.key) !== record) return;
-        if (record.headerElement === element) return;
-        record.headerElement = element;
-        record.headerDirty = true;
-    }
-
-    private toPanelDescriptor(panel: RenderedPanel, activeKey: string): CollapsiblePanelProps {
+    private toPanelDescriptor(panel: RenderedPanel): CollapsiblePanelProps {
         const record = this.records.get(panel.key);
         if (!record) throw new Error(`SecondaryViews lost panel record: ${panel.key}`);
 
-        const descriptor: CollapsiblePanelProps = {
+        return {
             id: panel.key,
             name: panel.panelId,
-            headerRef: record.headerRef,
             alwaysRenderContent: true,
             children: null,
+            childrenFactory: record.childrenFactory,
         };
-        const lazyView = record.lazyView ?? this.createLazyView(record, panel.key === activeKey);
-        lazyView.update(this.lazyViewProps(record, panel.key === activeKey));
-        return { ...descriptor, children: lazyView.root };
+    }
+
+    private updateRecordContent(
+        record: PanelRecord,
+        header: HTMLDivElement,
+        isOpen: boolean,
+    ): Node | null {
+        record.headerElement = header;
+        const lazyView = record.lazyView ?? this.createLazyView(record, isOpen);
+        lazyView.update(this.lazyViewProps(record, isOpen));
+        return lazyView.root;
     }
 
     private createLazyView(record: PanelRecord, expanded: boolean): LazySecondaryViewView {
@@ -295,7 +282,6 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
         for (const record of this.records.values()) {
             record.alive = false;
             record.headerElement = null;
-            record.headerDirty = false;
             this.disposeLazyView(record);
         }
         this.records.clear();

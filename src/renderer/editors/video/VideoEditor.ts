@@ -73,6 +73,8 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     noLanguage = true;
     skipSave = true;
+    private navigationFrame: number | undefined;
+    private navigationGeneration = 0;
 
     constructor(state: TComponentState<VideoEditorState>) {
         super(state);
@@ -299,6 +301,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
         const page = this.page;
         const itemHref = item.href;
+        const navigationGeneration = ++this.navigationGeneration;
         app.events.openRawLink.sendAsync(
             createLinkData(navUrl, {
                 pageId,
@@ -313,8 +316,9 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
         ).then(() => {
             // Update link panel selection AFTER navigation completes.
             // Use requestAnimationFrame to ensure the navigation update has reached the DOM before we trigger another state update for selection.
-            requestAnimationFrame(() => {
-                if (!page) return;
+            const frame = requestAnimationFrame(() => {
+                this.navigationFrame = undefined;
+                if (this.navigationGeneration !== navigationGeneration || this.page !== page || !page) return;
                 for (const editor of page.panelEditors) {
                     if (!("treeProvider" in editor) || !("selectByHref" in editor)) continue;
                     const tp = (editor as any).treeProvider; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -323,6 +327,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
                     }
                 }
             });
+            this.navigationFrame = frame;
         });
     }
 
@@ -356,6 +361,11 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     /** Clean up streaming server sessions when the editor tab is closed. */
     async dispose(): Promise<void> {
+        this.navigationGeneration++;
+        if (this.navigationFrame !== undefined) {
+            cancelAnimationFrame(this.navigationFrame);
+            this.navigationFrame = undefined;
+        }
         const pageId = this.page?.id;
         if (pageId) {
             await api.deleteVideoStreamSessionsByPage(pageId);

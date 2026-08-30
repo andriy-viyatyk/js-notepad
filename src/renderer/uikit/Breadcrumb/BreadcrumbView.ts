@@ -2,15 +2,38 @@ import {
     applyRestProps,
     clearRestListeners,
     createRestPropsState,
+    type NativeHTMLAttributes,
     type RestPropsState,
 } from "../shared/dom-props";
 import { splitWithSeparators } from "../../core/utils/utils";
+import { KeyedList } from "../shared/keyed-list";
 import { VanillaView } from "../shared/vanilla-view";
-import type { BreadcrumbProps } from "./Breadcrumb";
 import "./Breadcrumb.css";
+
+export interface BreadcrumbProps
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    name?: string;
+    rootLabel: string;
+    value: string;
+    onChange: (value: string) => void;
+    separators?: string;
+    trailingParentSeparator?: boolean;
+    separatorContent?: string;
+    size?: "sm" | "md";
+    clipStart?: boolean;
+}
+
+interface BreadcrumbPart {
+    key: string;
+    part: "root" | "separator" | "segment";
+    text: string;
+    current: boolean;
+    segmentIndex?: number;
+}
 
 export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
+    private parts: KeyedList<BreadcrumbPart, string, HTMLSpanElement> | undefined;
 
     public constructor(props: BreadcrumbProps) {
         super(props, document.createElement("div"));
@@ -18,6 +41,13 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
     }
 
     protected onMount(): void {
+        this.parts = new KeyedList(this.root, {
+            keyOf: (part) => part.key,
+            create: () => document.createElement("span"),
+            update: (element, part) => this.updatePart(element, part),
+        });
+        this.own(() => this.parts?.dispose());
+        this.listen(this.root, "click", this.onSegmentClick);
         this.applyProps(this.props);
         this.applyConstructionRestProps(this.props);
         this.own(() => clearRestListeners(this.root, this.restPropsState));
@@ -38,7 +68,7 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
             value,
             onChange: _onChange,
             separators = "/\\",
-            trailingParentSeparator = false,
+            trailingParentSeparator: _trailingParentSeparator,
             separatorContent = ">",
             size = "md",
             clipStart = false,
@@ -52,53 +82,59 @@ export class BreadcrumbView extends VanillaView<BreadcrumbProps> {
         this.root.dataset.size = size;
         if (clipStart) this.root.dataset.clipStart = "";
         else delete this.root.dataset.clipStart;
-        const joinSeparator = separators[0];
         const segments = value ? splitWithSeparators(value, separators) : [];
-        const nodes: Node[] = [];
         const rootIsCurrent = segments.length === 0;
-        const rootSegment = this.createSegment(rootLabel, "root", rootIsCurrent);
-        if (!rootIsCurrent) {
-            this.listen(rootSegment, "click", this.onRootClick);
-        }
-        nodes.push(rootSegment);
-
+        const parts: BreadcrumbPart[] = [{
+            key: "root",
+            part: "root",
+            text: rootLabel,
+            current: rootIsCurrent,
+        }];
         segments.forEach((segment, index) => {
-            const isLeaf = index === segments.length - 1;
-            const separator = document.createElement("span");
-            separator.dataset.part = "separator";
-            separator.textContent = separatorContent;
-            nodes.push(separator);
-
-            const segmentElement = this.createSegment(segment, "segment", isLeaf);
-            if (!isLeaf) {
-                this.listen(segmentElement, "click", () => {
-                    const path = segments.slice(0, index + 1).join(joinSeparator);
-                    const finalPath = trailingParentSeparator
-                        ? path + joinSeparator
-                        : path;
-                    this.props.onChange(finalPath);
-                });
-            }
-            nodes.push(segmentElement);
+            parts.push({
+                key: `separator:${index}`,
+                part: "separator",
+                text: separatorContent,
+                current: false,
+            });
+            parts.push({
+                key: `segment:${index}`,
+                part: "segment",
+                text: segment,
+                current: index === segments.length - 1,
+                segmentIndex: index,
+            });
         });
 
-        this.root.replaceChildren(...(clipStart ? nodes.reverse() : nodes));
+        this.parts?.update(clipStart ? parts.slice().reverse() : parts);
     }
 
-    private createSegment(
-        text: string,
-        part: "root" | "segment",
-        current: boolean,
-    ): HTMLSpanElement {
-        const element = document.createElement("span");
-        element.dataset.part = part;
-        if (current) element.dataset.current = "";
-        element.textContent = text;
-        return element;
+    private updatePart(element: HTMLSpanElement, part: BreadcrumbPart): void {
+        element.dataset.part = part.part;
+        if (part.current) element.dataset.current = "";
+        else delete element.dataset.current;
+        if (part.segmentIndex === undefined) delete element.dataset.index;
+        else element.dataset.index = String(part.segmentIndex);
+        element.textContent = part.text;
     }
 
-    private readonly onRootClick = (): void => {
-        this.props.onChange("");
+    private readonly onSegmentClick = (event: MouseEvent): void => {
+        const target = (event.target as Element | null)?.closest<HTMLSpanElement>("span[data-part]");
+        if (!target || target.parentElement !== this.root) return;
+
+        if (target.dataset.part === "root") {
+            if (target.dataset.current === undefined) this.props.onChange("");
+            return;
+        }
+        if (target.dataset.part !== "segment" || target.dataset.current !== undefined) return;
+
+        const segmentIndex = Number(target.dataset.index);
+        const { value, separators = "/\\", trailingParentSeparator = false } = this.props;
+        const segments = value ? splitWithSeparators(value, separators) : [];
+        if (!Number.isInteger(segmentIndex) || segmentIndex < 0 || segmentIndex >= segments.length - 1) return;
+        const joinSeparator = separators[0];
+        const path = segments.slice(0, segmentIndex + 1).join(joinSeparator);
+        this.props.onChange(trailingParentSeparator ? path + joinSeparator : path);
     };
 
     private applyConstructionRestProps(props: BreadcrumbProps): void {

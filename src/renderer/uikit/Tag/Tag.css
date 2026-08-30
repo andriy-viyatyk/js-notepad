@@ -60,6 +60,7 @@
         color: inherit;
         opacity: 0.6;
     }
+    [data-type="tag"] [data-part="remove"][hidden] { display: none; }
     [data-type="tag"] [data-part="remove"] svg { width: 12px; height: 12px; }
     [data-type="tag"] [data-part="remove"]:hover { opacity: 1; }
     [data-type="tag"] [data-part="remove"]:focus-visible {

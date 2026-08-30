@@ -2,7 +2,7 @@ import { TDialogModel } from "../../core/state/model";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/Dialog";
+import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -11,9 +11,7 @@ import type { TrustBoardDialogProps } from "./TrustBoardDialog";
 import "../../uikit/Button/Button.css";
 import "../../uikit/Dialog/Dialog.css";
 
-type TrustBoardDialogModel = TDialogModel<TrustBoardDialogProps, boolean> & {
-    handleKeyDown(event: KeyboardEvent): void;
-};
+type TrustBoardDialogModel = TDialogModel<TrustBoardDialogProps, boolean>;
 
 export class TrustBoardDialogView extends VanillaView<DialogViewProps> {
     private readonly model: TrustBoardDialogModel;
@@ -67,7 +65,7 @@ export class TrustBoardDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "trust-board-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event),
+            onEscape: () => model.close(false),
             children: contentView.root,
         } as DialogProps & { className?: string });
 

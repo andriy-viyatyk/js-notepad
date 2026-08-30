@@ -4,7 +4,7 @@ import {
     type SideBarPanelHeaderHandle,
 } from "../../../ui/secondary-views/SideBarPanelHeaderView";
 import { CategoryListView } from "../../../uikit/CategoryList/CategoryListView";
-import type { CategoryListProps } from "../../../uikit/CategoryList/CategoryList";
+import type { CategoryListProps } from "../../../uikit/CategoryList/CategoryListView";
 import "../../../uikit/CategoryList/CategoryList.css";
 import { createPanelElement } from "../../../uikit/Panel/panel-style";
 import "../../../uikit/Panel/Panel.css";

@@ -43,8 +43,8 @@ export class RecentFileListView extends VanillaView<RecentFileListProps> {
         this.fileList.update(this.fileListProps());
     }
 
-    public get model() {
-        return this.fileList.model;
+    public showSearch(): void {
+        this.fileList.showSearch();
     }
 
     public async reload(): Promise<void> {

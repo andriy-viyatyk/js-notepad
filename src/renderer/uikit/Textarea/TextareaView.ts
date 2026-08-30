@@ -1,5 +1,6 @@
 import { applyRestProps, clearRestListeners, createRestPropsState } from "../shared/dom-props";
 import type { NativeHTMLAttributes, RestPropsState } from "../shared/dom-props";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import { VanillaView } from "../shared/vanilla-view";
 
 export interface TextareaProps
@@ -94,7 +95,7 @@ export class TextareaView extends VanillaView<TextareaProps> {
     private editableListenerReleases: Array<() => void> = [];
     private lastSyncedValue: string | undefined;
     private previousAutoFocus = false;
-    private autoFocusTimer: ReturnType<typeof setTimeout> | undefined;
+    private autoFocusDisposer: (() => void) | undefined;
 
     public constructor(props: TextareaProps) {
         super(props, document.createElement("div"));
@@ -235,16 +236,14 @@ export class TextareaView extends VanillaView<TextareaProps> {
     private scheduleAutoFocus(autoFocus: boolean | undefined): void {
         this.cancelAutoFocus();
         if (!autoFocus) return;
-        this.autoFocusTimer = setTimeout(() => {
-            this.autoFocusTimer = undefined;
-            this.root.focus();
-        }, 0);
+        // The parent inserts this child before the next paint; focus after that paint so the
+        // mounted textarea is available in its final layout.
+        this.autoFocusDisposer = focusAfterPaint(this.root);
     }
 
     private cancelAutoFocus(): void {
-        if (this.autoFocusTimer === undefined) return;
-        clearTimeout(this.autoFocusTimer);
-        this.autoFocusTimer = undefined;
+        this.autoFocusDisposer?.();
+        this.autoFocusDisposer = undefined;
     }
 
     private setOptionalDataset(key: string, value: string | undefined): void {

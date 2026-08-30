@@ -51,12 +51,6 @@ class PasswordDialogModel extends TDialogModel<PasswordDialogState, string> {
         void this.close(password);
     };
 
-    handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            void this.close(undefined);
-        }
-    };
 }
 
 registerDialogView(passwordDialogId, PasswordDialogView);

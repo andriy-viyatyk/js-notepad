@@ -35,13 +35,16 @@ export interface NotebookEditorState extends EditorStateBase {
     // View-derived — present on state for reactivity, stripped from
     // getRestoreData. Recomputed from host content via loadData /
     // loadCategories / loadTags / applyFilters.
-    data: NotebookData;
+    data: { state: NotebookData["state"] };
     error: string | undefined;
     categories: string[];
     categoriesSize: { [key: string]: number };
     tags: string[];
     tagsSize: { [key: string]: number };
-    filteredNotes: NoteItem[];
+    notesVersion: number;
+    notesCount: number;
+    filteredVersion: number;
+    filteredCount: number;
     expandedNoteId: string;
     // Transient UI state — not persisted:
     searchText: string;
@@ -55,13 +58,16 @@ export const defaultNotebookEditorState: NotebookEditorState = {
     expandedPanel: "categories",
     selectedCategory: "",
     selectedTag: "",
-    data: { notes: [], state: {} },
+    data: { state: {} },
     error: undefined,
     categories: [],
     categoriesSize: {},
     tags: [],
     tagsSize: {},
-    filteredNotes: [],
+    notesVersion: 0,
+    notesCount: 0,
+    filteredVersion: 0,
+    filteredCount: 0,
     expandedNoteId: "",
     searchText: "",
 };
@@ -105,6 +111,27 @@ function getContentSearchText(note: NoteItem): string {
     return content.content;
 }
 
+function freezeNote(note: NoteItem): NoteItem {
+    return Object.freeze(note);
+}
+
+interface CategoriesProjection {
+    categories: string[];
+    categoriesSize: { [key: string]: number };
+}
+
+interface TagsProjection {
+    tags: string[];
+    tagsSize: { [key: string]: number };
+}
+
+interface FilterOverrides {
+    selectedCategory?: string;
+    selectedTag?: string;
+    expandedPanel?: ExpandedPanel;
+    searchText?: string;
+}
+
 // =============================================================================
 // Editor class
 // =============================================================================
@@ -113,8 +140,11 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
     readonly editorId = "notebook-view";
     protected readonly displayName = "Notebook";
 
-    // NB4 — ref-equality marker for serialization skip.
-    private lastSerializedData: NotebookData | null = null;
+    // Version/state snapshot prevents duplicate host writes.
+    private notes: NoteItem[] = [];
+    private filteredNotes: NoteItem[] = [];
+    private readonly notesById = new Map<string, NoteItem>();
+    private lastSerializedSnapshot: { notesVersion: number; state: NotebookData["state"] } | null = null;
     // Incremental-filter optimization (today's pattern preserved):
     private lastFilterState = {
         searchText: "",
@@ -204,7 +234,11 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
         // today's NotebookViewModel.onInit subscription.
         this.registerHostSubscription(this.state.subscribe(
             () => this.onDataChangedDebounced(),
-            (state) => ({ data: state.data, error: state.error }),
+            (state) => ({
+                notesVersion: state.notesVersion,
+                state: state.data.state,
+                error: state.error,
+            }),
         ));
     }
 
@@ -226,9 +260,14 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
         // Don't serialize when there's a parse error - preserves the user's raw content
         if (error) return;
         if (!this._host) return;
-        if (data !== this.lastSerializedData) {
-            this.lastSerializedData = data;
-            const content = JSON.stringify({ type: "note-editor", ...data }, null, 4);
+        const snapshot = { notesVersion: this.state.get().notesVersion, state: data.state };
+        if (
+            !this.lastSerializedSnapshot
+            || this.lastSerializedSnapshot.notesVersion !== snapshot.notesVersion
+            || this.lastSerializedSnapshot.state !== snapshot.state
+        ) {
+            this.lastSerializedSnapshot = snapshot;
+            const content = JSON.stringify({ type: "note-editor", notes: this.notes, state: data.state }, null, 4);
             this.writeToHost(content, true);
         }
     };
@@ -237,31 +276,60 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
     loadData = (content: string): void => {
         if (!content || content.trim() === "") {
-            // Empty content - initialize with empty data but don't mark as changed
+            this.notes = [];
+            this.notesById.clear();
+            this.filteredNotes = [];
+            const categories = this.buildCategories();
+            const tags = this.buildTags();
             this.state.update((s) => {
-                s.data = { notes: [], state: {} };
+                s.data = { state: {} };
                 s.error = undefined;
+                s.categories = categories.categories;
+                s.categoriesSize = categories.categoriesSize;
+                s.tags = tags.tags;
+                s.tagsSize = tags.tagsSize;
+                s.notesVersion += 1;
+                s.notesCount = 0;
+                s.filteredVersion += 1;
+                s.filteredCount = 0;
             });
-            // Mark as already serialized so we don't save empty object back
-            this.lastSerializedData = this.state.get().data;
+            this.lastSerializedSnapshot = {
+                notesVersion: this.state.get().notesVersion,
+                state: this.state.get().data.state,
+            };
             return;
         }
 
         try {
             const parsed = JSON.parse(content);
+            this.notes = (Array.isArray(parsed.notes) ? parsed.notes : []).map((note: NoteItem) =>
+                freezeNote(note),
+            );
+            this.notesById.clear();
+            for (const note of this.notes) {
+                if (!this.notesById.has(note.id)) this.notesById.set(note.id, note);
+            }
+            const categories = this.buildCategories();
+            const tags = this.buildTags();
+            this.filteredNotes = this.calculateFilteredNotes(true);
             this.state.update((s) => {
                 s.data = {
-                    notes: Array.isArray(parsed.notes) ? parsed.notes : [],
                     state: parsed.state || {},
                 };
                 s.error = undefined;
+                s.categories = categories.categories;
+                s.categoriesSize = categories.categoriesSize;
+                s.tags = tags.tags;
+                s.tagsSize = tags.tagsSize;
+                s.notesVersion += 1;
+                s.notesCount = this.notes.length;
+                s.filteredVersion += 1;
+                s.filteredCount = this.filteredNotes.length;
             });
-            // Mark loaded data as already serialized so we don't save it back
-            this.lastSerializedData = this.state.get().data;
-            // Build category tree, tags list and apply filters
-            this.loadCategories();
-            this.loadTags();
-            this.applyFilters();
+            this.lastSerializedSnapshot = {
+                notesVersion: this.state.get().notesVersion,
+                state: this.state.get().data.state,
+            };
         } catch (e: unknown) {
             const message = errMessage(e);
             this.state.update((s) => {
@@ -273,8 +341,16 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
     // ── Notes ───────────────────────────────────────────────────────────
 
     get notesCount(): number {
-        return this.state.get().data.notes.length;
+        return this.state.get().notesCount;
     }
+
+    getNotes = (): readonly NoteItem[] => {
+        return this.notes.slice();
+    };
+
+    getFilteredNoteAt = (index: number): NoteItem | undefined => {
+        return this.filteredNotes[index];
+    };
 
     addNote = (): NoteItem => {
         const now = new Date().toISOString();
@@ -295,7 +371,7 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             title = searchText.trim();
         }
 
-        const newNote: NoteItem = {
+        const newNote = freezeNote({
             id: crypto.randomUUID(),
             title,
             category,
@@ -307,14 +383,11 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             },
             createdDate: now,
             updatedDate: now,
-        };
-
-        this.state.update((s) => {
-            s.data.notes.unshift(newNote);
         });
-        this.loadCategories();
-        this.loadTags();
-        this.applyFilters();
+
+        this.notes.unshift(newNote);
+        this.notesById.set(newNote.id, newNote);
+        this.publishNoteCollectionChange({ categories: true, tags: true });
         return newNote;
     };
 
@@ -328,12 +401,11 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
     // ── Category management ─────────────────────────────────────────────
 
-    loadCategories = () => {
-        const notes = this.state.get().data.notes;
+    private buildCategories = (): CategoriesProjection => {
         const categoriesSet = new Set<string>();
         const categoriesSize: { [key: string]: number } = {};
 
-        notes.forEach((note) => {
+        this.notes.forEach((note) => {
             if (note.category) {
                 categoriesSet.add(note.category);
                 const categoryPath = splitWithSeparators(note.category, "/\\");
@@ -346,9 +418,14 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             categoriesSize[""] = (categoriesSize[""] || 0) + 1;
         });
 
+        return { categories: Array.from(categoriesSet), categoriesSize };
+    };
+
+    loadCategories = () => {
+        const categories = this.buildCategories();
         this.state.update((s) => {
-            s.categories = Array.from(categoriesSet);
-            s.categoriesSize = categoriesSize;
+            s.categories = categories.categories;
+            s.categoriesSize = categories.categoriesSize;
         });
     };
 
@@ -373,16 +450,15 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
     // ── Tag management ──────────────────────────────────────────────────
 
-    loadTags = () => {
-        const notes = this.state.get().data.notes;
+    private buildTags = (): TagsProjection => {
         const tagsSet = new Set<string>();
         const tagsSize: { [key: string]: number } = {};
         const separator = ":";
 
         // Total count for "All" (empty string key)
-        tagsSize[""] = notes.length;
+        tagsSize[""] = this.notes.length;
 
-        notes.forEach((note) => {
+        this.notes.forEach((note) => {
             note.tags?.forEach((tag) => {
                 tagsSet.add(tag);
 
@@ -396,9 +472,14 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             });
         });
 
+        return { tags: Array.from(tagsSet), tagsSize };
+    };
+
+    loadTags = () => {
+        const tags = this.buildTags();
         this.state.update((s) => {
-            s.tags = Array.from(tagsSet);
-            s.tagsSize = tagsSize;
+            s.tags = tags.tags;
+            s.tagsSize = tags.tagsSize;
         });
     };
 
@@ -428,20 +509,17 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
     // ── Filtering ───────────────────────────────────────────────────────
 
-    applyFilters = () => {
-        const {
-            data,
-            selectedCategory,
-            selectedTag,
-            expandedPanel,
-            searchText,
-            filteredNotes,
-        } = this.state.get();
+    private calculateFilteredNotes = (forceFull: boolean, overrides: FilterOverrides = {}): NoteItem[] => {
+        const state = this.state.get();
+        const selectedCategory = overrides.selectedCategory ?? state.selectedCategory;
+        const selectedTag = overrides.selectedTag ?? state.selectedTag;
+        const expandedPanel = overrides.expandedPanel ?? state.expandedPanel;
+        const searchText = overrides.searchText ?? state.searchText;
         const last = this.lastFilterState;
 
         // Optimization: if only search text grew (user typing), filter from previous results
         const searchExtended =
-            searchText.startsWith(last.searchText) && last.searchText !== "";
+            !forceFull && searchText.startsWith(last.searchText) && last.searchText !== "";
         const categoryTagUnchanged =
             selectedCategory === last.selectedCategory &&
             selectedTag === last.selectedTag &&
@@ -450,9 +528,9 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
         let filtered: NoteItem[];
 
         if (searchExtended && categoryTagUnchanged) {
-            filtered = filteredNotes;
+            filtered = this.filteredNotes;
         } else {
-            filtered = data.notes;
+            filtered = this.notes.slice();
 
             if (expandedPanel === "categories" && selectedCategory) {
                 filtered = filtered.filter((note) =>
@@ -498,9 +576,59 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             expandedPanel,
         };
 
+        return filtered;
+    };
+
+    private publishNoteCollectionChange = (options: {
+        categories?: boolean;
+        tags?: boolean;
+        filter?: FilterOverrides;
+        updateState?: (state: NotebookEditorState) => void;
+    }): void => {
+        const categories = options.categories ? this.buildCategories() : undefined;
+        const tags = options.tags ? this.buildTags() : undefined;
+        this.filteredNotes = this.calculateFilteredNotes(true, options.filter);
+
         this.state.update((s) => {
-            s.filteredNotes = filtered;
+            if (categories) {
+                s.categories = categories.categories;
+                s.categoriesSize = categories.categoriesSize;
+            }
+            if (tags) {
+                s.tags = tags.tags;
+                s.tagsSize = tags.tagsSize;
+            }
+            s.notesVersion += 1;
+            s.notesCount = this.notes.length;
+            s.filteredVersion += 1;
+            s.filteredCount = this.filteredNotes.length;
+            options.updateState?.(s);
         });
+    };
+
+    applyFilters = () => {
+        this.filteredNotes = this.calculateFilteredNotes(false);
+        this.state.update((s) => {
+            s.filteredVersion += 1;
+            s.filteredCount = this.filteredNotes.length;
+        });
+    };
+
+    private replaceNote = (
+        id: string,
+        update: (note: NoteItem) => NoteItem,
+        options: { categories?: boolean; tags?: boolean } = {},
+    ): NoteItem | undefined => {
+        const note = this.notesById.get(id);
+        if (!note) return undefined;
+        const index = this.notes.indexOf(note);
+        if (index < 0) return undefined;
+
+        const replacement = freezeNote(update(note));
+        this.notes[index] = replacement;
+        this.notesById.set(id, replacement);
+        this.publishNoteCollectionChange(options);
+        return replacement;
     };
 
     deleteNote = async (id: string, skipConfirm = false) => {
@@ -518,13 +646,19 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             }
         }
 
-        this.state.update((s) => {
-            s.data.notes = s.data.notes.filter((note) => note.id !== id);
-            delete s.data.state[id];
+        const note = this.notesById.get(id);
+        if (!note) return;
+        const index = this.notes.indexOf(note);
+        if (index < 0) return;
+        this.notes.splice(index, 1);
+        this.notesById.delete(id);
+        this.publishNoteCollectionChange({
+            categories: true,
+            tags: true,
+            updateState: (s) => {
+                delete s.data.state[id];
+            },
         });
-        this.loadCategories();
-        this.loadTags();
-        this.applyFilters();
     };
 
     expandNote = (id: string) => {
@@ -540,133 +674,108 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
     };
 
     addComment = (id: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note && note.comment === undefined) {
-                note.comment = "";
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.applyFilters();
+        const note = this.notesById.get(id);
+        if (!note || note.comment !== undefined) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            comment: "",
+            updatedDate: new Date().toISOString(),
+        }));
     };
 
     updateNoteComment = (id: string, comment: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.comment = comment;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            comment,
+            updatedDate: new Date().toISOString(),
+        }));
     };
 
     removeComment = (id: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.comment = undefined;
-            }
-        });
-        this.applyFilters();
+        const note = this.notesById.get(id);
+        if (!note || note.comment === undefined) return;
+        this.replaceNote(id, (current) => ({ ...current, comment: undefined }));
     };
 
     // ── Note content updates (called by NoteItemEditModel) ──────────────
 
     getNote = (id: string): NoteItem | undefined => {
-        return this.state.get().data.notes.find((note) => note.id === id);
+        return this.notesById.get(id);
     };
 
     updateNoteContent = (id: string, content: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.content.content = content;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            content: { ...current.content, content },
+            updatedDate: new Date().toISOString(),
+        }));
     };
 
     updateNoteLanguage = (id: string, language: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.content.language = language;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            content: { ...current.content, language },
+            updatedDate: new Date().toISOString(),
+        }));
     };
 
     updateNoteEditor = (id: string, editor: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.content.editor = editor;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            content: { ...current.content, editor },
+            updatedDate: new Date().toISOString(),
+        }));
     };
 
     updateNoteTitle = (id: string, title: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.title = title;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            title,
+            updatedDate: new Date().toISOString(),
+        }));
     };
 
     updateNoteCategory = (id: string, category: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.category = category;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.loadCategories();
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            category,
+            updatedDate: new Date().toISOString(),
+        }), { categories: true });
     };
 
     addNoteTag = (id: string, tag: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.tags = [...note.tags, tag];
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.loadTags();
-        this.applyFilters();
+        if (!this.notesById.has(id)) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            tags: [...current.tags, tag],
+            updatedDate: new Date().toISOString(),
+        }), { tags: true });
     };
 
     removeNoteTag = (id: string, tagIndex: number) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note) {
-                note.tags = note.tags.filter((_, i) => i !== tagIndex);
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.loadTags();
-        this.applyFilters();
+        const note = this.notesById.get(id);
+        if (!note || tagIndex < 0 || tagIndex >= note.tags.length) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            tags: current.tags.filter((_, i) => i !== tagIndex),
+            updatedDate: new Date().toISOString(),
+        }), { tags: true });
     };
 
     updateNoteTag = (id: string, tagIndex: number, newTag: string) => {
-        this.state.update((s) => {
-            const note = s.data.notes.find((n) => n.id === id);
-            if (note && tagIndex >= 0 && tagIndex < note.tags.length) {
-                note.tags[tagIndex] = newTag;
-                note.updatedDate = new Date().toISOString();
-            }
-        });
-        this.loadTags();
-        this.applyFilters();
+        const note = this.notesById.get(id);
+        if (!note || tagIndex < 0 || tagIndex >= note.tags.length) return;
+        this.replaceNote(id, (current) => ({
+            ...current,
+            tags: current.tags.map((tag, index) => index === tagIndex ? newTag : tag),
+            updatedDate: new Date().toISOString(),
+        }), { tags: true });
     };
 
     // ── Drag-and-drop ───────────────────────────────────────────────────
@@ -691,7 +800,7 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
     private createNoteFromLink = (link: ILink, category: string) => {
         const now = new Date().toISOString();
-        const note: NoteItem = {
+        const note = freezeNote({
             id: crypto.randomUUID(),
             title: link.title || link.href,
             category,
@@ -702,12 +811,10 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             },
             createdDate: now,
             updatedDate: now,
-        };
-        this.state.update((s) => {
-            s.data.notes.unshift(note);
         });
-        this.loadCategories();
-        this.applyFilters();
+        this.notes.unshift(note);
+        this.notesById.set(note.id, note);
+        this.publishNoteCollectionChange({ categories: true });
     };
 
     getCategoryDragData = (item: CategoryItem): { category: string } | null => {
@@ -725,7 +832,7 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
         if (newCategory === fromCategory) return;
 
-        const notes = this.state.get().data.notes;
+        const notes = this.notes;
         const count = notes.filter(
             (n) => n.category === fromCategory || n.category.startsWith(fromCategory + "/"),
         ).length;
@@ -737,23 +844,32 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
 
         if (result !== "Move") return;
 
-        this.state.update((s) => {
-            for (const note of s.data.notes) {
-                if (note.category === fromCategory) {
-                    note.category = newCategory;
-                } else if (note.category.startsWith(fromCategory + "/")) {
-                    note.category = newCategory + note.category.slice(fromCategory.length);
-                }
+        const selectedCategory = this.state.get().selectedCategory;
+        const nextSelectedCategory = selectedCategory === fromCategory
+            ? newCategory
+            : selectedCategory.startsWith(fromCategory + "/")
+                ? newCategory + selectedCategory.slice(fromCategory.length)
+                : selectedCategory;
+        for (let index = 0; index < this.notes.length; index += 1) {
+            const note = this.notes[index];
+            let category: string | undefined;
+            if (note.category === fromCategory) {
+                category = newCategory;
+            } else if (note.category.startsWith(fromCategory + "/")) {
+                category = newCategory + note.category.slice(fromCategory.length);
             }
-            const sel = s.selectedCategory;
-            if (sel === fromCategory) {
-                s.selectedCategory = newCategory;
-            } else if (sel.startsWith(fromCategory + "/")) {
-                s.selectedCategory = newCategory + sel.slice(fromCategory.length);
-            }
+            if (category === undefined) continue;
+            const replacement = freezeNote({ ...note, category });
+            this.notes[index] = replacement;
+            this.notesById.set(note.id, replacement);
+        }
+        this.publishNoteCollectionChange({
+            categories: true,
+            filter: { selectedCategory: nextSelectedCategory },
+            updateState: (s) => {
+                s.selectedCategory = nextSelectedCategory;
+            },
         });
-        this.loadCategories();
-        this.applyFilters();
     };
 
     // ── Note height persistence (prevents scroll jumping on virtualized remount) ─

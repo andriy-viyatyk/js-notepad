@@ -1,4 +1,4 @@
-import type { ProgressBarProps } from "./ProgressBar";
+import type { ProgressBarProps } from "./ProgressBarView";
 import { ProgressBarView } from "./ProgressBarView";
 import type { Story } from "../../editors/storybook/storyTypes";
 

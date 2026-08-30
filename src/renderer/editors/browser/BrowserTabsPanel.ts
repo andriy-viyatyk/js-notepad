@@ -23,6 +23,10 @@ interface TabItemProps {
 
 export class TabItemView extends VanillaView<TabItemProps> {
     private readonly favicon = document.createElement("div");
+    private faviconImage: HTMLImageElement | undefined;
+    private faviconImageRelease: (() => void) | undefined;
+    private faviconUrl = "";
+    private readonly faviconIcon = createIconElement("globe");
     private readonly title = document.createElement("div");
     private mute: IconButtonView | undefined;
     private close: IconButtonView | undefined;
@@ -30,7 +34,7 @@ export class TabItemView extends VanillaView<TabItemProps> {
 
     public constructor(props: TabItemProps) {
         const root = document.createElement("div"); root.draggable = true; root.dataset.tabItem = "";
-        super(props, root); this.favicon.dataset.tabFavicon = ""; this.title.dataset.tabTitle = ""; root.append(this.favicon, this.title);
+        super(props, root); this.favicon.dataset.tabFavicon = ""; this.title.dataset.tabTitle = ""; this.favicon.append(this.faviconIcon); root.append(this.favicon, this.title);
     }
     protected onMount(): void {
         this.listen(this.root, "click", () => this.props.model.tabs.switchTab(this.props.tab.id));
@@ -54,7 +58,38 @@ export class TabItemView extends VanillaView<TabItemProps> {
         else if (!props.showClose && this.close) { this.releaseChild(this.close); this.close = undefined; }
         this.close?.update({ name: "tab-close", size: "sm", icon: "close", title: "Close Tab", onClick: (event) => { event.stopPropagation(); props.model.tabs.closeTab(props.tab.id); } });
     }
-    private renderFavicon(url: string): void { this.favicon.replaceChildren(); const icon = createIconElement("globe"); if (url) { icon.dataset.hidden = ""; const image = document.createElement("img"); image.src = url; image.alt = ""; image.referrerPolicy = "no-referrer"; this.listen(image, "error", () => { delete icon.dataset.hidden; image.remove(); }); this.favicon.append(image); } this.favicon.append(icon); }
+    private renderFavicon(url: string): void {
+        if (!url) {
+            this.removeFaviconImage();
+            this.faviconUrl = "";
+            delete this.faviconIcon.dataset.hidden;
+            return;
+        }
+        this.faviconIcon.dataset.hidden = "";
+        if (this.faviconImage && this.faviconUrl === url) return;
+
+        this.removeFaviconImage();
+        const image = document.createElement("img");
+        image.alt = "";
+        image.referrerPolicy = "no-referrer";
+        this.faviconImage = image;
+        this.faviconUrl = url;
+        this.faviconImageRelease = this.listen(image, "error", () => this.onFaviconError(image));
+        this.favicon.insertBefore(image, this.faviconIcon);
+        image.src = url;
+    }
+    private removeFaviconImage(): void {
+        this.faviconImageRelease?.();
+        this.faviconImageRelease = undefined;
+        this.faviconImage?.remove();
+        this.faviconImage = undefined;
+    }
+    private readonly onFaviconError = (image: HTMLImageElement): void => {
+        if (this.faviconImage !== image) return;
+        this.removeFaviconImage();
+        this.faviconUrl = "";
+        delete this.faviconIcon.dataset.hidden;
+    };
     private toggle(name: string, value: boolean): void { if (value) this.root.setAttribute(name, ""); else this.root.removeAttribute(name); }
     private readonly onDragStart = (event: DragEvent): void => { event.stopPropagation(); setTraitDragData(event.dataTransfer, TraitTypeId.BrowserTab, { tabId: this.props.tab.id }); this.dragging = true; this.sync(this.props); };
     private readonly onDragEnd = (): void => { this.dragging = false; this.sync(this.props); };

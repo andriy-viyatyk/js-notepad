@@ -58,7 +58,7 @@ function initialState(editor: GraphExpansionHost): GraphExpansionState {
 export class GraphExpansionSettingsView extends VanillaView<GraphExpansionSettingsProps> {
     private readonly driver: ComponentModelDriver<GraphExpansionState, GraphExpansionSettingsProps, GraphExpansionModel>;
     private readonly editor: GraphExpansionHost;
-    private readonly items: IListBoxItem[];
+    private items: IListBoxItem[];
     private select: SelectView<IListBoxItem> | undefined;
     private depthInput: InputView | undefined;
     private maxInput: InputView | undefined;
@@ -119,6 +119,8 @@ export class GraphExpansionSettingsView extends VanillaView<GraphExpansionSettin
         if (props.editor !== this.editor) {
             throw new Error("Graph expansion settings received a different editor instance.");
         }
+        this.items = this.createItems(this.editor);
+        this.select?.update(this.selectProps());
         this.driver.update(props);
     }
 

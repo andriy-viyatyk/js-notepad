@@ -46,6 +46,8 @@ class MnemeStatusModel {
      *  probe confirms no embedding model is provisioned, route the user to the
      *  config editor (where they can download it). Re-armed when Mneme is disabled. */
     private autoOpenedConfig = false;
+    private autoOpenTimer: ReturnType<typeof setTimeout> | null = null;
+    private autoOpenGeneration = 0;
 
     /** Wire settings + sidecar events. Call once at app startup. */
     init(): void {
@@ -108,6 +110,11 @@ class MnemeStatusModel {
             }
             void this.probe();
         } else {
+            this.autoOpenGeneration++;
+            if (this.autoOpenTimer) {
+                clearTimeout(this.autoOpenTimer);
+                this.autoOpenTimer = null;
+            }
             if (this.pollTimer) {
                 clearInterval(this.pollTimer);
                 this.pollTimer = null;
@@ -142,7 +149,16 @@ class MnemeStatusModel {
             // config page rather than duplicating it.
             if (status && !ready && !this.autoOpenedConfig) {
                 this.autoOpenedConfig = true;
-                setTimeout(() => this.openConfigEditor(), 500);
+                const generation = ++this.autoOpenGeneration;
+                // Wait 500 ms for the definitive health result and related state changes to settle
+                // before opening the configuration page.
+                this.autoOpenTimer = setTimeout(() => {
+                    this.autoOpenTimer = null;
+                    const current = this.state.get();
+                    if (generation !== this.autoOpenGeneration
+                        || !current.enabled || !current.running || current.modelReady) return;
+                    this.openConfigEditor();
+                }, 500);
             }
         } catch {
             // Probe failed (or timed out) — treat the model as not ready; the shared

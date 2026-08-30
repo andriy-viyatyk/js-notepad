@@ -1,6 +1,6 @@
 import { VanillaView } from "../shared/vanilla-view";
 import { MinimapView } from "./MinimapView";
-import type { MinimapProps } from "./Minimap";
+import type { MinimapProps } from "./MinimapView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface MinimapDemoViewProps {}

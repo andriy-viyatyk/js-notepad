@@ -1,8 +1,21 @@
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
+import {
+    applyRestProps,
+    clearRestListeners,
+    createRestPropsState,
+    type NativeHTMLAttributes,
+    type RestPropsState,
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
-import type { TruncatedTextProps } from "./TruncatedText";
+
+export interface TruncatedTextProps
+    extends Omit<NativeHTMLAttributes<HTMLSpanElement>, "style" | "className" | "children"> {
+    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
+     *  multiple instances in DOM inspector output. Never used for styling. */
+    name?: string;
+    children?: SlotContent;
+}
 
 export type TruncatedTextViewProps = TruncatedTextProps;
 

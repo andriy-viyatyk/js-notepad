@@ -1,7 +1,26 @@
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
+import {
+    applyRestProps,
+    clearRestListeners,
+    createRestPropsState,
+    type NativeHTMLAttributes,
+    type RestPropsState,
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
-import type { ProgressBarProps } from "./ProgressBar";
 import "./ProgressBar.css";
+
+type Variant = "default" | "success" | "warning" | "danger";
+
+export interface ProgressBarProps
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    name?: string;
+    value?: number;
+    max?: number;
+    completed?: boolean;
+    width?: number | string;
+    height?: number;
+    variant?: Variant;
+    "aria-label"?: string;
+}
 
 type ProgressState = "completed" | "determinate" | "indeterminate";
 

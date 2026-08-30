@@ -73,6 +73,8 @@ export interface FileSearchInternalState
     filesSearched: number;
     /** Bumped once per arriving batch — the view's cue to rebuild its filtered rows. */
     resultsVersion: number;
+    /** First filtered row whose rendered result changed for the current resultsVersion. */
+    firstChangedRow: number;
     /** True when the search stopped early at the result cap. */
     truncated: boolean;
 }
@@ -88,6 +90,7 @@ export const defaultFileSearchState: FileSearchInternalState = {
     totalFiles: 0,
     filesSearched: 0,
     resultsVersion: 0,
+    firstChangedRow: 0,
     truncated: false,
 };
 
@@ -120,6 +123,7 @@ export class FileSearchModel {
                   isSearching: false,
                   filesSearched: 0,
                   resultsVersion: 0,
+                  firstChangedRow: 0,
                   truncated: false,
               }
             : { ...defaultFileSearchState };
@@ -143,6 +147,7 @@ export class FileSearchModel {
         this.onIpc<SearchResultBatch>(SearchChannel.result, (data) => {
             if (data.searchId !== this.currentSearchId) return;
 
+            const firstChangedRow = this.getFilteredResults().length;
             let batchMatches = 0;
             for (const file of data.files) {
                 this.allResults.push({
@@ -175,6 +180,7 @@ export class FileSearchModel {
                 s.totalMatches += batchMatches;
                 s.totalFiles += data.files.length;
                 s.filesSearched = data.filesSearched;
+                s.firstChangedRow = firstChangedRow;
                 s.resultsVersion += 1;
             });
         });
@@ -227,6 +233,7 @@ export class FileSearchModel {
             s.totalFiles = 0;
             s.filesSearched = 0;
             s.truncated = false;
+            s.firstChangedRow = 0;
             s.resultsVersion += 1;
         });
 
@@ -288,6 +295,7 @@ export class FileSearchModel {
                 s.totalFiles = 0;
                 s.filesSearched = 0;
                 s.truncated = false;
+                s.firstChangedRow = 0;
                 s.resultsVersion += 1;
             });
             this.emitStateChange();
@@ -332,8 +340,10 @@ export class FileSearchModel {
             (r): r is SearchResultFileRow => r.type === "file" && r.filePath === filePath,
         );
         if (!fileRow) return;
+        const filteredIndex = this.getFilteredResults().indexOf(fileRow);
         fileRow.expanded = !fileRow.expanded;
         this.state.update((s) => {
+            s.firstChangedRow = filteredIndex;
             s.resultsVersion += 1;
         });
     };
@@ -367,6 +377,7 @@ export class FileSearchModel {
             s.totalFiles = 0;
             s.filesSearched = 0;
             s.truncated = false;
+            s.firstChangedRow = 0;
             s.resultsVersion += 1;
         });
         this.emitStateChange();

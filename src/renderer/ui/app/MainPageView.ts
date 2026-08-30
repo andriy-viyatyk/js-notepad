@@ -55,6 +55,7 @@ export class MainPageView extends VanillaView<object> {
     private readonly mnemeIndicator = document.createElement("span");
     private readonly mcpIndicator = document.createElement("span");
     private readonly snipButton = document.createElement("button");
+    private readonly toggleMenuBar = (): void => app.window.toggleMenuBar();
     private snipMenu: MenuHandle | undefined;
 
     public constructor(props: object) {
@@ -62,7 +63,7 @@ export class MainPageView extends VanillaView<object> {
         this.root.className = "app-root";
         this.pageTabs = this.child(new PageTabsView({}));
         this.pages = this.child(new PagesView({}));
-        this.menuBar = this.child(new MenuBarView({ open: false, onClose: () => app.window.toggleMenuBar() }));
+        this.menuBar = this.child(new MenuBarView({ open: false, onClose: this.toggleMenuBar }));
         this.autoloadButton = this.child(new IconButtonView({ name: "autoload-reload", size: "sm", icon: "refresh", title: "Application scripts need to be reloaded. Click to reload.", onClick: () => autoloadService.loadScripts() }));
     }
 
@@ -170,7 +171,7 @@ export class MainPageView extends VanillaView<object> {
         this.zoomButton.textContent = `${Math.round(Math.pow(1.2, state.zoomLevel) * 100)}%`;
         this.toggleWindowButton.replaceChildren(createIconElement(state.isMaximized ? "window-restore" : "window-maximize"));
         this.toggleWindowButton.title = state.isMaximized ? "Restore" : "Maximize";
-        this.menuBar.update({ open: state.menuBarOpen, onClose: () => app.window.toggleMenuBar() });
+        this.menuBar.update({ open: state.menuBarOpen, onClose: this.toggleMenuBar });
         this.mcpIndicator.style.display = state.mcpRunning ? "" : "none";
         this.mcpIndicator.dataset.name = "mcp-indicator";
         this.mcpIndicator.className = "mcp-indicator";

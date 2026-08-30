@@ -6,7 +6,7 @@ import { createIconElement, type IconRef } from "../shared/slots";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { ToolbarView } from "./ToolbarView";
-import type { ToolbarProps } from "./Toolbar";
+import type { ToolbarProps } from "./ToolbarView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 function createContentsHost(): HTMLDivElement {

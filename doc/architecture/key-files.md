@@ -32,7 +32,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |
 | Path utilities           | `/src/renderer/core/utils/file-path.ts`           |
 | State primitives         | `/src/renderer/core/state/`                        |
-| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen`, `ownSubscription`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
+| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen` with early-release handles, `ownSubscription`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
 | Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
 | Conditional subtree ownership (stable `PropertyKey` keys, replacement-before-disposal, and root detachment) | `/src/renderer/uikit/shared/subtree-swap.ts` |
 | Callback-backed asynchronous DOM references used by virtualized views | `/src/renderer/uikit/shared/async-ref.ts` |
@@ -120,8 +120,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Shared text-host footer (`script` toggle · `footerContributions` slot · provider icon · encoding label; shared by built-in text editors and content-host boards via `BoardEditorView` — boards fill the contributions slot with a footer status label via `persephone.setStatusText`) | `/src/renderer/editors/base/ContentHostFooterView.ts` |
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
-| Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
-| Reusable minimap (scroll mirroring, drag navigation, and viewport indicator) | `/src/renderer/uikit/Minimap/` |
+| Reusable image viewport (view-owned zoom/pan DOM plus model geometry and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
+| Reusable minimap (view-owned source mirror/observation, model-owned geometry, drag navigation, and viewport indicator) | `/src/renderer/uikit/Minimap/` |
 | ISO date input seam (native date input view composed over `InputView`, with the public prop type retained for callers) | `/src/renderer/uikit/DateInput/DateInputView.ts`, `/src/renderer/uikit/DateInput/DateInput.ts` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.ts` |
 | Monaco widget hosts (VanillaView owners for single and diff Monaco widgets; imperative content writes, model ownership and deferred disposal) | `/src/renderer/editors/shared/MonacoEditorHostView.ts`, `/src/renderer/editors/shared/MonacoDiffEditorHostView.ts` |
@@ -138,7 +138,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Native Markdown body (find bar, minimap, scroll projection, and MarkdownBlock lifecycle) | `/src/renderer/editors/markdown/MarkdownBodyView.ts` |
 | Native Markdown block renderer (unified/remark pipeline, HAST overrides, and owned interactive nodes) | `/src/renderer/editors/markdown/MarkdownBlockView.ts` |
 | Hand-written HAST-to-DOM property and namespace conversion | `/src/renderer/editors/markdown/hast-dom.ts` |
-| Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
+| Log view editor (plain entry collection with versioned `renderChange` invalidation) | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code (Monaco colorize) | `/src/renderer/editors/shared/ColorizedCodeView.ts` |
 | Find bar (native input/buttons) | `/src/renderer/editors/shared/FindBarView.ts` |
 | Converted compare editor (native diff host and compare model orchestration) | `/src/renderer/editors/compare/CompareEditor.ts` |
@@ -152,7 +152,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | DOM-first editor icon resolver (tab + sidebar panel headers; `getIconElement`/file-icon fallback, returning `Element` or `null`) | `/src/renderer/components/icons/icon-elements.ts` |
 | DOM icon resolvers (file/language/board icon elements; no renderer `react-dom/server` dependency) | `/src/renderer/components/icons/icon-elements.ts`, `/src/renderer/theme/language-icons.ts`, `/src/renderer/editors/board/board-glyph-element.ts` |
 | Tree-provider item icon and HTTP favicon cache (directory/provider icons plus shared favicon lookup for link and browser surfaces) | `/src/renderer/components/icons/icon-elements.ts`, `/src/renderer/components/icons/favicon-cache.ts` |
-| Notebook editor          | `/src/renderer/editors/notebook/NotebookEditor.ts` |
+| Notebook editor (plain notes/filtered-notes collections, indexed lookup, and scalar version/count signals) | `/src/renderer/editors/notebook/NotebookEditor.ts` |
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
 | Settings page composition and section models | `/src/renderer/editors/settings/` |
@@ -259,7 +259,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Native OS file drag-out service (main; `startOsFileDrag` via `webContents.startDrag` — real CF_HDROP so Windows Explorer / Teams accept the dragged file; win32-only, shell icon via `app.getFileIcon` + fallback) | `/src/main/os-drag-service.ts` |
 | Provider-backed tree view model (the Explorer, Archive, Mneme, Script-library and link-category trees; lazy `list()` per expanded folder, `buildTree` refresh, expansion persisted as `expandedPaths`. `buildTree` re-lists children ONLY for currently-expanded paths, so a collapsed folder's subtree is dropped on every refresh — which is why the view opts into `Tree`'s `collapseDescendants`) | `/src/renderer/components/tree-provider/TreeProviderViewModel.ts` |
 | Native provider-tree and folder-content views (their prop/model contracts are exported through the live model modules; CategoryView retains its bounded editor-rendering island) | `/src/renderer/components/tree-provider/TreeProviderViewImpl.ts`, `/src/renderer/components/tree-provider/TreeProviderViewModel.ts`, `/src/renderer/components/tree-provider/CategoryViewImpl.ts`, `/src/renderer/components/tree-provider/CategoryViewModel.ts` |
-| File-search native view (progress bindings, result-version repainting, and VirtualGrid cell renderer) | `/src/renderer/components/file-search/FileSearchView.ts` |
+| File-search native view (progress bindings, first-changed-row invalidation, and VirtualGrid cell renderer) | `/src/renderer/components/file-search/FileSearchView.ts` |
 | Provider-tree plural selection (`state.selectedValues` — flat visible order, last entry is the primary row; fed by the Tree's `onSelectionChange` when the consumer opts into `multiSelect`. `operationItems`/`operationNodes` prune any selected item living inside a selected folder before EVERY plural action — a folder-level action already covers its descendants; `pruneSelectionToVisible` drops selections hidden by a collapse, wired to `onExpandChange(false)` + the `collapseAll` ref path but deliberately NOT to `buildTree`, where it would race `adoptSelection`/`revealItem`. `dragItemsFor(node)` decides what a drag carries — the whole selection when the row is in it, else that row alone — and feeds both the native OS drag-out and the in-process trait payload. The set-shaped work itself is not tree-specific and lives in the two shared modules below; this model supplies the nodes and re-lists afterwards) | `/src/renderer/components/tree-provider/TreeProviderViewModel.ts` |
 | Shared plural tree-provider actions (`supportsMultiSelect` — the one place that answers "may this provider be multi-selected", currently `type === "file"`; `pruneNestedItems` — drops any item living inside a selected folder, applied at every plural entry point because a folder-level action already covers its descendants; `buildMultiItemMenuItems` — the `Copy Paths (N)` / `Cut (N)` / `Copy (N)` / `Delete (N)` menu; `deleteItemsBatch` — one count-only confirm for N items, returning `"none" \| "single" \| "batch"` so a single-item delete keeps the caller's existing per-item path untouched) | `/src/renderer/components/tree-provider/plural-actions.ts` |
 | Shared tree-provider drop actions (`moveItemsInto` / `importFilesInto` / `dropOsFilesInto`, all taking a `DropTarget` of `{ path, title }` rather than a tree node — which is what lets the Explorer tree and the folder page share them. `moveItemsInto`'s branch order is load-bearing: `provider.moveToCategory` first, then a batched same-source file move onto `copyPathsInto`, then a single-item `provider.rename` for providers like Mneme) | `/src/renderer/components/tree-provider/tree-drop-actions.ts` |

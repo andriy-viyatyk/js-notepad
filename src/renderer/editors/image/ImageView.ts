@@ -1,7 +1,7 @@
 import { PageToolbarView } from "../base/PageToolbarView";
 import type { EditorModel } from "../base/EditorModel";
 import { ImageViewportView } from "../../uikit/ImageViewport/ImageViewportView";
-import type { ImageViewportProps } from "../../uikit/ImageViewport/ImageViewport";
+import type { ImageViewportProps } from "../../uikit/ImageViewport/ImageViewportView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { fpBasename } from "../../core/utils/file-path";
 import { ImageEditor, type ImageEditorState } from "./ImageEditor";
@@ -27,7 +27,9 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
     private toolbar!: ImageToolbarView;
     private pageToolbar!: PageToolbarView;
     private viewport!: ImageViewportView;
-    private readonly getImageModel = () => this.viewport.model;
+    private readonly copyImage = (): void => {
+        void this.viewport.copyToClipboard();
+    };
 
     public constructor(props: { model: EditorModel }) {
         super(props, createContentsRoot());
@@ -38,7 +40,7 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
         this.viewport = this.child(new ImageViewportView(this.viewportProps()));
         this.toolbar = this.child(new ImageToolbarView({
             model: this.model,
-            getImageModel: this.getImageModel,
+            copyImage: this.copyImage,
         }));
         this.pageToolbar = this.child(new PageToolbarView({
             name: "image-toolbar",
@@ -72,7 +74,7 @@ export class ImageEditorView extends VanillaView<{ model: EditorModel }> {
         });
         this.toolbar.update({
             model: this.model,
-            getImageModel: this.getImageModel,
+            copyImage: this.copyImage,
         });
         this.viewport.update(this.viewportProps());
     }

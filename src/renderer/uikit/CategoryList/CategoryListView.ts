@@ -1,10 +1,40 @@
 import { createIconElement } from "../shared/slots";
 import type { IconName } from "../../theme/icon-registry";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
+import {
+    applyRestProps,
+    clearRestListeners,
+    createRestPropsState,
+    type NativeHTMLAttributes,
+    type RestPropsState,
+} from "../shared/dom-props";
 import { KeyedList } from "../shared/keyed-list";
 import { VanillaView } from "../shared/vanilla-view";
-import type { CategoryListProps } from "./CategoryList";
 import "./CategoryList.css";
+
+export interface CategoryListProps
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onChange"> {
+    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
+     *  multiple instances in DOM inspector output. Never used for styling. */
+    name?: string;
+    /** All values shown by the list. */
+    items: string[];
+    /** Currently selected value ("" selects the root pseudo-item). Controlled. */
+    value: string;
+    /** Called when the user picks a row. */
+    onChange: (value: string) => void;
+    /**
+     * Per-row count display. Receives the full value, parent-with-separator, or "" for the
+     * root pseudo-item. Returning `undefined` suppresses the count for that row.
+     */
+    getCount?: (value: string) => number | undefined;
+    /**
+     * Separator that triggers drill-in for parent rows. Pass `"\0"` to disable drill-in
+     * entirely (the list then behaves like a flat list). Default: ":".
+     */
+    separator?: string;
+    /** Label for the root pseudo-item. Default: `"All"`. */
+    rootLabel?: string;
+}
 
 interface CategoryGroup {
     name: string;
@@ -33,6 +63,15 @@ interface RowParts {
     expand: HTMLSpanElement;
     name: HTMLSpanElement;
     count?: HTMLSpanElement;
+    rowRelease: () => void;
+    expandRelease: () => void;
+}
+
+interface GroupedItems {
+    items: string[];
+    separator: string;
+    groups: CategoryGroup[];
+    children: Map<string, SubCategory[]>;
 }
 
 export class CategoryListView extends VanillaView<CategoryListProps> {
@@ -50,6 +89,7 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
     private expandedCategory: string | null;
     private lastSyncedValue: string;
     private lastSyncedSeparator: string;
+    private groupedItems: GroupedItems | undefined;
 
     public constructor(props: CategoryListProps) {
         super(props, document.createElement("div"));
@@ -68,6 +108,10 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
 
     protected onUpdate(props: CategoryListProps): void {
         const separator = props.separator ?? ":";
+        if (this.groupedItems
+            && (this.groupedItems.items !== props.items || this.groupedItems.separator !== separator)) {
+            this.groupedItems = undefined;
+        }
         if (props.value !== this.lastSyncedValue || separator !== this.lastSyncedSeparator) {
             this.expandedCategory = this.expandedFromProps(props);
             this.lastSyncedValue = props.value;
@@ -91,7 +135,12 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
 
     private buildRows(props: CategoryListProps): RowData[] {
         const separator = props.separator ?? ":";
-        const { groups, children } = this.groupItems(props.items, separator);
+        const grouped = this.groupedItems;
+        const { groups, children } = grouped
+            && grouped.items === props.items
+            && grouped.separator === separator
+            ? grouped
+            : this.cacheGroupedItems(props.items, separator);
 
         if (this.expandedCategory !== null) {
             const parentValue = this.expandedCategory + separator;
@@ -141,6 +190,17 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
             });
         }
         return rows;
+    }
+
+    private cacheGroupedItems(items: string[], separator: string): GroupedItems {
+        // The caller contract supplies a new items array when its contents change; an in-place
+        // mutation would require a separate version signal before identity caching is safe.
+        this.groupedItems = {
+            items,
+            separator,
+            ...this.groupItems(items, separator),
+        };
+        return this.groupedItems;
     }
 
     private groupItems(items: string[], separator: string): {
@@ -200,10 +260,9 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
         name.dataset.part = "name";
         row.dataset.part = "row";
         row.append(expand, name);
-        const parts = { data, expand, name };
-        this.rowParts.set(row, parts);
-        this.listen(row, "click", this.onRowClick);
-        this.listen(expand, "click", this.onExpandClick);
+        const rowRelease = this.listen(row, "click", this.onRowClick);
+        const expandRelease = this.listen(expand, "click", this.onExpandClick);
+        this.rowParts.set(row, { data, expand, name, rowRelease, expandRelease });
         return row;
     }
 
@@ -243,8 +302,8 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
 
     private removeRow(row: HTMLDivElement): void {
         const parts = this.rowParts.get(row);
-        row.removeEventListener("click", this.onRowClick);
-        parts?.expand.removeEventListener("click", this.onExpandClick);
+        parts?.rowRelease();
+        parts?.expandRelease();
         this.rowParts.delete(row);
     }
 

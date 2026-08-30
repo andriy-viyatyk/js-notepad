@@ -41,11 +41,6 @@ class CreateBoardDialogModel extends TDialogModel<CreateBoardDialogState, Create
     private viewDisposed = false;
 
     handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            void this.close(undefined);
-            return;
-        }
         // Single-line inputs → plain Enter submits.
         if (event.key === "Enter") {
             event.preventDefault();

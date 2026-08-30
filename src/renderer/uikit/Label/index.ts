@@ -1,1 +1,1 @@
-export type { LabelProps } from "./Label";
+export type { LabelProps } from "./LabelView";

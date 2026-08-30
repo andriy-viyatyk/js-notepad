@@ -1,5 +1,5 @@
-import type { ImageViewportModel, ImageViewportProps } from "../../uikit/ImageViewport/ImageViewport";
 import { ImageViewportView } from "../../uikit/ImageViewport/ImageViewportView";
+import type { ImageViewportProps } from "../../uikit/ImageViewport/ImageViewportView";
 import {
     applyPanelAttributes,
     createPanelElement,
@@ -98,7 +98,7 @@ export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
         ));
     }
 
-    public get imageModel(): ImageViewportModel | null {
-        return this.viewport?.model ?? null;
+    public copyImage = (): void => {
+        void this.viewport?.copyToClipboard();
     }
 }

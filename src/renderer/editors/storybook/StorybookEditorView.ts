@@ -1,7 +1,7 @@
 import type { EditorModel } from "../base/EditorModel";
 import { createPanelElement, type PanelStyleProps } from "../../uikit/Panel/panel-style";
 import { ToolbarView } from "../../uikit/Toolbar/ToolbarView";
-import type { ToolbarProps } from "../../uikit/Toolbar/Toolbar";
+import type { ToolbarProps } from "../../uikit/Toolbar/ToolbarView";
 import { SegmentedControlView } from "../../uikit/SegmentedControl/SegmentedControlView";
 import type { ISegment, SegmentedControlProps } from "../../uikit/SegmentedControl/SegmentedControlView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";

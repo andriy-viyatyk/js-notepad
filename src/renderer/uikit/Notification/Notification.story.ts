@@ -3,7 +3,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { NotificationView } from "./NotificationView";
-import type { NotificationProps, NotificationSeverity } from "./Notification";
+import type { NotificationProps, NotificationSeverity } from "./NotificationView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 interface NotificationDemoProps {

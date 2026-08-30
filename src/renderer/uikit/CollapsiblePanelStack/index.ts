@@ -1,4 +1,4 @@
 export type {
     CollapsiblePanelProps,
     CollapsiblePanelStackProps,
-} from "./CollapsiblePanelStack";
+} from "./CollapsiblePanelStackView";

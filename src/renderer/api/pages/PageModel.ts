@@ -110,6 +110,10 @@ export class PageModel implements IPageHost {
 
     private _editorSubs = new Map<string, () => void>();
     private readonly subscriptions = new DisposableStore();
+    private pageDisposed = false;
+    private cleanupGeneration = 0;
+    private readonly pendingCleanupTimers = new Map<ReturnType<typeof setTimeout>, () => Promise<void>>();
+    private readonly pendingCleanupPromises = new Set<Promise<void>>();
 
     // ── Transient state (not persisted) ────────────────────────────
 
@@ -359,6 +363,42 @@ export class PageModel implements IPageHost {
         }
     }
 
+    /** Defer editor cleanup until detach-driven page/editor subscribers have settled. */
+    private deferEditorCleanup(cleanup: () => Promise<void>): void {
+        if (this.pageDisposed) {
+            this.startEditorCleanup(cleanup);
+            return;
+        }
+
+        const generation = this.cleanupGeneration;
+        const timer = setTimeout(() => {
+            this.pendingCleanupTimers.delete(timer);
+            if (this.pageDisposed || generation !== this.cleanupGeneration) return;
+            this.startEditorCleanup(cleanup);
+        }, 0);
+        this.pendingCleanupTimers.set(timer, cleanup);
+    }
+
+    private startEditorCleanup(cleanup: () => Promise<void>): void {
+        const promise = Promise.resolve().then(cleanup);
+        this.pendingCleanupPromises.add(promise);
+        const forget = (): void => { this.pendingCleanupPromises.delete(promise); };
+        void promise.then(forget, forget);
+    }
+
+    private async drainDeferredEditorCleanup(): Promise<void> {
+        this.cleanupGeneration++;
+        const queued = [...this.pendingCleanupTimers.entries()];
+        this.pendingCleanupTimers.clear();
+        for (const [timer, cleanup] of queued) {
+            clearTimeout(timer);
+            this.startEditorCleanup(cleanup);
+        }
+        while (this.pendingCleanupPromises.size) {
+            await Promise.all([...this.pendingCleanupPromises]);
+        }
+    }
+
     /** Compat shim — find a secondary view by its id. */
     findSecondaryView(editorId: string): EditorModel | undefined {
         return this.panelEditors.find((e) => e.id === editorId);
@@ -378,9 +418,10 @@ export class PageModel implements IPageHost {
         if (!this.editors.includes(editor)) return;
         if (editor.id !== this._mainEditorId && !editor.contributesPanels()) {
             this.detach(editor);
-            setTimeout(async () => {
+            // Wait for detach-driven page/editor subscribers to settle before disposing the editor.
+            this.deferEditorCleanup(async () => {
                 await editor.dispose();
-            }, 0);
+            });
         }
     }
 
@@ -440,12 +481,14 @@ export class PageModel implements IPageHost {
 
         if (editorToDispose) {
             const editor = editorToDispose;
-            setTimeout(async () => {
+            // Wait for detach-driven page/editor subscribers to settle before disposing the old
+            // editor; cache deletion remains part of that same cleanup boundary.
+            this.deferEditorCleanup(async () => {
                 await editor.dispose();
                 if (!idTransferred) {
                     await fs.deleteCacheFiles(editor.id);
                 }
-            }, 0);
+            });
         }
     }
 
@@ -716,6 +759,8 @@ export class PageModel implements IPageHost {
     // ── Cleanup ──────────────────────────────────────────────────────
 
     async dispose(): Promise<void> {
+        this.pageDisposed = true;
+        await this.drainDeferredEditorCleanup();
         // Defensively drain slice subscriptions before disposing editors.
         this.subscriptions.dispose();
         this._editorSubs.clear();

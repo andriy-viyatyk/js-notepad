@@ -6,11 +6,9 @@ import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { DrawIcon } from "../../theme/language-icons";
 import type { ImageEditor } from "./ImageEditor";
-import type { ImageViewportModel } from "../../uikit/ImageViewport/ImageViewport";
-
 export interface ImageToolbarViewProps {
     model: ImageEditor;
-    getImageModel: () => ImageViewportModel | null;
+    copyImage: () => void;
 }
 
 function createDirectToolbarIcon(component: { createElement: () => SVGElement }): SVGElement {
@@ -19,7 +17,7 @@ function createDirectToolbarIcon(component: { createElement: () => SVGElement })
 
 export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
     private model: ImageEditor;
-    private getImageModel: () => ImageViewportModel | null;
+    private copyImage: () => void;
     private readonly saveButton: IconButtonView;
     private readonly drawButton: IconButtonView;
     private readonly copyButton: IconButtonView;
@@ -31,7 +29,7 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
         const root = createPanelElement({ direction: "row", align: "center", gap: "sm" });
         super(props, root);
         this.model = props.model;
-        this.getImageModel = props.getImageModel;
+        this.copyImage = props.copyImage;
 
         const saveButton = new IconButtonView({
             name: "image-save",
@@ -69,7 +67,7 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
 
     protected onUpdate(props: ImageToolbarViewProps): void {
         this.model = props.model;
-        this.getImageModel = props.getImageModel;
+        this.copyImage = props.copyImage;
         this.saveButton.update(this.saveButtonProps());
         this.drawButton.update(this.drawButtonProps());
         this.copyButton.update(this.copyButtonProps());
@@ -166,6 +164,6 @@ export class ImageToolbarView extends VanillaView<ImageToolbarViewProps> {
     };
 
     private readonly onCopyClick = (): void => {
-        void this.getImageModel()?.copyToClipboard();
+        this.copyImage();
     };
 }

@@ -16,6 +16,7 @@ export class BrowserUrlBarModel {
 
     /** DOM reference for the URL input element. */
     urlInputRef: HTMLInputElement | null = null;
+    private focusScheduler: ((select: boolean) => void) | undefined;
 
     constructor(model: BrowserEditorModel) {
         this.model = model;
@@ -26,10 +27,14 @@ export class BrowserUrlBarModel {
         this.urlInputRef = ref;
     };
 
+    /** Install the owning view's cancellable after-paint focus path. */
+    setFocusScheduler = (scheduler: ((select: boolean) => void) | undefined): void => {
+        this.focusScheduler = scheduler;
+    };
+
     /** Focus and select all text in the URL input. */
     focusUrlInput = () => {
-        this.urlInputRef?.focus();
-        setTimeout(() => this.urlInputRef?.select(), 0);
+        this.focusScheduler?.(true);
     };
 
     /**
@@ -215,7 +220,7 @@ export class BrowserUrlBarModel {
     };
 
     handleUrlFocus = () => {
-        setTimeout(() => this.urlInputRef?.select(), 0);
+        this.focusScheduler?.(true);
         this.model.state.update((s) => {
             s.suggestionsOpen = true;
             s.userHasTyped = false;

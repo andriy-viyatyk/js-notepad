@@ -61,10 +61,6 @@ export class BuiltinEditorsListView extends VanillaView<BuiltinEditorsListProps>
         this.refresh();
     }
 
-    protected onUpdate(): void {
-        this.refresh();
-    }
-
     private refresh(): void {
         const browserProfiles = settings.get("browser-profiles");
         const allItems = getCreatableItems(browserProfiles);

@@ -1,6 +1,6 @@
 import { applyPanelAttributes, createPanelElement, resolvePanelAttributes } from "../Panel/panel-style";
 import { DividerView } from "./DividerView";
-import type { DividerProps } from "./Divider";
+import type { DividerProps } from "./DividerView";
 import { VanillaView } from "../shared/vanilla-view";
 import type { Story } from "../../editors/storybook/storyTypes";
 

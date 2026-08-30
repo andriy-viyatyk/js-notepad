@@ -30,6 +30,7 @@ import { BrowserBookmarks } from "./BrowserBookmarks";
 import { LinkActionView, LinkBreadcrumbView } from "../link-editor";
 import { LinkBodyView } from "../link-editor/LinkBody";
 import { FindBarView } from "../shared/FindBarView";
+import { focusAfterPaint } from "../../core/utils/scheduling";
 import "./BrowserView.css";
 import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";
@@ -306,6 +307,7 @@ class BrowserToolbarView extends VanillaView<BrowserToolbarProps> {
 
     private readonly downloads: DownloadButtonView;
     get urlAnchor(): Element { return this.inputPanel; }
+    get urlInputElement(): HTMLInputElement { return this.input.inputElement; }
 
     protected onMount(): void { this.listen(this.searchEngineButton, "click", (event) => { event.stopPropagation(); this.openSearchMenu(); }); this.listen(this.torIndicator, "click", (event) => { event.stopPropagation(); this.model.toggleTorOverlay(); }); this.controls.forEach((view) => view.mount()); this.input.mount(); this.model.urlBar.setUrlInputRef(this.input.inputElement); this.navigate.mount(); this.star.mount(); this.downloads.mount(); this.sync(this.props.state); }
     protected onUpdate(props: BrowserToolbarProps): void { this.sync(props.state); }
@@ -401,6 +403,7 @@ export class BrowserEditorView extends VanillaView<{ model: BrowserEditor }> {
     private lastNavigationKey = "";
     private initialLoad = true;
     private focusTimer: ReturnType<typeof setTimeout> | undefined;
+    private urlBarFocusDisposer: (() => void) | undefined;
 
     public constructor(props: { model: BrowserEditor }) {
         const root = document.createElement("div"); root.className = "browser-root"; root.dataset.type = "browser-editor"; root.tabIndex = -1;
@@ -422,10 +425,23 @@ export class BrowserEditorView extends VanillaView<{ model: BrowserEditor }> {
         this.listen(this.root, "keydown", (event) => this.model.webview.handleKeyDown(event as never));
         this.model.webview.initIpcHandler(); this.own(() => this.model.webview.disposeIpcHandler());
         this.toolbar.mount(); this.editorToolbar.mount(); this.tabs.mount(); this.splitter.mount(); this.pageManager.mount();
+        this.model.urlBar.setUrlInputRef(this.toolbar.urlInputElement);
+        this.model.urlBar.setFocusScheduler((select) => {
+            this.urlBarFocusDisposer?.();
+            this.urlBarFocusDisposer = focusAfterPaint(this.model.urlBar.urlInputRef, { select });
+        });
+        this.own(() => {
+            this.urlBarFocusDisposer?.();
+            this.urlBarFocusDisposer = undefined;
+            this.model.urlBar.setFocusScheduler(undefined);
+        });
         this.bind(this.model.state, (state) => state, this.sync); this.sync(this.model.state.get());
     }
     protected onUpdate(): void { this.sync(this.model.state.get()); }
-    protected onDispose(): void { if (this.focusTimer) clearTimeout(this.focusTimer); this.focusTimer = undefined; }
+    protected onDispose(): void {
+        if (this.focusTimer) clearTimeout(this.focusTimer);
+        this.focusTimer = undefined;
+    }
 
     private buildTree(): void {
         this.loadingBar = document.createElement("div"); this.loadingBar.dataset.browserLoadingBar = "";
@@ -441,7 +457,13 @@ export class BrowserEditorView extends VanillaView<{ model: BrowserEditor }> {
         const active = state.tabs.find((tab) => tab.id === state.activeTabId); const navigationKey = `${state.activeTabId}\u0000${active?.url ?? ""}`;
         if (navigationKey !== this.lastNavigationKey) { this.lastNavigationKey = navigationKey; if (active) this.model.webview.navigateWebview(state.activeTabId, active.url); }
         if (state.url !== this.lastUrl) { this.lastUrl = state.url; this.model.urlBar.syncFromUrl(state.url); }
-        if (this.initialLoad) { this.initialLoad = false; if (!state.url || state.url === "about:blank") this.focusTimer = setTimeout(() => this.model.urlBar.focusUrlInput(), 100); }
+        if (this.initialLoad) {
+            this.initialLoad = false;
+            if (!state.url || state.url === "about:blank") {
+                // Wait 100 ms for the blank-page toolbar to become visible before focusing it.
+                this.focusTimer = setTimeout(() => this.model.urlBar.focusUrlInput(), 100);
+            }
+        }
         this.syncPopup(state); this.syncTor(state); this.syncClick(state); this.syncFind(state); this.syncDrawer(state); this.syncSuggestions(state);
     };
 

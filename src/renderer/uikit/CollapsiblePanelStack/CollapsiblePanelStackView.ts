@@ -1,13 +1,45 @@
 import { createIconElement } from "../shared/slots";
 import { fillSlot } from "../shared/fill-slot";
 import { KeyedList } from "../shared/keyed-list";
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
+import {
+    applyRestProps,
+    clearRestListeners,
+    createRestPropsState,
+    type NativeHTMLAttributes,
+    type RestPropsState,
+} from "../shared/dom-props";
+import type { IconName } from "../../theme/icon-registry";
+import type { SlotContent } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
-import type {
-    CollapsiblePanelProps,
-    CollapsiblePanelStackProps,
-} from "./CollapsiblePanelStack";
 import "./CollapsiblePanelStack.css";
+
+export interface CollapsiblePanelProps
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "title" | "children"> {
+    name?: string;
+    id: string;
+    title?: string;
+    children: SlotContent;
+    /** When both childrenFactory and children are supplied, childrenFactory wins and children is ignored. */
+    childrenFactory?: (header: HTMLDivElement, isOpen: boolean) => SlotContent;
+    icon?: IconName;
+    buttons?: SlotContent;
+    headerRef?: (el: HTMLDivElement | null) => void;
+    alwaysRenderContent?: boolean;
+}
+
+export interface CollapsiblePanelStackProps
+    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    name?: string;
+    activePanel: string;
+    setActivePanel: (panelId: string) => void;
+    children: SlotContent;
+    width?: number | string;
+    minWidth?: number | string;
+    maxWidth?: number | string;
+    height?: number | string;
+    minHeight?: number | string;
+    maxHeight?: number | string;
+}
 
 type StackViewProps = Omit<CollapsiblePanelStackProps, "children"> & {
     panels: CollapsiblePanelProps[];
@@ -19,6 +51,8 @@ interface PanelRecord {
     content?: HTMLDivElement;
     buttonsHost?: HTMLSpanElement;
     buttonsCleanup?: () => void;
+    headerRelease: () => void;
+    buttonsRelease?: () => void;
     headerRef?: (element: HTMLDivElement | null) => void;
     ownedHeaderNodes: Node[];
     contentCleanup?: () => void;
@@ -125,9 +159,10 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             root,
             header,
             ownedHeaderNodes: [],
+            headerRelease: () => undefined,
         };
         this.records.set(root, record);
-        this.listen(header, "click", (event) => {
+        record.headerRelease = this.listen(header, "click", (event) => {
             const target = event.target as Element | null;
             if (target?.closest('[data-part="header-buttons"]')) return;
             this.togglePanel(panel.id);
@@ -159,7 +194,7 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
         for (const node of record.ownedHeaderNodes) node.parentNode?.removeChild(node);
         record.ownedHeaderNodes = [];
 
-        const showChevron = !panel.headerRef && !panel.buttons;
+        const showChevron = !panel.headerRef && !panel.childrenFactory && !panel.buttons;
         if (showChevron) {
             const chevron = createIconElement(isOpen ? "chevron-down" : "chevron-right");
             record.ownedHeaderNodes.push(chevron);
@@ -179,13 +214,15 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             if (!record.buttonsHost) {
                 record.buttonsHost = document.createElement("span");
                 record.buttonsHost.dataset.part = "header-buttons";
-                this.listen(record.buttonsHost, "click", (event) => event.stopPropagation());
+                record.buttonsRelease = this.listen(record.buttonsHost, "click", (event) => event.stopPropagation());
             }
             record.ownedHeaderNodes.push(record.buttonsHost);
             record.buttonsCleanup = fillSlot(record.buttonsHost, panel.buttons);
         } else if (record.buttonsHost) {
             record.buttonsCleanup?.();
             record.buttonsCleanup = undefined;
+            record.buttonsRelease?.();
+            record.buttonsRelease = undefined;
             record.buttonsHost.remove();
             record.buttonsHost = undefined;
         }
@@ -221,14 +258,19 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             record.root.append(record.content);
         }
         record.content.style.display = isOpen ? "" : "none";
-        record.contentCleanup = fillSlot(record.content, panel.children);
+        const children = panel.childrenFactory
+            ? panel.childrenFactory(record.header, isOpen)
+            : panel.children;
+        record.contentCleanup = fillSlot(record.content, children);
     }
 
     private removePanel(root: HTMLDivElement): void {
         const record = this.records.get(root);
         if (!record) return;
         record.headerRef?.(null);
+        record.headerRelease();
         record.buttonsCleanup?.();
+        record.buttonsRelease?.();
         record.contentCleanup?.();
         record.buttonsHost?.remove();
         record.content?.remove();

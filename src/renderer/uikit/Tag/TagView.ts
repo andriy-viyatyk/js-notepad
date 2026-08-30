@@ -59,6 +59,7 @@ export class TagView extends VanillaView<TagProps> {
     protected onMount(): void {
         this.applyConstructionRestProps(this.props);
         this.applyProps(this.props);
+        this.createRemoveButton();
         this.updateContent(this.props);
         this.own(() => this.clearContent());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
@@ -145,7 +146,7 @@ export class TagView extends VanillaView<TagProps> {
         if (props.label) {
             if (!this.labelElement) {
                 this.labelElement = document.createElement("span");
-                this.root.append(this.labelElement);
+                this.root.insertBefore(this.labelElement, this.removeButton ?? null);
             }
             this.labelElement.textContent = props.label;
         } else if (this.labelElement) {
@@ -158,7 +159,7 @@ export class TagView extends VanillaView<TagProps> {
                 this.childrenHost = document.createElement("span");
                 this.childrenHost.dataset.part = "children-slot";
                 this.childrenHost.style.display = "contents";
-                this.root.append(this.childrenHost);
+                this.root.insertBefore(this.childrenHost, this.removeButton ?? null);
             }
             this.childrenCleanup = fillSlot(this.childrenHost, props.children);
         } else if (this.childrenHost) {
@@ -168,22 +169,12 @@ export class TagView extends VanillaView<TagProps> {
             this.childrenHost = undefined;
         }
 
-        if (props.onRemove) {
-            if (!this.removeButton) {
-                this.removeButton = document.createElement("button");
-                this.removeButton.type = "button";
-                this.removeButton.dataset.part = "remove";
-                this.listen(this.removeButton, "click", this.onRemoveClick);
-                this.removeButton.append(createIconElement("close"));
-                this.root.append(this.removeButton);
-            }
-            this.removeButton.setAttribute("aria-label", props.removeAriaLabel ?? "Remove tag");
-            this.removeButton.disabled = Boolean(props.disabled);
-        } else if (this.removeButton) {
-            this.removeButton.removeEventListener("click", this.onRemoveClick);
-            this.removeButton.remove();
-            this.removeButton = undefined;
-        }
+        const removeButton = this.removeButton;
+        if (!removeButton) return;
+        removeButton.hidden = !props.onRemove;
+        removeButton.tabIndex = props.onRemove ? 0 : -1;
+        removeButton.setAttribute("aria-label", props.removeAriaLabel ?? "Remove tag");
+        removeButton.disabled = Boolean(props.disabled || !props.onRemove);
     }
 
     private updateIcon(icon: IconRef | undefined): void {
@@ -212,6 +203,16 @@ export class TagView extends VanillaView<TagProps> {
         if (!this.props.disabled) this.props.onRemove?.();
     };
 
+    private createRemoveButton(): void {
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.dataset.part = "remove";
+        removeButton.append(createIconElement("close"));
+        this.listen(removeButton, "click", this.onRemoveClick);
+        this.root.append(removeButton);
+        this.removeButton = removeButton;
+    }
+
     private readonly onRootClick = (): void => {
         if (!this.props.disabled) this.props.onClick?.();
     };
@@ -222,7 +223,6 @@ export class TagView extends VanillaView<TagProps> {
         this.iconHost?.remove();
         this.labelElement?.remove();
         this.childrenHost?.remove();
-        this.removeButton?.removeEventListener("click", this.onRemoveClick);
         this.removeButton?.remove();
         this.iconHost = undefined;
         this.labelElement = undefined;

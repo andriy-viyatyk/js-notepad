@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { BreadcrumbView } from "./BreadcrumbView";
-import type { BreadcrumbProps } from "./Breadcrumb";
+import type { BreadcrumbProps } from "./BreadcrumbView";
 import "./Breadcrumb.css";
 import type { Story } from "../../editors/storybook/storyTypes";
 

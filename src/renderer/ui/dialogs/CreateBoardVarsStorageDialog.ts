@@ -26,11 +26,6 @@ class CreateBoardVarsStorageDialogModel extends TDialogModel<
     private viewDisposed = false;
 
     handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            void this.close(undefined);
-            return;
-        }
         if (event.key === "Enter") {
             event.preventDefault();
             void this.submit();

@@ -3,7 +3,7 @@ import { NotebookEditor, defaultNotebookEditorState, type NotebookEditorState } 
 import { NotebookBodyView } from "./NotebookBodyView";
 import { TextChromeView } from "../base/TextChromeView";
 import { BreadcrumbView } from "../../uikit/Breadcrumb/BreadcrumbView";
-import type { BreadcrumbProps } from "../../uikit/Breadcrumb/Breadcrumb";
+import type { BreadcrumbProps } from "../../uikit/Breadcrumb/BreadcrumbView";
 import { ButtonView, type ButtonViewProps } from "../../uikit/Button/ButtonView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
@@ -200,8 +200,8 @@ interface NotebookFooterProjection {
 
 function selectNotebookFooter(state: NotebookEditorState): NotebookFooterProjection {
     return {
-        filteredCount: state.filteredNotes.length,
-        totalCount: state.data.notes.length,
+        filteredCount: state.filteredCount,
+        totalCount: state.notesCount,
     };
 }
 

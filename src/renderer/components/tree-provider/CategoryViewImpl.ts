@@ -85,6 +85,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private toolbarTarget: HTMLElement | null = null;
     private searchField: HTMLInputElement | undefined;
     private arm: Arm | undefined;
+    private itemsChainMounted = false;
     private lastProjection: StateProjection | undefined;
     private lastViewMode: CategoryViewMode | undefined;
     private inert = false;
@@ -232,6 +233,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         if (!contentArm) {
             this.disposeBridge();
             this.content.replaceChildren(this.createMessage(state.error ? "error" : "loading", state.error ?? "Loading..."));
+            this.itemsChainMounted = false;
             this.footer.remove();
             return;
         }
@@ -244,6 +246,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             empty.className = "cv-empty";
             empty.textContent = state.searchText ? "No matching items" : "Empty folder";
             this.content.replaceChildren(empty);
+            this.itemsChainMounted = false;
             this.lastProjection = undefined;
             return;
         }
@@ -283,11 +286,14 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             || this.lastProjection.renderItems !== this.props.renderItems
             || this.lastViewMode !== viewMode;
 
-        if (isTileMode) {
-            this.content.replaceChildren(this.tileScope);
-            this.tileScope.replaceChildren(this.bridgeHost);
-        } else {
-            this.content.replaceChildren(this.bridgeHost);
+        if (projectionChanged || !this.itemsChainMounted) {
+            if (isTileMode) {
+                this.content.replaceChildren(this.tileScope);
+                this.tileScope.replaceChildren(this.bridgeHost);
+            } else {
+                this.content.replaceChildren(this.bridgeHost);
+            }
+            this.itemsChainMounted = true;
         }
 
         if (!this.bridge) {
@@ -296,7 +302,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             this.bridge = rendered;
             this.pendingGridRepaint = true;
             this.flushPendingGridRepaintSoon();
-        } else if (projectionChanged || this.lastProjection?.filteredItems !== state.filteredItems) {
+        } else if (projectionChanged) {
             const rendered = this.renderItems(state);
             if (rendered !== this.bridge) {
                 this.bridgeHost.replaceChildren(rendered);
@@ -376,6 +382,8 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         queueMicrotask(() => {
             if (this.inert || !this.pendingGridRepaint || !this.gridModel) return;
             this.pendingGridRepaint = false;
+            // The child renderer is an opaque full-projection bridge: it exposes no
+            // item-to-row mapping, and selection/search/provider/view-mode changes can reshape it.
             this.gridModel.update({ all: true });
         });
     }

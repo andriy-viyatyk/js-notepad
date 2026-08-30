@@ -1,4 +1,4 @@
-import type { LabelProps } from "./Label";
+import type { LabelProps } from "./LabelView";
 import { LabelView } from "./LabelView";
 import type { Story } from "../../editors/storybook/storyTypes";
 

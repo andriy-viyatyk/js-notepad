@@ -1,7 +1,20 @@
-import { applyRestProps, clearRestListeners, createRestPropsState, type RestPropsState } from "../shared/dom-props";
+import {
+    applyRestProps,
+    clearRestListeners,
+    createRestPropsState,
+    type NativeHTMLAttributes,
+    type RestPropsState,
+} from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
-import type { DividerProps } from "./Divider";
 import "./Divider.css";
+
+export interface DividerProps extends NativeHTMLAttributes<HTMLDivElement> {
+    /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
+     *  multiple instances in DOM inspector output. Never used for styling. */
+    name?: string;
+    /** Line direction. Default: "horizontal". */
+    orientation?: "horizontal" | "vertical";
+}
 
 export class DividerView extends VanillaView<DividerProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();

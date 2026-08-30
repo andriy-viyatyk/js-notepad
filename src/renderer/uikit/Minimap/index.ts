@@ -1,1 +1,1 @@
-export type { MinimapProps } from "./Minimap";
+export type { MinimapProps } from "./MinimapView";

@@ -64,10 +64,6 @@ export class TrustedBoardsListView extends VanillaView<TrustedBoardsListProps> {
         void boardInstallRegistry.load().then(this.refreshIfAlive, this.refreshIfAlive);
     }
 
-    protected onUpdate(): void {
-        this.refresh();
-    }
-
     protected onDispose(): void {
         this.alive = false;
         for (const record of this.trailingRecords.values()) record.panel?.remove();

@@ -1,7 +1,7 @@
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/Dialog";
+import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { MonacoEditorHostView } from "../../editors/shared/MonacoEditorHostView";

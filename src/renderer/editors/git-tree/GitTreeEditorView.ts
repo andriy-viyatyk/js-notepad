@@ -41,6 +41,45 @@ interface BranchToolbarState {
     pulling: boolean;
 }
 
+interface AheadBehindSignature {
+    ahead: number;
+    behind: number;
+}
+
+type BodyMessage =
+    | { kind: "unavailable"; text: string }
+    | { kind: "loading"; text: string };
+type BodyMessageSignature = BodyMessage;
+
+function sameAheadBehindSignature(a: AheadBehindSignature | undefined, b: AheadBehindSignature): boolean {
+    return !!a && a.ahead === b.ahead && a.behind === b.behind;
+}
+
+function bodyMessageSignature(message: BodyMessage): BodyMessageSignature {
+    switch (message.kind) {
+        case "unavailable": {
+            const { kind, text } = message;
+            return { kind, text };
+        }
+        case "loading": {
+            const { kind, text } = message;
+            return { kind, text };
+        }
+    }
+    const exhaustive: never = message;
+    throw new Error(`Unhandled body message kind: ${exhaustive}`);
+}
+
+function sameBodyMessage(a: BodyMessageSignature | undefined, b: BodyMessageSignature): boolean {
+    if (!a || a.kind !== b.kind) return false;
+    switch (a.kind) {
+        case "unavailable": return a.text === b.text;
+        case "loading": return a.text === b.text;
+    }
+    const exhaustive: never = a;
+    throw new Error(`Unhandled body message signature kind: ${exhaustive}`);
+}
+
 interface EditorSurfaceState {
     repoRoot: string;
     columnLayout: GitTreeEditorState["columnLayout"];
@@ -87,8 +126,10 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
     private toolbarDivider!: DividerView;
     private toolbarGroup!: HTMLDivElement;
     private aheadBehindGroup!: HTMLDivElement;
+    private aheadBehindSignature: AheadBehindSignature | undefined;
 
     private bodyRoot: HTMLDivElement | undefined;
+    private bodyMessageSignature: BodyMessageSignature | undefined;
     private gitTreeView: GitTreeView | undefined;
     private bottomSplitter: SplitterView | undefined;
     private bottomPanel: HTMLDivElement | undefined;
@@ -230,15 +271,16 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
             onClick: this.model.refresh,
         });
         if (!state.gitOk) {
-            this.releaseBody();
             this.releaseBottomSurface();
-            this.showBodyMessage("Git is unavailable — check that git is installed and on your PATH, and that Git integration is enabled in Settings.");
+            this.showBodyMessage({
+                kind: "unavailable",
+                text: "Git is unavailable — check that git is installed and on your PATH, and that Git integration is enabled in Settings.",
+            });
             return;
         }
         if (state.loading && !state.hasCommits) {
-            this.releaseBody();
             this.releaseBottomSurface();
-            this.showBodyMessage("Loading history…");
+            this.showBodyMessage({ kind: "loading", text: "Loading history…" });
             return;
         }
         this.ensureHistoryBody();
@@ -248,24 +290,28 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
 
     private syncToolbarState = (state: BranchToolbarState): void => {
         this.toolbarState = state;
-        const { aheadBehind } = state;
-        this.aheadBehindGroup.replaceChildren();
-        if (aheadBehind.ahead > 0 || aheadBehind.behind > 0) {
-            this.aheadBehindGroup.hidden = false;
-            if (aheadBehind.ahead > 0) {
-                this.aheadBehindGroup.append(createTextElement(`↑${aheadBehind.ahead}`, {
-                    color: color.text.light,
-                    size: "xs",
-                }));
+        const { ahead, behind } = state.aheadBehind;
+        const nextAheadBehindSignature = { ahead, behind };
+        if (!sameAheadBehindSignature(this.aheadBehindSignature, nextAheadBehindSignature)) {
+            this.aheadBehindSignature = nextAheadBehindSignature;
+            this.aheadBehindGroup.replaceChildren();
+            if (ahead > 0 || behind > 0) {
+                this.aheadBehindGroup.hidden = false;
+                if (ahead > 0) {
+                    this.aheadBehindGroup.append(createTextElement(`↑${ahead}`, {
+                        color: color.text.light,
+                        size: "xs",
+                    }));
+                }
+                if (behind > 0) {
+                    this.aheadBehindGroup.append(createTextElement(`↓${behind}`, {
+                        color: color.warning.text,
+                        size: "xs",
+                    }));
+                }
+            } else {
+                this.aheadBehindGroup.hidden = true;
             }
-            if (aheadBehind.behind > 0) {
-                this.aheadBehindGroup.append(createTextElement(`↓${aheadBehind.behind}`, {
-                    color: color.warning.text,
-                    size: "xs",
-                }));
-            }
-        } else {
-            this.aheadBehindGroup.hidden = true;
         }
         this.pullButton.update(this.pullProps());
         this.pushButton.update(this.pushProps());
@@ -299,6 +345,7 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     private ensureHistoryBody(): void {
+        this.bodyMessageSignature = undefined;
         if (this.gitTreeView) {
             this.gitTreeView.update(this.gitTreeProps());
             return;
@@ -322,10 +369,14 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
         };
     }
 
-    private showBodyMessage(message: string): void {
-        this.bodyRoot?.remove();
+    private showBodyMessage(message: BodyMessage): void {
+        const { kind, text } = message;
+        const nextMessageSignature = bodyMessageSignature({ kind, text });
+        if (sameBodyMessage(this.bodyMessageSignature, nextMessageSignature)) return;
+        this.bodyMessageSignature = nextMessageSignature;
+        this.releaseBody();
         this.bodyRoot = createPanelElement({ padding: "xl" }, [
-            createTextElement(message, { color: "light" }),
+            createTextElement(text, { color: "light" }),
         ]);
         this.root.append(this.bodyRoot);
     }

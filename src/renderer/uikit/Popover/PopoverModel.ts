@@ -30,7 +30,7 @@ export interface PopoverPosition {
 }
 
 export interface PopoverProps
-    extends Omit<NativeHTMLAttributes<HTMLDivElement>, "style" | "className" | "onKeyDown">,
+    extends Pick<NativeHTMLAttributes<HTMLDivElement>, "onMouseDown" | "role" | `aria-${string}` | `data-${string}`>,
         PopoverPosition {
     /** Optional debug label emitted as `data-name` on the popover's floating root.
      *  Use to disambiguate multiple instances in DOM inspector output. Never used for styling. */
@@ -226,6 +226,11 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
             if (this.resizeCleanup === onLost) this.resizeCleanup = undefined;
         };
 
+        // Deliberate exemption from uikit Rule 9 ("no model touches the DOM"), of the kind
+        // EPIC-077 §C-5 names: this is a pointer-capture drag session, not rendering. The three
+        // listeners exist only between pointerdown and lostpointercapture/pointerup, they remove
+        // themselves in `onLost`, and `cancelResize()` tears down a session that never ended.
+        // Moving them to the view would split one drag gesture across two owners for no gain.
         this.cancelResize();
         this.resizePointerId = event.pointerId;
         root.setPointerCapture(event.pointerId);

@@ -328,11 +328,65 @@ class MessageView extends VanillaView<MessageProps> {
 
 interface IndexedBlock { block: McpPromptMessageContent; key: number; }
 interface MessageBlockProps { block: McpPromptMessageContent; }
+type MessageBlockSignature =
+    | { type: "text"; text: string }
+    | { type: "image"; mimeType: string; data: string }
+    | { type: "resource"; uri: string; text: string | null }
+    | { type: "resource_link"; name: string; uri: string };
+
+function messageBlockSignature(block: McpPromptMessageContent): MessageBlockSignature {
+    switch (block.type) {
+        case "text": {
+            const { type, text } = block;
+            return { type, text };
+        }
+        case "image": {
+            const { type, mimeType, data } = block;
+            return { type, mimeType, data };
+        }
+        case "resource": {
+            const { type, resource: { uri, text } } = block;
+            return { type, uri, text: text ?? null };
+        }
+        case "resource_link": {
+            const { type, name, uri } = block;
+            return { type, name, uri };
+        }
+    }
+    const exhaustive: never = block;
+    throw new Error(`Unhandled message content variant: ${exhaustive}`);
+}
+
+function sameMessageBlockSignature(
+    a: MessageBlockSignature | undefined,
+    b: MessageBlockSignature,
+): boolean {
+    if (!a || a.type !== b.type) return false;
+    switch (a.type) {
+        case "text": return b.type === "text" && a.text === b.text;
+        case "image": return b.type === "image" && a.mimeType === b.mimeType && a.data === b.data;
+        case "resource": return b.type === "resource" && a.uri === b.uri && a.text === b.text;
+        case "resource_link": return b.type === "resource_link" && a.name === b.name && a.uri === b.uri;
+    }
+    const exhaustive: never = a;
+    throw new Error(`Unhandled message signature variant: ${exhaustive}`);
+}
+
 type MessageBlockRoot = HTMLElement & { view?: MessageContentBlockView };
 class MessageContentBlockView extends VanillaView<MessageBlockProps> {
+    private blockSignature: MessageBlockSignature | undefined;
     public constructor(props: MessageBlockProps) { super(props, createPanelElement({})); this.root.dataset.type = "mcp-message-content"; (this.root as MessageBlockRoot).view = this; }
-    protected onMount(): void { this.renderBlock(this.props.block); }
-    protected onUpdate(props: MessageBlockProps): void { this.root.replaceChildren(); this.renderBlock(props.block); }
+    protected onMount(): void {
+        this.blockSignature = messageBlockSignature(this.props.block);
+        this.renderBlock(this.props.block);
+    }
+    protected onUpdate(props: MessageBlockProps): void {
+        const nextSignature = messageBlockSignature(props.block);
+        if (sameMessageBlockSignature(this.blockSignature, nextSignature)) return;
+        this.blockSignature = nextSignature;
+        this.root.replaceChildren();
+        this.renderBlock(props.block);
+    }
     protected onDispose(): void { delete (this.root as MessageBlockRoot).view; }
     private renderBlock(block: McpPromptMessageContent): void {
         if (block.type === "text") this.root.append(createTextElement(block.text, { size: "sm", color: "default", preWrap: true }));

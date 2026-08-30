@@ -2,7 +2,7 @@ import { TDialogModel } from "../../core/state/model";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/Dialog";
+import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { InputView } from "../../uikit/Input/InputView";
 import { TextareaView } from "../../uikit/Textarea/TextareaView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
@@ -101,6 +101,7 @@ export class CommitDialogView extends VanillaView<DialogViewProps> {
             name: "commit-dialog",
             autoFocus: false,
             onKeyDown: (event) => model.handleKeyDown(event),
+            onEscape: () => { void model.close(undefined); },
             children: contentView.root,
         } as DialogProps & { className?: string });
 

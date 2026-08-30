@@ -224,9 +224,18 @@ this.props.views.flatMap((model) => {
 });
 ```
 
+For providers that need the stack-owned header while constructing their content, use the
+`childrenFactory(header, isOpen)` form of `CollapsiblePanelStack`. It supplies the actual header
+before the child is created and is authoritative when `children` is also present. This keeps the
+header and lazy child in one construction path; `headerRef` remains the compatibility form for a
+provider that owns a separately managed header.
+
 Each descriptor is backed by a native `LazySecondaryViewView` and a native
-`CollapsiblePanelStackView`. The stack publishes `headerRef` after the panel is
-created; the provider passes that ref to `SideBarPanelHeaderView` on every update.
+`CollapsiblePanelStackView`. The stack's `childrenFactory(header, isOpen)` receives the
+stack-created header before the content is built, so a secondary provider can create/update its
+lazy child exactly once with the real header element. This avoids the old render-then-publish-
+`headerRef` handshake. `headerRef` remains available for providers that manage a header separately;
+when both are supplied, `childrenFactory` is authoritative.
 
 The stable view key stays `${model.id}-${panelId}`; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 

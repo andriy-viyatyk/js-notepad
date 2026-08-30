@@ -20,10 +20,18 @@ export class BrowserTabsModel {
     private readonly faviconCache = new Map<string, string>();
     private activeTabHistory: string[] = [];
     bookmarks: BrowserBookmarks | null = null;
+    private bookmarkPreloadTimer: ReturnType<typeof setTimeout> | undefined;
+    private bookmarkLifecycleGeneration = 0;
+    private disposed = false;
 
     constructor(readonly model: BrowserEditorModel) {
         // Preload bookmarks silently after a short delay (don't block browser page opening).
-        setTimeout(() => this.preloadBookmarks(), 300);
+        const generation = this.bookmarkLifecycleGeneration;
+        this.bookmarkPreloadTimer = setTimeout(() => {
+            this.bookmarkPreloadTimer = undefined;
+            if (this.disposed || generation !== this.bookmarkLifecycleGeneration) return;
+            void this.preloadBookmarks(generation);
+        }, 300);
     }
 
     getBookmarksFilePath = (): string => {
@@ -42,12 +50,21 @@ export class BrowserTabsModel {
         return settings.get("browser-default-bookmarks-file") || "";
     };
 
-    preloadBookmarks = async (): Promise<void> => {
+    preloadBookmarks = async (generation = this.bookmarkLifecycleGeneration): Promise<void> => {
+        if (this.disposed || generation !== this.bookmarkLifecycleGeneration) return;
         const filePath = this.getBookmarksFilePath();
         if (!filePath || this.bookmarks) return;
         const bm = new BrowserBookmarks(filePath);
         const ok = await bm.init({ silent: true });
+        if (this.disposed || generation !== this.bookmarkLifecycleGeneration) {
+            await bm.dispose();
+            return;
+        }
         if (!ok) {
+            await bm.dispose();
+            return;
+        }
+        if (this.bookmarks) {
             await bm.dispose();
             return;
         }
@@ -57,12 +74,21 @@ export class BrowserTabsModel {
     };
 
     initBookmarks = async (filePath: string): Promise<BrowserBookmarks | null> => {
-        if (this.bookmarks) await this.bookmarks.dispose();
+        const generation = ++this.bookmarkLifecycleGeneration;
+        if (this.bookmarks) {
+            const current = this.bookmarks;
+            this.bookmarks = null;
+            await current.dispose();
+        }
         const bm = new BrowserBookmarks(filePath);
         const ok = await bm.init();
-        if (!ok) {
+        if (this.disposed || generation !== this.bookmarkLifecycleGeneration || !ok) {
             await bm.dispose();
             return null;
+        }
+        if (this.bookmarks) {
+            await bm.dispose();
+            return this.bookmarks;
         }
         this.bookmarks = bm;
         this.configureBookmarks(bm);
@@ -222,6 +248,12 @@ export class BrowserTabsModel {
     };
 
     dispose = async () => {
+        this.disposed = true;
+        this.bookmarkLifecycleGeneration++;
+        if (this.bookmarkPreloadTimer !== undefined) {
+            clearTimeout(this.bookmarkPreloadTimer);
+            this.bookmarkPreloadTimer = undefined;
+        }
         if (this.bookmarks) {
             await this.bookmarks.dispose();
             this.bookmarks = null;

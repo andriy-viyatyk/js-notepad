@@ -5,7 +5,7 @@ import type { CheckboxProps } from "../../uikit/Checkbox/CheckboxView";
 import { InputView } from "../../uikit/Input/InputView";
 import type { InputProps } from "../../uikit/Input/InputView";
 import { LabelView } from "../../uikit/Label/LabelView";
-import type { LabelProps } from "../../uikit/Label/Label";
+import type { LabelProps } from "../../uikit/Label/LabelView";
 import { createTextElement } from "../../uikit/Text/text-style";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { ICON_PRESETS } from "./iconPresets";

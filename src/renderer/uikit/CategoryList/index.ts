@@ -1,1 +1,1 @@
-export type { CategoryListProps } from "./CategoryList";
+export type { CategoryListProps } from "./CategoryListView";

@@ -7,7 +7,8 @@ import { ButtonView } from "../../uikit/Button/ButtonView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
 import { TagView } from "../../uikit/Tag/TagView";
-import { VanillaView, type IOwnedView } from "../../uikit/shared/vanilla-view";
+import { claimViewOwnership, VanillaView, type IOwnedView } from "../../uikit/shared/vanilla-view";
+import { KeyedList } from "../../uikit/shared/keyed-list";
 import { openBoardInfoPage } from "../board-info/open-board-info";
 import { BoardScreenshotView } from "../board-info/BoardScreenshotView";
 import { boardUsageGroup, type BoardManifest, type BoardUsageGroup } from "../board/board-manifest";
@@ -41,6 +42,48 @@ interface BoardCardProps {
     updates: Map<string, BoardUpdate>;
 }
 
+interface BoardGroupProps {
+    group: BoardUsageGroup;
+    boards: PublishedBoardInfo[];
+    installed: InstalledBoardEntry[];
+    updates: Map<string, BoardUpdate>;
+    createCard: (props: BoardCardProps) => BoardCardView;
+    releaseCard: (id: string, card: BoardCardView) => void;
+}
+
+interface BoardDetailsSignature {
+    id: string;
+    name: string;
+    version: string;
+    size: number;
+    description: string | null;
+    fileMasks: string[] | null;
+    minAppVersion: string | null;
+    installedId: string | null;
+    installedRoot: string | null;
+    installedVersion: string | null;
+    updateVersion: string | null;
+}
+
+type BoardGroupRoot = HTMLElement & { view?: BoardGroupView };
+
+function sameBoardDetails(a: BoardDetailsSignature | undefined, b: BoardDetailsSignature): boolean {
+    if (!a
+        || a.id !== b.id
+        || a.name !== b.name
+        || a.version !== b.version
+        || a.size !== b.size
+        || a.description !== b.description
+        || a.minAppVersion !== b.minAppVersion
+        || a.installedId !== b.installedId
+        || a.installedRoot !== b.installedRoot
+        || a.installedVersion !== b.installedVersion
+        || a.updateVersion !== b.updateVersion) return false;
+    if (a.fileMasks === null || b.fileMasks === null) return a.fileMasks === b.fileMasks;
+    return a.fileMasks.length === b.fileMasks.length
+        && a.fileMasks.every((mask, index) => mask === b.fileMasks[index]);
+}
+
 export class SearchBoardsTabView extends VanillaView<Record<string, never>> {
     private catalog: PublishedBoardInfo[] = [];
     private installed: InstalledBoardEntry[] = [];
@@ -52,6 +95,9 @@ export class SearchBoardsTabView extends VanillaView<Record<string, never>> {
     private input: InputView | undefined;
     private refreshButton: IconButtonView | undefined;
     private content: HTMLDivElement | undefined;
+    private groupsHost: HTMLDivElement | undefined;
+    private emptyMessage: HTMLSpanElement | undefined;
+    private groups: KeyedList<BoardGroupItem, BoardUsageGroup, HTMLElement> | undefined;
     private readonly cards = new Map<string, BoardCardView>();
 
     public constructor(props: Record<string, never>) {
@@ -88,7 +134,18 @@ export class SearchBoardsTabView extends VanillaView<Record<string, never>> {
             paddingX: "lg",
             paddingBottom: "lg",
         });
+        this.groupsHost = createPanelElement({ direction: "column", gap: "lg" });
+        this.emptyMessage = createTextElement("", { size: "sm", color: "light" });
+        this.emptyMessage.hidden = true;
+        this.content.append(this.groupsHost, this.emptyMessage);
         this.root.append(toolbar, this.content);
+        this.groups = new KeyedList<BoardGroupItem, BoardUsageGroup, HTMLElement>(this.groupsHost, {
+            keyOf: (item) => item.group,
+            create: (item) => this.createGroup(item),
+            update: (element, item) => this.updateGroup(element, item),
+            remove: (element) => this.removeGroup(element),
+        });
+        this.own(() => this.groups?.dispose());
         this.input.mount();
         this.refreshButton.mount();
 
@@ -108,6 +165,9 @@ export class SearchBoardsTabView extends VanillaView<Record<string, never>> {
         this.alive = false;
         this.cards.clear();
         this.content?.replaceChildren();
+        this.groups = undefined;
+        this.groupsHost = undefined;
+        this.emptyMessage = undefined;
     }
 
     private inputProps() {
@@ -190,55 +250,130 @@ export class SearchBoardsTabView extends VanillaView<Record<string, never>> {
     }
 
     private renderCards(): void {
-        const content = this.content;
-        if (!content) return;
+        const groupsList = this.groups;
+        const emptyMessage = this.emptyMessage;
+        if (!groupsList || !emptyMessage) return;
         const filtered = this.filteredBoards();
         const groups = this.groupBoards(filtered);
-        const visibleIds = new Set(filtered.map((board) => board.id));
-        for (const [id, card] of this.cards) {
-            if (visibleIds.has(id)) continue;
-            this.releaseChild(card);
-            this.cards.delete(id);
-        }
-
-        content.replaceChildren();
         if (this.catalog.length === 0) {
-            content.append(createTextElement("No published boards available.", { size: "sm", color: "light" }));
+            groupsList.update([]);
+            emptyMessage.textContent = "No published boards available.";
+            emptyMessage.hidden = false;
             return;
         }
         if (filtered.length === 0) {
-            content.append(createTextElement(`No boards match “${this.query}”.`, { size: "sm", color: "light" }));
+            groupsList.update([]);
+            emptyMessage.textContent = `No boards match “${this.query}”.`;
+            emptyMessage.hidden = false;
             return;
         }
 
-        for (const group of GROUP_ORDER) {
-            const boards = groups.get(group);
-            if (!boards) continue;
-            const groupPanel = createPanelElement({ direction: "column", gap: "sm" });
-            groupPanel.append(createTextElement(GROUP_LABELS[group], { size: "sm", color: "light", bold: true }));
-            for (const board of boards) {
-                let card = this.cards.get(board.id);
-                if (!card) {
-                    card = this.child(new BoardCardView({
-                        board,
-                        installed: this.installed,
-                        updates: this.updates,
-                    }));
-                    this.cards.set(board.id, card);
-                    card.mount();
-                } else {
-                    card.update({ board, installed: this.installed, updates: this.updates });
-                }
-                groupPanel.append(card.root);
-            }
-            content.append(groupPanel);
-        }
+        emptyMessage.hidden = true;
+        groupsList.update(GROUP_ORDER.flatMap((group) => {
+            const groupBoards = groups.get(group);
+            return groupBoards ? [{ group, boards: groupBoards }] : [];
+        }));
+    }
+
+    private createGroup(item: BoardGroupItem): HTMLElement {
+        const view = new BoardGroupView(this.groupProps(item));
+        claimViewOwnership(view);
+        (view.root as BoardGroupRoot).view = view;
+        view.mount();
+        return view.root;
+    }
+
+    private updateGroup(element: HTMLElement, item: BoardGroupItem): void {
+        (element as BoardGroupRoot).view?.update(this.groupProps(item));
+    }
+
+    private removeGroup(element: HTMLElement): void {
+        const root = element as BoardGroupRoot;
+        root.view?.dispose();
+        delete root.view;
+    }
+
+    private groupProps(item: BoardGroupItem): BoardGroupProps {
+        return {
+            group: item.group,
+            boards: item.boards,
+            installed: this.installed,
+            updates: this.updates,
+            createCard: (props) => this.createCard(props),
+            releaseCard: (id, card) => this.releaseCard(id, card),
+        };
+    }
+
+    private createCard(props: BoardCardProps): BoardCardView {
+        const card = this.child(new BoardCardView(props));
+        this.cards.set(props.board.id, card);
+        card.mount();
+        return card;
+    }
+
+    private releaseCard(id: string, card: BoardCardView): void {
+        this.releaseChild(card);
+        if (this.cards.get(id) === card) this.cards.delete(id);
+    }
+}
+
+interface BoardGroupItem {
+    group: BoardUsageGroup;
+    boards: PublishedBoardInfo[];
+}
+
+class BoardGroupView extends VanillaView<BoardGroupProps> {
+    private cards: KeyedList<PublishedBoardInfo, string, HTMLElement> | undefined;
+    private readonly cardViews = new Map<HTMLElement, BoardCardView>();
+
+    protected onMount(): void {
+        const heading = createTextElement(GROUP_LABELS[this.props.group], { size: "sm", color: "light", bold: true });
+        const cardsHost = createPanelElement({ direction: "column", gap: "sm" });
+        this.root.append(heading, cardsHost);
+        this.cards = new KeyedList<PublishedBoardInfo, string, HTMLElement>(cardsHost, {
+            keyOf: (board) => board.id,
+            create: (board) => this.createCard(board),
+            update: (element, board) => this.updateCard(element, board),
+            remove: (element, board) => this.removeCard(element, board),
+        });
+        this.own(() => this.cards?.dispose());
+        this.sync(this.props);
+    }
+
+    protected onUpdate(props: BoardGroupProps): void {
+        this.sync(props);
+    }
+
+    protected onDispose(): void {
+        this.cardViews.clear();
+        this.cards = undefined;
+    }
+
+    private sync(props: BoardGroupProps): void {
+        this.cards?.update(props.boards);
+    }
+
+    private createCard(board: PublishedBoardInfo): HTMLElement {
+        const view = this.props.createCard({ board, installed: this.props.installed, updates: this.props.updates });
+        this.cardViews.set(view.root, view);
+        return view.root;
+    }
+
+    private updateCard(element: HTMLElement, board: PublishedBoardInfo): void {
+        this.cardViews.get(element)?.update({ board, installed: this.props.installed, updates: this.props.updates });
+    }
+
+    private removeCard(element: HTMLElement, board: PublishedBoardInfo): void {
+        const view = this.cardViews.get(element);
+        if (view) this.props.releaseCard(board.id, view);
+        this.cardViews.delete(element);
     }
 }
 
 export class BoardCardView extends VanillaView<BoardCardProps> {
     private readonly screenshot: BoardScreenshotView;
     private details: HTMLDivElement | undefined;
+    private detailsSignature: BoardDetailsSignature | undefined;
     private readonly conditionalChildren: IOwnedView[] = [];
 
     public constructor(props: BoardCardProps) {
@@ -276,16 +411,41 @@ export class BoardCardView extends VanillaView<BoardCardProps> {
     private sync(props: BoardCardProps): void {
         const details = this.details;
         if (!details) return;
+        const {
+            id,
+            name,
+            version,
+            description,
+            fileMasks,
+            minAppVersion,
+            archive: { size },
+        } = props.board;
+        const installed = props.installed.find((entry) => entry.id === id);
+        const { id: installedId = null, root: installedRoot = null, version: installedVersion = null } = installed ?? {};
+        const update = installed ? props.updates.get(fpNormalizeForCompare(installed.root)) : undefined;
+        const { latestVersion: updateVersion = null } = update ?? {};
+        const nextDetailsSignature: BoardDetailsSignature = {
+            id,
+            name,
+            version,
+            size,
+            description: description ?? null,
+            fileMasks: fileMasks ? [...fileMasks] : null,
+            minAppVersion: minAppVersion ?? null,
+            installedId,
+            installedRoot,
+            installedVersion,
+            updateVersion,
+        };
+        if (sameBoardDetails(this.detailsSignature, nextDetailsSignature)) return;
+        this.detailsSignature = nextDetailsSignature;
         this.clearConditionalChildren();
         details.replaceChildren();
-
-        const installed = props.installed.find((entry) => entry.id === props.board.id);
-        const update = installed ? props.updates.get(fpNormalizeForCompare(installed.root)) : undefined;
         const header = createPanelElement({ direction: "row", align: "center", gap: "sm" });
         header.append(
-            createTextElement(props.board.name, { bold: true }),
-            createTextElement(`v${props.board.version}`, { size: "sm", color: "light" }),
-            createTextElement(formatBytes(props.board.archive.size), { size: "sm", color: "light" }),
+            createTextElement(name, { bold: true }),
+            createTextElement(`v${version}`, { size: "sm", color: "light" }),
+            createTextElement(formatBytes(size), { size: "sm", color: "light" }),
             createPanelElement({ flex: 1, minWidth: 0 }),
         );
         if (installed && update) {
@@ -303,22 +463,22 @@ export class BoardCardView extends VanillaView<BoardCardProps> {
         }
         details.append(header);
 
-        if (props.board.description) {
-            details.append(createTextElement(props.board.description, { size: "sm" }));
+        if (description) {
+            details.append(createTextElement(description, { size: "sm" }));
         }
 
-        if (props.board.fileMasks && props.board.fileMasks.length > 0) {
+        if (fileMasks && fileMasks.length > 0) {
             const masks = createPanelElement({ direction: "row", wrap: true, gap: "xs", align: "center" });
             masks.append(createTextElement("Files:", { size: "sm", color: "light" }));
-            for (const mask of props.board.fileMasks) {
+            for (const mask of fileMasks) {
                 this.addChild(masks, new TagView({ label: mask, size: "sm", variant: "outlined" }));
             }
             details.append(masks);
         }
 
-        const compatible = publishedBoards.isCompatible(props.board.minAppVersion);
+        const compatible = publishedBoards.isCompatible(minAppVersion);
         if (!compatible) {
-            details.append(createTextElement(`Requires Persephone ≥ ${props.board.minAppVersion}`, {
+            details.append(createTextElement(`Requires Persephone ≥ ${minAppVersion}`, {
                 size: "sm",
                 color: "warning",
             }));
@@ -329,14 +489,14 @@ export class BoardCardView extends VanillaView<BoardCardProps> {
             this.addChild(actions, new ButtonView({
                 size: "sm",
                 disabled: !compatible,
-                onClick: () => this.openInstall(props.board.id),
+                onClick: () => this.openInstall(id),
                 children: "Install…",
             }));
         } else {
             if (update) {
                 this.addChild(actions, new ButtonView({
                     size: "sm",
-                    onClick: () => this.openProperties(installed.root),
+                        onClick: () => this.openProperties(installed.root),
                     children: "Update…",
                 }));
             }

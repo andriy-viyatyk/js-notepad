@@ -14,11 +14,6 @@ export type OpenUrlDialogResult = { type: "url"; value: string } | { type: "file
 
 class OpenUrlDialogModel extends TDialogModel<OpenUrlDialogState, OpenUrlDialogResult> {
     handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(undefined);
-        }
-
         // Ctrl+Enter to submit (Enter alone creates newlines in Textarea)
         if (e.key === "Enter" && e.ctrlKey) {
             e.preventDefault();

@@ -3,7 +3,7 @@ import { createPanelElement, applyPanelAttributes, resolvePanelAttributes, type 
 import { createTextElement } from "../../uikit/Text/text-style";
 import { SpinnerView } from "../../uikit/Spinner/SpinnerView";
 import { ImageViewportView } from "../../uikit/ImageViewport/ImageViewportView";
-import type { ImageViewportModel, ImageViewportProps } from "../../uikit/ImageViewport/ImageViewport";
+import type { ImageViewportProps } from "../../uikit/ImageViewport/ImageViewportView";
 import type { EditorConfig } from "../base/EditorConfig";
 import { guard } from "../../core/utils/guard";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
@@ -189,7 +189,7 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
         };
     }
 
-    public get imageModel(): ImageViewportModel | null {
-        return this.activeViewport?.model ?? null;
+    public copyImage = (): void => {
+        void this.activeViewport?.copyToClipboard();
     }
 }

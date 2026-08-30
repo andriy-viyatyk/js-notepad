@@ -16,6 +16,7 @@ import type {
 import { TreeItemView } from "./TreeItemView";
 import { SectionItemView } from "./SectionItemView";
 import { defaultTreeState, TreeModel } from "./TreeModel";
+import type { TreeStateChange } from "./TreeModel";
 import type { ITreeItem, TreeProps, TreeRow } from "./types";
 import "./Tree.css";
 
@@ -51,8 +52,8 @@ const defaultIndentSize = 16;
  *   update — which would repaint every visible cell on every update, and what the repaint gate exists to stop.
  * - **A state change arrives through `model.onStateApplied`, not through props.** Expansion, lazy
  *   loading and drag state all live in `TreeState`, and a vanilla driver pumps only props. The
- *   model's `mutate()` funnel calls `refresh()` here, and `refresh` re-runs the *render pass* rather
- *   than only repainting cells — see the comment on it.
+ *   model's `mutate()` funnel calls `refresh()` here, and `refresh` updates the root projection and
+ *   only the rows named by the model — see the comment on it.
  * - **The three arms are three DOM states of one stable root.** The prior implementation returned three different
  *   trees; here `applyArm()` owns every attribute that differs between them, including the removals.
  * - **The engine is created on entry to the real arm and disposed on leaving it**, which is what
@@ -78,6 +79,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     private messageHost: HTMLDivElement | undefined;
     private spinner: SpinnerView | undefined;
     private lastActiveIndex: number | null | undefined = undefined;
+    private lastSelectedIndex = -1;
     private lastEmptyMessage: TreeProps<T>["emptyMessage"] | undefined = undefined;
     /**
      * Set before anything else is torn down, so a cell listener that fires during disposal — the
@@ -124,6 +126,8 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     /** Repaint pooled rows after an external DOM projection (for example a cached icon) changed. */
     public refreshRows(): void {
         if (this.inert || this.arm !== "real") return;
+        // The shared file-icon cache and board/tool icon projections invalidate every visible
+        // tree icon, while this view has no per-icon dirty-row index.
         this.grid?.model.update({ all: true });
     }
 
@@ -156,14 +160,27 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 
         this.syncActiveScroll(this.props.activeIndex, false);
         this.repaintGate.prime(this.model.repaintSignature());
+        this.lastSelectedIndex = this.model.selectedRowIndex();
     }
 
     protected onUpdate(props: TreeProps<T>): void {
+        const previousActiveIndex = this.lastActiveIndex;
+        const previousSelectedIndex = this.lastSelectedIndex;
         this.driver.update(props);
         this.applyArm(props);
         const contentChanged = this.repaintGate.changed(this.model.repaintSignature());
-        if (contentChanged) {
+        const repaint = this.model.deriveRepaintChange(
+            contentChanged,
+            previousActiveIndex,
+            previousSelectedIndex,
+        );
+        this.lastSelectedIndex = this.model.selectedRowIndex();
+        if (repaint?.all) {
+            // Search, custom rendering, indentation, tooltip, selection predicate, identity,
+            // and DnD configuration inputs can change every Tree row's rendered content.
             this.grid?.model.update({ all: true });
+        } else if (repaint) {
+            this.grid?.model.update(repaint);
         }
         if (props.activeIndex !== this.lastActiveIndex) {
             this.syncActiveScroll(props.activeIndex, contentChanged);
@@ -173,11 +190,10 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     /**
      * The consequence of a state write, registered as `model.onStateApplied`.
      *
-     * This re-runs the **render pass**, not just a cell repaint, because root attributes can be
-     * state-derived: `aria-activedescendant` reads `rows.length` for its bounds check *and*
-     * `rows.value[i].value` for the id itself, so a `collapseAll()` with a high `activeIndex` has to
-     * remove the attribute, and an in-range collapse has to rewrite it. The previous renderer got that by rebuilding
-     * the whole root.
+     * The root attributes still need a state-derived refresh: `aria-activedescendant` reads
+     * `rows.length` for its bounds check *and* `rows.value[i].value` for the id itself, so a
+     * `collapseAll()` with a high `activeIndex` has to remove the attribute, and an in-range
+     * collapse has to rewrite it. The model supplies the current dirty rows for the grid repaint.
      *
      * Three things it deliberately does not do:
      * - it does not call `applyRestProps`, which removes and re-adds every `on*` listener on every
@@ -186,10 +202,10 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
      * - it does not evaluate the arm work unless the arm actually changed (see below);
      * - it does not skip re-priming the gate. Immer gives `expanded` a new identity, so `rows.value`
      *   is a new array and the next props pump — any pump — would otherwise report "changed" and
-     *   repaint a second time. Priming is safe here precisely because this method just painted
-     *   everything, so the gate and the DOM agree.
+     *   repaint a second time. Priming is safe here because this method just painted the model's
+     *   changed rows, so the gate and those row cells agree.
      */
-    private refresh = (): void => {
+    private refresh = (change: TreeStateChange): void => {
         if (this.inert) return;
         // Insurance for a branch that is unreachable today: `rows.push` is unconditional per source
         // and only the recursion is gated on expansion, so `rows.length === 0` iff `props.items` is
@@ -201,7 +217,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         }
         this.applyActiveDescendant(this.props);
         this.repaintGate.prime(this.model.repaintSignature());
-        this.grid?.model.update({ all: true });
+        this.grid?.model.update({ rows: change.rows });
     };
 
     // -----------------------------------------------------------------------

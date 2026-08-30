@@ -121,8 +121,8 @@ export class GraphVisibilityModel {
         for (const id of this.visibleIds) {
             const pn = this.fullNodes.get(id);
             if (!pn) continue;
-            // Shallow copy — original nodes may be frozen by immer (state management),
-            // and D3 needs to add mutable properties (x, y, vx, vy, index).
+            // Shallow copy — keep source nodes as plain serialized records while adding view-derived
+            // _$ fields and mutable D3 simulation properties to renderer-owned records.
             const node: GraphNode = {
                 ...pn.node,
                 _$showIndex: pn.showIndex,

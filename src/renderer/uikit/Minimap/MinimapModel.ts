@@ -8,202 +8,103 @@ export const defaultMinimapState = {
 
 export type MinimapState = typeof defaultMinimapState;
 
-export interface MinimapModelProps {
-    scrollContainer: HTMLElement | null;
+export interface MinimapModelProps {}
+
+export interface MinimapGeometryInput {
+    scrollTop: number;
+    scrollHeight: number;
+    clientHeight: number;
+    wrapperHeight: number;
+    wrapperScrollHeight: number;
+    mirrorHeight: number;
+}
+
+export interface MinimapLayout {
+    scaledContentHeight: number;
+    indicatorTop: number;
+    indicatorHeight: number;
+    wrapperScrollTop: number;
+}
+
+export interface DragGeometryInput {
+    scrollHeight: number;
+    wrapperHeight: number;
+    wrapperScrollHeight: number;
+    mirrorHeight: number;
+}
+
+export interface BackgroundClickInput {
+    clickY: number;
+    indicatorHeight: number;
+    scrollHeight: number;
+    mirrorHeight: number;
 }
 
 export class MinimapModel extends TComponentModel<MinimapState, MinimapModelProps> {
-    BASE_SCALE = 0.15;
-    scrollContainer: HTMLElement | null = null;
-    contentMirror: HTMLDivElement | null = null;
-    contentContainer: HTMLDivElement | null = null;
-    wrapper: HTMLElement | null = null;
-    observer: MutationObserver | null = null;
-    // indicator drag
-    startY = 0;
-    startContainerTop = 0;
+    private readonly BASE_SCALE = 0.15;
+    private startY = 0;
+    private startContainerTop = 0;
 
-    setScrollContainer = (el: HTMLElement | null) => {
-        if (this.scrollContainer === el) return;
-
-        if (this.observer) {
-            this.observer.disconnect();
-            this.observer = null;
-        }
-
-        if (this.scrollContainer) {
-            this.scrollContainer.removeEventListener(
-                "scroll",
-                this.syncEverything,
-            );
-        }
-
-        this.scrollContainer = el;
-
-        if (this.scrollContainer) {
-            this.observer = new MutationObserver(() => {
-                if (this.contentMirror && this.scrollContainer) {
-                    this.contentMirror.innerHTML =
-                        this.scrollContainer.innerHTML;
-                    this.syncEverything();
-                }
-            });
-            this.scrollContainer.addEventListener(
-                "scroll",
-                this.syncEverything,
-            );
-
-            this.observer.observe(this.scrollContainer, {
-                childList: true,
-                subtree: true,
-                characterData: true,
-            });
-
-            this.syncEverything();
-        }
+    getScale = (mirrorHeight: number, scrollHeight: number): number => {
+        if (!scrollHeight) return this.BASE_SCALE;
+        return mirrorHeight / scrollHeight;
     };
 
-    setContentMirror = (el: HTMLDivElement | null) => {
-        this.contentMirror = el;
-    };
+    syncGeometry = (input: MinimapGeometryInput): MinimapLayout => {
+        const effectiveScale = this.getScale(input.mirrorHeight, input.scrollHeight);
+        const scaledContentHeight = input.scrollHeight * effectiveScale;
+        const indicatorHeight = input.clientHeight * effectiveScale;
+        const indicatorTop = input.scrollTop * effectiveScale;
 
-    setContentContainer = (el: HTMLDivElement | null) => {
-        this.contentContainer = el;
-    };
-
-    setWrapper = (el: HTMLElement | null) => {
-        this.wrapper = el;
-    };
-
-    getScale = () => {
-        if (!this.scrollContainer || !this.contentMirror)
-            return this.BASE_SCALE;
-
-        const realMirrorHeight = this.contentMirror.getBoundingClientRect().height;
-        const heightRatio =
-            realMirrorHeight / this.scrollContainer.scrollHeight;
-        return heightRatio;
-    };
-
-    syncEverything = () => {
-        if (
-            !this.scrollContainer ||
-            !this.wrapper ||
-            !this.contentMirror ||
-            !this.contentContainer
-        )
-            return;
-
-        const { scrollTop, scrollHeight, clientHeight } = this.scrollContainer;
-        const wrapperHeight = this.wrapper.clientHeight;
-
-        // Update content if it hasn't been copied yet
-        if (this.contentMirror.innerHTML === "") {
-            this.contentMirror.innerHTML = this.scrollContainer.innerHTML;
-        }
-
-        const effectiveScale = this.getScale();
-
-        // Calculate dimensions based on effective scale
-        const scaledContentHeight = scrollHeight * effectiveScale;
-        const indicatorHeight = clientHeight * effectiveScale;
-        const indicatorTop = scrollTop * effectiveScale;
-
-        // Set container height to match the visual scaled height
-        this.contentContainer.style.height = `${scaledContentHeight}px`;
-
-        // Update indicator position
-        this.state.update((s) => {
-            s.indicatorTop = isNaN(indicatorTop) ? 0 : indicatorTop;
-            s.indicatorHeight = isNaN(indicatorHeight) ? 0 : indicatorHeight;
+        this.state.update((state) => {
+            state.indicatorTop = isNaN(indicatorTop) ? 0 : indicatorTop;
+            state.indicatorHeight = isNaN(indicatorHeight) ? 0 : indicatorHeight;
         });
 
-        // Sync minimap scroll position
-        if (scaledContentHeight > wrapperHeight) {
-            const maxMainScroll = scrollHeight - clientHeight;
-            const maxMiniScroll = scaledContentHeight - wrapperHeight;
+        let wrapperScrollTop = 0;
+        if (scaledContentHeight > input.wrapperHeight) {
+            const maxMainScroll = input.scrollHeight - input.clientHeight;
+            const maxMiniScroll = scaledContentHeight - input.wrapperHeight;
             const scrollRatio =
-                maxMainScroll > 0 ? scrollTop / maxMainScroll : 0;
-
-            this.wrapper.scrollTop = scrollRatio * maxMiniScroll;
-        } else {
-            this.wrapper.scrollTop = 0;
+                maxMainScroll > 0 ? input.scrollTop / maxMainScroll : 0;
+            wrapperScrollTop = scrollRatio * maxMiniScroll;
         }
+
+        return {
+            scaledContentHeight,
+            indicatorTop,
+            indicatorHeight,
+            wrapperScrollTop,
+        };
     };
 
-    handlePointerDown = (e: PointerEvent) => {
-        e.preventDefault();
-
-        // Capture the pointer - all pointer events now go to this element
-        const target = e.currentTarget as HTMLElement;
-        target.setPointerCapture(e.pointerId);
-
-        this.startY = e.clientY;
-        this.startContainerTop = this.scrollContainer
-            ? this.scrollContainer.scrollTop
-            : 0;
-        this.state.update((s) => {
-            s.isDragging = true;
+    beginDrag = (clientY: number, sourceScrollTop: number): void => {
+        this.startY = clientY;
+        this.startContainerTop = sourceScrollTop;
+        this.state.update((state) => {
+            state.isDragging = true;
         });
     };
 
-    handlePointerUp = (e: PointerEvent) => {
-        const target = e.currentTarget as HTMLElement;
-        if (target.hasPointerCapture(e.pointerId)) {
-            target.releasePointerCapture(e.pointerId);
-        }
-        this.state.update((s) => {
-            s.isDragging = false;
-        });
-    };
-
-    handlePointerMove = (e: PointerEvent) => {
-        const target = e.currentTarget as HTMLElement;
-        // Only process if pointer is captured (dragging)
-        if (!target.hasPointerCapture(e.pointerId)) return;
-
-        const dy = e.clientY - this.startY;
-        const effectiveScale = this.getScale();
-        const wrapperScale = this.wrapper
-            ? this.wrapper.clientHeight / this.wrapper.scrollHeight
+    getDragScrollTop = (clientY: number, input: DragGeometryInput): number => {
+        const dy = clientY - this.startY;
+        const effectiveScale = this.getScale(input.mirrorHeight, input.scrollHeight);
+        const wrapperScale = input.wrapperScrollHeight
+            ? input.wrapperHeight / input.wrapperScrollHeight
             : 1;
 
-        if (this.scrollContainer) {
-            this.scrollContainer.scrollTop =
-                this.startContainerTop +
-                (dy / wrapperScale / effectiveScale) * 1.15;
-        }
+        return this.startContainerTop +
+            (dy / wrapperScale / effectiveScale) * 1.15;
     };
 
-    handleBackgroundClick = (e: MouseEvent) => {
-        if (!this.scrollContainer || !this.wrapper) return;
-
-        // Ignore clicks on the viewport indicator (it has its own drag logic)
-        if ((e.target as HTMLElement).closest('[data-part="indicator"]')) return;
-
-        const wrapperRect = this.wrapper.getBoundingClientRect();
-        const clickY = e.clientY - wrapperRect.top + this.wrapper.scrollTop;
-        const effectiveScale = this.getScale();
-        const { indicatorHeight } = this.state.get();
-
-        // Scroll so the indicator centers on the click point
-        this.scrollContainer.scrollTop = (clickY - indicatorHeight / 2) / effectiveScale;
+    endDrag = (): void => {
+        this.state.update((state) => {
+            state.isDragging = false;
+        });
     };
 
-    mouseEnter = () => {
-        if (!this.state.get().indicatorHeight) {
-            this.syncEverything();
-        }
-    };
-
-    init = () => {
-        window.addEventListener("resize", this.syncEverything);
-        this.own(() => window.removeEventListener("resize", this.syncEverything));
-        this.own(() => this.scrollContainer?.removeEventListener("scroll", this.syncEverything));
-    };
-
-    dispose = () => {
-        this.observer?.disconnect();
-        this.observer = null;
+    getBackgroundScrollTop = (input: BackgroundClickInput): number => {
+        const effectiveScale = this.getScale(input.mirrorHeight, input.scrollHeight);
+        return (input.clickY - input.indicatorHeight / 2) / effectiveScale;
     };
 }

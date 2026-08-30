@@ -1,7 +1,7 @@
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, traited, Traited } from "../../core/traits/traits";
 import { LIST_ITEM_KEY, type IListBoxItem } from "../ListBox/types";
-import type { MultiListBoxProps } from "./MultiListBox";
+import type { MultiListBoxProps } from "./MultiListBoxView";
 
 export interface MultiListBoxState {
     searchText: string;

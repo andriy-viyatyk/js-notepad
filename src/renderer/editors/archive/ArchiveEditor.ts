@@ -133,7 +133,7 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
             if (url && this.page?.activePanelId === "archive-tree") {
                 this.revealVersion.update((s) => { s.version++; });
             }
-            setTimeout(() => this.page?.expandPanel("archive-tree"), 0);
+            this.page?.expandPanel("archive-tree");
         } else {
             this.secondaryView = undefined;
         }
@@ -144,7 +144,9 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
         if (panelId === "archive-tree") {
             const href = this.selectionState.get().selectedHref;
             if (href) {
-                setTimeout(() => this.revealVersion.update((s) => { s.version++; }), 0);
+                // The monotonic token is a reveal command consumed by the secondary view, whose
+                // binding schedules the cancellable animation-frame reveal after the panel exists.
+                this.revealVersion.update((s) => { s.version++; });
             }
         }
     }

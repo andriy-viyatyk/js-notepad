@@ -507,6 +507,7 @@ You can also open a folder from outside the app: pass a folder path on the comma
 - **Sidebar sync** — The sidebar panel tree stays in sync with the folder you are viewing
 - **Works with any tree provider** — File Explorer folders, archive subfolders, Mneme folders, and link categories all use the same Folder View with breadcrumb
 - **Auto-refresh** — For a file-system folder, a Mneme folder, or a link category, the listing updates automatically when files change elsewhere — the Explorer tree, another Persephone window, Windows Explorer, or an AI agent. No manual refresh is needed. Archive folders don't refresh, since a ZIP's contents don't change while it's open.
+- **Refreshes keep your place** — When an automatic refresh leaves the visible listing unchanged, the Folder View keeps its current scroll position instead of jumping back to the top.
 
 ### Selecting multiple items (File Explorer folders only)
 

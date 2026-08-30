@@ -136,6 +136,7 @@ class TreeDemoView extends VanillaView<DemoProps> {
         this.treeHost = tree.root;
         this.root.append(controls, tree.root);
         expand.mount(); collapse.mount(); reveal.mount(); tree.mount();
+        this.listen(tree.root, "click", this.onCustomRowClick, { capture: true });
         this.syncSelectionRow();
         this.syncSelectionRowVisibility();
     }
@@ -260,6 +261,8 @@ class TreeDemoView extends VanillaView<DemoProps> {
     private readonly renderCustomRow = (context: TreeItemRenderContext<StoryTreeItem>): Node => {
         const row = document.createElement("div");
         row.id = context.id;
+        row.dataset.treeDemoCustomRow = "";
+        row.dataset.treeDemoHasChildren = String(context.hasChildren);
         row.style.display = "flex";
         row.style.alignItems = "center";
         row.style.height = "100%";
@@ -276,11 +279,19 @@ class TreeDemoView extends VanillaView<DemoProps> {
         row.setAttribute("role", "treeitem");
         row.setAttribute("aria-level", String(context.level + 1));
         if (context.hasChildren) row.setAttribute("aria-expanded", String(context.expanded));
-        this.listen(row, "click", () => { if (context.hasChildren) context.toggleExpanded(); });
         const chevron = document.createElement("span"); chevron.style.opacity = "0.5"; chevron.style.marginRight = "6px"; chevron.textContent = context.hasChildren ? (context.expanded ? "▼" : "▶") : "·";
         const level = document.createElement("span"); level.style.opacity = "0.6"; level.style.marginRight = "6px"; level.textContent = `L${context.level}`;
         row.append(chevron, level, document.createTextNode(typeof context.item.label === "string" ? context.item.label : String(context.item.value)));
         return row;
+    };
+
+    private readonly onCustomRowClick = (event: MouseEvent): void => {
+        const target = (event.target as Element | null)?.closest<HTMLElement>("[data-tree-demo-custom-row]");
+        if (!target || !this.treeHost?.contains(target) || target.dataset.treeDemoHasChildren !== "true") return;
+        const model = this.model;
+        if (!model) return;
+        const rowIndex = model.rows.findIndex((_row, index) => model.itemId(index) === target.id);
+        if (rowIndex >= 0) model.toggleAt(rowIndex);
     };
 
     private syncSelectionRowVisibility(): void {

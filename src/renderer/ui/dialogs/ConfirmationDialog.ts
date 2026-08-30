@@ -18,18 +18,6 @@ const defaultConfirmationDialogProps: ConfirmationDialogProps = {
     buttons: ["Yes", "Cancel"],
 };
 
-class ConfirmationDialogModel extends TDialogModel<
-    ConfirmationDialogProps,
-    string
-> {
-    handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(undefined);
-        }
-    };
-}
-
 registerDialogView(confirmationDialogId, ConfirmationDialogView);
 
 export function showConfirmationDialog(props: ConfirmationDialogProps) {
@@ -38,7 +26,7 @@ export function showConfirmationDialog(props: ConfirmationDialogProps) {
         ...props,
     };
 
-    const model = new ConfirmationDialogModel(new TComponentState(modelState));
+    const model = new TDialogModel<ConfirmationDialogProps, string>(new TComponentState(modelState));
     return showDialog({
         viewId: confirmationDialogId,
         model,

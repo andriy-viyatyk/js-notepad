@@ -283,7 +283,11 @@ export class FiltersEditorView extends VanillaView<FiltersEditorProps> {
     private sync(props: FiltersEditorProps): void {
         const { content, loading } = this;
         if (!content || !loading) return;
-        if (!props.config) { if (this.hasControls()) this.disposeControls(); content.replaceChildren(loading); return; }
+        if (!props.config) {
+            if (this.hasControls()) this.disposeControls();
+            if (content.firstChild !== loading) content.replaceChildren(loading);
+            return;
+        }
         if (!this.hasControls()) this.createControls();
         const { includeInput, ignoreInput, resetButton, applyButton } = this;
         if (!includeInput || !ignoreInput || !resetButton || !applyButton) return;

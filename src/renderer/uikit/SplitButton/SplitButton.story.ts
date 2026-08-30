@@ -1,7 +1,7 @@
 import { createIconElement, type IconRef } from "../shared/slots";
 import { VanillaView } from "../shared/vanilla-view";
 import { SplitButtonView } from "./SplitButtonView";
-import type { SplitButtonProps } from "./SplitButton";
+import type { SplitButtonProps } from "./SplitButtonView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 type SplitButtonDemoViewProps = Omit<SplitButtonProps, "icon"> & {

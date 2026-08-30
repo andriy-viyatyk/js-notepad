@@ -1,7 +1,7 @@
 import { TDialogModel } from "../../core/state/model";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
-import type { DialogProps } from "../../uikit/Dialog/Dialog";
+import type { DialogProps } from "../../uikit/Dialog/DialogView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
@@ -11,9 +11,7 @@ import type { ConfirmationDialogProps } from "./ConfirmationDialog";
 import "../../uikit/Button/Button.css";
 import "../../uikit/Dialog/Dialog.css";
 
-type ConfirmationDialogModel = TDialogModel<ConfirmationDialogProps, string> & {
-    handleKeyDown(event: KeyboardEvent): void;
-};
+type ConfirmationDialogModel = TDialogModel<ConfirmationDialogProps, string>;
 
 export class ConfirmationDialogView extends VanillaView<DialogViewProps> {
     private readonly model: ConfirmationDialogModel;
@@ -48,7 +46,7 @@ export class ConfirmationDialogView extends VanillaView<DialogViewProps> {
         const dialogView = new DialogView({
             className: props.className,
             name: "confirmation-dialog",
-            onKeyDown: (event) => model.handleKeyDown(event),
+            onEscape: () => { void model.close(undefined); },
             children: contentView.root,
         } as DialogProps & { className?: string });
 

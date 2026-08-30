@@ -2,7 +2,7 @@ import { createPanelElement } from "../Panel/panel-style";
 import { createTextElement } from "../Text/text-style";
 import { VanillaView } from "../shared/vanilla-view";
 import { TagsInputView } from "./TagsInputView";
-import type { TagsInputProps } from "./TagsInput";
+import type { TagsInputProps } from "./TagsInputView";
 import type { Story } from "../../editors/storybook/storyTypes";
 
 const TAG_SETS: Record<string, string[]> = {

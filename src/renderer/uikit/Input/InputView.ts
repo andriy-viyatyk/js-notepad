@@ -7,7 +7,26 @@ import { VanillaView } from "../shared/vanilla-view";
 import "./Input.css";
 
 export interface InputProps
-    extends Omit<NativeInputHTMLAttributes<HTMLInputElement>, "onChange" | "size" | "onKeyDown"> {
+    extends Pick<NativeInputHTMLAttributes<HTMLInputElement>,
+        | "autoFocus"
+        | "checked"
+        | "defaultValue"
+        | "disabled"
+        | "readOnly"
+        | "type"
+        | "value"
+        | "min"
+        | "max"
+        | "step"
+        | "placeholder"
+        | "autoComplete"
+        | "onClick"
+        | "onFocus"
+        | "onBlur"
+        | "onContextMenu"
+        | `aria-${string}`
+        | `data-${string}`
+    > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;

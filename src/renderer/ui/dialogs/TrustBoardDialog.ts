@@ -10,19 +10,10 @@ export interface TrustBoardDialogProps {
     boardPath: string; // absolute board-root path, for display
 }
 
-class TrustBoardDialogModel extends TDialogModel<TrustBoardDialogProps, boolean> {
-    handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            this.close(false);
-        }
-    };
-}
-
 registerDialogView(trustBoardDialogId, TrustBoardDialogView);
 
 export function showTrustBoardDialog(boardPath: string) {
-    const model = new TrustBoardDialogModel(new TComponentState({ boardPath }));
+    const model = new TDialogModel<TrustBoardDialogProps, boolean>(new TComponentState({ boardPath }));
     return showDialog({
         viewId: trustBoardDialogId,
         model,

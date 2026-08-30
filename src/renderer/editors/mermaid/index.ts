@@ -13,7 +13,6 @@ import {
 } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
 import { ui } from "../../api/ui";
-import type { ImageViewportModel } from "../../uikit/ImageViewport/ImageViewport";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -31,7 +30,7 @@ function requireMermaidModel(model: EditorModel): MermaidEditor {
 
 interface MermaidToolbarProps {
     model: MermaidEditor;
-    getImageModel: () => ImageViewportModel | null;
+    copyImage: () => void;
 }
 
 interface MermaidToolbarProjection {
@@ -48,7 +47,7 @@ function selectMermaidToolbar(state: MermaidEditorState): MermaidToolbarProjecti
 
 class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
     private model: MermaidEditor;
-    private readonly getImageModel: () => ImageViewportModel | null;
+    private copyImage: () => void;
     private themeButton: IconButtonView | undefined;
     private openDrawButton: IconButtonView | undefined;
     private convertButton: IconButtonView | undefined;
@@ -61,7 +60,7 @@ class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
     public constructor(props: MermaidToolbarProps) {
         super(props, createContentsRoot());
         this.model = props.model;
-        this.getImageModel = props.getImageModel;
+        this.copyImage = props.copyImage;
     }
 
     protected onMount(): void {
@@ -93,6 +92,7 @@ class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
     }
 
     protected onUpdate(props: MermaidToolbarProps): void {
+        this.copyImage = props.copyImage;
         if (props.model !== this.model) {
             this.model = props.model;
             this.bindState();
@@ -174,7 +174,7 @@ class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
             name: "mermaid-copy",
             size: "sm",
             title: "Copy Image to Clipboard (Ctrl+C)",
-            onClick: () => { void this.getImageModel()?.copyToClipboard(); },
+            onClick: this.copyImage,
             disabled: !svgUrl,
             icon: "copy",
         };
@@ -234,7 +234,7 @@ export class MermaidEditorView extends VanillaView<{ model: EditorModel }> {
         }));
         const toolbar = this.child(new MermaidToolbarBitsView({
             model,
-            getImageModel: () => body.imageModel,
+            copyImage: body.copyImage,
         }));
         const chrome = this.child(new TextChromeView({
             model: this.props.model,
@@ -258,7 +258,7 @@ export class MermaidEditorView extends VanillaView<{ model: EditorModel }> {
         const chrome = this.chrome;
         if (!body || !toolbar || !chrome) return;
         body.update({ model });
-        toolbar.update({ model, getImageModel: () => body.imageModel });
+        toolbar.update({ model, copyImage: body.copyImage });
         chrome.update({
             model: props.model,
             children: body.root,

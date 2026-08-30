@@ -174,6 +174,8 @@ export class MonacoDiffEditorHostView extends VanillaView<MonacoDiffEditorHostPr
     }
 
     private scheduleModelDisposal(models: readonly monaco.editor.ITextModel[]): void {
+        // Wait until the editor's setModel(null)/editor teardown boundary has finished before
+        // disposing detached text models; this callback no longer touches the view.
         setTimeout(() => {
             models.forEach((model) => model.dispose());
         }, 0);

@@ -23,6 +23,9 @@ export type PathInputViewProps = PathInputProps;
 interface RowMeta {
     item: PathSuggestion;
     index: number;
+    mouseDownRelease: () => void;
+    clickRelease: () => void;
+    mouseEnterRelease: () => void;
 }
 
 interface PathSuggestionContentProps {
@@ -74,15 +77,18 @@ class PathSuggestionContentView extends VanillaView<PathSuggestionContentProps> 
         row.setAttribute("role", "option");
         row.dataset.part = "suggestion-row";
         this.rowElements.add(row);
-        this.rowMeta.set(row, { item, index });
-        this.listen(row, "mousedown", this.onRowMouseDown);
-        this.listen(row, "click", this.onRowClick);
-        this.listen(row, "mouseenter", this.onRowMouseEnter);
+        const mouseDownRelease = this.listen(row, "mousedown", this.onRowMouseDown);
+        const clickRelease = this.listen(row, "click", this.onRowClick);
+        const mouseEnterRelease = this.listen(row, "mouseenter", this.onRowMouseEnter);
+        this.rowMeta.set(row, { item, index, mouseDownRelease, clickRelease, mouseEnterRelease });
         return row;
     }
 
     private updateRow(row: HTMLDivElement, item: PathSuggestion, index: number): void {
-        this.rowMeta.set(row, { item, index });
+        const meta = this.rowMeta.get(row);
+        if (!meta) throw new Error("PathInput lost a suggestion row.");
+        meta.item = item;
+        meta.index = index;
         const [prefix, segment, separator] = Array.from(row.children) as HTMLSpanElement[];
         prefix.textContent = item.matchPrefix;
         segment.textContent = item.label;
@@ -92,9 +98,10 @@ class PathSuggestionContentView extends VanillaView<PathSuggestionContentProps> 
     }
 
     private removeRow(row: HTMLDivElement): void {
-        row.removeEventListener("mousedown", this.onRowMouseDown);
-        row.removeEventListener("click", this.onRowClick);
-        row.removeEventListener("mouseenter", this.onRowMouseEnter);
+        const meta = this.rowMeta.get(row);
+        meta?.mouseDownRelease();
+        meta?.clickRelease();
+        meta?.mouseEnterRelease();
         this.rowMeta.delete(row);
         this.rowElements.delete(row);
         this.props.model.setRowRef(this.rowPath(row), null);

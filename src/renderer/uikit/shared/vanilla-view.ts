@@ -142,6 +142,19 @@ export abstract class VanillaView<P> implements IOwnedView {
         }
     }
 
+    /**
+     * Whether this view has been disposed.
+     *
+     * `bind()` already guards its own apply callback, but a view that subscribes to a state
+     * directly — through `state.subscribe` retained with `ownSubscription()` — has no such guard,
+     * and its callback may still run after disposal if it was registered before the dispatch that
+     * disposed the view. Such a callback must check this before touching the view, because
+     * anything reaching `own()` throws on a disposed view.
+     */
+    protected get isDisposed(): boolean {
+        return this.disposed;
+    }
+
     /** Register a resource cleanup owned by this view. */
     protected own(dispose: Cleanup): void {
         this.assertActive();
@@ -176,14 +189,17 @@ export abstract class VanillaView<P> implements IOwnedView {
     /**
      * Add a typed DOM listener and register its matching removal operation.
      * The wrapper remains safe even if the browser has already captured the
-     * handler in an event dispatch when dispose() removes it.
+     * handler in an event dispatch when dispose() removes it. The returned
+     * handle releases this listener early; use it before removing or replacing
+     * a target that can outlive the listener's current DOM branch. It is
+     * idempotent, and can still be called safely when the view is disposed.
      */
     protected listen<K extends keyof HTMLElementEventMap>(
         target: EventTarget,
         type: K,
         listener: (event: HTMLElementEventMap[K]) => void,
         options?: AddEventListenerOptions,
-    ): void {
+    ): () => void {
         this.assertActive();
 
         const guardedListener = (event: Event): void => {
@@ -193,7 +209,7 @@ export abstract class VanillaView<P> implements IOwnedView {
             listener(event as HTMLElementEventMap[K]);
         };
         target.addEventListener(type as string, guardedListener, options);
-        this.own(() => target.removeEventListener(type as string, guardedListener, options));
+        return this.ownReleasable(() => target.removeEventListener(type as string, guardedListener, options));
     }
 
     /** Register one explicitly-owned child and return it for fluent setup. */

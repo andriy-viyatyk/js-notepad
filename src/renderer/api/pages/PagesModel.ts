@@ -162,6 +162,7 @@ export class PagesModel extends TModel<OpenFilesState> {
     };
 
     checkEmptyPage = () => {
+        // Wait for page-removal dispatch and its observers to settle before creating a replacement.
         setTimeout(() => {
             if (this.state.get().pages.length === 0) {
                 this.lifecycle.addEmptyPage();

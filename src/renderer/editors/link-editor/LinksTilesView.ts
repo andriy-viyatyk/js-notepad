@@ -126,7 +126,11 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         this.width = nextWidth;
         this.columnCountValue = nextColumnCount;
         if (columnsChanged) this.rebuildAsyncRows(this.props.links);
-        if (widthChanged || columnsChanged) this.grid.model.update({ all: true });
+        if (widthChanged || columnsChanged) {
+            // Width and column-count changes invalidate tile geometry and can change the
+            // link-to-row mapping, so every current tile row needs repainting.
+            this.grid.model.update({ all: true });
+        }
     };
 
     public constructor(props: LinksTilesProps) {
@@ -179,7 +183,11 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         if (linksChanged || viewModeChanged) this.rebuildAsyncRows(props.links);
         this.previousViewMode = props.viewMode;
         this.grid.update(this.gridOptions());
-        this.grid.model.update({ all: true });
+        if (linksChanged) {
+            this.grid.model.update({
+                rows: Array.from({ length: this.rowCount() }, (_, row) => row),
+            });
+        }
         if (linksChanged || viewModeChanged) void this.grid.model.scrollToRow(0);
     }
 

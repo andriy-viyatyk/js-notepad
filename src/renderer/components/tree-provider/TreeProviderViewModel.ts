@@ -308,10 +308,8 @@ export class TreeProviderViewModel extends TComponentModel<
     collapseAll = () => {
         const rootPath = this.props.provider.rootPath;
         this.treeModel?.collapseAll();
-        setTimeout(() => {
-            this.treeModel?.expandItem(rootPath);
-            this.pruneSelectionToVisible();
-        }, 0);
+        this.treeModel?.expandItem(rootPath);
+        this.pruneSelectionToVisible();
         this.props.onStateChange?.({ ...this.getState(), expandedPaths: [rootPath] });
     };
 
@@ -730,9 +728,6 @@ export class TreeProviderViewModel extends TComponentModel<
         // Load children for all ancestor paths (no-op for already loaded)
         const allPaths = [provider.rootPath, ...ancestors];
         await this.loadChildrenForPaths(allPaths);
-
-        // Wait for React to re-render Tree with the new children data
-        await new Promise((r) => setTimeout(r, 0));
 
         // UIKit Tree's revealItem expands ancestors found in the loaded tree, then scrolls.
         await this.treeModel?.revealItem(href);
