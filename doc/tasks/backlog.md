@@ -182,6 +182,19 @@ three-quarters done — and worth considering whether `getExpandedMap()` itself 
 effective map, which would remove the trap instead of patching its fourth and fifth exits.
 
 
+### Six unsafe type assertions deferred by EPIC-072
+
+EPIC-072's `/review` pass left these unfixed rather than widen its scope, and they are still
+present (re-checked 2026-08-30, after the review file that recorded them was deleted):
+
+- `as unknown as` — `src/renderer/editors/board/index.ts`, `src/renderer/editors/board/BoardEditorView.ts`
+- `as never` — `src/renderer/editors/browser/BrowserView.ts` (4 sites)
+
+Two other entries on the original list are already gone: `UrlSuggestionsDropdown.ts`'s `as never`
+and `BoardToolbar.ts`'s definite-assignment `!`. The `BrowserView.ts` ESLint suppression was not
+re-verified. Low priority — each assertion is local and none is known to be wrong; the value is in
+removing the class, not in fixing a bug.
+
 ### A content-host editor's module failure is still a silent no-op
 
 US-1185 guarded the three silent `createEditorFromFile` call sites, but only **no-host** file editors

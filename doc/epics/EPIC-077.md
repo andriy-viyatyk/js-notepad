@@ -1,6 +1,6 @@
 # EPIC-077 — Post-De-React Epic C: proportional work
 
-**Status:** Completed 2026-08-30 — cut from [`de-react-refactoring.md`](../de-react-refactoring.md).
+**Status:** Completed 2026-08-30 — cut from the De-React refactoring plan (`doc/de-react-refactoring.md`, deleted at programme close).
 **Scope:** R4 (full-rebuild sites), R5 (large collections under immer), R7 (model/view collapses
 and types-only files), R8's surviving residue, and R6's deferred type half.
 **Predecessors:** [EPIC-075](EPIC-075.md) — Epic A, core contracts (R1, R3, R10.1-3), completed

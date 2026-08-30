@@ -498,8 +498,8 @@ Narrowing this distinction in the type system is deliberately deferred. Roughly 
 type-level split cannot be made without first migrating those callers. This document is therefore
 the current house convention, not an enforced type contract.
 
-The transitional option in
-[`doc/de-react-refactoring.md` R2 step 4](../de-react-refactoring.md#r2-kill-the-props-pump--children-subscribe-parents-stop-re-pushing)
+The transitional option proposed as R2 step 4 in the De-React refactoring plan (that plan closed
+2026-08-30 and its document has been deleted; see [EPIC-076](../epics/EPIC-076.md))
 is rejected: a shallow-equality gate inside `VanillaView.update()` would be “a crutch, not the
 fix.” It would mask exactly the call sites that need to be found and could make verification pass
 for the wrong reason. Keep the pump visible until each live-data path is

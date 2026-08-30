@@ -2,7 +2,7 @@
 
 **Status:** Completed 2026-08-29
 **Created:** 2026-08-29
-**Plan:** [de-react-refactoring.md](../de-react-refactoring.md) → **R1**, **R3**, **R10.1–R10.3**
+**Plan:** the De-React refactoring plan (`doc/de-react-refactoring.md`, deleted at programme close) → **R1**, **R3**, **R10.1–R10.3**
 **Predecessor programme:** De-React (EPIC-069 … [EPIC-074](EPIC-074.md), all complete)
 
 The De-React programme removed React. It did not remove the *shape* of React, and the shape lives
@@ -222,7 +222,7 @@ is not progress.
 ## Notes
 
 ### 2026-08-29
-- Epic cut from [de-react-refactoring.md](../de-react-refactoring.md) as the first of the four
+- Epic cut from the De-React refactoring plan as the first of the four
   suggested blocks. Figures re-measured against `upcoming-v4.0.23`; two corrections recorded in A-2.
 - Decision: `memo()` is explicitly out of scope and moves to Epic B with the props pump (A-3).
 - Decision: the `TModel` `postCreate` timer (plan R8) is pulled forward into US-1195 rather than
@@ -338,8 +338,7 @@ reload — the `first` branch (`initializeTree` + `subscribeWatch`) works.
 
 **Not verified — must be walked before the epic closes.** These are the two presence checks named in
 A-1 statement 2, and both need driving the Explorer/Collections **sidebar**, not the Explorer page:
-- **Provider change restores expansion.** Follow the steps in
-  `doc/tasks/US-1194-retire-oldprops/README.md` ("Manual verification"): expand a nested category in
+- **Provider change restores expansion.** Expand a nested category in
   a `.link.json` collection, then open a second collection with a matching nested category while the
   Collections panel stays mounted, and confirm the category is still expanded. Do **not** substitute
   the File Explorer **Make Root** flow — it clears `ExplorerEditor.treeState` on purpose.
@@ -581,9 +580,23 @@ Implementation is complete. These remain, and are the reason the epic is **not**
   which passed).
 - Default Browser register / unregister (mutates Windows shell registration).
 - Browser Profiles add / remove / clear profile data; the VLC path picker.
-- The three US-1194 presence checks, which need the Explorer/Collections **sidebar** driven by hand:
-  provider-change expansion restore, `selectedHref` reveal, and menu-reopen detection. Exact steps
-  are in `doc/tasks/US-1194-retire-oldprops/README.md`.
+- The three US-1194 presence checks, which need the Explorer/Collections **sidebar** driven by hand.
+  The task folder was deleted at programme close, so the steps are recorded here:
+  1. **Provider change restores expansion.** Open a `.link.json` collection with nested categories,
+     expand one with the chevron, then open a second `.link.json` collection with a matching nested
+     category while the Collections panel stays mounted. The matching category must still be
+     expanded with its children present. Do **not** substitute the File Explorer **Make Root** flow —
+     it clears `ExplorerEditor.treeState` on purpose.
+  2. **`selectedHref` is revealed.** With the File Explorer sidebar open and the target collapsed or
+     below the fold, open a file under that root from the main editor. Explorer must expand to
+     reveal and highlight it — the `TreeProviderViewModel.setProps` external-selection path calling
+     `adoptSelection` then `revealItem`.
+  3. **A menu detects reopening.** Open the Link Editor view-mode menu, dismiss it with Escape or an
+     outside click, and reopen it. The current mode must still be marked selected, with a clean
+     submenu/search state. The Storybook **Menu** story reproduces the same close/open transition.
+
+  In all three, also change the input once immediately after mount to catch a first-update
+  off-by-one.
 - The Tor info dialog's new explicit `postCreate()` call (needs a configured Tor profile).
 - `CreateBoardDialogView`'s two-input branch, `LibrarySetupDialogView`, and
   `CreateBoardVarsStorageDialogView` focus paths; and `afterPaint`'s 100 ms fallback in a

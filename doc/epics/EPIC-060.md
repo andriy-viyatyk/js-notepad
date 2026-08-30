@@ -346,7 +346,8 @@ converted host rather than only its presence, and open at least one editor the t
 - The `highlight` React-form ledger entry also holds unchanged: `GraphBody`, `LinksList`,
   `LinkCategoryPanel`, `ExpandedNoteView`, `NoteItemView` — none of them in this epic's scope.
 **Epic close — the review caught a standards violation in all five new views, and it was mine.**
-Codex's `/review` pass reported 2 must-fix and 1 advisory (`doc/tasks/epic60-review.md`):
+Codex's `/review` pass reported 2 must-fix and 1 advisory (report deleted at close; both
+must-fixes are summarised below):
 
 1. **Child DOM was being built in constructors instead of `onMount()`** — in `GridBodyView`,
    `MarkdownBodyView`, `SvgBodyView`, `CodeBlock` and `MarkdownImage`. `uikit/CLAUDE.md:496-499` states

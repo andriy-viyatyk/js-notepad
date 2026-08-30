@@ -2,7 +2,7 @@
 
 **Status:** Completed 2026-08-30
 **Created:** 2026-08-29
-**Plan:** [de-react-refactoring.md](../de-react-refactoring.md) → **R2**, the pump-entangled half of **R6**, **R10.4–R10.6**
+**Plan:** the De-React refactoring plan (`doc/de-react-refactoring.md`, deleted at programme close) → **R2**, the pump-entangled half of **R6**, **R10.4–R10.6**
 **Predecessor:** [EPIC-075](EPIC-075.md) — Epic A, core contracts (completed 2026-08-29)
 
 Epic A fixed the base classes. This epic fixes the thing the base classes were defending against.

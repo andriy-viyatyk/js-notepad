@@ -6,20 +6,9 @@ Overview of all active and planned epics and tasks.
 - Task details tracked in [`/doc/tasks/completed.md`](tasks/completed.md) after completion
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
-**The post-De-React refactoring programme is complete.** [`de-react-refactoring.md`](de-react-refactoring.md) is kept as the record of it: ten proposals
-(R1–R10) covering the React-era shapes that survived the migration. All ten are delivered, across
-four epics — **A** core contracts ([EPIC-075](epics/EPIC-075.md)), **B** the props pump
-([EPIC-076](epics/EPIC-076.md)), **C** proportional work ([EPIC-077](epics/EPIC-077.md)), and the
-close-out ([EPIC-078](epics/EPIC-078.md)).
-
-**Do not reuse a figure from that page.** Every one of the four epics re-measured it on the way in,
-and every one found substantial drift — cited files at paths that do not exist, symptoms that were
-fiction, censuses low by a third or more, and in two cases advice that would have caused a
-regression if followed. Re-derive from the current tree.
-
 ## Active
 
-*(nothing active — the post-De-React programme closed 2026-08-30)*
+*(nothing active)*
 
 ## Planned
 

@@ -557,7 +557,8 @@ root** — a crash no longer reintroduces React.
 
 - **US-1163** — a failed editor open is a silent no-op at `createEditor`.
 - **Deferred type assertions** — 7 `as unknown as`, 5 `as never`, 7 `!`, 1 ESLint suppression in the
-  converted paths, recorded in [EPIC-072-review.md](../tasks/EPIC-072-review.md). Only
+  converted paths, recorded in the epic's `/review` report (deleted at close; its six surviving
+  deferred assertions are now in [backlog.md](../tasks/backlog.md)). Only
   `BoardEditorView`'s manufactured `BranchView` casts were simplified.
 - **`webviewReady` residual** — hardened for ownership, but it is a `Set` with no identity to compare;
   the guard uses the `webviewRefs` ownership test rather than its own.

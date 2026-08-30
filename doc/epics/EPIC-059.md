@@ -11,7 +11,8 @@
 > (E1-12). Every row in [Testing owed](#testing-owed) was cleared with the user in a visual-testing
 > round that found **four defects** — three of them invisible to the structural MCP checks that had
 > passed. All four fixed, verified live, and covered by a follow-up Codex review + docs pass
-> (`doc/tasks/epic59-fixes-review.md`: 0 must-fix, 3 advisory documentation gaps, all closed).
+> (the `/review` pass reported 0 must-fix and 3 advisory documentation gaps, all closed; its
+> report file was deleted at close).
 
 ## Overview
 

@@ -1206,7 +1206,7 @@ of one shape is a pattern to fix once, not five tickets — which is why it is r
 ### A process finding about the review itself
 
 The first review call lost its findings to a transport timeout after thirty minutes of silence. The
-second was told to **append each finding to `doc/tasks/EPIC-071-review.md` the moment it was confirmed**
+second was told to **append each finding to a review file the moment it was confirmed**
 and to reply with only the path — and that call also timed out, yet nothing was lost, because the file
 was on disk. **A long delegated task must write its artifact incrementally, not compose it in its
 reply**; the reply is the least durable part of the transaction. The cost of not doing this was one

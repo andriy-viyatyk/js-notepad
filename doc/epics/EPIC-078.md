@@ -2,7 +2,7 @@
 
 **Status:** **Completed 2026-08-30** — all seven tasks implemented and reviewed; `/review`,
 `/document`, `/userdoc` run at close (see [completed.md](completed.md)). Cut 2026-08-30.
-**Scope:** R9 from [`de-react-refactoring.md`](../de-react-refactoring.md) — the comment, shim and
+**Scope:** R9 from the De-React refactoring plan (`doc/de-react-refactoring.md`, deleted at programme close) — the comment, shim and
 dependency sweep — plus the De-React residue recorded in
 [`backlog.md`](../tasks/backlog.md) under *Technical Debt* and *Architecture Improvements*.
 **Predecessors:** [EPIC-075](EPIC-075.md) (Epic A, core contracts) and
@@ -231,6 +231,7 @@ task doc must say so up front**, or the implementing agent will feel obliged to 
    "verified correct, left alone".
 6. `ToolbarView` cannot lose a caller's manual append, or `ToolbarProps.children` documents why it can.
 7. `de-react-refactoring.md` is marked closed: all ten proposals delivered or deliberately dropped.
+   (The document itself was deleted on 2026-08-30 once EPIC-077 closed the programme.)
 
 **Verification is by use where the change is visible.** Statements 3, 6 and 7 of this epic are
 DOM-and-docs and can be read; US-1223's rename and US-1227's Panel contract change what
