@@ -8,7 +8,7 @@ import { InputView } from "../Input/InputView";
 import { ListBoxView } from "../ListBox/ListBoxView";
 import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import type { IListBoxItem, ListBoxProps } from "../ListBox/types";
-import type { VirtualGridLayout } from "../VirtualGrid";
+import type { ListBoxLayout } from "../ListBox/ListBoxView";
 import type { InputProps } from "../Input/InputView";
 import {
     AutocompleteModel,
@@ -97,7 +97,7 @@ class AutocompleteContentView extends VanillaView<AutocompleteContentProps> {
         this.list?.setEmptyMessage(emptyMessage);
     }
 
-    public setLayout(layout: VirtualGridLayout): void {
+    public setLayout(layout: ListBoxLayout): void {
         this.list?.setLayout(layout);
     }
 

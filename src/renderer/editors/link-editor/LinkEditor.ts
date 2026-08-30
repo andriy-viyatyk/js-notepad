@@ -8,7 +8,7 @@ import { ui } from "../../api/ui";
 import { debounce, errMessage } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { getHostname } from "../../components/icons/favicon-cache";
-import type { GridModelCapability } from "../../uikit/VirtualGrid";
+import type { GridModelCapability } from "../../uikit/DataGrid";
 import type { ILink } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu/types";
 import type { ILinkData } from "../../../shared/link-data";

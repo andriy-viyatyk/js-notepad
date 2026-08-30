@@ -75,23 +75,5 @@ export type {
 } from "./Tree/types";
 export type { TreeItemProps, TreeSectionItemProps } from "./Tree";
 
-// VirtualGrid is the framework-free virtualization contract. VirtualGridView handles fixed-height
-// rows; VirtualFlexGridView adds measured row heights.
-export { VirtualGridView, VirtualFlexGridView, VirtualGridModel } from "./VirtualGrid";
-export type {
-    VirtualGridProps,
-    VirtualGridOptions,
-    VirtualGridStats,
-    VirtualFlexCellFunc,
-    VirtualFlexCellParams,
-    VirtualFlexGridProps,
-} from "./VirtualGrid";
-// Native aliases retained for existing barrel consumers. New code should import from `./VirtualGrid`.
-export type {
-    RenderCellFunc as VirtualCellFunc,
-    RenderCellParams as VirtualCellParams,
-    RenderedCell,
-} from "./VirtualGrid";
-
 // Truncated text (overflow-ellipsis with hover title)
 export type { TruncatedTextProps } from "./TruncatedText";

@@ -13,6 +13,18 @@
  * through av-grid's `exports` map, so do not write `~av-grid/…` or a `node_modules/` path.
  */
 @layer uikit {
+    /* Sticky bands must be opaque, or the rows scrolling beneath show through them. `inherit`,
+       not a fixed token: the band takes whatever surface its host actually has, so a grid inside a
+       popover or a tinted panel stays consistent with it. A token would pin every band to the
+       default app surface and be visibly wrong in exactly those places. This is what the retired
+       fork's one CSS rule did, and the reason survives the move.
+
+       Descendant combinator and a data-type prefix on purpose: the regions are positioned, not
+       flowed, so this must not depend on document order, sibling position or host depth. */
+    [data-type="render-grid"] [data-type^="render-grid-sticky-"] {
+        background-color: inherit;
+    }
+
     /* The grid measures its own root to decide what is visible, so that height has to be
        *definite*. `mountVanilla`'s host is `display: contents`, which is what lets this root
        participate in the parent's flex layout directly — a blank grid means

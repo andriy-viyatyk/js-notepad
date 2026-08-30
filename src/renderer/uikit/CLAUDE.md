@@ -29,11 +29,11 @@ do not add React faces or runtime-generated CSS.
 
 ### Which virtualization engine to use
 
-**New code uses `VirtualGrid`** (`uikit/VirtualGrid/`, `VirtualGridView` + `VirtualGridModel`).
-It is the vanilla engine: cell renderers return an `HTMLElement`, the view owns the scroll shell
-and its nine regions, and consumers own their cell subtrees directly. Use `VirtualFlexGridView`
-only when row height is measured from nominated content; fixed-height surfaces use
-`VirtualGridView`.
+**New code uses av-grid through the `uikit/DataGrid` boundary.** Fixed-height surfaces construct
+av-grid's `RenderGrid`; surfaces whose row height is measured from nominated content use
+`MeasuredRowGrid`. Both are vanilla engines: cell renderers return an `HTMLElement`, the engine
+owns the scroll shell and its nine regions, and consumers own their cell subtrees directly. Do
+not import av-grid directly from a consumer.
 
 ---
 
@@ -299,9 +299,9 @@ UIKit primitive instead of styling around it.
 
 **Foundational compositional primitive guidance**
 
-`VirtualGridView` is a multi-region composition: cells, sticky bands, and sticky corners are
-owned by the shell, while overlay hosts are added through its explicit surface. Styling belongs
-to the grid stylesheet or to the host's own scoped stylesheet; a cell renderer owns only its cell
+`RenderGrid` is a multi-region composition: cells, sticky bands, and sticky corners are owned by
+the av-grid shell, while overlay hosts are added through its explicit surface. Styling belongs to
+the grid stylesheet or to the host's own scoped stylesheet; a cell renderer owns only its cell
 subtree. The Omit-style enforcement (`extends Omit<HTMLAttributes<…>, "style" | "className">`)
 still applies to primitives that wrap a single HTML element (Button → button, Input → input).
 
@@ -443,22 +443,13 @@ The full convention, including `compareSelection` semantics, the small-model who
 and the rejected `VanillaView.update()` equality gate, is in
 [`/doc/standards/model-view-pattern.md`](../../../doc/standards/model-view-pattern.md#the-props-pump-convention).
 
-#### The one exemption from the state primitives
+#### State ownership of the virtualization engine
 
-`uikit/VirtualGrid/VirtualGridModel.ts` uses **no state primitive at all** — plain fields, and one
-`onRepaintNeeded` callback the view supplies, which paints on `requestAnimationFrame`. This is a
-named, bounded exemption (EPIC-056 C3-2), not an oversight, and it applies to that file only.
+The model state, geometry, dirty-set processing, and paint scheduling stay inside av-grid; UIKit
+views hold only the engine instance and the imperative model capability they need. Do not recreate
+that state or a second paint loop in a UIKit model. The measured companion owns only its row-height
+policy and DOM observation around the engine.
 
-The reason is that its single consumer is a paint loop that already carries a precise dirty set
-(`RerenderInfo`), so a subscription buys nothing, while `TOneState` would add immer `produce` on
-every update and synchronous listener dispatch from inside a scroll handler. There is exactly one
-subscriber and it is known statically — that is a callback, not a subject.
-
-Two rules come with it. The callback may only ever **schedule** a paint, never paint
-synchronously, because it is invoked from a `ResizeObserver` callback. And if a *host* ever needs
-to observe the engine rather than command it, the answer is another registered callback in the
-options — as `onResize` and `onInnerSizeChange` already are — never a store bolted onto the model.
-Every other component in this folder uses the state primitives; do not generalise from this one.
 
 #### Prop-change detection in a vanilla-driven model
 
@@ -558,9 +549,9 @@ would appear broken only until the user expanded a node, then fix itself.
 
 #### Scrolling after a change that resizes the content
 
-`VirtualGridModel` has two scroll entry points and they are not interchangeable. `scrollTop` is
-clamped to the scrollable extent, and the extent (`area.style.height`) is written by `applyLayout`
-**inside** the next paint, on `requestAnimationFrame`.
+av-grid's `RenderGridModel` has two scroll entry points and they are not interchangeable. `scrollTop`
+is clamped to the scrollable extent, and the extent (`area.style.height`) is written **inside** the
+next `RenderGrid` paint, on `requestAnimationFrame`.
 
 - `scrollToRow(row)` — the row set has not changed. One frame faster, which keyboard navigation
   can feel.
@@ -587,19 +578,28 @@ instead of calling two setters.
 `ListBox` and `ListItem` use native `SlotContent` values: text, numbers, DOM nodes, or arrays of
 those values. **`icon` is also native** — an icon is a registry name or a DOM node and never a
 `IconName | Node`, so an icon is a registry name or a DOM node and never a framework element. The
-engine's cell contract is still `HTMLElement` and `VirtualGrid` receives only DOM. Four guard rails
-keep slot ownership safe:
+av-grid's `RenderGrid` cell contract is `HTMLElement` and receives only DOM. Four guard rails keep
+slot ownership safe:
 
 - Decide **per slot**, not per row: an `IconName` becomes a DOM `svg` with no root; only a genuine
   native value goes through `fillSlot`. Never route strings through `fillSlot` for uniformity.
 - A DOM icon node is **single-use**: appending it to a second host *moves* it and blanks the first.
   Build it at the point of use — never cache, memoise, hoist to module scope, or share one node.
   `tsc`, lint and the build are all blind to this, and the symptom is an icon disappearing somewhere
-  *other* than the code being changed (EPIC-064 hit it four times, once per caching mechanism).
-- Roots are retained **per pooled element**, never per row. The pool's refusal to reset a released
-  element is exactly what makes that work; a settled scroll must create zero roots.
-- Never run a slot cleanup on eviction — only at view disposal. Track created elements in a real
-  `Set`, because an unmounted-but-undisposed root keeps its subscriptions alive on a detached tree.
+  *other* than the code being changed (this has occurred four times, once per caching mechanism).
+- Roots are retained **per pooled element**, never per row. Pass `keepCellsAttached: true` when a
+  cell owns state such as a nested scroller, iframe, or editor; ordinary eviction then hides the
+  pooled element in place and preserves its subtree. The option is off by default because it trades
+  DOM nodes for state. `ListBoxView` and `TreeView` set it explicitly, and `Autocomplete` inherits
+  the ListBox setting; other consumers with retained child views must make the same opt-in. A
+  settled scroll must create zero roots.
+- `onCellAttached` means that a cell entered the active set. `onCellReleased` means that it left
+  the active set and entered the pool, **not** that it was detached from the DOM: with
+  `keepCellsAttached`, the element remains hidden in the document, and only pool overflow detaches
+  it. Use these callbacks for bookkeeping such as measurement mappings, not slot cleanup.
+- Never run a slot cleanup on eviction or on `onCellReleased` — only when a pooled wrapper changes
+  kind and at final view disposal. Track created elements in a real `Set`, because an
+  unmounted-but-undisposed root keeps its subscriptions alive on a detached tree.
 - Key the caller's subtree by the cell key, so a recycled element remounts it rather than letting
   one row's state bleed into another's.
 

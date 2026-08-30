@@ -1,10 +1,11 @@
 import { maxSearchResults } from "../../../ipc/search-ipc";
-import { applyCellStyle, VirtualGridView } from "../../uikit/VirtualGrid";
-import type { RenderCellFunc } from "../../uikit/VirtualGrid";
+import { RenderGrid } from "../../uikit/DataGrid";
+import type { RenderCellFunc } from "../../uikit/DataGrid";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
+import { applyCellStyle } from "../../uikit/shared/cell-style";
 import { createIconElement } from "../../uikit/shared/slots";
-import { claimViewOwnership, VanillaView } from "../../uikit/shared/vanilla-view";
+import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createFileIconElement, subscribeFileIconElements } from "../icons/icon-elements";
 import type { FileSearchProps } from "./FileSearch";
 import {
@@ -48,7 +49,7 @@ interface ResultsProjection {
     firstChangedRow: number;
 }
 
-/** Native owner for the file-search shell and its pooled VirtualGrid cells. */
+/** Native owner for the file-search shell and its pooled RenderGrid cells. */
 export class FileSearchView extends VanillaView<FileSearchProps> {
     private readonly model: FileSearchModel;
     private readonly inputArea = document.createElement("div");
@@ -63,7 +64,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
     private readonly filterButton: IconButtonView;
     private readonly cellRecords = new WeakMap<HTMLElement, CellRecord>();
     private filtered: SearchResultRow[] = [];
-    private grid: VirtualGridView | undefined;
+    private grid: RenderGrid | undefined;
     private queryField: HTMLInputElement | undefined;
     private focusFrame: number | undefined;
     private iconSubscription: (() => void) | undefined;
@@ -249,23 +250,21 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
 
     private enterGrid(): void {
         if (this.grid) return;
-        const grid = new VirtualGridView({
-            rowCount: () => this.filtered.length,
-            columnCount: 1,
-            rowHeight: ROW_HEIGHT,
-            columnWidth: FULL_WIDTH,
-            renderCell: this.renderCell,
-            fitToWidth: true,
-        });
-        claimViewOwnership(grid);
-        this.grid = grid;
-        this.gridHost.append(grid.root);
+        let grid: RenderGrid;
         try {
-            grid.mount();
+            grid = new RenderGrid(this.gridHost, {
+                rowCount: () => this.filtered.length,
+                columnCount: 1,
+                rowHeight: ROW_HEIGHT,
+                columnWidth: FULL_WIDTH,
+                renderCell: this.renderCell,
+                fitToWidth: true,
+                keepCellsAttached: true,
+            });
+            this.grid = grid;
         } catch (error) {
             this.grid = undefined;
-            grid.dispose();
-            grid.root.remove();
+            this.gridHost.replaceChildren();
             throw error;
         }
     }
@@ -275,7 +274,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
         if (!grid) return;
         this.grid = undefined;
         try {
-            grid.dispose();
+            grid.destroy();
         } finally {
             grid.root.remove();
         }

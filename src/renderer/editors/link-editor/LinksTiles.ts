@@ -1,6 +1,6 @@
 import type { ILink } from "../../api/types/io.tree";
 import type { IconName } from "../../theme/icon-registry";
-import type { GridModelCapability } from "../../uikit/VirtualGrid/types";
+import type { GridModelCapability } from "../../uikit/DataGrid";
 import type { TorProxyInfo } from "./tor-src";
 import type { LinkViewMode } from "./linkTypes";
 

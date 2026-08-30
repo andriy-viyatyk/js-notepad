@@ -1,7 +1,6 @@
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, Traited, TraitType } from "../../core/traits/traits";
-import { VirtualGridModel } from "../VirtualGrid";
-import type { RerenderInfo, RowAlign } from "../VirtualGrid";
+import type { RenderGridModel, RerenderInfo, RowAlign } from "../DataGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     ITreeItem,
@@ -78,8 +77,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * The engine, used only for scrolling. Repaints are requested by `mutate()` and by the host
      * view's props-change gate, never from a state-write site directly.
      */
-    gridRef: VirtualGridModel | null = null;
-    setGridRef = (ref: VirtualGridModel | null) => {
+    gridRef: RenderGridModel | null = null;
+    setGridRef = (ref: RenderGridModel | null) => {
         this.gridRef = ref;
     };
 

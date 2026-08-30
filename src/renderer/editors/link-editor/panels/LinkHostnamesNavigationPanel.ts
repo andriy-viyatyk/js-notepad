@@ -1,5 +1,5 @@
 import type { ILink } from "../../../api/types/io.tree";
-import type { GridModelCapability } from "../../../uikit/VirtualGrid";
+import type { GridModelCapability } from "../../../uikit/DataGrid";
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../../uikit/Panel/panel-style";
 import "../../../uikit/Panel/Panel.css";
 import "../../../uikit/Splitter/Splitter.css";

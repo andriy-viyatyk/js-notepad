@@ -1,9 +1,9 @@
 import { errMessage } from "../../../shared/utils";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
+import { MeasuredRowGrid } from "../../uikit/DataGrid";
+import type { MeasuredRowCellFunc, MeasuredRowGridOptions, Percent } from "../../uikit/DataGrid";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import { VirtualFlexGridView, type VirtualFlexCellFunc, type VirtualFlexGridProps } from "../../uikit/VirtualGrid/VirtualFlexGridView";
-import type { Percent } from "../../uikit/VirtualGrid/types";
 import type { LogEntry } from "./logTypes";
 import type { LogRenderChange, LogViewEditor, LogViewEditorState } from "./LogViewEditor";
 import { LogEntryWrapperView } from "./LogEntryWrapper";
@@ -51,17 +51,17 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
     private readonly isAtBottom = { value: true };
     private previousEntryCount = 0;
     private scrollTimers: ReturnType<typeof setTimeout>[] = [];
-    private readonly grid: VirtualFlexGridView;
+    private grid: MeasuredRowGrid | undefined;
     private stateUnsubscribe: (() => void) | undefined;
     private queueUnsubscribe: (() => void) | undefined;
     private readonly getInitialRowHeight = (row: number): number | undefined => {
         const entry = this.editor.getEntryAt(row);
         return entry ? this.editor.getEntryHeight(entry.id) : undefined;
     };
-    private readonly getScrollElement = (): HTMLElement | undefined => this.grid.scrollElement;
+    private readonly getScrollElement = (): HTMLElement | undefined => this.grid?.scrollElement;
 
-    /** Bound field: VirtualGridModel uses renderer identity as an input gate. */
-    private readonly renderCell: VirtualFlexCellFunc = (params) => {
+    /** Bound field: RenderGridModel uses renderer identity as an input gate. */
+    private readonly renderCell: MeasuredRowCellFunc = (params) => {
         if (params.col === 1) return undefined;
         const entry = this.editor.getEntryAt(params.row);
         if (!entry) return undefined;
@@ -102,13 +102,15 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         super(props, createPanelElement({ name: "log-view-root", direction: "column", flex: 1, overflow: "hidden", minHeight: 0 }));
         this.editor = props.model;
         this.projection = selectProjection(this.editor.state.get());
-        this.grid = this.child(new VirtualFlexGridView(this.gridProps()));
+        this.own(() => {
+            this.grid?.destroy();
+            this.grid = undefined;
+        });
     }
 
     protected onMount(): void {
         this.root.append(this.listHost, this.messageHost);
-        this.attachGridRoot();
-        this.grid.mount();
+        this.grid = new MeasuredRowGrid(this.listHost, this.gridProps());
         this.stateUnsubscribe = this.ownSubscription(this.editor.state.subscribe(this.handleState, selectProjection));
         this.queueUnsubscribe = this.ownSubscription(this.editor.typedQueue.subscribe(this.handleQueue));
         this.applyProjection(this.projection);
@@ -140,7 +142,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         }
         if (previous.showTimestamps !== next.showTimestamps) {
             // showTimestamps is a global entry format toggle read by every LogEntryWrapperView.
-            this.grid.gridModel?.update({ all: true });
+            this.grid?.model.update({ all: true });
         }
     };
 
@@ -181,9 +183,9 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         }
         if (change === "all") {
             // The model published a full parse or clear; every current entry projection was replaced.
-            this.grid.gridModel?.update({ all: true });
+            this.grid?.model.update({ all: true });
         } else {
-            this.grid.gridModel?.update({ rows: rows ?? [] });
+            this.grid?.model.update({ rows: rows ?? [] });
         }
         if (count > this.previousEntryCount && this.isAtBottom.value && count > 0) {
             this.previousEntryCount = count;
@@ -195,7 +197,7 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.clearScrollTimers();
         const count = this.previousEntryCount;
         if (count <= 0) return;
-        const scrollToEnd = (): void => { void this.grid.gridModel?.scrollToRow(count - 1, "bottom"); };
+        const scrollToEnd = (): void => { void this.grid?.model.scrollToRow(count - 1, "bottom"); };
         scrollToEnd();
         this.scrollTimers = [setTimeout(scrollToEnd, 50), setTimeout(scrollToEnd, 150), setTimeout(scrollToEnd, 300)];
     }
@@ -209,19 +211,23 @@ export class LogBodyView extends VanillaView<LogBodyViewProps> {
         this.messageHost.replaceChildren();
         if (projection.error) this.messageHost.append(createTextElement(projection.error, { color: "warning", preWrap: true }));
         else if (projection.entryCount === 0) this.messageHost.append(createTextElement("No log entries", { size: "base", color: "light" }));
-        this.attachGridRoot();
-    }
-
-    /** Idempotent attachment avoids reparenting the grid's scroller. */
-    private attachGridRoot(): void {
-        if (this.listHost.childElementCount === 1 && this.listHost.firstElementChild === this.grid.root) return;
-        this.listHost.replaceChildren(this.grid.root);
     }
 
     private entryProps(entry: LogEntry, index: number) { return { vm: this.editor, entry, index, showTimestamp: this.projection.showTimestamps }; }
 
-    private gridProps(): VirtualFlexGridProps {
-        return { name: "log-flex-grid", rowCount: () => this.projection.entryCount, columnCount: 2, columnWidth, renderCell: this.renderCell, fitToWidth: true, minRowHeight: 18, getInitialRowHeight: this.getInitialRowHeight, preferMinHeightForNewRows: true };
+    private gridProps(): MeasuredRowGridOptions {
+        return {
+            name: "log-flex-grid",
+            rowCount: () => this.projection.entryCount,
+            columnCount: 2,
+            columnWidth,
+            renderCell: this.renderCell,
+            fitToWidth: true,
+            minRowHeight: 18,
+            getInitialRowHeight: this.getInitialRowHeight,
+            preferMinHeightForNewRows: true,
+            keepCellsAttached: true,
+        };
     }
 
     private renderCellFailure(cell: HTMLElement, error: unknown): void { cell.replaceChildren(createTextElement(`This log entry failed to render: ${errMessage(error)}`, { color: "error", preWrap: true })); }

@@ -127,7 +127,7 @@ adjacent adapter uses `react-dom/client` to mount it. Global styles are installe
 | **content/** | Content I/O pipeline — providers, transformers, pipes | `ContentPipe.ts`, `parsers.ts`, `resolvers.ts`, `providers/`, `transformers/` |
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
 | **automation/** | Playwright-compatible browser MCP tools, CDP, input, refs | `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
-| **uikit/** | Standalone reusable framework-free component library built from `VanillaView` classes and native DOM builders | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `VirtualGrid/` (`VirtualGridView` and `VirtualFlexGridView`), `DataGrid/`, … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
+| **uikit/** | Standalone reusable framework-free component library built from `VanillaView` classes and native DOM builders | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `DataGrid/` (the av-grid boundary), … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
 | **components/** | Persephone-coupled components and native views only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/` |
 | **core/** | State primitives, utilities | `state/` (TOneState, TModel), `utils/` |
 | **theme/** | Design tokens, themes, static global geometry | `color.ts`, `root.css`, `themes/` |

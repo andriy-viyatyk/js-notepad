@@ -6,7 +6,7 @@ import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from
 import { SplitterView } from "../../uikit/Splitter/SplitterView";
 import { createTextElement } from "../../uikit/Text/text-style";
 import type { SplitterProps } from "../../uikit/Splitter/SplitterView";
-import type { GridModelCapability } from "../../uikit/VirtualGrid";
+import type { GridModelCapability } from "../../uikit/DataGrid";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { LinkItem, LinkViewMode } from "./linkTypes";
 import { LinkEditor, type LinkEditorState } from "./LinkEditor";

@@ -1,6 +1,6 @@
-import type { CellStyle } from "./types";
+import type { CellStyle } from "../DataGrid";
 
-/** Apply geometry and the current coordinate produced by the virtual-grid renderer. */
+/** Apply geometry and the current coordinate produced by the RenderGrid renderer. */
 export function applyCellStyle(
     element: HTMLElement,
     style: CellStyle,

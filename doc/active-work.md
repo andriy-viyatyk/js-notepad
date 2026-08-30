@@ -12,19 +12,6 @@ Overview of all active and planned epics and tasks.
 
 ## Planned
 
-- **EPIC-079** — [Retire `uikit/VirtualGrid` in favour of av-grid's `RenderGrid`](epics/EPIC-079.md)
-  — Persephone carries two copies of the same virtualization engine; av-grid's own header says it was
-  ported from this one. Measured drift: 13 differing lines out of ~797 in the geometry core, 15 out of
-  ~387 in the dirty-set merge. Two real gaps (a keyed cell pool, and measured row heights), both used
-  by the same two consumers. Raised 2026-08-30 — **awaiting review, not started.**
-  - [ ] US-1233: Decide and set up the av-grid development loop
-  - [ ] US-1234: Add a keyed cell pool to av-grid (`setReuseKey`)
-  - [ ] US-1235: Move the measured-row-height layer into av-grid
-  - [ ] US-1236: Fix the confirmed US-1232 defect in av-grid, and re-measure `scrollLost`
-  - [ ] US-1237: Migrate the UIKit primitives (`ListBox`, `Tree`, `Autocomplete`)
-  - [ ] US-1238: Migrate the remaining components and editors
-  - [ ] US-1239: Delete `uikit/VirtualGrid/` and update the docs that point at it
-
 - *(no epic)*
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
     — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29) until the De-React fallout was cleared. That

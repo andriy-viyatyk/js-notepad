@@ -2,11 +2,8 @@ import { errMessage } from "../../../shared/utils";
 import { panelExpanded } from "../../core/state/events";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
-import {
-    VirtualFlexGridView,
-    type VirtualFlexCellFunc,
-} from "../../uikit/VirtualGrid/VirtualFlexGridView";
-import type { Percent } from "../../uikit/VirtualGrid";
+import { MeasuredRowGrid } from "../../uikit/DataGrid";
+import type { MeasuredRowCellFunc, MeasuredRowGridOptions, Percent } from "../../uikit/DataGrid";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { ExpandedNoteView, type ExpandedNoteViewProps } from "./ExpandedNoteView";
 import { NoteItemView } from "./NoteItemView";
@@ -42,9 +39,9 @@ interface CellRecord {
 /**
  * Per-cell error boundary.
  *
- * `renderCell` runs *inside* the virtual grid's paint, so an exception raised anywhere in a note's
+ * `renderCell` runs *inside* RenderGrid's paint, so an exception raised anywhere in a note's
  * subtree — an embedded editor, a third-party grid rejecting its columns — propagates out through
- * `calcRenderInfo` and aborts the paint for **every** cell. The observed result is a blank notebook
+ * the engine's render pass and aborts the paint for **every** cell. The observed result is a blank notebook
  * with the scroll position reset, which reads as an engine failure rather than as one bad note.
  *
  * So a throw is contained to the cell that raised it: the cell is emptied, an inline message
@@ -107,7 +104,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         const note = this.editor.getFilteredNoteAt(row);
         return note ? this.editor.getNoteHeight(note.id) : undefined;
     };
-    private readonly renderCell: VirtualFlexCellFunc = (params) => {
+    private readonly renderCell: MeasuredRowCellFunc = (params) => {
         const note = this.editor.getFilteredNoteAt(params.row);
         if (!note) return undefined;
 
@@ -171,7 +168,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
     }
     private projection: NotebookProjection;
     private previousProjection: NotebookProjection | undefined;
-    private grid: VirtualFlexGridView | undefined;
+    private grid: MeasuredRowGrid | undefined;
     private expandedView: ExpandedNoteView | undefined;
     private expandedNoteId: string | undefined;
     private expandedTarget: HTMLElement | null = null;
@@ -187,6 +184,10 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         }));
         this.editor = editor;
         this.projection = selectProjection(editor.state.get());
+        this.own(() => {
+            this.grid?.destroy();
+            this.grid = undefined;
+        });
     }
 
     protected onMount(): void {
@@ -232,7 +233,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
         if (cellsChanged) {
             // Categories, tags, search, notes, and filtered projection changes are passed into
             // every note cell or replace the complete filtered row projection.
-            this.grid?.gridModel?.update({ all: true });
+            this.grid?.model.update({ all: true });
         }
         this.previousProjection = previous;
         this.syncExpandedOverlay();
@@ -266,37 +267,22 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
             // resetting `scrollTop` to 0. Every note-state update reaches here, so the visible
             // effect was the list jumping to the top mid-scroll with no scroll write anywhere in
             // our code and no change to the scroll geometry.
-            this.attachGridRoot();
-            this.grid.update(this.gridProps());
+            this.grid.setOptions(this.gridProps());
             return;
         }
-        this.grid = this.child(new VirtualFlexGridView(this.gridProps()));
-        this.attachGridRoot();
-        this.grid.mount();
-    }
-
-    /** Idempotent: never re-inserts a root that is already the notes list's only child. */
-    private attachGridRoot(): void {
-        const root = this.grid?.root;
-        if (!root) return;
-        if (this.notesList.childElementCount === 1 && this.notesList.firstElementChild === root) {
-            return;
-        }
-        this.notesList.replaceChildren(root);
+        this.grid = new MeasuredRowGrid(this.notesList, this.gridProps());
     }
 
     private leaveGrid(): void {
-        if (this.grid) {
-            this.releaseChild(this.grid);
-            this.grid = undefined;
-        }
+        this.grid?.destroy();
+        this.grid = undefined;
         this.cellRecords.clear();
         for (const view of this.ownedNoteViews) view.dispose();
         this.ownedNoteViews.clear();
         if (this.notesList.contains(this.messageHost)) this.messageHost.remove();
     }
 
-    private gridProps() {
+    private gridProps(): MeasuredRowGridOptions {
         return {
             name: "notebook-flex-grid",
             rowCount: this.rowCount,
@@ -307,6 +293,7 @@ export class NotebookBodyView extends VanillaView<NotebookBodyViewProps> {
             minRowHeight: 100,
             maxRowHeight: 800,
             getInitialRowHeight: this.getInitialRowHeight,
+            keepCellsAttached: true,
         };
     }
 

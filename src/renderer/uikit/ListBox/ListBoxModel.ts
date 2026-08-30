@@ -1,7 +1,6 @@
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
-import { VirtualGridModel } from "../VirtualGrid";
-import type { RerenderInfo, RowAlign } from "../VirtualGrid";
+import type { RenderGridModel, RerenderInfo, RowAlign } from "../DataGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     IListBoxItem,
@@ -150,8 +149,8 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     }
 
     // --- refs ---
-    gridRef: VirtualGridModel | null = null;
-    setGridRef = (ref: VirtualGridModel | null) => {
+    gridRef: RenderGridModel | null = null;
+    setGridRef = (ref: RenderGridModel | null) => {
         this.gridRef = ref;
     };
 
@@ -347,7 +346,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      *   the *output* is strictly better than comparing `props.value` (a new object resolving to the
      *   same key collapses to no-change).
      * - **Only inputs that change cell DOM.** `rowHeight` is deliberately absent because
-     *   `VirtualGridModel.inputChanged()` already compares it and repaints on its own;
+     *   `RenderGridModel.inputChanged()` already compares it and repaints on its own;
      *   `getContextMenu` is absent because it is read live inside the context-menu handler and
      *   affects nothing rendered — keeping it would repaint the whole window on every update for
      *   callers that pass an inline arrow. `variant` and `selectionStyle` are present even though

@@ -242,7 +242,7 @@ reads in explicit view lifecycle hooks.
 The model remains independent of DOM creation and rendering. The view owns a stable DOM root and
 uses native events; the model receives domain values and callbacks rather than framework-specific
 event objects. Two narrow exceptions are intentional: a model may read DOM geometry when that
-measurement is the model's purpose (for example, `VirtualGridModel` measures its grid and scroll
+measurement is the model's purpose (for example, av-grid's `RenderGridModel` measures its grid and scroll
 container), and it may own listeners for a bounded pointer-capture gesture that it starts and
 cleans up as one operation (as `PopoverModel` does during resize). These exceptions must not become
 general rendering or document-querying responsibilities.
@@ -507,17 +507,18 @@ owned by the appropriate child subscription or targeted setter.
 
 ## Virtualized DOM views
 
-Large collection views use [`VirtualGrid`](../../src/renderer/uikit/VirtualGrid/) rather than a
-React render loop. `VirtualGridModel` owns the measured render window, sticky-region geometry,
-scroll/resize handling, dirty-cell information, and the pooled elements that have scrolled out of
-view. `VirtualGridView` owns the DOM shell and schedules paints from the model's repaint callback.
+Large collection views use av-grid's `RenderGrid` rather than a React render loop, reached through
+the [`uikit/DataGrid`](../../src/renderer/uikit/DataGrid/) boundary. Its `RenderGridModel` owns the
+render window, sticky-region geometry, scroll/resize handling, dirty-cell information, and pooled
+elements; `RenderGrid` owns the DOM shell and schedules paints from the model's repaint callback.
+Fixed-height consumers use `RenderGrid` directly.
 
-`VirtualFlexGridView` composes a `VirtualGridView` with a measured-height collaborator. The cell
-renderer may nominate a content element through its `measure` callback; a shared `ResizeObserver`
-feeds committed heights back into the grid's row geometry. The wrapper owns observation and
-measurement policy, while `VirtualGridModel` remains the sole owner of render-window and geometry
-calculation. Both views expose the actual scroll element and a small `GridModelCapability` rather
-than leaking their concrete model implementation.
+`MeasuredRowGrid` is av-grid's companion for rows whose heights are known only after rendering. A
+cell renderer may nominate a content element through its `measure` callback; the companion's
+`ResizeObserver` feeds committed heights back into the grid's row geometry. The companion owns
+observation and measurement policy, while `RenderGridModel` remains the sole owner of render-window
+and geometry calculation. Both forms expose the actual scroll element and consumers pass the
+small `GridModelCapability` shape rather than leaking more engine details.
 
 The cell contract is deliberately framework-free: `renderCell` returns an `HTMLElement` or
 `undefined`, and the engine applies the computed pixel geometry to that element. A cell renderer

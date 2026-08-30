@@ -2,7 +2,7 @@ import type { SlotContent } from "../../uikit/shared/fill-slot";
 import { TComponentModel } from "../../core/state/model";
 import type { ITreeProvider, ITreeProviderItem, ILink } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu";
-import type { RowAlign } from "../../uikit/VirtualGrid";
+import type { RowAlign } from "../../uikit/DataGrid";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import { ui } from "../../api/ui";
@@ -360,8 +360,8 @@ export class TreeProviderViewModel extends TComponentModel<
             // Refresh children for every expanded directory INLINE, before publishing the
             // new tree. Doing this atomically avoids an intermediate render where the tree
             // is shrunk to root-only entries (all child folders' `items` momentarily
-            // undefined). That shrink would force the native virtual-grid model through its
-            // over-large-offset clamp (VirtualGridModel.ts:527-540), wiping the user's scroll
+            // undefined). That shrink would force the native RenderGrid model through its
+            // over-large-offset clamp in the grid model, wiping the user's scroll
             // position on every FS watch tick — exactly what an AI agent
             // editing files in the project folder triggers repeatedly.
             //

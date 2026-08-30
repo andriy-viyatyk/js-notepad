@@ -1,3 +1,20 @@
+## EPIC-079 — Retire `uikit/VirtualGrid` in favour of av-grid's `RenderGrid`
+
+Completed 2026-08-30. [Epic document](EPIC-079.md). Persephone retired its forked virtualization
+engine, migrated the UIKit primitives, components, and editors to av-grid 2.3.0, and removed
+3,755 lines of duplicate engine code and exports.
+
+- **EPIC-079** — [Retire `uikit/VirtualGrid` in favour of av-grid's `RenderGrid`](EPIC-079.md) — completed 2026-08-30
+  - [x] US-1233: Decide the av-grid development loop — **done**: `npm link`, no manifest change
+  - [x] US-1234: Add a keyed cell pool to av-grid (`setReuseKey`) — **done**, buckets not scan (88×)
+  - [x] US-1236: Stop av-grid losing scroll position — **done**, both faces measured in Chromium
+  - [x] US-1240: Add after-paint scrolling to av-grid — **done**
+  - [x] US-1241: Make `RenderGrid.setOptions` apply shell layout live — **done**
+  - [x] US-1235: Move the measured-row-height layer into av-grid (+ `fromRow`) — **done**; av-grid **2.3.0 published**
+  - [x] US-1237: Migrate the UIKit primitives — **done**; Explorer tree verified rendering + scrolling
+  - [x] US-1238: Migrate the remaining components and editors — **done**; Log View measured heights verified
+  - [x] US-1239: Delete `uikit/VirtualGrid/` and `uikit/shared/async-ref.ts` — **done**
+
 ## EPIC-077 — Post-De-React Epic C: proportional work
 
 Completed 2026-08-30. [Epic document](EPIC-077.md). R4, R5, R7, R8's residue, and R6's deferred

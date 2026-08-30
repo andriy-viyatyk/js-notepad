@@ -11,16 +11,14 @@ import { TraitTypeId, setTraitDragData } from "../../core/traits";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { ListItemView } from "../../uikit/ListBox/ListItemView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
-import {
-    applyCellStyle,
-    VirtualGridView,
-} from "../../uikit/VirtualGrid";
+import { RenderGrid } from "../../uikit/DataGrid";
 import type {
     ElementLength,
     Percent,
     RenderCellFunc,
     RenderCellParams,
-} from "../../uikit/VirtualGrid";
+} from "../../uikit/DataGrid";
+import { applyCellStyle } from "../../uikit/shared/cell-style";
 import { attachTooltip, type TooltipAttachment } from "../../uikit/Tooltip/attach-tooltip";
 import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -93,17 +91,13 @@ export class LinksListView extends VanillaView<LinksListProps> {
     private readonly ownedViews = new Set<ListItemView | IconButtonView>();
     private readonly hostnameRows = new Map<string, number[]>();
     private readonly rowCount = (): number => this.props.links.length;
-    private readonly grid: VirtualGridView;
+    private grid: RenderGrid | undefined;
     private faviconUnsubs: Array<() => void> = [];
     private faviconGeneration = 0;
     private subscribedLinks: ILink[] | undefined;
     private inert = false;
 
-    private readonly onGridView = (view: VirtualGridView | null): void => {
-        this.props.onGridModel?.(view?.model ?? null);
-    };
-
-    /** Keep this renderer's identity stable: VirtualGridModel uses it as an input gate. */
+    /** Keep this renderer's identity stable: RenderGridModel uses it as an input gate. */
     private renderCell: RenderCellFunc = (p: RenderCellParams) => {
         const link = this.props.links[p.row];
         if (!link) return undefined;
@@ -123,13 +117,15 @@ export class LinksListView extends VanillaView<LinksListProps> {
     public constructor(props: LinksListProps) {
         super(props, createFocusScope());
 
-        this.grid = new VirtualGridView(this.gridOptions());
-
         // Match ListBoxView's teardown order: listeners become inert, then the grid releases its
         // pool, then overlay attachments and retained row/button views are disposed.
         this.own(() => { this.inert = true; });
         this.own(() => this.disposeFaviconSubscriptions());
-        this.own(() => this.grid.dispose());
+        this.own(() => {
+            this.grid?.destroy();
+            this.grid = undefined;
+            this.props.onGridModel?.(null);
+        });
         this.own(() => {
             this.cellRecords.forEach((record) => record.tooltip.dispose());
             this.cellRecords.clear();
@@ -148,13 +144,14 @@ export class LinksListView extends VanillaView<LinksListProps> {
             columnWidth,
             renderCell: this.renderCell,
             fitToWidth: true,
-            onView: this.onGridView,
+            keepCellsAttached: true,
         };
     }
 
     protected onMount(): void {
-        this.root.append(this.grid.root);
-        this.grid.mount();
+        const grid = new RenderGrid(this.root, this.gridOptions());
+        this.grid = grid;
+        this.props.onGridModel?.(grid.model);
         this.installFaviconSubscriptions(this.props.links);
     }
 
@@ -164,11 +161,11 @@ export class LinksListView extends VanillaView<LinksListProps> {
         }
 
         // Keep the child's lifecycle callback current without changing any renderer identity.
-        this.grid.update(this.gridOptions());
+        this.grid?.setOptions(this.gridOptions());
 
         // All prop-driven row state is read by the stable renderer from this.props. Mark the
         // current coordinates dirty explicitly; a new closure must never be used as the signal.
-        this.grid.model.update({ rows: props.links.map((_link, index) => index) });
+        this.grid?.model.update({ rows: props.links.map((_link, index) => index) });
     }
 
     private installFaviconSubscriptions(links: ILink[]): void {
@@ -207,7 +204,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
     private repaintHostname(hostname: string, generation: number): void {
         if (this.inert || generation !== this.faviconGeneration) return;
         const rows = this.hostnameRows.get(hostname);
-        if (rows?.length) this.grid.model.update({ rows: [...rows] });
+        if (rows?.length) this.grid?.model.update({ rows: [...rows] });
     }
 
     private createCell(cell: HTMLElement, link: ILink, index: number): CellParts {

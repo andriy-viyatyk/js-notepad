@@ -1,6 +1,6 @@
 import { showAppPopupMenu } from "../../ui/dialogs";
 import { createComponentModelDriver, type ComponentModelDriver } from "../../core/state/model";
-import type { GridModelCapability } from "../../uikit/VirtualGrid";
+import type { GridModelCapability } from "../../uikit/DataGrid";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { InputView } from "../../uikit/Input/InputView";
 import { SpacerView } from "../../uikit/Spacer/SpacerView";

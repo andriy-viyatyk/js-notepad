@@ -17,7 +17,32 @@
  * Import from `"../../uikit/DataGrid"`, not from `"../../uikit"`.
  */
 
+import type { RenderGridModel } from "av-grid";
+import "./DataGrid.css";
+
 export { DataGridView } from "./DataGridView";
+
+export { RenderGrid } from "av-grid";
+export type {
+    CellStyle,
+    ElementLength,
+    MeasuredRowCellFunc,
+    MeasuredRowCellParams,
+    MeasuredRowGridOptions,
+    MeasuredRowHeightOptions,
+    RenderCellFunc,
+    RenderCellParams,
+    RenderGridOptions,
+    RenderGridModel,
+    RenderGridShellOptions,
+    RenderGridStats,
+    RerenderInfo,
+} from "av-grid";
+export type { RenderSizeOptional } from "av-grid";
+export { DEFAULT_MIN_ROW_HEIGHT, MEASURED_ROW_DEBOUNCE_MS, MeasuredRowGrid, MeasuredRowHeights } from "av-grid";
+export type { MeasuredRowGeometry } from "av-grid";
+
+export type GridModelCapability = Pick<RenderGridModel, "update" | "scrollToRow">;
 
 export type {
     AddColumnsEvent,

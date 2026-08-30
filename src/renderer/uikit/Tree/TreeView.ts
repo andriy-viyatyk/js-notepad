@@ -6,13 +6,14 @@ import { nextElementId } from "../shared/element-id";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import { SpinnerView } from "../Spinner/SpinnerView";
-import { applyCellStyle, VirtualGridView } from "../VirtualGrid";
+import { RenderGrid } from "../DataGrid";
 import type {
     ElementLength,
     Percent,
     RenderCellFunc,
     RenderCellParams,
-} from "../VirtualGrid";
+} from "../DataGrid";
+import { applyCellStyle } from "../shared/cell-style";
 import { TreeItemView } from "./TreeItemView";
 import { SectionItemView } from "./SectionItemView";
 import { defaultTreeState, TreeModel } from "./TreeModel";
@@ -47,7 +48,7 @@ const defaultIndentSize = 16;
  *
  * Four things are worth knowing before editing:
  *
- * - **`renderCell` is a bound field, not a closure.** `VirtualGridModel.inputChanged()` compares it
+ * - **`renderCell` is a bound field, not a closure.** `RenderGridModel.inputChanged()` compares it
  *   by identity, so a per-update closure would make the engine repaint every visible cell on every
  *   update — which would repaint every visible cell on every update, and what the repaint gate exists to stop.
  * - **A state change arrives through `model.onStateApplied`, not through props.** Expansion, lazy
@@ -74,7 +75,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     private readonly cells = new WeakMap<HTMLElement, CellRecord>();
 
     private arm: Arm | undefined;
-    private grid: VirtualGridView | null = null;
+    private grid: RenderGrid | null = null;
     private gridHost: HTMLDivElement | undefined;
     private messageHost: HTMLDivElement | undefined;
     private spinner: SpinnerView | undefined;
@@ -106,7 +107,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
         this.own(() => { this.inert = true; });
         this.own(() => { this.model.onStateApplied = null; });
         this.own(() => {
-            this.grid?.dispose();
+            this.grid?.destroy();
             this.grid = null;
         });
         this.own(() => {
@@ -249,7 +250,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
                 messageHost.remove();
                 this.enterRealArm(props);
             } else {
-                this.grid?.update(this.gridProps(props));
+                this.grid?.setOptions(this.gridProps(props));
             }
         } else {
             if (changed) {
@@ -310,16 +311,17 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     private enterRealArm(props: TreeProps<T>): void {
         if (!this.gridHost) return;
         this.root.append(this.gridHost);
-        const grid = new VirtualGridView(this.gridProps(props));
-        this.gridHost.append(grid.root);
-        grid.mount();
+        const grid = new RenderGrid(this.gridHost, {
+            ...this.gridProps(props),
+            keepCellsAttached: true,
+        });
         this.grid = grid;
         this.model.setGridRef(grid.model);
     }
 
     private leaveRealArm(): void {
         this.model.setGridRef(null);
-        this.grid?.dispose();
+        this.grid?.destroy();
         this.grid = null;
         this.gridHost?.remove();
         // The pool is gone with the engine, so nothing may hold a recycled wrapper any more.

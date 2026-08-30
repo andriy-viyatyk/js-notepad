@@ -4,11 +4,11 @@ import { TraitTypeId, setTraitDragData } from "../../core/traits";
 import { isArchivePath } from "../../core/utils/file-path";
 import color from "../../theme/color";
 import type { IconName } from "../../theme/icon-registry";
+import { RenderGrid } from "../../uikit/DataGrid";
+import type { ElementLength, GridModelCapability, Percent, RenderCellFunc, RenderCellParams, RenderSizeOptional } from "../../uikit/DataGrid";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../uikit/Panel/panel-style";
-import { applyCellStyle } from "../../uikit/VirtualGrid/cell-style";
-import type { ElementLength, GridModelCapability, Percent, RenderCellFunc, RenderCellParams, RenderSizeOptional } from "../../uikit/VirtualGrid/types";
-import { VirtualGridView } from "../../uikit/VirtualGrid/VirtualGridView";
+import { applyCellStyle } from "../../uikit/shared/cell-style";
 import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { LinkViewMode } from "./linkTypes";
@@ -74,7 +74,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
     private readonly ownedViews = new Set<IconButtonView>();
     private readonly hostnameRows = new Map<string, number[]>();
     private readonly imageRows = new Map<string, number[]>();
-    private readonly grid: VirtualGridView;
+    private grid: RenderGrid | undefined;
     private columnCountValue = 1;
     private width: number | undefined;
     private subscribedLinks: ILink[] | undefined;
@@ -109,11 +109,6 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         return cell;
     };
 
-    private readonly onGridView = (view: VirtualGridView | null): void => {
-        this.gridModel = view?.model ?? null;
-        this.props.onGridModel?.(this.gridModel);
-    };
-
     private readonly onGridResize = (size: RenderSizeOptional): void => {
         if (this.inert) return;
         const nextWidth = size.width;
@@ -129,7 +124,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         if (widthChanged || columnsChanged) {
             // Width and column-count changes invalidate tile geometry and can change the
             // link-to-row mapping, so every current tile row needs repainting.
-            this.grid.model.update({ all: true });
+            this.gridModel?.update({ all: true });
         }
     };
 
@@ -138,14 +133,16 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         root.style.display = "contents";
         super(props, root);
         this.previousViewMode = props.viewMode;
-        this.grid = new VirtualGridView(this.gridOptions());
         this.own(() => { this.inert = true; });
         this.own(() => this.disposeAsyncSubscriptions());
         this.own(() => {
             this.gridModel = null;
             this.props.onGridModel?.(null);
         });
-        this.own(() => this.grid.dispose());
+        this.own(() => {
+            this.grid?.destroy();
+            this.grid = undefined;
+        });
         this.own(() => {
             const records = [...this.cellRecords];
             this.cellRecords.clear();
@@ -167,13 +164,15 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
             renderCell: this.renderCell,
             fitToWidth: true,
             onResize: this.onGridResize,
-            onView: this.onGridView,
+            keepCellsAttached: true,
         };
     }
 
     protected onMount(): void {
-        this.root.append(this.grid.root);
-        this.grid.mount();
+        const grid = new RenderGrid(this.root, this.gridOptions());
+        this.grid = grid;
+        this.gridModel = grid.model;
+        this.props.onGridModel?.(grid.model);
         this.rebuildAsyncRows(this.props.links);
     }
 
@@ -182,13 +181,13 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         const viewModeChanged = props.viewMode !== this.previousViewMode;
         if (linksChanged || viewModeChanged) this.rebuildAsyncRows(props.links);
         this.previousViewMode = props.viewMode;
-        this.grid.update(this.gridOptions());
+        this.grid?.setOptions(this.gridOptions());
         if (linksChanged) {
-            this.grid.model.update({
+            this.grid?.model.update({
                 rows: Array.from({ length: this.rowCount() }, (_, row) => row),
             });
         }
-        if (linksChanged || viewModeChanged) void this.grid.model.scrollToRow(0);
+        if (linksChanged || viewModeChanged) void this.grid?.model.scrollToRow(0);
     }
 
     private rebuildAsyncRows(links: ILink[]): void {
@@ -244,13 +243,13 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
     private repaintHostname(hostname: string, generation: number): void {
         if (this.inert || generation !== this.faviconGeneration) return;
         const rows = this.hostnameRows.get(hostname);
-        if (rows?.length) this.grid.model.update({ rows: [...rows] });
+        if (rows?.length) this.grid?.model.update({ rows: [...rows] });
     }
 
     private repaintImage(source: string, generation: number): void {
         if (this.inert || generation !== this.imageGeneration) return;
         const rows = this.imageRows.get(source);
-        if (rows?.length) this.grid.model.update({ rows: [...rows] });
+        if (rows?.length) this.grid?.model.update({ rows: [...rows] });
     }
 
     private ensureImageResolution(source: string): void {
@@ -360,7 +359,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
             const current = this.cells.get(record.cell);
             if (!current || this.inert || !current.imageSource) return;
             current.failedSrc = current.imageSource;
-            this.grid.model.update({ rows: [current.index] });
+            this.grid?.model.update({ rows: [current.index] });
         });
         this.installCellListeners(record);
         return record;

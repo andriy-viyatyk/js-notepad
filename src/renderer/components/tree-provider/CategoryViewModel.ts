@@ -41,7 +41,7 @@ import {
 import { getTraitDropAction } from "./drop-dispatch";
 import { DragEnterCounter } from "../../uikit/shared/drag-enter-counter";
 import { sameHref, sameHrefs } from "./href-utils";
-import type { GridModelCapability } from "../../uikit/VirtualGrid";
+import type { GridModelCapability } from "../../uikit/DataGrid";
 
 // =============================================================================
 // Types

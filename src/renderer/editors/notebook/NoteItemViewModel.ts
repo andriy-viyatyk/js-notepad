@@ -21,7 +21,7 @@ export interface NoteItemViewProps {
     viewStates?: Map<string, import("monaco-editor").editor.ICodeEditorViewState>;
     /**
      * The scroller this note is virtualized inside, supplied by the host rather than found by
-     * selector. See `VirtualGridView.scrollElement`.
+     * selector. See the measured grid's `scrollElement` contract.
      */
     getScrollContainer?: () => HTMLElement | undefined;
 }

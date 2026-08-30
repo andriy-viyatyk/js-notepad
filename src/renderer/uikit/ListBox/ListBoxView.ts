@@ -6,14 +6,14 @@ import { nextElementId } from "../shared/element-id";
 import { fillSlot } from "../shared/fill-slot";
 import { VanillaView } from "../shared/vanilla-view";
 import { SpinnerView } from "../Spinner/SpinnerView";
-import { applyCellStyle, VirtualGridView } from "../VirtualGrid";
+import { RenderGrid } from "../DataGrid";
 import type {
     ElementLength,
     Percent,
     RenderCellFunc,
     RenderCellParams,
-    VirtualGridLayout,
-} from "../VirtualGrid";
+} from "../DataGrid";
+import { applyCellStyle } from "../shared/cell-style";
 import { ListItemView } from "./ListItemView";
 import { SectionItemView } from "./SectionItemView";
 import { defaultListBoxState, ListBoxModel } from "./ListBoxModel";
@@ -22,6 +22,15 @@ import "./ListBox.css";
 
 type Arm = "loading" | "empty" | "real";
 type CellKind = "item" | "section" | "custom";
+
+export interface ListBoxLayout {
+    rowHeight?: ElementLength;
+    growToHeight?: string;
+    growToWidth?: string;
+    height?: string;
+    fitToWidth?: boolean;
+    whiteSpaceY?: number;
+}
 
 /**
  * Per-wrapper state for a pooled cell.
@@ -48,7 +57,7 @@ const defaultRowHeight = 24;
  *
  * Three things in here are worth knowing before editing:
  *
- * - **`renderCell` is a bound field, not a closure.** `VirtualGridModel.inputChanged()` compares it
+ * - **`renderCell` is a bound field, not a closure.** `RenderGridModel.inputChanged()` compares it
  *   by identity, so a per-update closure would make the engine repaint every visible cell on every
  *   update — which would repaint every visible cell on every update, and what the repaint gate exists to stop.
  * - **The three arms are three DOM states of one stable root.** The prior implementation returned three different
@@ -77,11 +86,11 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     private readonly cells = new WeakMap<HTMLElement, CellRecord>();
 
     private arm: Arm | undefined;
-    private grid: VirtualGridView | null = null;
+    private grid: RenderGrid | null = null;
     private gridHost: HTMLDivElement | undefined;
     private messageHost: HTMLDivElement | undefined;
     private spinner: SpinnerView | undefined;
-    private layout: VirtualGridLayout = {};
+    private layout: ListBoxLayout = {};
     private emptyMessage: ListBoxProps<T>["emptyMessage"];
     private lastActiveIndex: number | null | undefined = undefined;
     private lastSelectedIndex = -1;
@@ -107,7 +116,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         // views must go before the model driver.
         this.own(() => { this.inert = true; });
         this.own(() => {
-            this.grid?.dispose();
+            this.grid?.destroy();
             this.grid = null;
         });
         this.own(() => {
@@ -163,9 +172,9 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         this.applyArm(this.props);
     }
 
-    public setLayout(layout: VirtualGridLayout): void {
+    public setLayout(layout: ListBoxLayout): void {
         this.layout = layout;
-        this.grid?.setLayout(layout);
+        this.grid?.setOptions(layout);
     }
 
     protected onMount(): void {
@@ -259,7 +268,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
                 messageHost.remove();
                 this.enterRealArm();
             } else {
-                this.grid?.setLayout(this.layout);
+                this.grid?.setOptions(this.layout);
             }
         } else {
             if (changed) {
@@ -305,17 +314,18 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     private enterRealArm(): void {
         if (!this.gridHost) return;
         this.root.append(this.gridHost);
-        const grid = new VirtualGridView(this.gridProps());
-        this.gridHost.append(grid.root);
-        grid.mount();
-        grid.setLayout(this.layout);
+        const grid = new RenderGrid(this.gridHost, {
+            ...this.gridProps(),
+            ...this.layout,
+            keepCellsAttached: true,
+        });
         this.grid = grid;
         this.model.setGridRef(grid.model);
     }
 
     private leaveRealArm(): void {
         this.model.setGridRef(null);
-        this.grid?.dispose();
+        this.grid?.destroy();
         this.grid = null;
         this.gridHost?.remove();
         // The pool is gone with the engine, so nothing may hold a recycled wrapper any more.
@@ -357,7 +367,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         };
     }
 
-    private layoutProps(props: ListBoxProps<T>): VirtualGridLayout {
+    private layoutProps(props: ListBoxProps<T>): ListBoxLayout {
         return {
             rowHeight: props.rowHeight ?? defaultRowHeight,
             growToHeight: cssLength(props.growToHeight),

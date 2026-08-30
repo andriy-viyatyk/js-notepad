@@ -402,7 +402,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── index.ts
 │   ├── notebook/           # Notebook editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── NotebookEditor.ts         # EditorModel — page-level notes, categories, tags
-│   │   ├── NotebookBodyView.ts       # Native body (VirtualFlexGrid + expanded overlay)
+│   │   ├── NotebookBodyView.ts       # Native body (MeasuredRowGrid + expanded overlay)
 │   │   ├── NoteItemView.ts           # Recycled native note cell
 │   │   ├── NoteItemViewModel.ts      # Per-row view model for virtualized note list
 │   │   ├── ExpandedNoteView.ts        # Expanded note overlay
@@ -435,9 +435,9 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   │   ├── LinkTagsSecondaryView.ts        # Secondary view wrapper
 │   │   │   └── LinkHostnamesSecondaryView.ts   # Secondary view wrapper
 │   │   ├── LinksList.ts              # Native/type module
-│   │   ├── LinksListView.ts           # Native VirtualGrid list renderer
+│   │   ├── LinksListView.ts           # Native RenderGrid list renderer
 │   │   ├── LinksTiles.ts             # Native/type module
-│   │   ├── LinksTilesView.ts          # Native VirtualGrid tile renderer
+│   │   ├── LinksTilesView.ts          # Native RenderGrid tile renderer
 │   │   ├── LinkTooltipView.ts         # Native tooltip content
 │   │   ├── PinnedLinksPanelView.ts    # Native pinned-links panel
 │   │   ├── EditLinkDialog.ts       # Edit-link dialog model and registration
@@ -495,8 +495,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── index.ts
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
-│   │   ├── LogBodyView.ts             # Log viewer native view (VirtualFlexGridView + auto-scroll)
-│   │   ├── LogBodyView.ts             # Log viewer native view
+│   │   ├── LogBodyView.ts             # Log viewer native view (MeasuredRowGrid + auto-scroll)
 │   │   ├── LogEntryWrapper.ts        # Cell root — subscribes to entries[index]
 │   │   ├── LogEntryContent.ts        # Type router — dispatches to entry renderers
 │   │   ├── LogMessageView.ts          # Log message renderer
@@ -579,6 +578,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   ├── iconPresets.ts
 │   │   ├── story-props.ts            # Shared story prop preparation
 │   │   ├── storyRegistry.ts
+│   │   ├── renderGridStory.ts        # RenderGrid virtualization story
 │   │   ├── storyTypes.ts
 │   │   └── index.ts
 │   ├── video/              # Audio/Video player (non-text, no trait)
@@ -766,10 +766,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── Dialog/             # Modal dialog
 │   ├── Notification/       # Alert / toast notification + AlertsBar
 │   ├── Progress/           # Progress overlay + screen lock
-│   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool; VirtualGridView and VirtualFlexGridView
-│   ├── DataGrid/           # av-grid mounting boundary (filters, sorting, editing, selection)
+│   ├── DataGrid/            # av-grid boundary: RenderGrid, MeasuredRowGrid, and data-grid mounting
 │   └── shared/             # Internal helpers (overlay layer, focus restoration, native slots, and view lifecycle)
-│       ├── async-ref.ts    # Callback-backed asynchronous DOM reference
 │       ├── vanilla-view.ts # Framework-free view lifecycle, ownership, binding, and cleanup
 │       ├── keyed-list.ts   # Keyed DOM reconciliation with minimal cursor moves
 │       ├── subtree-swap.ts # Owned conditional subtree replacement
@@ -798,7 +796,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── tree-drop-actions.ts # Move/import drop actions, taking a { path, title } target rather than a tree node so both views can call them
 │   ├── file-search/        # FileSearch native view and prop/state types; virtualized results
 │   │   ├── FileSearch.ts  # File-search prop/state types
-│   │   └── FileSearchView.ts # Native search view and VirtualGrid renderer
+│   │   └── FileSearchView.ts # Native search view and RenderGrid renderer
 │   ├── file-list/          # FileList.ts core/model + FileListView.ts native flat list
 │   ├── file-grid/          # FileGrid.ts types + FileGridView.ts native DataGrid/av-grid list
 │   ├── icons/              # Builder-backed Icon face and DOM icon resolvers
