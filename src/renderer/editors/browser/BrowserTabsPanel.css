@@ -1,10 +1,15 @@
 .browser-tabs-root { width: 100%; height: 100%; }
-.browser-tabs-root [data-tab-item] { display: flex; align-items: center; box-sizing: border-box; height: 28px; gap: 6px; margin: 0 4px 0 8px; padding: 0 4px 0 6px; cursor: pointer; position: relative; border: 1px solid transparent; border-radius: 4px; }
+.browser-tabs-root [data-tab-item] { display: flex; align-items: center; box-sizing: border-box; background-color: transparent; height: 28px; gap: 6px; margin: 0 4px 0 8px; padding: 0 4px 0 6px; cursor: pointer; position: relative; border: 1px solid transparent; border-radius: 4px; }
 .browser-tabs-root [data-tab-item]::before { content: ""; position: absolute; top: 2px; bottom: 2px; left: -5px; width: 2px; border-radius: 1px; background-color: var(--color-text-light); opacity: .25; }
 .browser-tabs-root [data-tab-item][data-group-color="1"]::before { opacity: .55; }
 .browser-tabs-root [data-tab-item]:hover { background-color: var(--color-bg-light); }
 .browser-tabs-root [data-tab-item][data-active] { background-color: var(--color-bg-dark); border-color: var(--color-border-active); }
 .browser-tabs-root [data-tab-item][data-compact] { justify-content: center; margin: 0 4px; padding: 0 4px; }
+.browser-tabs-root [data-tab-item][data-add-tab] { justify-content: center; appearance: none; font: inherit; color: inherit; outline: none; }
+.browser-tabs-root [data-tab-item][data-add-tab]::before { content: none; }
+.browser-tabs-root [data-tab-item][data-add-tab]:focus-visible { background-color: var(--color-bg-light); }
+.browser-tabs-root [data-tab-item][data-add-tab] svg { width: 16px; height: 16px; color: var(--color-icon-light); }
+.browser-tabs-root [data-tab-item][data-add-tab]:hover svg { color: var(--color-icon-default); }
 .browser-tabs-root [data-tab-item][data-hover-extended] { border-radius: 4px 0 0 4px; }
 .browser-tabs-root [data-tab-item][data-dragging] { opacity: .4; }
 .browser-tabs-root [data-tab-item][data-drop-target] { border-color: var(--color-border-active); }
@@ -15,5 +20,5 @@
 .browser-tabs-root [data-tab-favicon] svg[data-hidden] { display: none; }
 .browser-tabs-root [data-tab-favicon] img { display: block; width: 14px; height: 14px; object-fit: contain; filter: drop-shadow(0 0 1.5px var(--color-text-strong)); }
 .browser-tabs-root [data-tab-title], [data-tab-extension] [data-part="title"] { flex: 1 1 auto; overflow: hidden; color: var(--color-text-default); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-[data-tab-extension] { display: flex; align-items: center; box-sizing: border-box; width: 140px; height: 28px; gap: 6px; padding: 0 4px 0 6px; border: 1px solid var(--color-border-default); border-left: none; border-radius: 0 4px 4px 0; background-color: var(--color-bg-light); }
+[data-tab-extension] { display: flex; flex-direction: row; align-items: center; box-sizing: border-box; width: 140px; height: 28px; gap: 6px; padding: 0 4px 0 6px; border: 1px solid var(--color-border-default); border-left: none; border-radius: 0 4px 4px 0; background-color: var(--color-bg-light); }
 [data-tab-extension][data-active] { border-color: var(--color-border-active); border-left: none; background-color: var(--color-bg-dark); }

@@ -88,6 +88,15 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Tooltips no longer reappear over closing dialogs** — A page tooltip could remain visible near an open dialog or reopen briefly when a transient surface closed. Tooltips are now suppressed while a dialog is open and stay closed during that focus transition.
 
+- **The browser's collapsed tab list reads correctly again** — With the tab panel narrowed to icons,
+  hovering a tab shows a strip with its title and close button. The two were stacked vertically, so
+  the title was clipped to a couple of characters and the close button needed scrolling to reach.
+  They now sit side by side in the strip.
+
+- **The browser's new-tab button matches the other tabs** — The **+** button is now centred and
+  shaped like a tab at every panel width, and hovering highlights the whole row rather than just the
+  **+** glyph. Clicking anywhere on it opens a new tab.
+
 ---
 
 ## Version 4.0.22

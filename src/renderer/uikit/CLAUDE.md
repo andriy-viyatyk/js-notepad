@@ -635,7 +635,12 @@ slot ownership safe:
   `PopoverFloatingView` reasserts them on every update and wins silently: `dataset.type`, any
   `className` assignment, and `replaceChildren` (the resize handle is appended to that same root
   *after* the content mounts). Tag children instead. Name the three in the class comment — the
-  failure mode is an attribute reverting one update later, not an exception.
+  failure mode is an attribute reverting one update later, not an exception. Adoption also inherits
+  `.popover-shell`'s **layout** — `flex-direction: column`, plus `overflow: auto` unless the caller
+  passes `scroll: false` — so a content view wanting any other arrangement must declare it in full.
+  `display: flex` alone leaves the shell's `column` standing: that is what stacked the browser
+  editor's collapsed-tab hover strip title above its close button and gave a fixed 28px-tall box a
+  scrollbar (`editors/browser/BrowserTabsPanel.css`, `[data-tab-extension]`).
 - `fillSlot` **owns the host element it is given.** Call it again to change the content; never run
   the previous cleanup first, and never write to that host directly (`replaceChildren`, `append`,
   `textContent`) behind its back. It replaces native content when the requested direct children do
