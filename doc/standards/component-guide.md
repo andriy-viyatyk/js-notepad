@@ -50,7 +50,16 @@ programmatic so focus-based consumers such as tooltips do not treat teardown as 
 Native attribute props are compatibility surfaces, not permission to forward every browser
 attribute forever. A component may replace a broad `Omit<Native...>` with an explicit `Pick` only
 after sweeping its callers, stories, and targeted setter paths; preserve every key that is
-actually forwarded and keep component-owned callbacks/fields separate from native attributes.
+actually forwarded and keep component-owned callbacks/fields separate from native attributes. If a
+live native event prop is retained, include it in the view's targeted update path as well as the
+initial mount pass; otherwise a caller that changes the handler after construction will keep the
+old listener. Component-owned callbacks must be removed from residual props so they are not also
+installed on the root DOM element.
+
+`ListBox` exposes `onItemDoubleClick(item, index)` for row-level double-click behavior. The item is
+the original source value and the index is the resolved row index; section and disabled rows do not
+emit it. A double-click still produces the normal click-selection callbacks, so the double-click
+handler is additive and is appropriate for actions such as opening or revealing an item.
 
 When a parent composes a dynamic native child, `child()` establishes ownership only; it does not
 forward later model or prop changes. Retain children whose rendered output can change and update

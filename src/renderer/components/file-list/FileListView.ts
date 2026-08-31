@@ -26,6 +26,8 @@ export class FileListView extends VanillaView<FileListProps> {
     private filteredRows: FileListRow[] = [];
     private iconCacheInvalid = false;
     private searchFocusDisposer: (() => void) | undefined;
+    private selectedPath: string | undefined;
+    private isSelected: (item: FileListRow) => boolean;
 
     public get model(): FileListModel {
         return this.driver.model;
@@ -36,6 +38,8 @@ export class FileListView extends VanillaView<FileListProps> {
         this.root.dataset.type = "file-list";
         this.root.tabIndex = 0;
         this.driver = createComponentModelDriver(props, FileListModel, defaultFileListState);
+        this.selectedPath = props.selectedPath;
+        this.isSelected = this.createIsSelected(props.selectedPath);
 
         this.list = this.child(new ListBoxView<FileListRow>(this.listProps(props, defaultFileListState)));
         this.input = this.child(new InputView({
@@ -88,6 +92,10 @@ export class FileListView extends VanillaView<FileListProps> {
     private iconSubscription: (() => void) | undefined;
 
     protected onUpdate(props: FileListProps): void {
+        if (this.selectedPath !== props.selectedPath) {
+            this.selectedPath = props.selectedPath;
+            this.isSelected = this.createIsSelected(props.selectedPath);
+        }
         this.driver.update(props);
         this.applyRootProps(props);
         this.applyState(this.driver.model.state.get());
@@ -166,8 +174,8 @@ export class FileListView extends VanillaView<FileListProps> {
     }
 
     private readonly onListChange = (item: FileListRow): void => this.props.onClick(item);
-    private readonly isSelected = (item: FileListRow): boolean =>
-        this.props.selectedPath != null && item.filePath === this.props.selectedPath;
+    private readonly createIsSelected = (selectedPath: string | undefined) => (item: FileListRow): boolean =>
+        selectedPath != null && item.filePath === selectedPath;
     private readonly getTooltip = (item: FileListRow): string => item.filePath;
     private readonly getContextMenu = (item: FileListRow) => this.props.getContextMenu?.(item);
 

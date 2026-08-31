@@ -242,6 +242,13 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         this.props.onChange?.(sources[idx]);
     };
 
+    onItemDoubleClick = (idx: number) => {
+        const { resolved, sources } = this.resolved;
+        const item = resolved[idx];
+        if (!item || item.disabled || item.section) return;
+        this.props.onItemDoubleClick?.(sources[idx], idx);
+    };
+
     onItemMouseEnter = (idx: number) => {
         const { resolved } = this.resolved;
         const item = resolved[idx];

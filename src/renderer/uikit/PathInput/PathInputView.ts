@@ -219,6 +219,7 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             disabled,
             readOnly,
             autoFocus,
+            onClick: this.driver.model.onInputClick,
             onFocus: this.driver.model.onInputFocus,
             onBlur: this.driver.model.onInputBlur,
             onKeyDown: this.driver.model.onInputKeyDown,

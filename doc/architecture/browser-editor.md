@@ -425,6 +425,12 @@ Each browser page is bound to a **profile** that determines its Electron session
 
 Profiles are stored in app settings as `BrowserProfile[]` (`{ name, color }`). A separate `browser-default-profile` setting tracks which profile the "Browser" quick-add menu item uses. Colors come from the `TAG_COLORS` palette in `palette-colors.ts`, and the built-in default uses `DEFAULT_BROWSER_COLOR` (cyan `#4DD0E1`).
 
+The page-level title is privacy-projected separately from the active tab title. `browserPageTitle()`
+returns the constant `"Browser"` for incognito and Tor pages, so the Persephone tab strip and MCP
+page summaries cannot identify the site being viewed. Internal browser-tab labels continue to use
+the real `pageTitle`, which preserves the user's ability to distinguish tabs inside the private
+session.
+
 ### Page Tab Icons
 
 | Mode | Icon |
@@ -800,6 +806,13 @@ Refs are minted from the node's own `backendDOMNodeId` and are deliberately **no
 Consequently `callOnRef`'s `fn` argument must be a plain `function () {…}` expression: it is invoked with `.call(element)`, so an arrow function would keep its lexical `this` and silently act on the wrong object.
 
 ### App-Window Target (`pageId: "app"`)
+
+The explicit app target is refused while the **active** page is an incognito or Tor browser. App
+snapshots and screenshots include the active page, and most app-window actions return a full-window
+snapshot, so allowing the app target would bypass the browser-page privacy guard. An inactive private
+page is hidden from the app snapshot and does not trigger this check. This boundary applies to
+`browser_*` automation only; `execute_script` remains a trusted, full-application API and can
+inspect private-session state by design.
 
 `AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own native UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the page-interaction commands (snapshot / click / type / press_key / evaluate / screenshot) are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`).
 

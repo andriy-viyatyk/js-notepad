@@ -221,6 +221,7 @@ export class InputView extends VanillaView<InputProps> {
         setRestProp(this.field, "aria-expanded", rest["aria-expanded"], this.restPropsState);
         setRestProp(this.field, "aria-autocomplete", rest["aria-autocomplete"], this.restPropsState);
         setRestProp(this.field, "aria-controls", rest["aria-controls"], this.restPropsState);
+        setRestProp(this.field, "onClick", rest.onClick, this.restPropsState);
         setRestProp(this.field, "onFocus", rest.onFocus, this.restPropsState);
         setRestProp(this.field, "onBlur", rest.onBlur, this.restPropsState);
         setRestProp(this.field, "onContextMenu", rest.onContextMenu, this.restPropsState);

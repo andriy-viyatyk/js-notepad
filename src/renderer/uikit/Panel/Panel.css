@@ -61,6 +61,26 @@
         opacity: 0.6;
         pointer-events: none;
     }
+    /* A Panel is a layout box, never a control, so it must not paint a focus ring.
+     *
+     * Several views make their root panel focusable to receive keyboard routing or scroll keys --
+     * `TextChromeView` (tabindex 0, the chrome shared by the text-based editors) and
+     * `MarkdownBodyView` (tabindex -1) both do. Chromium's UA rule then paints
+     * `outline: auto 1px` on `:focus-visible`, drawn in the platform accent colour, which reads as
+     * a light border around the whole editor area on the dark theme. It appears only after
+     * keyboard interaction -- `:focus-visible` does not match a plain mouse click -- which is why
+     * it looked intermittent.
+     *
+     * Scoped to the layout primitive rather than reset globally: real controls (Button, Input,
+     * Checkbox, ...) keep their own focus affordances, and the app's own keyboard-focus styling
+     * (`[data-focus-selection]:focus-within`, `selectionStyle: "focus"`) is untouched, so nothing
+     * that a keyboard user relies on is being removed here.
+     */
+    .panel-root:focus,
+    .panel-root:focus-visible {
+        outline: none;
+    }
+
     .panel-root[data-dimmed] { opacity: 0.5; }
     .panel-root[data-clickable] { cursor: pointer; }
     .panel-root[data-clickable]:hover { background-color: var(--color-bg-light); }

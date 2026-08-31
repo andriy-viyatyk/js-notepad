@@ -4,6 +4,12 @@
 }
 
 .browser-root { display: flex; flex: 1 1 auto; flex-direction: column; overflow: hidden; background-color: var(--color-bg-default); }
+/* Focusable container, not a control: the root carries tabindex -1 so the editor can take focus
+   without being Tab-reachable. Chromium would paint its `outline: auto` focus ring around the whole
+   browser area. `.browser-root` is a plain div rather than a Panel, so it is not covered by the
+   equivalent `.panel-root` rule in `uikit/Panel/Panel.css` and needs its own. */
+.browser-root:focus,
+.browser-root:focus-visible { outline: none; }
 .browser-root [data-browser-loading-bar] { height: 2px; }
 .browser-root [data-browser-loading-bar][data-loading] { background-color: var(--color-border-active); animation: browser-loading-pulse 1.5s ease-in-out infinite; }
 .browser-root [data-search-engine-chip] { cursor: pointer; font-size: 11px; color: var(--color-text-light); padding: 0 4px; border-radius: 3px; white-space: nowrap; user-select: none; line-height: 20px; background: transparent; border: none; }

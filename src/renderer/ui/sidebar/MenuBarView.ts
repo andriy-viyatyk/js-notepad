@@ -160,6 +160,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             rowHeight: 22,
             isSelected: (folder) => folder.folder.id === holder.view?.leftItemId,
             onChange: (record) => holder.view?.setLeftItem(record.folder),
+            onItemDoubleClick: (record) => holder.view?.openFolderOnDoubleClick(record.folder),
             getContextMenu: (record) => {
                 const folder = record.folder;
                 holder.view?.setLeftItem(folder);
@@ -277,6 +278,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             rowHeight: 22,
             isSelected: (folder) => folder.folder.id === this.leftItemId,
             onChange: (record) => this.setLeftItem(record.folder),
+            onItemDoubleClick: (record) => this.openFolderOnDoubleClick(record.folder),
             getTooltip: (record) => record.tooltip,
             getContextMenu: (record) => {
                 const folder = record.folder;
@@ -300,7 +302,6 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             icon: this.getFolderIcon(folder),
             label: this.getFolderLabel(folder),
             tooltip: this.getFolderTooltip(folder),
-            onDoubleClick: canOpenInTab(folder) ? (value: MenuFolder) => this.openFolderInTab(value) : undefined,
             onSelectedIconClick: canOpenInTab(folder)
                 ? (value: MenuFolder) => this.openFolderInTab(value)
                 : undefined,
@@ -426,12 +427,33 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         }
     }
 
+    /**
+     * Double-click gate for the saved-folder list. `createFolderItemRecord` builds a plain
+     * `ListBoxView` record and silently drops `onDoubleClick`; the only listener for it lived in
+     * `FolderItemView`, which nothing instantiates. So the gesture never reached
+     * `openFolderInTab` -- the `canOpenInTab` check that used to sit beside the discarded prop
+     * lives here now, where the event actually arrives.
+     */
+    private openFolderOnDoubleClick(folder: MenuFolder): void {
+        if (!canOpenInTab(folder)) return;
+        this.openFolderInTab(folder);
+    }
+
     private openFolderInTab(folder: MenuFolder): void {
         const folderPath = folder.id === scriptLibraryId
             ? settings.get("script-library.path")
             : folder.path;
+        this.openFolderPathInTab(folderPath);
+    }
+
+    /**
+     * Open a folder as an empty page with the Explorer nav panel rooted at it. Shared by the
+     * saved-folder list and by a folder double-clicked in the right-hand file tree, so both
+     * gestures land on exactly one behaviour.
+     */
+    private openFolderPathInTab(folderPath: string | undefined): void {
         if (!folderPath) return;
-        pagesModel.addEmptyPageWithNavPanel(folderPath);
+        void pagesModel.addEmptyPageWithNavPanel(folderPath);
         this.props.onClose?.();
     }
 
@@ -518,6 +540,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
                             this.props.onClose?.();
                         }
                     },
+                    onFolderDoubleClick: (item) => this.openFolderPathInTab(item.href),
                 });
             }
         }
@@ -548,6 +571,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
                             this.props.onClose?.();
                         }
                     },
+                    onFolderDoubleClick: (item: { href: string }) => this.openFolderPathInTab(item.href),
                 };
             }
         }

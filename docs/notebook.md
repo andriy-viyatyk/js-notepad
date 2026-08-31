@@ -88,7 +88,8 @@ Categories organize notes in a hierarchical tree using "/" as a separator.
 
 Click the category badge on a note (shows "No category" by default). A path input appears where you can:
 - Type a new category path (e.g., "work/projects/alpha")
-- Select from existing categories via autocomplete
+- Select from existing categories via autocomplete; after choosing a suggestion, click the field
+  again to reopen the suggestions while continuing to edit
 - Press Enter to confirm, Escape to cancel
 
 ### Category Tree (Sidebar Panel)
@@ -125,7 +126,7 @@ Categorized tags group under their prefix in the Tags panel (e.g., all `env:*` t
 
 ### Adding Tags
 
-Hover over a note and click the **+** button in the tags area. A path input appears for entering the tag. Autocomplete suggests existing tags.
+Hover over a note and click the **+** button in the tags area. A path input appears for entering the tag. Autocomplete suggests existing tags. After selecting a suggestion, click the field again to reopen the suggestions and add another tag without clicking away first. Typed text after a selection is committed normally when you leave the field.
 
 ### Editing and Removing Tags
 

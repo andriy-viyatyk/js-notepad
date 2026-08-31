@@ -546,6 +546,15 @@ depends on a scrollbar or a newly attached container is recomputed from the view
 and scroll-to-row requests that arrive before a usable paint remain pending until the paint path
 can satisfy them.
 
+Repaint-signature callback entries are compared by identity. A predicate such as `isSelected` may
+read a mutable set or other model field, but changing that field in place is not an invalidation
+signal: replace the predicate with a new closure when its answers change. Compare the underlying
+values first so unrelated state updates keep the same predicate and do not request a global repaint.
+The same rule applies to list views such as `FileListView`; a stable predicate over mutable
+selection state can otherwise leave row attributes stale. A callback whose identity is intentionally
+stable may still read current state when invoked; identity is the repaint signal, not a snapshot
+requirement.
+
 When a plain collection changes without replacing every rendered row, publish the invalidation
 scope beside the version signal in the same state notification. The scope may be a row index set,
 a contiguous range, or an explicit `"all"` sentinel for a full replacement. The view maps it to

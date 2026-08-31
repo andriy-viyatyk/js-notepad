@@ -31,6 +31,7 @@ import {
     createInternalTabId,
     createTabGroupId,
     detectSearchEngine,
+    browserPageTitle,
 } from "./BrowserEditorModel";
 
 export type BrowserQueueEvent = { type: "focus" };
@@ -195,7 +196,7 @@ export class BrowserEditor extends EditorModel<
 
         if (s.url && s.url !== DEFAULT_URL) {
             this.state.update((st) => {
-                st.title = st.pageTitle || "Browser";
+                st.title = browserPageTitle(st, st.pageTitle);
             });
         }
     }
@@ -256,7 +257,17 @@ export class BrowserEditor extends EditorModel<
                     s.url = active.url;
                     s.pageTitle = active.pageTitle;
                     s.favicon = active.favicon;
-                    s.title = active.pageTitle || "Browser";
+                    // `s.isIncognito` / `s.isTor` are copied from `data` further down this same
+                    // update -- the Tor branch has to run after the tabs are restored, because it
+                    // replaces them. So the restored flags are read from `data` here; reading `s`
+                    // would see the pre-restore defaults and let a private title through.
+                    s.title = browserPageTitle(
+                        {
+                            isIncognito: data.isIncognito ?? s.isIncognito,
+                            isTor: data.isTor ?? s.isTor,
+                        },
+                        active.pageTitle,
+                    );
                 }
             } else {
                 if (data.url) s.url = data.url;
@@ -438,7 +449,7 @@ export class BrowserEditor extends EditorModel<
             if (internalTabId === s.activeTabId) {
                 if (updates.pageTitle !== undefined) {
                     s.pageTitle = updates.pageTitle;
-                    s.title = updates.pageTitle || "Browser";
+                    s.title = browserPageTitle(s, updates.pageTitle);
                 }
                 if (updates.loading !== undefined) s.loading = updates.loading;
                 if (updates.canGoBack !== undefined)

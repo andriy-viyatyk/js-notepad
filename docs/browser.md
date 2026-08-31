@@ -413,7 +413,7 @@ See the [`page.asBrowser()` API reference](./api/page.md#asbrowserpromiseibrowse
 
 AI agents connected via the [MCP server](./mcp-setup.md) can control the browser directly using dedicated browser tools — no script needed. Tools include `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_wait_for`, `browser_evaluate`, and more. See [MCP Server Setup → Browser Automation Tools](./mcp-setup.md#browser-automation-tools) for the full list.
 
-> **Privacy note:** MCP browser automation tools are blocked on incognito and Tor browser pages. If the active browser page is in incognito or Tor mode, any `browser_*` tool call returns an error. Use `open_url` (without `incognito` or `tor`) to open a normal browser session before using automation tools. Similarly, `open_url` will not reuse an existing incognito or Tor page for a normal URL — it always opens normal URLs in a separate normal session.
+> **Privacy note:** MCP browser automation tools are blocked while the active page is incognito or Tor. This includes calls targeting Persephone's own window (`pageId: "app"`), because that window displays the active browser page. Any `browser_*` call returns an error until you activate a non-private page. Use `open_url` (without `incognito` or `tor`) to open a normal browser session before using automation tools. Similarly, `open_url` will not reuse an existing incognito or Tor page for a normal URL — it always opens normal URLs in a separate normal session. The `execute_script` tool is separate and can still read private-session state; do not use it when that state must remain inaccessible to an agent.
 
 ---
 
@@ -440,7 +440,7 @@ These shortcuts work regardless of where focus is within the browser page.
 
 ## Additional Details
 
-- **Page title** — shown in the persephone tab (reflects the active internal tab)
+- **Page title** — shown in the persephone tab (reflects the active internal tab for normal pages; incognito and Tor pages show the generic **Browser** title). Private browser tabs still show their page titles inside the browser session itself.
 - **Favicon** — website icon displayed in the internal tabs panel
 - **DevTools** — click the gear icon or press `F12` to open the webview's developer tools
 - **DRM-protected video** — the browser supports Widevine DRM, so streaming services like Netflix, Disney+, and other DRM-protected platforms work out of the box

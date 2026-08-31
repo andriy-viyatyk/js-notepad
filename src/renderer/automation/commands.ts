@@ -60,7 +60,9 @@ function isErrorResponse(t: IBrowserTarget | McpResponse): t is McpResponse {
  *
  * Resolution precedence:
  *   0. `pageId === "app"` — Persephone's OWN main window (the app UI itself). Explicit
- *                      only; never reachable by the fallback branch below.
+ *                      only; never reachable by the fallback branch below. Refused while the
+ *                      ACTIVE page is an incognito/Tor browser, which would otherwise be readable
+ *                      off the rendered UI.
  *   1. `pageId`      — exact page (must be a browser page).
  *   2. `profileName` — first browser page of that profile ("" = default profile;
  *                      never matches incognito/tor). Prefers the active page.
@@ -80,7 +82,35 @@ async function getTarget(
     // The app window (US-810) is automatable via the "app" sentinel — it drives
     // Persephone's own UI. Explicit only: the fallback branch must NEVER return
     // it, so an agent aiming at a web page can't accidentally click the app chrome.
-    if (pageId === "app") return appTarget;
+    //
+    // The incognito/Tor block below guards the *browser* target, and this branch used to return
+    // before reaching it — so an agent barred from driving a private session could still aim at
+    // the app window and read that session straight off the rendered UI. The whole app window is
+    // one surface: `browser_take_screenshot` captures the private page's pixels, and almost every
+    // app-window command (`browser_click`, `browser_hover`, `browser_type`, `browser_press_key`,
+    // `browser_wait_for`, ...) returns a full-window `snapshot()` as its result, so gating only the
+    // two obviously-capturing commands would be bypassed by any one of the others. The whole app
+    // target is therefore refused while a private page is the active one.
+    //
+    // Only the ACTIVE page matters: a private page that is not active is `display: none`, so it is
+    // in neither the snapshot nor the screenshot. That is also what makes the remedy honest —
+    // activating any other page genuinely removes the exposure rather than just hiding it.
+    if (pageId === "app") {
+        const activeEditor = activePage?.mainEditorInstance;
+        if (isBrowserEditor(activeEditor)) {
+            const activeState = activeEditor.state.get();
+            const mode = activeState.isTor ? "Tor" : activeState.isIncognito ? "incognito" : undefined;
+            if (mode) {
+                return { error: { code: -32602, message:
+                    `The active page is a browser in ${mode} mode, so Persephone's own UI (pageId: "app") `
+                    + "cannot be automated right now: app-window commands capture or return a snapshot of the "
+                    + "whole window, which would expose that private session. Activate a different page first "
+                    + "— list_pages to choose one, then execute_script with app.pages.showPage(pageId) — and retry."
+                } };
+            }
+        }
+        return appTarget;
+    }
 
     // A board (EPIC-034 / US-730) is automatable just like a browser page — both
     // expose an IBrowserTarget. Only the Browser editor carries profile/incognito/Tor.

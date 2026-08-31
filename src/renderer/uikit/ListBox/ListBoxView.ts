@@ -478,6 +478,10 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemClick(record.index);
         });
+        this.listen(wrapper, "dblclick", () => {
+            const record = this.activeRecord(wrapper);
+            if (record) this.model.onItemDoubleClick(record.index);
+        });
         this.listen(wrapper, "mouseenter", () => {
             const record = this.activeRecord(wrapper);
             if (record) this.model.onItemMouseEnter(record.index);
@@ -542,6 +546,8 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             selectionStyle: _selectionStyle, items: _items, value: _value, onChange: _onChange,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             isSelected: _isSelected, onActiveChange: _onActiveChange,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            onItemDoubleClick: _onItemDoubleClick,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onContextMenu: _onContextMenu, getContextMenu: _getContextMenu, id: _id,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars

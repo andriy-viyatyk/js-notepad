@@ -55,7 +55,7 @@ gemini --mcp-server http://127.0.0.1:7865/mcp
 | **list_windows** | List all windows (open and closed) with their status, page count, and page metadata. Browser pages also include `profileName`, `isIncognito`, and `isTor`. |
 | **open_window** | Open or reopen a window by index. Closed windows are recreated with their persisted pages. |
 | **execute_script** | Execute JavaScript or TypeScript with access to `page` and `app` objects. Accepts an optional `language` parameter (`"javascript"` or `"typescript"`; defaults to `"javascript"`). The most powerful tool — can do anything the scripting system supports. |
-| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and `url`. Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
+| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and a URL for normal sessions; private pages omit the URL and use the generic title `Browser`. Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
 | **get_page_content** | Get the content of a page by ID. Text-based pages return `{ id, title, content }`. Image pages (e.g. screen snips) return the rendered PNG as an image block in the tool result — you see the picture directly, even for a background (non-active) tab. Other non-text pages (browser, board, video, PDF, etc.) return `{ id, title, hint }` describing how to read them instead. |
 | **get_active_page** | Get the active page with metadata plus the same content/image/hint handling as `get_page_content`. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
 | **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `open_url` or `execute_script` instead. |
@@ -97,7 +97,7 @@ Targeting a page also **focuses** it — the resolved page becomes the active ta
 
 > **Tip:** `browser_snapshot` is the recommended way to inspect page state — it is faster and more deterministic than screenshots. After any click or type action, the tool automatically returns an updated snapshot so you can verify the result without a separate call.
 
-> **Privacy guard:** Browser automation tools are blocked when the active browser page is in incognito or Tor mode. Any `browser_*` call on an incognito or Tor page returns an error with a clear message. Use `open_url` without `incognito` or `tor` to open a normal browser session first. `open_url` also never reuses an incognito or Tor page for a normal URL — it always creates a fresh normal session.
+> **Privacy guard:** Browser automation tools are blocked when the active browser page is in incognito or Tor mode. This also blocks `pageId: "app"`, because the app window would expose the active private page through its rendered UI. Any `browser_*` call returns an error with a clear message until a non-private page is active. Use `open_url` without `incognito` or `tor` to open a normal browser session first. `open_url` also never reuses an incognito or Tor page for a normal URL — it always creates a fresh normal session. `execute_script` is not covered by this guard and can still read private-session state.
 
 ### Automating Persephone's own UI
 
@@ -107,7 +107,7 @@ Pass `pageId: "app"` to any `browser_*` tool to drive **Persephone's own main wi
 browser_snapshot({ pageId: "app" })
 ```
 
-What works: `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_press_key`, `browser_evaluate`, `browser_take_screenshot`, and `browser_wait_for` all operate normally against the app window using refs or CSS selectors, exactly like a browser page.
+What works: `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_press_key`, `browser_evaluate`, `browser_take_screenshot`, and `browser_wait_for` all operate normally against the app window using refs or CSS selectors, exactly like a browser page, provided the active page is not incognito or Tor.
 
 What's different:
 - The snapshot only ever shows the app **chrome** (tab strip, sidebar, toolbars) plus the **active page's** content — other open tabs stay hidden until you click their tab to activate them.
@@ -147,6 +147,7 @@ Call `get_app_info` to discover which profiles are configured:
 | `isIncognito` | `true` for incognito sessions. |
 | `isTor` | `true` for Tor browsing sessions. |
 | `url` | The active tab's URL. Omitted for incognito/Tor pages (privacy). |
+| `title` | The Persephone page title. Incognito and Tor pages use the generic `Browser` title so the site name is not exposed outside the private session. |
 
 `list_windows` also includes `profileName`, `isIncognito`, and `isTor` for browser pages — but not `url`.
 
@@ -173,7 +174,7 @@ browser_navigate({ url: "https://example.com", profileName: "" })
 open_url({ url: "https://outlook.com", profileName: "work" })
 ```
 
-Incognito and Tor pages are never automatable: `profileName` never matches them, and a direct `pageId` targeting such a page returns a privacy-refusal error.
+Incognito and Tor pages are never automatable: `profileName` never matches them, a direct `pageId` targeting such a page returns a privacy-refusal error, and `pageId: "app"` is refused while one of them is active. `execute_script` remains unrestricted by this browser-automation guard and can still access private-session state.
 
 ### Multi-Window Support
 

@@ -15,6 +15,7 @@ import {
 import { createTreeProviderItemIconElement, subscribeFileIconElements } from "../icons/icon-elements";
 import { TREE_ITEM_KEY } from "../../uikit/Tree/types";
 import type { TreeProps } from "../../uikit/Tree/types";
+import type { SlotText } from "../../uikit/shared/slots";
 import { TreeView } from "../../uikit/Tree/TreeView";
 import { InputView } from "../../uikit/Input/InputView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
@@ -44,7 +45,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         TreeProviderViewModel
     >;
     private readonly iconCache = new Map<string, Element>();
-    private readonly selectedSet = new Set<string>();
+    private selectedSet = new Set<string>();
     private readonly modelProps = (props: ViewProps): TreeProviderViewModelProps => props;
 
     private treeView: TreeView<TreeProviderNode> | undefined;
@@ -126,8 +127,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     private readonly applyState = (state: ProviderState): void => {
         if (this.inert) return;
 
-        this.selectedSet.clear();
-        for (const href of state.selectedValues) this.selectedSet.add(href.toLowerCase());
+        this.syncSelection(state.selectedValues);
 
         const tNodes = this.tNodesFor(state.displayTree);
         if (state.error) {
@@ -309,7 +309,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
                 if (hasSubDirectories === undefined && hasItems === undefined) return true;
                 return showLinks ? !!(hasSubDirectories || hasItems) : !!hasSubDirectories;
             },
-            getTooltip: (node) => this.props.getTooltip?.(node.data) ?? node.data.href,
+            getTooltip: this.getTooltip,
             getIconElement: this.getIconElement,
             getHideChevron: (_node, level) => level === 0,
             renderTrailing: (node) => this.props.renderTrailing?.(node.data),
@@ -326,16 +326,69 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         };
     }
 
-    private readonly isSelected = (node: TreeProviderNode): boolean =>
+    private isSelected = (node: TreeProviderNode): boolean =>
         this.selectedSet.has(node.data.href.toLowerCase());
+
+    /**
+     * Hand the Tree a *new* `isSelected` whenever the selection actually changes.
+     *
+     * `TreeModel.repaintSignature()` compares `isSelected` by identity, and the tree provider
+     * expresses selection only through that predicate -- it passes no `value` prop, so the model's
+     * `selectedKey` stays null. Rebuilding `selectedSet` in place therefore changed what the
+     * predicate answers while leaving every signature entry untouched, so the repaint gate saw no
+     * change and `deriveRepaintChange` returned `undefined`: the newly selected row never painted
+     * and the previous one never cleared. Rows corrected themselves only when something unrelated
+     * repainted them, which is why hovering appeared to "fix" the highlight.
+     *
+     * Swapping the predicate is the channel the Tree documents for this ("selection predicate" is
+     * one of its listed global-repaint inputs). The predicate identity changes with the set, making
+     * the identity change a truthful signal for the model's repaint gate.
+     * Guarded by a real comparison: reassigning on every `applyState` would force a full-viewport
+     * repaint on unrelated state changes.
+     */
+    private syncSelection(selectedValues: readonly string[]): void {
+        const next = new Set<string>();
+        for (const href of selectedValues) next.add(href.toLowerCase());
+        if (next.size === this.selectedSet.size) {
+            let same = true;
+            for (const href of next) {
+                if (!this.selectedSet.has(href)) { same = false; break; }
+            }
+            if (same) return;
+        }
+        this.selectedSet = next;
+        this.isSelected = (node: TreeProviderNode): boolean =>
+            this.selectedSet.has(node.data.href.toLowerCase());
+    }
 
     private readonly onSelectionChange = (nodes: TreeProviderNode[]): void => {
         this.model.setSelection(nodes.map((node) => node.data.href));
     };
 
+    /**
+     * Hover highlight. The Tree paints the hovered row through `[data-active]`, and reports the row
+     * under the pointer here -- so storing the index is only half the job: it has to reach the Tree
+     * as a prop before anything repaints. The React original was a `useState` setter, where the
+     * re-render re-passed `activeIndex` for free; the conversion kept the assignment and dropped the
+     * propagation, so hover silently stopped painting while selection kept working (it routes
+     * through `model.setSelection`, which changes model state and so runs `applyState`).
+     *
+     * `tNodesFor` is identity-cached and `activeIndex` alone sets only `pendingRowRepaint` in
+     * `TreeModel`, so this repaints the two affected rows rather than the whole viewport -- which is
+     * also why `getTooltip` is a bound field: it is one of the identities `TreeModel` compares to
+     * decide on a *global* repaint, and a fresh arrow here would force one on every mouseenter.
+     */
     private readonly onActiveChange = (index: number | null): void => {
+        if (this.activeIndex === index) return;
         this.activeIndex = index;
+        if (this.inert || this.arm !== "tree" || !this.treeView) return;
+        const state = this.model.state.get();
+        const tNodes = this.tNodesFor(state.displayTree);
+        if (tNodes) this.treeView.update(this.treeProps(tNodes, state));
     };
+
+    private readonly getTooltip = (node: TreeProviderNode): SlotText =>
+        this.props.getTooltip?.(node.data) ?? node.data.href;
 
     private readonly canCollapse = (node: TreeProviderNode): boolean =>
         node.data.href !== this.props.provider.rootPath;

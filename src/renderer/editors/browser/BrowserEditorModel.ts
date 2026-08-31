@@ -294,6 +294,28 @@ export const getDefaultBrowserPageState = (): BrowserEditorState => {
     };
 };
 
+/**
+ * The Persephone page title for a browser page.
+ *
+ * Incognito and Tor sessions report a constant `"Browser"` and never track the active tab. The
+ * page title is not a private surface: it shows in the tab strip and, more importantly, is
+ * returned by the MCP `list_pages` tool, which already withholds `url` for these modes
+ * (`toPageSummary` in `api/mcp/page-commands.ts`) and already refuses to drive them. The title was
+ * the remaining leak -- it named the site being viewed.
+ *
+ * Suppressed here, at every point of assignment, rather than masked at the MCP boundary: one rule
+ * then covers the page title, the tab strip and the tool output together, and cannot be bypassed
+ * by a new caller. The browser's *own* tab labels are unaffected -- they read `pageTitle`, which
+ * still tracks the page, so the user still sees which tab is which inside the session.
+ */
+export function browserPageTitle(
+    flags: { isIncognito?: boolean; isTor?: boolean },
+    pageTitle: string | undefined,
+): string {
+    if (flags.isIncognito || flags.isTor) return "Browser";
+    return pageTitle || "Browser";
+}
+
 /** Compute the Electron session partition string for a browser page. */
 export function getPartitionString(
     profileName: string,

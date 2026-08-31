@@ -12,6 +12,7 @@ import {
     DEFAULT_URL,
     createInternalTabId,
     createTabGroupId,
+    browserPageTitle,
 } from "./BrowserEditorModel";
 
 /** Owns internal browser tabs and tab-scoped navigation/bookmark resources. */
@@ -273,7 +274,7 @@ export class BrowserTabsModel {
         s.canGoBack = tab.canGoBack;
         s.canGoForward = tab.canGoForward;
         s.favicon = tab.favicon;
-        s.title = tab.pageTitle || "Browser";
+        s.title = browserPageTitle(s, tab.pageTitle);
     };
 
     private configureBookmarks = (bm: BrowserBookmarks): void => {

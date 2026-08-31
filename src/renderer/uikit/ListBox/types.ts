@@ -97,6 +97,15 @@ export interface ListBoxProps<T = IListBoxItem>
     /** Fires when the user selects an item. Emits the source `T` (matches the shape passed via `items`). */
     onChange?: (item: T) => void;
     /**
+     * Fires on a double-click on a row. Emits the source `T` and its resolved index, matching
+     * `getContextMenu`'s shape. Section and disabled rows never emit.
+     *
+     * A double-click also produces the two `onChange` calls for its clicks; this fires in addition
+     * to them rather than replacing them, so a handler here should be additive (open, reveal) and
+     * not assume it is the only reaction to the gesture.
+     */
+    onItemDoubleClick?: (item: T, index: number) => void;
+    /**
      * Predicate that overrides the default `value`-based selection check. When supplied,
      * `value` is ignored — each row's selected flag comes from `isSelected(source, index)`.
      * Used when selection state is derived externally.

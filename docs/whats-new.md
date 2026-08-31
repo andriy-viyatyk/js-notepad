@@ -14,6 +14,21 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Private browser pages reveal less outside their session** — Incognito and Tor pages now keep the
+  Persephone tab title as **Browser** instead of exposing the active website name. MCP browser
+  automation also refuses both private browser targets and the app window while a private page is
+  active. The browser's own tab labels are unchanged. `execute_script` remains a separate,
+  unrestricted scripting path and can still read private-session state.
+
+- **Folder shortcuts open faster in a full Explorer tab** — Double-click a saved folder in the
+  sidebar, or a folder in its right-hand file tree, to open that folder in a new page with the
+  Explorer panel rooted there.
+
+- **Suggestions reopen with a click** — After choosing a tag or category suggestion — in a Link
+  editor's Tags field, or a Notebook note — click the field again to keep adding entries, instead of
+  having to click away and back. A value typed after choosing a suggestion is also no longer lost
+  when you click away.
+
 - **Markdown minimaps stay smooth while you edit** — The minimap in Markdown Preview stays synchronized as the document changes, including for large previews, so editing remains responsive.
 
 - **Large notebooks stay responsive** — Long notebooks scroll more smoothly without disturbing note editing. Expanding and collapsing a note keeps its editor state, and scrolling over inactive note content continues to move the notebook.
@@ -25,6 +40,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **The active tab stays visible** — Activating a tab that is off-screen now scrolls the tab bar just enough to reveal it. Tabs that are already visible stay where they are instead of being recentered.
 
 ### Bug Fixes
+
+- **File Explorer hover and selection stay visible** — Moving over a row restores its hover
+  highlight, and selecting a different row immediately clears the previous highlight.
+
+- **The main editor no longer shows a stray focus ring** — The non-control editor container no
+  longer gets Chromium's platform outline when it receives focus. Focus indicators on actual
+  controls remain unchanged.
 
 - **Long menus no longer fill the whole window** — A menu with many entries, such as the tab's language picker, could stretch to the full height of the window. Long menus are now capped and scroll instead; short menus are unchanged.
 

@@ -146,12 +146,28 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
     };
 
     onInputChange = (v: string) => {
+        // A keystroke starts a fresh edit session, so the previous session's leaf selection must
+        // not keep suppressing the blur commit -- `onInputBlur` bails out while this flag is set,
+        // which would silently drop a value typed after a selection.
+        this.selectionMade = false;
         this.props.onChange(v);
         if (!this.props.disabled && !this.props.readOnly && !this.state.get().open) {
             this.state.update((s) => {
                 s.open = true;
             });
         }
+    };
+
+    onInputClick = () => {
+        // Selecting a leaf closes the popover but leaves the input focused, so a second click
+        // produces no `focus` event and nothing else would reopen it -- adding several tags in a
+        // row meant clicking away and back between every one. A click is an explicit gesture at
+        // the field, so treat it as a request to see the suggestions.
+        if (this.props.disabled || this.props.readOnly) return;
+        if (this.state.get().open) return;
+        this.state.update((s) => {
+            s.open = true;
+        });
     };
 
     onInputFocus = () => {
