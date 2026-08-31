@@ -32,7 +32,7 @@
  * the library's own option names.
  */
 
-import { AVGrid } from "av-grid";
+import { AVGrid, CALLBACK_OPTION_KEYS } from "av-grid";
 
 import { VanillaView } from "../shared/vanilla-view";
 import { CellTooltip } from "./cell-tooltip";
@@ -42,36 +42,20 @@ import "./DataGrid.css";
 /**
  * The callback tier: forwarded through trampolines, diffed on presence only.
  *
- * `getRowKey`, `newRow`, `newColumn`, `onCellClass`, `rowClass`, `onGetOptions` and
- * `getContextMenuItems` are here despite not being `on*`-shaped: they are functions the grid
- * calls, so re-pushing them on identity change would be pure waste.
+ * av-grid owns the pure-callback classification. The local presence-sensitive options stay
+ * separate because their presence changes the library's rendering or interaction behaviour.
  */
-const CALLBACK_KEYS = [
-    "getContextMenuItems",
+const PRESENCE_SENSITIVE_KEYS = [
     "getRowKey",
-    "newColumn",
     "newRow",
-    "onAddColumns",
-    "onAddRows",
-    "onCellClass",
-    "onCellClick",
-    "onCellContextMenu",
-    "onCellDoubleClick",
-    "onColumnResize",
-    "onColumnsChange",
-    "onColumnsReorder",
-    "onDeleteColumns",
-    "onDeleteRows",
-    "onEdit",
-    "onFiltersChange",
-    "onFocusChange",
+    "newColumn",
     "onGetOptions",
     "onGridContextMenu",
-    "onInvalidEdit",
-    "onSelectionChange",
-    "onSortChange",
-    "onVisibleRowsChange",
-    "rowClass",
+] as const satisfies readonly (keyof DataGridProps)[];
+
+const CALLBACK_KEYS = [
+    ...CALLBACK_OPTION_KEYS,
+    ...PRESENCE_SENSITIVE_KEYS,
 ] as const satisfies readonly (keyof DataGridProps)[];
 
 const CALLBACK_KEY_SET: ReadonlySet<string> = new Set<string>(CALLBACK_KEYS);

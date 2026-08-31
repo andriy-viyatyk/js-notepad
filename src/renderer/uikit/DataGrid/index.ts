@@ -21,6 +21,7 @@ import type { RenderGridModel } from "av-grid";
 import "./DataGrid.css";
 
 export { DataGridView } from "./DataGridView";
+export { CALLBACK_OPTION_KEYS, PAINT_PATH_CALLBACK_KEYS } from "av-grid";
 
 export { RenderGrid } from "av-grid";
 export type {
@@ -57,6 +58,7 @@ export type {
     CellRenderer,
     ClassValue,
     Column,
+    ColumnGroupContext,
     DataGridInstance,
     DataGridProps,
     DataGridStateSnapshot,
@@ -81,7 +83,9 @@ export type {
     SelectedCount,
     SortColumn,
     SortDirection,
+    SortState,
 } from "./types";
+export type { CallbackOptionKey } from "./types";
 
 /**
  * Library helpers a consumer needs and must not reimplement.

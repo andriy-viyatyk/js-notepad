@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - *(no epic)*
-  - [ ] US-1254: Split agent instructions — shared `doc/agents-common.md` (imported by `CLAUDE.md`, read by Codex via `AGENTS.md`); canonical review/document/userdoc skills moved to `.agents/skills/` (native Codex skills) with thin Claude wrappers in `.claude/skills/`
+  - [ ] US-1255: De-React review pass 2 — survey of surviving React patterns, workarounds, and recommended mechanisms; report in [doc/de-react-refactoring-2.md](de-react-refactoring-2.md) (follow-up work packages ranked in its Part 5)
 
 ## Planned
 

@@ -14,6 +14,7 @@ import {
     type Filter,
     type GetFilterOptions,
     type SortColumn,
+    type SortState,
     defaultCompare,
     filterRows,
     rowsToCsvText,
@@ -108,6 +109,8 @@ function buildColumns(detected: Column[], settings: GridColumnSetting[]): Column
     // A remembered set that has gone entirely stale is not a reason to show no columns.
     return merged.length ? merged : detected;
 }
+
+const isSortList = (sort: SortState): sort is readonly SortColumn[] => Array.isArray(sort);
 
 export interface GridEditorState extends EditorStateBase {
     // Structural — persisted via getRestoreData.
@@ -627,7 +630,14 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         });
     };
 
-    onSortChange = (sort: SortColumn | undefined): void => {
+    onSortChange = (sort: SortState | undefined): void => {
+        if (sort === undefined) {
+            this.state.update((s) => {
+                s.sortColumn = undefined;
+            });
+            return;
+        }
+        if (isSortList(sort)) return;
         this.state.update((s) => {
             s.sortColumn = sort;
         });

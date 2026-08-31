@@ -60,6 +60,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Grid search now clears completely** — Emptying the toolbar search could leave the grid filtered by the last search term. Clearing it now restores all rows immediately.
 
+- **Rapid grid scrolling no longer leaves stale rows visible** — Fast scrolling or repeated updates in grid-backed views could leave cells from an earlier render visible after the view had moved on. The affected cells are now reclaimed correctly, so the visible rows stay in sync with the current position.
+
 - **The Edit Columns popover now shows the full grid** — The column-management popover could show its grid as a narrow sliver, making the list of columns difficult to use. It now fills the available popover area so you can see and edit the column options normally.
 
 - **File Explorer search restores expanded folders** — Clearing a tree search could leave folders collapsed when their expansion had been restored from saved state. Clearing the search now brings those previously expanded folders back.

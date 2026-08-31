@@ -54,7 +54,7 @@
     "@excalidraw/mermaid-to-excalidraw": "^2.2.2",
     "@floating-ui/dom": "^1.8.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "av-grid": "2.3.0",
+    "av-grid": "2.6.1",
     "cheerio": "^1.2.0",
     "csv-parse": "^7.0.1",
     "csv-stringify": "^6.8.1",

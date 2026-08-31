@@ -24,6 +24,7 @@ export type {
     CellRenderer,
     ClassValue,
     Column,
+    ColumnGroupContext,
     DataType,
     DeleteColumnsEvent,
     DeleteRowsEvent,
@@ -41,8 +42,11 @@ export type {
     RowContext,
     SortColumn,
     SortDirection,
+    SortState,
 } from "av-grid";
 
+export { CALLBACK_OPTION_KEYS, PAINT_PATH_CALLBACK_KEYS } from "av-grid";
+export type { CallbackOptionKey } from "av-grid";
 export type { Percent, RowAlign } from "av-grid";
 export type { AVGridStateSnapshot as DataGridStateSnapshot } from "av-grid";
 export type { GridSelection, SelectedCount } from "av-grid";
@@ -50,8 +54,8 @@ export type { GridSelection, SelectedCount } from "av-grid";
 /**
  * The live grid instance, as handed to `DataGridProps.onGrid`.
  *
- * This is the imperative half of the inversion: focus, editing, scrolling, clipboard and
- * selection are *methods*, not props. `focus` in particular has no option at all — it is set with
+ * This is the imperative half of the inversion: focus, editing, scrolling, clipboard and selection.
+ * Focus is also available as a controlled option; this facade continues to use the imperative
  * `focusCell()` and read back through `onFocusChange` — which is the part each consumer absorbs in
  * the model that already owns its persisted view state.
  */
