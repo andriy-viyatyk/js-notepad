@@ -49,14 +49,17 @@ a file and reply with the path and a ≤10-line summary.
 Tested, not assumed: with `cwd` set to the repo, Codex **auto-loads `AGENTS.md`** into
 every MCP session. It answered AGENTS.md questions correctly with zero file reads.
 
-It does **not** auto-load `CLAUDE.md`. Asked about three CLAUDE.md-only rules — `errMessage`
-over hand-rolled error stringification, colors only from `theme/color`, `file-path` over
-`require("path")` — it answered UNKNOWN to all three, again with zero file reads.
+It does **not** auto-load the shared guidelines, `doc/agents-common.md` (tested against the
+pre-split `CLAUDE.md`, whose shared content now lives there). Asked about three rules that live
+only in that document — `errMessage` over hand-rolled error stringification, colors only from
+`theme/color`, `file-path` over `require("path")` — it answered UNKNOWN to all three, again
+with zero file reads.
 
-That matters because `AGENTS.md` is 41 lines that mostly *point* at `CLAUDE.md`, and a
-pointer is an instruction Codex may act on, not a load that already happened. Everything
+That matters because `AGENTS.md` is a short pointer file that mostly *points* at
+`doc/agents-common.md`, and a pointer is an instruction Codex may act on, not a load that
+already happened. Everything
 that actually governs the code — coding standards, the colour and path and error rules,
-dynamic imports for editors, task workflow, dashboard rules — is in `CLAUDE.md` and is
+dynamic imports for editors, task workflow, dashboard rules — is in `doc/agents-common.md` and is
 absent until something makes Codex read it.
 
 So **every** thread you create must be told to read it, in two places:
@@ -64,7 +67,7 @@ So **every** thread you create must be told to read it, in two places:
 1. `developer-instructions` on the `codex` call (a developer-role message, so it outranks
    ordinary prompt text):
 
-   > Before doing anything else, read `CLAUDE.md` in full and follow it. It is the canonical
+   > Before doing anything else, read `doc/agents-common.md` in full and follow it. It is the canonical
    > project context and its coding standards are mandatory. `AGENTS.md` only points at it.
 
 2. As the first line of the prompt itself, so it survives if the thread is ever resumed.
@@ -73,7 +76,7 @@ Never use `base-instructions` for this — it *replaces* Codex's default instruc
 than adding to them, and would strip its own operating rules. `developer-instructions` is
 additive and is the right home.
 
-Reading `CLAUDE.md` costs thread A a couple hundred lines up front. That is the cheapest
+Reading `doc/agents-common.md` costs thread A a couple hundred lines up front. That is the cheapest
 context in the whole run, and far cheaper than reworking an implementation that hardcoded a
 hex colour or added a test suite.
 
@@ -87,7 +90,7 @@ So the context boundary is a **thread boundary**, and that is better than compac
 anyway. Compaction is lossy and non-deterministic — you do not control what survives. A
 fresh thread pointed at the corrected task document starts near zero holding the
 *authoritative, reviewed plan*, and loses nothing that matters, because the plan is
-complete by construction. That is exactly what `CLAUDE.md`'s task-doc rule exists for:
+complete by construction. That is exactly what `doc/agents-common.md`'s task-doc rule exists for:
 *"A detailed plan with resolved concerns lets the agent implement correctly even after
 context compaction."* What the investigation thread still holds by then is mostly
 exploration debris — files read and rejected, dead ends, superseded hypotheses — which is
@@ -133,7 +136,7 @@ mcp__codex__codex
   cwd:                    C:\projects\persephone
   sandbox:                workspace-write
   approval-policy:        never
-  developer-instructions: <the read-CLAUDE.md standing rule above>
+  developer-instructions: <the read-agents-common standing rule above>
   compact-prompt:         <what must survive auto-compaction, see below>
 ```
 
@@ -159,20 +162,20 @@ asked it to reply with.
 ### 1. Delegate investigation (thread A)
 
 Codex reads the code and writes the task document. Only `AGENTS.md` arrives for free —
-`CLAUDE.md` and everything under `.claude/` must be named explicitly, so point at both the
+`doc/agents-common.md` and everything under `.claude/` must be named explicitly, so point at both the
 project context and the task-doc rules.
 
 Brief it with: the task, the epic if any, `.claude/rules/task-docs.md` as the required
 document structure, and this output contract:
 
-> Read `CLAUDE.md` in full first, then `.claude/rules/task-docs.md`.
+> Read `doc/agents-common.md` in full first, then `.claude/rules/task-docs.md`.
 > Write the task document to `doc/tasks/US-XXX-short-name/README.md` following
 > `.claude/rules/task-docs.md`. Investigate thoroughly — read the actual source, do not
 > guess at file paths, line numbers, or existing patterns; every claim in the document
 > must be verified against the code. Do not implement anything yet. Reply with only the
 > document path and a ≤10-line summary of the approach. Do not paste the document.
 
-Tell it to add the dashboard entry per `CLAUDE.md`, or note that you will.
+Tell it to add the dashboard entry per `doc/agents-common.md`, or note that you will.
 
 ### 2. Review the plan — this is where Claude's budget goes
 
@@ -212,13 +215,13 @@ sometimes right, and it has been right before.
 
 Start a **new** `mcp__codex__codex` thread with the same `cwd`, `sandbox: workspace-write`,
 `approval-policy: never`, and the same `developer-instructions` — a fresh thread has none of
-thread A's context, including its `CLAUDE.md` read. Do not continue thread A: by now it is
+thread A's context, including its `doc/agents-common.md` read. Do not continue thread A: by now it is
 near its context limit, and the corrected document on disk is the complete handoff.
 
 Name the document path explicitly and tell it to read the document first:
 
-> Read `CLAUDE.md` in full, then `doc/tasks/US-XXX-short-name/README.md` in full. The task
-> document is a reviewed, corrected plan — implement it as written, and treat `CLAUDE.md`'s
+> Read `doc/agents-common.md` in full, then `doc/tasks/US-XXX-short-name/README.md` in full. The task
+> document is a reviewed, corrected plan — implement it as written, and treat `doc/agents-common.md`'s
 > coding standards as mandatory. Do not write unit
 > tests or test harnesses — this project does not use them. Do not commit. Run
 > `npm run typecheck`, `npm run lint`, and `npm run build-prod` and fix what they report.
@@ -283,8 +286,9 @@ conversion broke the app" when a restart fixes it sends the user chasing nothing
 `/review`, `/document`, and `/userdoc` go to Codex too — do not run them yourself.
 
 `AGENTS.md` already carries the mechanism: it requires Codex to spawn **one dedicated
-sub-agent per skill**, each reading `.claude/skills/<name>/SKILL.md` completely, run in
-`CLAUDE.md`'s completion order. So the delegation is short — name the scope and let its own
+sub-agent per skill**, each reading `.agents/skills/<name>/SKILL.md` completely (these
+are native Codex skills — their names and descriptions are already in its context), run in
+`doc/agents-common.md`'s completion order. So the delegation is short — name the scope and let its own
 instructions do the rest:
 
 > Run the completion skills for <task/epic scope> per `AGENTS.md`: one sub-agent each for
@@ -292,7 +296,7 @@ instructions do the rest:
 > yourself. Do not commit. Reply with only a ≤15-line summary: what each skill changed, and
 > any finding you did not act on.
 
-Timing follows `CLAUDE.md`, not convenience: for an **epic task** these are deferred to
+Timing follows `doc/agents-common.md`, not convenience: for an **epic task** these are deferred to
 epic close, so do not run them per task. For a **standalone task** they are mandatory at
 completion. Use a fresh thread — completion work reads broadly and deserves clean context.
 
@@ -301,7 +305,7 @@ surfaced something real, that is a plan-level judgement and therefore yours.
 
 ## Project rules that survive delegation
 
-These live in `CLAUDE.md`, which Codex only has if you made it read it — so restate the two
+These live in `doc/agents-common.md`, which Codex only has if you made it read it — so restate the two
 it violates most often in the prompt itself, and hold yourself accountable for all four:
 
 - **Never commit** unless the user asks. Not after implementation, not after verification.

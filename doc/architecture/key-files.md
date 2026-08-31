@@ -6,7 +6,7 @@ the source.
 
 This index is deliberately **not** loaded into every session. Consult it when you need to locate
 the owner of a subsystem or recall why something works the way it does. The root
-[CLAUDE.md](../../CLAUDE.md) carries only a short starting-point list; everything else lives here.
+[doc/agents-common.md](../agents-common.md) carries only a short starting-point list; everything else lives here.
 
 Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 [overview.md](overview.md) for how the layers fit together.

@@ -8,7 +8,8 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-_Nothing active._
+- *(no epic)*
+  - [ ] US-1254: Split agent instructions — shared `doc/agents-common.md` (imported by `CLAUDE.md`, read by Codex via `AGENTS.md`); canonical review/document/userdoc skills moved to `.agents/skills/` (native Codex skills) with thin Claude wrappers in `.claude/skills/`
 
 ## Planned
 
