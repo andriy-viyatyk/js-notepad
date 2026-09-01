@@ -151,7 +151,7 @@ A secondary view can be toggled into the main editor role (and back) via `promot
 ```
 1. page.promoteSecondaryToMain(model)  // model IS mainEditor
    ├── this._mainEditor = null         // clear without dispose (model stays as secondary)
-   ├── state.mainEditorId = null       // UI re-renders: content area becomes empty
+   ├── state.mainEditorId = null       // subscribers update the UI: content area becomes empty
    ├── notifyMainEditorChanged()       // secondaries notified with null
    ├── queueMicrotask: restore panels if promoted-from-secondary
    │   ├── If _prePromotePanels saved → restore pre-promote panel list
@@ -256,7 +256,7 @@ This replaces per-panel hand-rolled portal + layout. Native children are directl
 
 **Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel IDs to dynamically-loaded `VanillaViewCtor<SecondaryViewProps>` classes. There is one native registration shape with no runtime renderer discriminator. [`LazySecondaryViewView`](../../src/renderer/ui/secondary-views/LazySecondaryViewView.ts) owns a stable host, cancels stale dynamic imports, and explicitly disposes/removes a panel record when it retires. All built-in secondary providers use this native contract; a board secondary panel uses the native `BoardSecondaryView` and its native `BoardWebview` frame, so its panel host does not add a separate framework root.
 
-Each registration still provides an `id`, `label`, `loadComponent()` factory, and optional `icon`. Alongside exact-id `register()`, `registerPrefix(prefix, definition)` serves a whole panel-id family; the `board-secondary:` family uses this so one generic `BoardSecondaryView` serves every board-declared secondary view.
+Each registration still provides an `id`, `label`, `loadView()` factory, and optional `icon`. Alongside exact-id `register()`, `registerPrefix(prefix, definition)` serves a whole panel-id family; the `board-secondary:` family uses this so one generic `BoardSecondaryView` serves every board-declared secondary view.
 
 ---
 
@@ -429,7 +429,7 @@ In [`register-editors.ts`](../../src/renderer/editors/register-editors.ts):
 secondaryViewRegistry.register({
     id: "my-panel",
     label: "My Panel",
-    loadComponent: async () => {
+    loadView: async () => {
         const mod = await import("./my-editor/MySecondaryView");
         return mod.default;
     },
@@ -513,7 +513,27 @@ CategoryEditor is the main content area editor for `tree-category://` links. Its
 `CategoryEditorView` renders CategoryView for any ITreeProvider — file system folders, archive
 subfolders, or future link categories.
 
-`CategoryView` owns provider-backed listing, selection, search, drag-and-drop, and file actions. It does not import the link editor's list/tile components. Instead, `CategoryEditor` supplies the `renderItems` callback, which adapts the model's `CategoryItemsRendererProps` to native `LinksListView` or `LinksTilesView` roots. The callback returns a `Node`, so the tree-provider layer stays framework-free while preserving the link-specific presentation and behavior.
+`CategoryView` owns provider-backed listing, selection, search, drag-and-drop, and file actions. It
+does not import the link editor's list/tile components. Instead, `CategoryEditor` supplies an
+`itemsView(host, initialProps)` factory that creates the concrete `LinksListView` or
+`LinksTilesView` and returns a typed `CategoryItemsViewHandle`. `CategoryViewImpl` claims that
+handle as its child, mounts it, updates it from the current projection, and releases it when the
+item arm changes or the content disappears; the stable host remains a structural slot owned by the
+Category view.
+
+This is the same caller-supplied owned-view pattern as `PopoverView`'s
+`contentView(host) => IOwnedView`: the caller selects the concrete view and keeps the import boundary,
+while the receiving view owns the returned handle's lifetime. The typed handle gives CategoryView a
+direct update path instead of a raw `Node`-returning render callback, so projection changes and the
+required grid invalidation happen in one synchronous reconciliation. The factory stays in
+`CategoryEditor`, keeping `components/tree-provider/` free of static editor imports.
+
+The Category toolbar uses the same host-oriented vocabulary. `CategoryViewProps.toolbarHost` is a
+caller-owned DOM host supplied by `CategoryEditor` and attached through `PageToolbarView`; the
+Category view owns and appends its search, clear, and view-mode controls there, and detaches those
+controls when the host changes or the view is disposed. It does not dispose or remove the host.
+`GitPanelSecondaryView`'s `toolbarHost` field is the existing house precedent for this host-passing
+name.
 
 ### Provider Resolution
 

@@ -120,6 +120,31 @@ dashboard so it only shows what is actually being worked on. Each doc keeps its 
 the task ids below are reserved. To pick one up, move its entry back to the **Planned** section
 of [`active-work.md`](../active-work.md) along with its task list.
 
+### De-React package 8 — teardown-rebuild renders, `{state,setState}` props, ref drilling
+
+**No document, and deliberately not an epic** — package 8 of
+[de-react-refactoring-2.md](../de-react-refactoring-2.md) Part 5. An epic here would accumulate
+fifteen per-editor tasks and never close, so it is drawn down **opportunistically**: when a task
+already has someone inside one of these editors, fix that editor's instance and move on. Recorded
+2026-09-01 when EPIC-082 was cut.
+
+- **§1.4 — teardown-and-rebuild `render()`** — 76 `replaceChildren()` sites renderer-wide, 24 of
+  them full rebuild-on-every-update (`BoardInfoEditorView:171-185`, `McpInspectorView:255,264`,
+  `AboutView:112`, `TextChromeView:335,470`, `MarkdownBlockView:210,339,362`, …). Fix is the
+  sanctioned helpers — `KeyedList`, `SubtreeSwap`, per-field `bind()` — or, for rarely-changing
+  panels, gating the rebuild on the inputs that matter.
+- **§1.3 — controlled `{ state, setState }` props** — `SecondaryViewsView.ts:23-31` and its feeding
+  bridges; pass the model and let the child `bind()`. Plus `ExpandedNoteView.ts:372-374`'s private
+  `setState(partial)`, called 10× with object literals.
+- **§1.7 — callback-ref drilling** — 43 uses of the `(el | null)` unmount convention, declared in
+  `CollapsiblePanelStackView.ts:26,56` and passed through eight secondary views without being
+  consumed in between. Plus the `{ current: T }` ref boxes.
+- **§1.5 — the `lastProjection` shallow-compare chains** *(added here 2026-09-01)* — `React.memo`
+  inlined by hand at `editors/git-tree/GitRefsView.ts:116-120` (4 terms),
+  `editors/markdown/MarkdownBodyView.ts:391-405`, and `uikit/Popover/PopoverView.ts:377-380`.
+  Part 5 assigned these to no package; the fourth instance (`CategoryViewImpl`, 8 terms) is inside
+  EPIC-082's island and is handled there by US-1272.
+
 ### [EPIC-039: Secure Peer-to-Peer Connections](../epics/EPIC-039.md) (Contacts, Chat, Remote Control)
 
 End-to-end-encrypted connection between two Persephone instances — out-of-band contact pairing
@@ -583,6 +608,26 @@ persephone
 ---
 
 ## User Experience
+
+### Graph detail panel collapses on selection change and never restores
+
+Found 2026-09-01 while verifying US-1267 (EPIC-082), and **confirmed pre-existing** — reproduced on
+the pre-US-1267 file before the change, so it is not refactoring fallout.
+
+With the graph detail panel expanded, selecting a different node collapses it, and re-selecting the
+original node does not restore it; the user must click the header again every time. The mechanism:
+`GraphDetailModel.wasExpanded` is initialised `true`, but the **initial no-selection prop pump** takes
+the `hasSelection === false` branch and overwrites it with `false`. That branch fires on the first
+pump in both the old and new code, because `depsChanged(undefined, next)` returns `true`
+(`core/state/model.ts:10-16`) so the original `DepsGate` also reported a change on its first
+evaluation. The `wasExpanded = true` initialiser is therefore dead in both versions, and the
+"restore the panel on first selection" path can only ever restore `false`.
+
+Deliberately **not** fixed in US-1267: that task's contract was to be behaviour-preserving, and
+changing this would have made the diff no longer reviewable as a pure de-effecting. Whoever picks it
+up should decide what the intended behaviour is first — the code reads as though the panel was meant
+to remember its expanded state across selections.
+
 
 | Idea | Description | Complexity |
 |------|-------------|------------|

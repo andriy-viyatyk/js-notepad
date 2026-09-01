@@ -67,6 +67,13 @@ each of them from current state in the parent's `sync()`/`onUpdate()` path. Revi
 calls for sibling asymmetry is a useful check; an unretained local child by itself is not evidence
 of a defect when its props are static or it is held in another collection.
 
+When the child implementation belongs to another layer, pass a caller-supplied factory such as
+`(host, initialProps) => IOwnedView` instead of returning a raw `Node` or importing the concrete
+child across the layer boundary. The receiving view claims the returned handle with `child()`,
+mounts it, sends later typed projections through its `update()` method, and releases it with the
+same ownership path. `PopoverView`'s `contentView(host)` seam is the established example; Category
+item views use the same pattern while `CategoryEditor` retains the editor-specific imports.
+
 Views that expose a native `children` slot own that host. Pass the child nodes through the slot and
 retain stable nodes when the slot may be refilled; do not append directly into the other view's
 root. A slot implementation may replace all direct children during an update, which would remove

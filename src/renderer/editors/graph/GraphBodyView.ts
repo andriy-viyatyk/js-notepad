@@ -8,7 +8,6 @@ import type { InputProps } from "../../uikit/Input/InputView";
 import { InputView } from "../../uikit/Input/InputView";
 import { SpinnerView } from "../../uikit/Spinner/SpinnerView";
 import { openMenu, type MenuHandle } from "../../uikit/Menu/attach-menu";
-import { createDepsGate, type DepsGate } from "../../uikit/shared/deps-gate";
 import { highlightInto } from "../../uikit/shared/highlight";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
@@ -164,8 +163,9 @@ class SearchResultRowView extends VanillaView<SearchResultRowProps> {
     }
 
     private updatePropertyRow(row: HTMLDivElement, property: SearchResult["matchedProps"][number]): void {
+        // `children` skips the ": " text node appended between them, so the value span is index 1.
         const key = row.children[0] as HTMLElement;
-        const value = row.children[2] as HTMLElement;
+        const value = row.children[1] as HTMLElement;
         highlightInto(key, property.key, this.props.searchQuery);
         highlightInto(value, property.value, this.props.searchQuery);
     }
@@ -353,6 +353,17 @@ class GraphContentView extends VanillaView<GraphContentProps> {
     private readonly searchInput: InputView;
     private readonly detail: GraphDetailPanelView;
     private readonly legend: GraphLegendPanelView;
+    private readonly onDetailUpdateProps: GraphDetailPanelProps["onUpdateProps"];
+    private readonly onDetailBatchUpdateProps: GraphDetailPanelProps["onBatchUpdateProps"];
+    private readonly onDetailRenameNode: GraphDetailPanelProps["onRenameNode"];
+    private readonly onDetailApplyLinks: GraphDetailPanelProps["onApplyLinks"];
+    private readonly onDetailApplyProperties: GraphDetailPanelProps["onApplyProperties"];
+    private readonly onDetailBatchApplyProperties: GraphDetailPanelProps["onBatchApplyProperties"];
+    private readonly onDetailPanelDirtyChange: NonNullable<GraphDetailPanelProps["onPanelDirtyChange"]>;
+    private readonly onDetailPanelExpandedChange: NonNullable<GraphDetailPanelProps["onPanelExpandedChange"]>;
+    private readonly onDetailHighlightSet: NonNullable<GraphDetailPanelProps["onHighlightSet"]>;
+    private readonly onDetailExternalHover: NonNullable<GraphDetailPanelProps["onExternalHover"]>;
+    private readonly onDetailExpandNode: NonNullable<GraphDetailPanelProps["onExpandNode"]>;
     private readonly containerRef: { current: HTMLElement | null } = { current: null };
     private activePanel: VanillaView<unknown> | undefined;
     private activeTooltip: GraphTooltipView | undefined;
@@ -365,6 +376,17 @@ class GraphContentView extends VanillaView<GraphContentProps> {
     public constructor(props: GraphContentProps) {
         super(props, createPanelElement({ name: "graph-body-content", direction: "column", flex: true, width: "100%", height: 0, minWidth: 0, minHeight: 0, overflow: "hidden", position: "relative" }));
         this.editor = props.editor;
+        this.onDetailUpdateProps = (id, patch) => this.editor.mutationModel.updateNodeProps(id, patch);
+        this.onDetailBatchUpdateProps = (ids, patch) => this.editor.mutationModel.batchUpdateNodeProps(ids, patch);
+        this.onDetailRenameNode = (oldId, newId) => this.editor.mutationModel.renameNode(oldId, newId);
+        this.onDetailApplyLinks = (id, rows, original) => this.editor.mutationModel.applyLinkedNodesUpdate(id, rows, original);
+        this.onDetailApplyProperties = (id, set, remove) => this.editor.mutationModel.applyPropertiesUpdate(id, set, remove);
+        this.onDetailBatchApplyProperties = (ids, set, remove) => this.editor.mutationModel.batchApplyPropertiesUpdate(ids, set, remove);
+        this.onDetailPanelDirtyChange = (dirty) => { this.panelDirty = dirty; };
+        this.onDetailPanelExpandedChange = (expanded) => { this.panelExpanded = expanded; };
+        this.onDetailHighlightSet = (ids) => this.editor.setHighlightSet(ids);
+        this.onDetailExternalHover = (id) => this.editor.setExternalHover(id);
+        this.onDetailExpandNode = (id) => this.editor.expandNode(id);
         this.root.classList.add("graph-body-content");
         this.containerRef.current = this.root;
         this.canvas.className = "graph-body-canvas";
@@ -538,7 +560,26 @@ class GraphContentView extends VanillaView<GraphContentProps> {
     private searchProps(): InputProps { return { name: "graph-search", size: "sm", width: 130, placeholder: "Search nodes...", value: this.props.projection.searchQuery, onChange: (value) => this.props.editor.setSearchQuery(value), onKeyDown: this.handleSearchKeyDown, onFocus: () => { if ((this.props.editor.state.get().searchResults?.length ?? 0) > 0) this.props.setToolbarPanel("results"); }, endSlot: this.props.projection.searchQuery ? this.clearButton.root : undefined }; }
     private searchElement: HTMLInputElement | null = null;
 
-    private detailProps(): GraphDetailPanelProps { return { nodes: this.props.projection.selectedNodes.filter((node) => !node.isGroup), linkedNodes: this.props.projection.linkedNodes, onUpdateProps: (id, patch) => this.props.editor.mutationModel.updateNodeProps(id, patch), onBatchUpdateProps: (ids, patch) => this.props.editor.mutationModel.batchUpdateNodeProps(ids, patch), onRenameNode: (oldId, newId) => this.props.editor.mutationModel.renameNode(oldId, newId), onApplyLinks: (id, rows, original) => this.props.editor.mutationModel.applyLinkedNodesUpdate(id, rows, original), onApplyProperties: (id, set, remove) => this.props.editor.mutationModel.applyPropertiesUpdate(id, set, remove), onBatchApplyProperties: (ids, set, remove) => this.props.editor.mutationModel.batchApplyPropertiesUpdate(ids, set, remove), onPanelDirtyChange: (dirty) => { this.panelDirty = dirty; }, onPanelExpandedChange: (expanded) => { this.panelExpanded = expanded; }, onHighlightSet: (ids) => this.props.editor.setHighlightSet(ids), onExternalHover: (id) => this.props.editor.setExternalHover(id), onExpandNode: (id) => this.props.editor.expandNode(id), containerRef: this.containerRef, expandRequest: this.props.bodyState.expandRequest, collapseRequest: this.props.bodyState.collapseRequest }; }
+    private detailProps(): GraphDetailPanelProps {
+        return {
+            nodes: this.props.projection.selectedNodes.filter((node) => !node.isGroup),
+            linkedNodes: this.props.projection.linkedNodes,
+            onUpdateProps: this.onDetailUpdateProps,
+            onBatchUpdateProps: this.onDetailBatchUpdateProps,
+            onRenameNode: this.onDetailRenameNode,
+            onApplyLinks: this.onDetailApplyLinks,
+            onApplyProperties: this.onDetailApplyProperties,
+            onBatchApplyProperties: this.onDetailBatchApplyProperties,
+            onPanelDirtyChange: this.onDetailPanelDirtyChange,
+            onPanelExpandedChange: this.onDetailPanelExpandedChange,
+            onHighlightSet: this.onDetailHighlightSet,
+            onExternalHover: this.onDetailExternalHover,
+            onExpandNode: this.onDetailExpandNode,
+            containerRef: this.containerRef,
+            expandRequest: this.props.bodyState.expandRequest,
+            collapseRequest: this.props.bodyState.collapseRequest,
+        };
+    }
 
     private readonly handleCanvasClick = (event: MouseEvent): void => {
         if (this.panelDirty) return;
@@ -606,7 +647,7 @@ export class GraphBodyView extends VanillaView<GraphBodyProps> {
     private readonly branchSwap = new SubtreeSwap<"loading" | "content">(this.branchHost);
     private projection: GraphEditorProjection;
     private bodyState: GraphBodyState;
-    private readonly searchGate: DepsGate = createDepsGate();
+    private appliedSearch: { searchResults: SearchResult[] | null; searchQuery: string } | undefined;
     private activeBranch: LoadingView | GraphContentView | undefined;
     private live = true;
 
@@ -701,20 +742,6 @@ export class GraphBodyView extends VanillaView<GraphBodyProps> {
     private readonly applyProjection = (projection: GraphEditorProjection): void => {
         const previous = this.projection;
         this.projection = projection;
-        const { searchResults, searchQuery } = projection;
-        if (this.searchGate.changed([this.editor, searchResults, searchQuery])) {
-            queueMicrotask(() => {
-                if (!this.live || !this.driver.model.isLive) return;
-                const current = this.editor.state.get();
-                if (current.searchResults !== searchResults || current.searchQuery !== searchQuery) return;
-                if (searchResults && searchResults.length > 0) {
-                    this.driver.model.setToolbarPanel("results");
-                    this.driver.model.setSelectedResultIndex(-1);
-                } else if (!searchQuery && this.driver.model.state.get().toolbarPanel === "results") {
-                    this.driver.model.setToolbarPanel("closed");
-                }
-            });
-        }
         this.errorText.textContent = projection.error;
         this.errorPanel.hidden = !projection.error;
         const key = projection.loading ? "loading" : "content";
@@ -727,6 +754,23 @@ export class GraphBodyView extends VanillaView<GraphBodyProps> {
         });
         if (created) created.mount();
         else if (previous !== projection && this.activeBranch instanceof GraphContentView) this.activeBranch.update(this.contentProps());
+
+        // VanillaView prop pumping is synchronous and has no render/commit phase. Read the
+        // current editor state after the branch update so synchronous detail re-entry is settled.
+        const current = this.editor.state.get();
+        const signature = { searchResults: current.searchResults, searchQuery: current.searchQuery };
+        if (this.appliedSearch?.searchResults !== signature.searchResults
+            || this.appliedSearch?.searchQuery !== signature.searchQuery) {
+            // Body-model setters do not write editor state, so stamping before them bounds
+            // synchronous re-entry through the updated branch.
+            this.appliedSearch = signature;
+            if (signature.searchResults && signature.searchResults.length > 0) {
+                this.driver.model.setToolbarPanel("results");
+                this.driver.model.setSelectedResultIndex(-1);
+            } else if (!signature.searchQuery && this.driver.model.state.get().toolbarPanel === "results") {
+                this.driver.model.setToolbarPanel("closed");
+            }
+        }
     };
 
     private contentProps(): GraphContentProps {

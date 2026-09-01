@@ -64,8 +64,8 @@ export interface FileSearchState {
  *
  * `TOneState.update` runs immer `produce`, so keeping the accumulating array in state would
  * copy the whole array on every arriving batch — quadratic over a large search, on top of the
- * full re-render each copy triggers. The rows live in a plain field on the model instead, and
- * `resultsVersion` is the cheap signal the view watches.
+ * subscriber and view-update work each copy would trigger. The rows live in a plain field on the
+ * model instead, and `resultsVersion` is the cheap signal the view watches.
  */
 export interface FileSearchInternalState
     extends Omit<FileSearchState, "results"> {

@@ -40,6 +40,7 @@ import {
 } from "./item-menus";
 import { getTraitDropAction } from "./drop-dispatch";
 import { DragEnterCounter } from "../../uikit/shared/drag-enter-counter";
+import type { IOwnedView } from "../../uikit/shared/vanilla-view";
 import { sameHref, sameHrefs } from "./href-utils";
 import type { GridModelCapability } from "../../uikit/DataGrid";
 
@@ -55,8 +56,8 @@ export type CategoryViewMode =
     | "tiles-portrait"
     | "tiles-portrait-big";
 
-/** Presentation callbacks owned by a folder page and rendered by its editor-level host. */
-export interface CategoryItemsRendererProps {
+/** Typed projection and callbacks consumed by a Category item-view handle. */
+export interface CategoryItemsViewProps {
     items: ITreeProviderItem[];
     viewMode: CategoryViewMode;
     selectedId?: string;
@@ -77,6 +78,16 @@ export interface CategoryItemsRendererProps {
     onDragStartOverride?: (item: ITreeProviderItem, event: DragEvent) => boolean;
 }
 
+export interface CategoryItemsViewHandle extends IOwnedView {
+    mount(): HTMLElement;
+    update(props: CategoryItemsViewProps): void;
+}
+
+export type CategoryItemsViewFactory = (
+    host: HTMLElement,
+    initialProps: CategoryItemsViewProps,
+) => CategoryItemsViewHandle;
+
 export interface CategoryViewProps {
     provider: ITreeProvider;
     /** Category path to display items for */
@@ -93,16 +104,15 @@ export interface CategoryViewProps {
     viewMode?: CategoryViewMode;
     /** Called when view mode changes */
     onViewModeChange?: (mode: CategoryViewMode) => void;
-    /** Portal target for search controls. When set, search renders there instead of own toolbar. */
-    toolbarPortalRef?: HTMLElement | null;
+    /** Caller-owned host for the Category search and view-mode controls. CategoryView appends and
+     *  detaches its controls here; it does not own or remove the host element. */
+    toolbarHost?: HTMLElement | null;
     /** Allow Ctrl/Shift-click multi-selection and plural actions. Passed only where a plural
      *  file operation is meaningful (`supportsMultiSelect`) — every other provider's folder
      *  page stays single-select. */
     multiSelect?: boolean;
-    /** Editor-level renderer for the Link-style folder items. */
-    renderItems: (props: CategoryItemsRendererProps) => Node;
-    /** Called before the current rendered item Node is removed from the bridge host. */
-    onItemsDisposed?: () => void;
+    /** Caller-owned factory for the Link-style folder item view. */
+    itemsView: CategoryItemsViewFactory;
 }
 
 export interface CategoryViewState {
@@ -184,20 +194,17 @@ export class CategoryViewModel extends TComponentModel<
 
         if (!first && !navigated && !seed) return;
 
-        // Deferred — setProps runs during render, where a state write is not allowed.
-        Promise.resolve().then(() => {
-            if (!this.isLive) return;
-            if (providerChanged) this.subscribeWatch();
-            if (navigated) this.resetSelection();
-            if (seed
-                && selectedHref
-                && !this.state.get().selectedHrefs.some((h) => sameHref(h, selectedHref))
-            ) {
-                this.anchorHref = selectedHref;
-                this.setSelection([selectedHref]);
-            }
-            if (first || navigated) void this.loadItems();
-        });
+        // Prop pumping is explicit and synchronous; apply prop-derived model changes at this boundary.
+        if (providerChanged) this.subscribeWatch();
+        if (navigated) this.resetSelection();
+        if (seed
+            && selectedHref
+            && !this.state.get().selectedHrefs.some((h) => sameHref(h, selectedHref))
+        ) {
+            this.anchorHref = selectedHref;
+            this.setSelection([selectedHref]);
+        }
+        if (first || navigated) void this.loadItems();
     };
 
     // ── Data loading ─────────────────────────────────────────────────────
@@ -499,11 +506,8 @@ export class CategoryViewModel extends TComponentModel<
     private setDragState = (
         update: (s: CategoryViewState) => void,
     ) => {
-        // Deferred: a state write straight out of a drag handler can land mid-render.
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update(update);
-        });
+        // Drag handlers run outside state dispatch; publish hover state immediately.
+        this.state.update(update);
     };
 
     onDragEnter = (item: ITreeProviderItem | null, e: DragEvent) => {

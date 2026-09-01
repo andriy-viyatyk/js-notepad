@@ -18,7 +18,9 @@ import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { supportsMultiSelect } from "../../components/tree-provider/plural-actions";
 import { CategoryViewImpl } from "../../components/tree-provider/CategoryViewImpl";
 import {
-    type CategoryItemsRendererProps,
+    type CategoryItemsViewFactory,
+    type CategoryItemsViewHandle,
+    type CategoryItemsViewProps,
     type CategoryViewMode,
     type CategoryViewProps,
 } from "../../components/tree-provider/CategoryViewModel";
@@ -71,16 +73,13 @@ function requireCategoryModel(model: EditorModel): CategoryEditorModel {
     return model;
 }
 
-type ActiveItemsView = LinksListView | LinksTilesView;
-
 export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     private model: CategoryEditorModel;
     private pageToolbar!: PageToolbarView;
     private breadcrumb: BreadcrumbView | undefined;
     private categoryView: CategoryViewImpl | undefined;
     private messagePanel: HTMLDivElement | undefined;
-    private searchPortal: HTMLDivElement | undefined;
-    private activeItems: ActiveItemsView | undefined;
+    private searchHost: HTMLDivElement | undefined;
     private host: TreeProviderHostEditor | null = null;
     private selectedHref: string | null = null;
     private observedPage: IPageHost | null = null;
@@ -167,8 +166,8 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
         if (!provider) {
             this.releaseCategorySurface();
             this.releaseBreadcrumb();
-            this.searchPortal?.remove();
-            this.searchPortal = undefined;
+            this.searchHost?.remove();
+            this.searchHost = undefined;
             this.ensureMessageSurface();
             this.pageToolbar.update(this.pageToolbarProps());
             return;
@@ -176,9 +175,9 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
 
         this.releaseMessageSurface();
         this.ensureBreadcrumb(provider);
-        if (!this.searchPortal) {
-            this.searchPortal = createPanelElement({
-                name: "category-search-portal",
+        if (!this.searchHost) {
+            this.searchHost = createPanelElement({
+                name: "category-search-host",
                 direction: "row",
                 align: "center",
                 gap: "xs",
@@ -266,7 +265,7 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
             model: this.model,
             borderBottom: true,
             children: this.breadcrumb?.root,
-            rightContributions: this.searchPortal,
+            rightContributions: this.searchHost,
         };
     }
 
@@ -281,9 +280,8 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
             onItemClick: this.handleSelect,
             onItemDoubleClick: this.handleNavigate,
             onFolderClick: this.handleNavigate,
-            renderItems: this.renderItems,
-            toolbarPortalRef: this.searchPortal,
-            onItemsDisposed: this.releaseActiveItems,
+            itemsView: this.createItemsView,
+            toolbarHost: this.searchHost,
         };
     }
 
@@ -355,12 +353,21 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
         }));
     };
 
-    private readonly renderItems = (itemProps: CategoryItemsRendererProps): Node => {
-        const commonProps = {
+    private readonly getItemId = (item: ITreeProviderItem): string => item.href;
+
+    private readonly createItemsView: CategoryItemsViewFactory = (host, initialProps) => {
+        return initialProps.viewMode === "list"
+            ? this.listHandle(host, new LinksListView(this.listProps(initialProps)))
+            : this.tilesHandle(host, new LinksTilesView(this.tilesProps(initialProps)));
+    };
+
+    private listProps(itemProps: CategoryItemsViewProps): LinksListProps {
+        return {
             links: itemProps.items,
             selectedId: itemProps.selectedId,
             selectedIds: itemProps.selectedIds,
-            getId: (item: ITreeProviderItem) => item.href,
+            getId: this.getItemId,
+            searchText: itemProps.searchText,
             onSelect: itemProps.onSelect,
             onDoubleClick: itemProps.onDoubleClick,
             onEdit: itemProps.onEdit,
@@ -375,45 +382,53 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
             dragSourceId: itemProps.dragSourceId,
             onDragStartOverride: itemProps.onDragStartOverride,
         };
+    }
 
+    private tilesProps(itemProps: CategoryItemsViewProps): LinksTilesProps {
         if (itemProps.viewMode === "list") {
-            if (!(this.activeItems instanceof LinksListView)) {
-                this.releaseActiveItems();
-                this.activeItems = this.child(new LinksListView({
-                    ...commonProps,
-                    searchText: itemProps.searchText,
-                } satisfies LinksListProps));
-                this.activeItems.mount();
-            } else {
-                this.activeItems.update({
-                    ...commonProps,
-                    searchText: itemProps.searchText,
-                });
-            }
-            return this.activeItems.root;
+            throw new Error("Category tile view received list props.");
         }
+        return {
+            links: itemProps.items,
+            viewMode: itemProps.viewMode,
+            selectedId: itemProps.selectedId,
+            selectedIds: itemProps.selectedIds,
+            getId: this.getItemId,
+            onSelect: itemProps.onSelect,
+            onDoubleClick: itemProps.onDoubleClick,
+            onEdit: itemProps.onEdit,
+            onDelete: itemProps.onDelete,
+            onContextMenu: itemProps.onContextMenu,
+            onGridModel: itemProps.onGridModel,
+            onItemDragEnter: itemProps.onItemDragEnter,
+            onItemDragOver: itemProps.onItemDragOver,
+            onItemDragLeave: itemProps.onItemDragLeave,
+            onItemDrop: itemProps.onItemDrop,
+            dropTargetId: itemProps.dropTargetId,
+            dragSourceId: itemProps.dragSourceId,
+            onDragStartOverride: itemProps.onDragStartOverride,
+        };
+    }
 
-        if (!(this.activeItems instanceof LinksTilesView)) {
-            this.releaseActiveItems();
-            this.activeItems = this.child(new LinksTilesView({
-                ...commonProps,
-                viewMode: itemProps.viewMode,
-            } satisfies LinksTilesProps));
-            this.activeItems.mount();
-        } else {
-            this.activeItems.update({
-                ...commonProps,
-                viewMode: itemProps.viewMode,
-            });
-        }
-        return this.activeItems.root;
-    };
+    private listHandle(host: HTMLElement, concrete: LinksListView): CategoryItemsViewHandle {
+        host.append(concrete.root);
+        return {
+            root: concrete.root,
+            mount: () => concrete.mount(),
+            update: (nextProps) => concrete.update(this.listProps(nextProps)),
+            dispose: () => concrete.dispose(),
+        };
+    }
 
-    private readonly releaseActiveItems = (): void => {
-        if (!this.activeItems) return;
-        this.releaseChild(this.activeItems);
-        this.activeItems = undefined;
-    };
+    private tilesHandle(host: HTMLElement, concrete: LinksTilesView): CategoryItemsViewHandle {
+        host.append(concrete.root);
+        return {
+            root: concrete.root,
+            mount: () => concrete.mount(),
+            update: (nextProps) => concrete.update(this.tilesProps(nextProps)),
+            dispose: () => concrete.dispose(),
+        };
+    }
 }
 
 export { CategoryEditorModel };

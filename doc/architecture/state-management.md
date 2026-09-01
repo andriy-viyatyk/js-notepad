@@ -80,13 +80,17 @@ callback immediately. This is additive—`set()` and `update()` keep their exist
 semantics.
 
 Use `afterDispatch` for teardown or replacement work that must wait until current subscribers have
-finished. It is an ordering boundary, not a general asynchronous task queue.
+finished. It is an ordering boundary, not a general asynchronous task queue or a coalescer. When
+no dispatch is active, including from a DOM or grid event handler, `afterDispatch` invokes the
+callback inline and therefore collapses nothing; use an explicit per-turn scheduler boundary and
+re-entry flag when several external events must become one update.
 
 ### Large Accumulating Collections Don't Belong in State
 
 `update()` runs Immer `produce`, so appending to an array inside state **copies that array on every
 call**. That is invisible at UI scale and quadratic at data scale: a stream that appends to a list
-of `n` items pays O(n) per message, plus the re-render each new array identity triggers.
+of `n` items pays O(n) per message, plus the subscriber and view-update work each new array
+identity triggers.
 
 When a collection grows without a fixed bound — streamed search results, log lines, an import
 buffer — keep it as a plain field on the model and put only a change signal in state:

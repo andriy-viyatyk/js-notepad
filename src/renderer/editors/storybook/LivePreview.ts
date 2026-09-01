@@ -60,6 +60,10 @@ export class LivePreviewView extends VanillaView<{ model: StorybookEditorModel }
         ));
     }
 
+    /**
+     * This view is bound to the model supplied at construction. A model identity change
+     * requires the parent to replace the view; updating it cannot rebind that subscription.
+     */
     protected onUpdate(props: { model: StorybookEditorModel }): void {
         if (props.model !== this.model) {
             throw new Error("Live preview model cannot change after mount.");

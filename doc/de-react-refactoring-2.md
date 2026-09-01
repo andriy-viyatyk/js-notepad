@@ -26,6 +26,13 @@ change the conventions.
 
 ### 1.1 `useEffect` emulation: `DepsGate` + `queueMicrotask` effect bodies
 
+> **DELIVERED by [EPIC-082](epics/completed.md) (2026-09-01), US-1267–US-1270.** Zero
+> `queueMicrotask` and zero `DepsGate` remain in the graph and rest-client files below. The counts
+> in this section are the original survey's and are **stale**: `GraphDetailPanelView` had 9
+> `createDepsGate()` instances (19 was a `DepsGate` *text* count) and 10 deferred bodies, not 11.
+> Note also that a `DepsGate` alone is **not** a defect — it is the sanctioned form for prop-derived
+> change detection, and 14 instances were deliberately retained across US-1269/US-1270.
+
 The heaviest cluster. The pattern transliterates `useEffect(fn, [deps])`: a `DepsGate` compares a
 dep array at the prop-pump boundary, then defers the body in a `queueMicrotask` that re-validates
 *every* dependency again from scratch (because the microtask may run after props moved), guarded
@@ -69,6 +76,9 @@ convention), or selector-scoped `bind()` calls where the trigger is a state chan
 disappear because `state.subscribe(listener, selector)` already does the change detection.
 
 ### 1.2 Stale React rationale kept as live justification
+
+> **DELIVERED by [EPIC-082](epics/completed.md) (2026-09-01), US-1271.** Three false deferrals
+> removed; `CategoryViewImpl.ts:102` was a wording fix only — the code it described was correct.
 
 Comments that justify a deferral with a React mechanism that no longer exists. The code may still
 be defensible, but the *stated reason* is false, so a future reader cannot tell whether the
@@ -138,6 +148,14 @@ manual `enterTreeArm`/`leaveTreeArm`; `ui/app/PageContentView.ts:125-182` does b
 
 ### 1.5 Shallow "projection changed?" memos where a selector `bind()` suffices
 
+> **PARTLY DELIVERED.** `CategoryViewImpl`'s 8-term chain went with EPIC-082's US-1272. The other
+> three chains (`GitRefsView`, `MarkdownBodyView`, `PopoverView`) were unassigned by Part 5 and are
+> now in [tasks/backlog.md](tasks/backlog.md) with package 8. **The "fresh string" selector claim
+> below is wrong:** `compareSelection` (`core/state/state.ts:30-42`) identity-compares **arrays**
+> only — it recursively value-compares plain objects and compares strings by value. So
+> `GraphLegendPanelView`'s joined-key selector is correct by design and was deliberately kept. Only
+> the fresh-**array** selectors (the four dialog `?? []` cases, still US-1258) are real defects.
+
 `React.memo`'s shallow compare, inlined by hand:
 
 - `components/tree-provider/CategoryViewImpl.ts:278-330` — an 8-term `!==` chain against
@@ -159,6 +177,12 @@ Arrays are identity-compared, so these fire on **every** dispatch — exactly wh
 
 ### 1.6 Render props
 
+> **DELIVERED by [EPIC-082](epics/completed.md) (2026-09-01), US-1272.** The tree-provider instance
+> is dismantled: `renderItems: (props) => Node` became a caller-supplied
+> `itemsView(host, initialProps) => CategoryItemsViewHandle` factory. **The stated cost below is
+> wrong** — the callbacks were stable bound fields, not fresh closures; the real defect was split
+> ownership. uikit row-renderers remain a legitimate extension point, as this section says.
+
 15 declarations of "function prop returning a node tree". The purest:
 `components/tree-provider/CategoryViewModel.ts:103` `renderItems: (props) => Node`, invoked at
 `CategoryViewImpl.ts:334-360` with a freshly built **15-key props object containing 11
@@ -171,6 +195,12 @@ contract should be a *stable* renderer receiving a model/row handle — not a pe
 closures. The tree-provider instance is the one to dismantle.
 
 ### 1.7 Refs, ref boxes, and portals
+
+> **PORTALS DELIVERED by [EPIC-082](epics/completed.md) (2026-09-01), US-1273.** `toolbarPortalRef`
+> became `toolbarHost` (the mechanism was already host-passing; only the React vocabulary was
+> wrong), and the link-editor's three ref props were **dead** — the whole `LinkEditorProps`
+> interface was unreferenced and is deleted. **Callback-ref drilling and the `{current: T}` boxes
+> are NOT done** — they remain in [tasks/backlog.md](tasks/backlog.md) with package 8.
 
 - **Callback refs with the `(el | null)` unmount convention — 43 uses.** Declared at
   `uikit/CollapsiblePanelStack/CollapsiblePanelStackView.ts:26,56` and drilled *pass-through*
@@ -189,6 +219,11 @@ closures. The tree-provider instance is the one to dismantle.
   `overlayLayer.ts`). Pass the target host instead.
 
 ### 1.8 Vocabulary and small residue
+
+> **DELIVERED by [EPIC-082](epics/completed.md) (2026-09-01), US-1274**, except two deliberate
+> retentions: `performance-janitor` was left unscoped (already self-gating), and `LivePreview`'s
+> throw was **kept** — it is a valid lifetime invariant, so its documentation was the thing missing.
+> `storyTypes.ts`'s `defaultProps` stays by design.
 
 - `loadComponent` naming for lazy *view* modules — `ui/secondary-views/secondary-view-registry.ts:34`
   and 13 registrations in `editors/register-editors.ts`. Rename to `loadView`.
@@ -271,9 +306,12 @@ documented in `uikit/CLAUDE.md:558` and used correctly by `uikit/Tree/TreeModel.
 `ListBoxView.ts:517`. LogBodyView never adopted it. Highest-confidence single fix in this report.
 
 **Polling / spinning on layout:**
-- `editors/rest-client/RestClientShared.ts:270-283` — a rAF that re-schedules itself indefinitely
-  while `responsePane.offsetHeight <= 0` (guarded by `live`, but spins for as long as the pane is
-  hidden-but-connected).
+- `editors/rest-client/RestClientShared.ts` — a rAF that re-schedules itself indefinitely while
+  `responsePane.offsetHeight <= 0`, spinning for as long as the pane is hidden-but-connected.
+  **Updated 2026-09-01 (EPIC-082 close):** now `scheduleMeasurement:268-280`. The loop is unchanged,
+  but EPIC-080's US-1263 made it owner-bound via `this.schedule.raf` and it no longer has a `live`
+  guard — so the description above ("guarded by `live`", raw rAF at `:270-283`) is stale. EPIC-082's
+  US-1269 deliberately left it for this package and must be rebased onto.
 - `editors/board/BoardTargetModel.ts:170` — `setTimeout(tick, 50)` polling for a tab the code
   itself mounted, up to 5 s, "never rejects" on timeout.
 - `editors/markdown/MarkdownBodyView.ts:536` (rAF retry ×10), `editors/video/AudioVisualizer.ts:380` (×3).
@@ -614,7 +652,15 @@ Packages 6 + 7: **P4** (`afterFirstLayout`, `kickTransition`) with the §2.2 tim
 **P5** (`createEchoGuard`) adopted at the three file-echo sites. Independent of EPIC-080, so it can
 run in parallel or fill a gap.
 
-### EPIC-082 — React architecture removal at the call sites
+### EPIC-082 — React architecture removal at the call sites — **COMPLETED 2026-09-01**
+
+Document: [epics/EPIC-082.md](epics/EPIC-082.md). Writing it re-verified this section against
+source at commit `caacc80a` and produced **six corrections** — see that document's *Corrections to
+the report's plan*. Two change what the work is: the render-prop bag's stated cost (fresh closures
+per update) is false — every callback is a stable bound field, and the real problem is split
+ownership between `CategoryViewImpl` and `CategoryEditor`; and §1.5's `lastProjection` memo chains
+plus §1.8's vocabulary residue turned out to be **unassigned to any package in Part 5**. §1.8 is
+absorbed as US-1274; the three out-of-island memo chains go to the backlog with package 8.
 
 Packages 4 + 5, sequenced after EPIC-080's P2:
 
@@ -628,8 +674,9 @@ Packages 4 + 5, sequenced after EPIC-080's P2:
 ### Backlog rather than an epic — package 8
 
 §1.4 (76 `replaceChildren()` sites renderer-wide, 24 of them teardown-and-rebuild), §1.3
-secondary-view `{state, setState}`, §1.7 callback-ref drilling (43 uses). To be recorded as an epic idea
-in [tasks/backlog.md](tasks/backlog.md) and drawn down opportunistically — when a task already has
+secondary-view `{state, setState}`, §1.7 callback-ref drilling (43 uses), and — added when EPIC-082 was cut — the three §1.5
+`lastProjection` memo chains Part 5 left unassigned. **Recorded 2026-09-01** in
+[tasks/backlog.md](tasks/backlog.md) under *Recorded Epics*, to be drawn down opportunistically — when a task already has
 someone inside that editor. An epic here would accumulate fifteen tasks and never close.
 
 **One exception pulled forward into EPIC-080:** the three hand-rolled re-implementations of

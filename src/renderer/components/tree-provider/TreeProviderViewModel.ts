@@ -202,15 +202,10 @@ export class TreeProviderViewModel extends TComponentModel<
         }
     };
 
-    /** Deferred selection write — setProps runs during render, so a synchronous
-     *  state.update here would trip React's update-while-rendering warning.
-     *  External navigation always collapses the selection to the navigated item. */
+    /** External navigation always collapses the selection to the navigated item. */
     private adoptSelection = (hrefs: string[]) => {
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            if (sameHrefs(this.state.get().selectedValues, hrefs)) return;
-            this.state.update((s) => { s.selectedValues = hrefs; });
-        });
+        if (sameHrefs(this.state.get().selectedValues, hrefs)) return;
+        this.state.update((s) => { s.selectedValues = hrefs; });
     };
 
     // ── Selection ────────────────────────────────────────────────────────

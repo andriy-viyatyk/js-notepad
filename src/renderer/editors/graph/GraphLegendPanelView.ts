@@ -4,7 +4,6 @@ import type { ButtonProps } from "../../uikit/Button/ButtonView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import type { InputProps } from "../../uikit/Input/InputView";
 import { InputView } from "../../uikit/Input/InputView";
-import { createDepsGate, type DepsGate } from "../../uikit/shared/deps-gate";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -31,6 +30,15 @@ interface GraphLegendState {
     checkedShapes: string[];
     selectionFilter: SelectionFilter;
     descriptions: Record<string, Record<string, string>>;
+}
+
+interface LegendHighlightSignature {
+    selectedKey: string;
+    expanded: boolean;
+    activeTab: LegendTab;
+    selectionFilter: SelectionFilter;
+    checkedLevels: string[];
+    checkedShapes: string[];
 }
 
 const defaultGraphLegendState: GraphLegendState = {
@@ -81,6 +89,13 @@ class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPane
     dispose = (): void => {
         this.descriptionDelayers.clear();
     };
+
+    init(): void {
+        // Model initialization is synchronous; Persephone has no render/commit phase between
+        // this seed and the view bindings that consume it.
+        const legend = this.props.editor.getLegendDescriptions();
+        this.setDescriptions({ levels: { ...legend.levels }, shapes: { ...legend.shapes } });
+    }
 }
 
 interface LegendRowProps {
@@ -417,9 +432,8 @@ export class GraphLegendPanelView extends VanillaView<GraphLegendPanelProps> {
     private readonly chevron = document.createElement("span");
     private readonly bodyHost = document.createElement("div");
     private readonly expandedSwap = new SubtreeSwap<"expanded">(this.bodyHost);
-    private readonly highlightGate: DepsGate = createDepsGate();
+    private appliedHighlight: LegendHighlightSignature | undefined;
     private expandedView: LegendExpandedView | undefined;
-    private live = true;
 
     public constructor(props: GraphLegendPanelProps) {
         super(props, document.createElement("div"));
@@ -466,12 +480,6 @@ export class GraphLegendPanelView extends VanillaView<GraphLegendPanelProps> {
             selectedKey: state.selectedNodes.map((node) => node.id).join(","),
             searchQuery: state.searchQuery,
         }), this.syncEditorState);
-
-        const legend = this.editor.getLegendDescriptions();
-        queueMicrotask(() => {
-            if (!this.live || !this.model.isLive || this.editor !== this.props.editor) return;
-            this.model.setDescriptions({ levels: { ...legend.levels }, shapes: { ...legend.shapes } });
-        });
     }
 
     protected onUpdate(props: GraphLegendPanelProps): void {
@@ -482,7 +490,6 @@ export class GraphLegendPanelView extends VanillaView<GraphLegendPanelProps> {
     }
 
     protected onDispose(): void {
-        this.live = false;
         this.expandedSwap.dispose();
     }
 
@@ -532,14 +539,15 @@ export class GraphLegendPanelView extends VanillaView<GraphLegendPanelProps> {
         } else {
             this.expandedView?.update(props);
         }
-        this.scheduleHighlight();
+        this.applyLegendHighlightIfChanged(state, editorState.selectedNodes.map((node) => node.id).join(","));
     };
 
     private readonly syncEditorState = (state: { selectedKey: string; searchQuery: string }): void => {
         const modelState = this.model.state.get();
-        const props = this.expandedProps(modelState, state.searchQuery);
+        const editorState = this.editor.state.get();
+        const props = this.expandedProps(modelState, editorState.searchQuery);
         this.expandedView?.update(props);
-        this.scheduleHighlight();
+        this.applyLegendHighlightIfChanged(modelState, state.selectedKey);
     };
 
     private expandedProps(state: GraphLegendState, searchQuery: string): LegendExpandedProps {
@@ -603,28 +611,29 @@ export class GraphLegendPanelView extends VanillaView<GraphLegendPanelProps> {
         this.model.setSelectionFilter(current === filter ? "" : filter);
     };
 
-    private scheduleHighlight(): void {
-        const state = this.model.state.get();
-        const selectedKey = this.editor.state.get().selectedNodes.map((node) => node.id).join(",");
-        const deps = [this.editor, state.expanded, state.activeTab, state.selectionFilter, state.checkedLevels, state.checkedShapes, selectedKey];
-        if (!this.highlightGate.changed(deps)) return;
+    private applyLegendHighlightIfChanged(state: GraphLegendState, selectedKey: string): void {
+        const signature: LegendHighlightSignature = {
+            selectedKey,
+            expanded: state.expanded,
+            activeTab: state.activeTab,
+            selectionFilter: state.selectionFilter,
+            checkedLevels: state.checkedLevels,
+            checkedShapes: state.checkedShapes,
+        };
+        const previous = this.appliedHighlight;
+        if (previous
+            && previous.selectedKey === signature.selectedKey
+            && previous.expanded === signature.expanded
+            && previous.activeTab === signature.activeTab
+            && previous.selectionFilter === signature.selectionFilter
+            && previous.checkedLevels === signature.checkedLevels
+            && previous.checkedShapes === signature.checkedShapes) return;
 
-        const editor = this.editor;
-        const { expanded, activeTab, selectionFilter, checkedLevels, checkedShapes } = state;
-        queueMicrotask(() => {
-            if (!this.live || !this.model.isLive || this.editor !== editor) return;
-            const currentState = this.model.state.get();
-            const currentSelectedKey = editor.state.get().selectedNodes.map((node) => node.id).join(",");
-            if (
-                currentSelectedKey !== selectedKey
-                || currentState.expanded !== expanded
-                || currentState.activeTab !== activeTab
-                || currentState.selectionFilter !== selectionFilter
-                || currentState.checkedLevels !== checkedLevels
-                || currentState.checkedShapes !== checkedShapes
-            ) return;
-            this.applyLegendHighlight(editor, expanded, activeTab, selectionFilter, checkedLevels, checkedShapes);
-        });
+        // VanillaView prop pumping is synchronous and has no render/commit phase. The expanded
+        // subtree is already updated above, and setLegendHighlight/renderData do not write editor
+        // state, so this ordered consequence cannot re-enter the legend binding.
+        this.appliedHighlight = signature;
+        this.applyLegendHighlight(this.editor, signature.expanded, signature.activeTab, signature.selectionFilter, signature.checkedLevels, signature.checkedShapes);
     }
 
     private applyLegendHighlight(

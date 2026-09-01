@@ -10,12 +10,14 @@ import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { IconName } from "../../theme/icon-registry";
 import {
     CategoryViewModel,
-    type CategoryItemsRendererProps,
+    type CategoryItemsViewHandle,
+    type CategoryItemsViewProps,
     type CategoryViewMode,
     type CategoryViewProps,
     type CategoryViewState,
     defaultCategoryViewState,
 } from "./CategoryViewModel";
+import { createDepsGate, type DepsGate } from "../../uikit/shared/deps-gate";
 import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";
 import "./CategoryView.css";
@@ -48,18 +50,10 @@ type CategoryModelDriver = ComponentModelDriver<
     CategoryViewModel
 >;
 
-interface StateProjection {
+interface StateSelection {
     filteredItems: ITreeProviderItem[];
     selectedHrefs: string[];
     dropTargetHref: string | null;
-    searchText: string;
-    selectedHref?: string | null;
-    multiSelect?: boolean;
-    provider?: CategoryViewProps["provider"];
-    renderItems?: CategoryViewProps["renderItems"];
-}
-
-interface StateSelection extends StateProjection {
     searchText: string;
     loading: boolean;
     error: string | null;
@@ -67,26 +61,27 @@ interface StateSelection extends StateProjection {
     dropOverView: boolean;
 }
 
-/** Native shell for CategoryView and its editor-owned list/tile item view. */
+/** Native shell for CategoryView and its caller-created list/tile item view. */
 export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private readonly driver: CategoryModelDriver;
     private readonly content = document.createElement("div");
     private readonly footer = document.createElement("div");
     private readonly footerCount = document.createElement("span");
-    private readonly bridgeHost = document.createElement("div");
+    private readonly itemsHost = document.createElement("div");
     private readonly tileScope = document.createElement("div");
     private inputView: InputView | undefined;
     private clearButton: IconButtonView | undefined;
     private viewModeButton: IconButtonView | undefined;
     private spacerView: SpacerView | undefined;
-    private bridge: Node | undefined;
+    private activeItems: CategoryItemsViewHandle | undefined;
+    private activeItemsArm: "list" | "tiles" | undefined;
     private gridModel: GridModelCapability | null = null;
-    private pendingGridRepaint = false;
-    private toolbarTarget: HTMLElement | null = null;
+    /** The currently attached caller-owned host for this view's toolbar controls. */
+    private toolbarHost: HTMLElement | null = null;
     private searchField: HTMLInputElement | undefined;
     private arm: Arm | undefined;
     private itemsChainMounted = false;
-    private lastProjection: StateProjection | undefined;
+    private itemProjectionGate: DepsGate = createDepsGate();
     private lastViewMode: CategoryViewMode | undefined;
     private inert = false;
 
@@ -98,8 +93,8 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             defaultCategoryViewState,
         );
 
-        // The model driver is constructed here, so it is always disposed even if mounting fails
-        // or the adapter is disposed before its layout effect runs.
+        // The model driver is constructed here and owned by this view, so it is disposed even if
+        // mounting fails or the view is disposed before mount completes.
         this.own(() => { this.inert = true; });
         this.own(() => this.driver.dispose());
     }
@@ -154,6 +149,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             }),
             (state) => this.applyState(state),
         );
+        this.itemProjectionGate.prime(this.itemProjectionDeps(this.model.state.get()));
     }
 
     protected onUpdate(props: CategoryViewProps): void {
@@ -163,8 +159,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
 
     protected onDispose(): void {
         this.detachToolbarNodes();
-        this.disposeBridge();
-        this.gridModel = null;
+        this.disposeActiveItems();
     }
 
     private buildStaticDom(): void {
@@ -173,8 +168,8 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.root.tabIndex = -1;
 
         this.content.className = "cv-content";
-        this.bridgeHost.className = "cv-items-bridge";
-        this.bridgeHost.style.display = "contents";
+        this.itemsHost.className = "cv-items-bridge";
+        this.itemsHost.style.display = "contents";
         this.tileScope.className = "panel-root cv-tile-focus-scope";
         this.tileScope.dataset.type = "category-tile-focus";
         this.tileScope.dataset.name = "links-tiles-focus-scope";
@@ -228,7 +223,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         this.updateFooter(state);
 
         if (!contentArm) {
-            this.disposeBridge();
+            this.disposeActiveItems();
             this.content.replaceChildren(this.createMessage(state.error ? "error" : "loading", state.error ?? "Loading..."));
             this.itemsChainMounted = false;
             this.footer.remove();
@@ -238,13 +233,12 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
         if (!this.footer.parentNode) this.root.append(this.footer);
 
         if (state.filteredItems.length === 0) {
-            this.disposeBridge();
+            this.disposeActiveItems();
             const empty = document.createElement("div");
             empty.className = "cv-empty";
             empty.textContent = state.searchText ? "No matching items" : "Empty folder";
             this.content.replaceChildren(empty);
             this.itemsChainMounted = false;
-            this.lastProjection = undefined;
             return;
         }
 
@@ -271,73 +265,74 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
 
     private reconcileItemsArm(state: CategoryViewState): void {
         const viewMode = this.props.viewMode ?? "list";
-        const isTileMode = viewMode !== "list";
-        const projectionChanged = !this.lastProjection
-            || this.lastProjection.filteredItems !== state.filteredItems
-            || this.lastProjection.selectedHrefs !== state.selectedHrefs
-            || this.lastProjection.dropTargetHref !== state.dropTargetHref
-            || this.lastProjection.searchText !== state.searchText
-            || this.lastProjection.selectedHref !== this.props.selectedHref
-            || this.lastProjection.multiSelect !== this.props.multiSelect
-            || this.lastProjection.provider !== this.props.provider
-            || this.lastProjection.renderItems !== this.props.renderItems
-            || this.lastViewMode !== viewMode;
+        const projectionChanged = this.itemProjectionGate.changed(this.itemProjectionDeps(state));
+        const previousViewMode = this.lastViewMode;
+        this.lastViewMode = viewMode;
+        const nextArm = viewMode === "list" ? "list" : "tiles";
+        const chainWasMounted = this.itemsChainMounted;
 
-        if (projectionChanged || !this.itemsChainMounted) {
-            if (isTileMode) {
+        if (projectionChanged || !chainWasMounted) {
+            if (nextArm === "tiles") {
                 this.content.replaceChildren(this.tileScope);
-                this.tileScope.replaceChildren(this.bridgeHost);
+                this.tileScope.replaceChildren(this.itemsHost);
             } else {
-                this.content.replaceChildren(this.bridgeHost);
+                this.content.replaceChildren(this.itemsHost);
             }
             this.itemsChainMounted = true;
         }
 
-        if (!this.bridge) {
-            const rendered = this.renderItems(state);
-            this.bridgeHost.replaceChildren(rendered);
-            this.bridge = rendered;
-            this.pendingGridRepaint = true;
-            this.flushPendingGridRepaintSoon();
-        } else if (projectionChanged) {
-            const rendered = this.renderItems(state);
-            if (rendered !== this.bridge) {
-                this.bridgeHost.replaceChildren(rendered);
-                this.bridge = rendered;
+        if (projectionChanged || !this.activeItems || !chainWasMounted) {
+            const projection = this.itemProjection(state, viewMode);
+            if (this.activeItems && this.activeItemsArm !== nextArm) {
+                this.disposeActiveItems(false);
             }
-            this.pendingGridRepaint = true;
-            this.flushPendingGridRepaintSoon();
+            if (!this.activeItems) {
+                this.activeItems = this.child(this.props.itemsView(this.itemsHost, projection));
+                this.activeItemsArm = nextArm;
+                if (this.activeItems.root.parentNode !== this.itemsHost) {
+                    this.itemsHost.append(this.activeItems.root);
+                }
+                this.activeItems.mount();
+            } else {
+                if (this.activeItems.root.parentNode !== this.itemsHost) {
+                    this.itemsHost.append(this.activeItems.root);
+                }
+                this.activeItems.update(projection);
+            }
+            if (previousViewMode !== undefined && previousViewMode !== viewMode) {
+                this.gridModel?.scrollToRow(0);
+            }
+            this.gridModel?.update({ all: true });
         }
-
-        if (this.lastViewMode !== undefined && this.lastViewMode !== viewMode) {
-            this.gridModel?.scrollToRow(0);
-            this.pendingGridRepaint = true;
-            this.flushPendingGridRepaintSoon();
-        }
-
-        this.lastProjection = {
-            filteredItems: state.filteredItems,
-            selectedHrefs: state.selectedHrefs,
-            dropTargetHref: state.dropTargetHref,
-            searchText: state.searchText,
-            selectedHref: this.props.selectedHref,
-            multiSelect: this.props.multiSelect,
-            provider: this.props.provider,
-            renderItems: this.props.renderItems,
-        };
-        this.lastViewMode = viewMode;
     }
 
-    private renderItems(state: CategoryViewState): Node {
+    private itemProjectionDeps(state: CategoryViewState): readonly unknown[] {
+        return [
+            state.filteredItems,
+            state.selectedHrefs,
+            state.dropTargetHref,
+            state.searchText,
+            this.props.selectedHref,
+            this.props.multiSelect,
+            this.props.provider,
+            this.props.itemsView,
+            this.props.viewMode ?? "list",
+        ];
+    }
+
+    private itemProjection(
+        state: CategoryViewState,
+        viewMode: CategoryViewMode,
+    ): CategoryItemsViewProps {
         const provider = this.props.provider;
         const selectedIds = this.props.multiSelect
             ? new Set(state.selectedHrefs)
             : undefined;
         const acceptsDrops = this.model.acceptsDrops;
         const allowsDrag = this.model.allowsDrag;
-        return this.props.renderItems({
+        return {
             items: state.filteredItems,
-            viewMode: this.props.viewMode ?? "list",
+            viewMode,
             selectedId: this.props.selectedHref ?? undefined,
             selectedIds,
             searchText: state.searchText,
@@ -354,42 +349,32 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
             dropTargetId: state.dropTargetHref,
             dragSourceId: allowsDrag ? provider.sourceUrl : undefined,
             onDragStartOverride: allowsDrag ? this.onDragStartOverride : undefined,
-        } satisfies CategoryItemsRendererProps);
+        };
     }
 
-    private disposeBridge(): void {
-        if (this.bridge) {
-            this.props.onItemsDisposed?.();
-            this.bridge = undefined;
+    private disposeActiveItems(resetProjection = true): void {
+        const activeItems = this.activeItems;
+        this.activeItems = undefined;
+        this.activeItemsArm = undefined;
+        if (activeItems) {
+            this.releaseChild(activeItems);
+            activeItems.root.remove();
         }
-        this.bridgeHost.replaceChildren();
-        this.bridge = undefined;
+        this.itemsHost.replaceChildren();
         this.gridModel = null;
-        this.pendingGridRepaint = false;
-        this.lastProjection = undefined;
+        if (resetProjection) this.itemProjectionGate = createDepsGate();
     }
 
     private readonly onGridModel = (model: GridModelCapability | null): void => {
         if (this.inert) return;
         this.gridModel = model;
-        if (model) this.flushPendingGridRepaintSoon();
     };
 
-    private flushPendingGridRepaintSoon(): void {
-        queueMicrotask(() => {
-            if (this.inert || !this.pendingGridRepaint || !this.gridModel) return;
-            this.pendingGridRepaint = false;
-            // The child renderer is an opaque full-projection bridge: it exposes no
-            // item-to-row mapping, and selection/search/provider/view-mode changes can reshape it.
-            this.gridModel.update({ all: true });
-        });
-    }
-
     private updateToolbar(contentArm: boolean): void {
-        const desired = contentArm ? this.props.toolbarPortalRef ?? null : null;
-        if (desired !== this.toolbarTarget) {
+        const desired = contentArm ? this.props.toolbarHost ?? null : null;
+        if (desired !== this.toolbarHost) {
             this.detachToolbarNodes();
-            this.toolbarTarget = desired;
+            this.toolbarHost = desired;
         }
         if (!desired || !this.inputView || !this.clearButton || !this.viewModeButton) return;
 
@@ -419,7 +404,7 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     private detachToolbarNodes(): void {
         this.inputView?.root.remove();
         this.viewModeButton?.root.remove();
-        this.toolbarTarget = null;
+        this.toolbarHost = null;
     }
 
     private readonly onSearchKeyDown = (event: KeyboardEvent): void => {

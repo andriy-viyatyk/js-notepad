@@ -12,13 +12,13 @@ import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-regi
 secondaryViewRegistry.register({
     id: "archive-tree",
     label: "Archive",
-    loadComponent: () => import("./archive/ArchiveSecondaryView"),
+    loadView: () => import("./archive/ArchiveSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "explorer",
     label: "Explorer",
-    loadComponent: () => import("./explorer/ExplorerSecondaryView"),
+    loadView: () => import("./explorer/ExplorerSecondaryView"),
 });
 
 secondaryViewRegistry.register({
@@ -27,7 +27,7 @@ secondaryViewRegistry.register({
     // Sidebar-only sub-panel of Explorer — give it the search glyph (the one on
     // the Explorer header's "open search" button) instead of Explorer's folder icon.
     icon: "search",
-    loadComponent: () => import("./explorer/SearchSecondaryView"),
+    loadView: () => import("./explorer/SearchSecondaryView"),
 });
 
 secondaryViewRegistry.register({
@@ -38,62 +38,62 @@ secondaryViewRegistry.register({
     // Explorer root via the shared BoardsTree. Uses the colored variant so the panel
     // header reads as an accent.
     icon: "board-color",
-    loadComponent: () => import("./explorer/BoardsSecondaryView"),
+    loadView: () => import("./explorer/BoardsSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "link-category",
     label: "Categories",
-    loadComponent: () => import("./link-editor/panels/LinkCategorySecondaryView"),
+    loadView: () => import("./link-editor/panels/LinkCategorySecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "link-tags",
     label: "Tags",
-    loadComponent: () => import("./link-editor/panels/LinkTagsSecondaryView"),
+    loadView: () => import("./link-editor/panels/LinkTagsSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "link-hostnames",
     label: "Hostnames",
-    loadComponent: () => import("./link-editor/panels/LinkHostnamesSecondaryView"),
+    loadView: () => import("./link-editor/panels/LinkHostnamesSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "notebook-categories",
     label: "Categories",
-    loadComponent: () => import("./notebook/panels/NotebookCategoriesSecondaryView"),
+    loadView: () => import("./notebook/panels/NotebookCategoriesSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "notebook-tags",
     label: "Tags",
-    loadComponent: () => import("./notebook/panels/NotebookTagsSecondaryView"),
+    loadView: () => import("./notebook/panels/NotebookTagsSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "rest-panel",
     label: "Rest",
-    loadComponent: () => import("./rest-client/panels/RestPanelSecondaryView"),
+    loadView: () => import("./rest-client/panels/RestPanelSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "git-changes",
     label: "Git",
-    loadComponent: () => import("./git-tree/GitPanelSecondaryView"),
+    loadView: () => import("./git-tree/GitPanelSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "git-diff-revisions",
     label: "File History",
-    loadComponent: () => import("./file-diff/GitDiffRevisionsSecondaryView"),
+    loadView: () => import("./file-diff/GitDiffRevisionsSecondaryView"),
 });
 
 secondaryViewRegistry.register({
     id: "mneme-tree",
     label: "Wiki",
     // No icon override → falls back to the editor's MemoryIcon (EPIC-032 / US-663).
-    loadComponent: () => import("./mneme-root/MnemeTreeSecondaryView"),
+    loadView: () => import("./mneme-root/MnemeTreeSecondaryView"),
 });
 
 // Board secondary views (EPIC-044 / US-853): one registration serves the whole
@@ -104,7 +104,7 @@ secondaryViewRegistry.register({
 secondaryViewRegistry.registerPrefix(BOARD_SECONDARY_PREFIX, {
     id: BOARD_SECONDARY_PREFIX,
     label: "Board View", // never shown — BoardSecondaryView renders its own header from the decl
-    loadComponent: () => import("./board/BoardSecondaryView"),
+    loadView: () => import("./board/BoardSecondaryView"),
 });
 
 // =============================================================================
@@ -226,5 +226,4 @@ void customEditorRegistry.ensureInitialized();
 // `page.grouped`) can build any text-host editor from the registry's module cache.
 // Fire-and-forget: the chunks load in the background right after registration.
 editorRegistry.preloadContentHostModules();
-
 

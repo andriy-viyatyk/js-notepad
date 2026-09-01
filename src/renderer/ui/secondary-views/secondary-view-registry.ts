@@ -30,8 +30,8 @@ export type SecondaryViewDefinition = {
      *  glyph (e.g. the Explorer "search" panel → the "search" registry name). Most panels omit this
      *  and fall back to the editor icon. */
     icon?: IconName;
-    /** Dynamic import of the sidebar component. */
-    loadComponent: () => Promise<{ default: VanillaViewCtor<SecondaryViewProps> }>;
+    /** Dynamic import of the sidebar view. */
+    loadView: () => Promise<{ default: VanillaViewCtor<SecondaryViewProps> }>;
 };
 
 class SecondaryViewRegistry {

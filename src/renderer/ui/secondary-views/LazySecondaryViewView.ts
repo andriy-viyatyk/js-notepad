@@ -64,7 +64,7 @@ export class LazySecondaryViewView extends VanillaView<SecondaryViewProps> {
             this.showError(`Unknown secondary view: "${panelId}"`);
             return;
         }
-        void definition.loadComponent().then((module) => {
+        void definition.loadView().then((module) => {
             if (!this.live || generation !== this.loadGeneration || this.props.panelId !== panelId) return;
             this.mountPanel(module.default, this.props);
         }).catch((error: unknown) => {

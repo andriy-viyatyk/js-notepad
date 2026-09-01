@@ -16,7 +16,6 @@ import {
     type DataGridProps,
     type DeleteRowsEvent,
 } from "../../uikit/DataGrid";
-import { createDepsGate, type DepsGate } from "../../uikit/shared/deps-gate";
 import { createIconElement } from "../../uikit/shared/slots";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -73,9 +72,36 @@ const defaultGraphDetailState: GraphDetailState = {
 class GraphDetailModel extends TComponentModel<GraphDetailState, GraphDetailPanelProps> {
     private hadSelection = false;
     private wasExpanded = true;
+    private appliedSelectionKey: string | undefined;
+    private appliedHasSelection: boolean | undefined;
+    private appliedNodeId: string | undefined;
+    private appliedNodeTitle: string | undefined;
+    private appliedExpandRequest: number | undefined;
+    private appliedCollapseRequest: number | undefined;
+    private appliedCallback: GraphDetailPanelProps["onPanelExpandedChange"] | undefined;
+    private appliedTabIsMulti: boolean | undefined;
+    private appliedActiveTab: string | undefined;
+    private mounted = false;
 
-    setExpanded = (expanded: boolean): void => this.state.update((state) => { state.expanded = expanded; });
-    setActiveTab = (activeTab: string): void => this.state.update((state) => { state.activeTab = activeTab; });
+    /**
+     * Sole-writer invariant: the `expanded` field assignment must remain only in this setter, so every
+     * expanded transition owns its callback at the same synchronous write site.
+     */
+    setExpanded = (expanded: boolean): void => {
+        if (Object.is(this.state.get().expanded, expanded)) return;
+        this.state.update((state) => { state.expanded = expanded; });
+        if (this.mounted) this.props.onPanelExpandedChange?.(expanded);
+    };
+
+    setActiveTab = (activeTab: string): void => {
+        const isMulti = this.props.nodes.length > 1;
+        const nextActiveTab = isMulti && activeTab === "links" ? "info" : activeTab;
+        // Stamp before the state write: the synchronous state binding can re-enter syncState.
+        this.appliedTabIsMulti = isMulti;
+        this.appliedActiveTab = nextActiveTab;
+        if (this.state.get().activeTab === nextActiveTab) return;
+        this.state.update((state) => { state.activeTab = nextActiveTab; });
+    };
     setLinksDirty = (dirty: boolean): void => this.state.update((state) => { state.linksDirty = dirty; });
     setPropertiesDirty = (dirty: boolean): void => this.state.update((state) => { state.propertiesDirty = dirty; });
     setSize = (size: { width: number; height: number }): void => this.state.update((state) => { state.size = size; });
@@ -93,23 +119,85 @@ class GraphDetailModel extends TComponentModel<GraphDetailState, GraphDetailPane
     markExpandedByRequest(): void { this.wasExpanded = true; }
     markCollapsedByRequest(): void { this.wasExpanded = false; }
 
-    applySelectionDependencies(hasSelection: boolean, selectionKey: string, live: () => boolean): void {
-        if (hasSelection) {
-            const restore = !this.hadSelection ? this.wasExpanded : undefined;
-            this.hadSelection = true;
-            if (restore !== undefined) queueMicrotask(() => {
-                if (!live() || this.props.nodes.map((node) => node.id).sort().join(",") !== selectionKey) return;
-                this.setExpanded(restore);
-            });
-        } else {
-            this.wasExpanded = false;
-            this.hadSelection = false;
-            queueMicrotask(() => {
-                if (!live() || this.props.nodes.length > 0) return;
-                this.setExpanded(false);
-            });
+    /**
+     * VanillaView pumps props synchronously, with no render/commit phase between this derivation
+     * and the model state write. These consequences therefore belong at the prop write site.
+     */
+    setProps = (): void => {
+        const nodes = this.props.nodes;
+        const hasSelection = nodes.length > 0;
+        const selectionKey = nodes.map((node) => node.id).sort().join(",");
+        const expandedAtStart = this.state.get().expanded;
+        const callback = this.props.onPanelExpandedChange;
+        const callbackChanged = callback !== this.appliedCallback;
+
+        this.appliedCallback = callback;
+        this.applyTabInvariant(nodes.length > 1);
+
+        const node = nodes.length === 1 ? nodes[0] : undefined;
+        const id = node?.id;
+        const title = node?.title;
+        if (id !== this.appliedNodeId || title !== this.appliedNodeTitle) {
+            this.appliedNodeId = id;
+            this.appliedNodeTitle = title;
+            if (node) {
+                this.setEditId(id);
+                this.setEditTitle(title || "");
+                this.setIdError("");
+            }
         }
+
+        if (selectionKey !== this.appliedSelectionKey || hasSelection !== this.appliedHasSelection) {
+            this.appliedSelectionKey = selectionKey;
+            this.appliedHasSelection = hasSelection;
+            if (hasSelection) {
+                const restore = !this.hadSelection ? this.wasExpanded : undefined;
+                this.hadSelection = true;
+                if (restore !== undefined) this.setExpanded(restore);
+            } else {
+                this.wasExpanded = false;
+                this.hadSelection = false;
+                this.setExpanded(false);
+            }
+        }
+
+        const expandRequest = this.props.expandRequest;
+        if (expandRequest !== this.appliedExpandRequest) {
+            this.appliedExpandRequest = expandRequest;
+            if (expandRequest && nodes.length > 0) {
+                this.setExpanded(true);
+                this.markExpandedByRequest();
+            }
+        }
+
+        const collapseRequest = this.props.collapseRequest;
+        if (collapseRequest !== this.appliedCollapseRequest) {
+            this.appliedCollapseRequest = collapseRequest;
+            if (collapseRequest) {
+                const state = this.state.get();
+                if (state.expanded && !state.linksDirty && !state.propertiesDirty) {
+                    this.setExpanded(false);
+                    this.markCollapsedByRequest();
+                }
+            }
+        }
+
+        if (callbackChanged && this.mounted && Object.is(this.state.get().expanded, expandedAtStart)) callback?.(this.state.get().expanded);
+    };
+
+    private applyTabInvariant(isMulti: boolean): void {
+        const activeTab = this.state.get().activeTab;
+        if (this.appliedTabIsMulti === isMulti && this.appliedActiveTab === activeTab) return;
+        this.appliedTabIsMulti = isMulti;
+        this.appliedActiveTab = activeTab;
+        if (isMulti && activeTab === "links") this.setActiveTab("info");
     }
+
+    init = (): void => {
+        this.mounted = true;
+        // The initial prop pump runs in the view constructor; notify only once the model mounts.
+        this.props.onPanelExpandedChange?.(this.state.get().expanded);
+    };
 
     dispose = (): void => {
         this.props.onHighlightSet?.(null);
@@ -145,18 +233,11 @@ export class GraphDetailPanelView extends VanillaView<GraphDetailPanelProps> {
     private readonly driver: ComponentModelDriver<GraphDetailState, GraphDetailPanelProps, GraphDetailModel>;
     private readonly bodyRegion = createContentsHost();
     private readonly bodySwap = new SubtreeSwap<"body">(this.bodyRegion);
-    private readonly nodeGate: DepsGate = createDepsGate();
-    private readonly tabGate: DepsGate = createDepsGate();
-    private readonly selectionGate: DepsGate = createDepsGate();
-    private readonly expandGate: DepsGate = createDepsGate();
-    private readonly collapseGate: DepsGate = createDepsGate();
-    private readonly expandedCallbackGate: DepsGate = createDepsGate();
-    private readonly linksGate: DepsGate = createDepsGate();
     private readonly header = document.createElement("div");
     private readonly headerTitle = document.createElement("span");
     private readonly headerChevron = document.createElement("span");
     private activeBody: DetailBodyView | undefined;
-    private live = true;
+    private appliedLinksSignature: { linksTabActive: boolean; nodeId: string | undefined; linkedNodes: GraphNode[] } | undefined;
 
     public constructor(props: GraphDetailPanelProps) {
         super(props, createPanelElement({ direction: "column", minWidth: 0 }));
@@ -170,7 +251,6 @@ export class GraphDetailPanelView extends VanillaView<GraphDetailPanelProps> {
     }
 
     protected onMount(): void {
-        this.own(() => { this.live = false; });
         this.own(() => this.bodySwap.dispose());
         this.own(() => this.driver.dispose());
         this.listen(this.header, "click", this.toggleExpanded);
@@ -195,14 +275,6 @@ export class GraphDetailPanelView extends VanillaView<GraphDetailPanelProps> {
         this.headerChevron.hidden = nodes.length === 0;
         this.headerChevron.replaceChildren(createIconElement(state.expanded ? "chevron-up" : "chevron-down", { width: 14, height: 14 }));
 
-        this.runNodeGate();
-        this.runTabGate(state);
-        this.runSelectionGate(nodes);
-        this.runExpandGate(nodes);
-        this.runCollapseGate();
-        this.runExpandedCallbackGate(state.expanded);
-        this.runLinksGate(state, singleNode);
-
         const bodyProps = this.bodyProps(state);
         if (state.expanded && nodes.length > 0) {
             let created: DetailBodyView | undefined;
@@ -222,89 +294,30 @@ export class GraphDetailPanelView extends VanillaView<GraphDetailPanelProps> {
             this.bodySwap.clear();
             this.activeBody = undefined;
         }
+
+        this.syncLinksConsequence(this.driver.model.state.get());
     };
 
-    private runNodeGate(): void {
-        const node = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
-        const id = node?.id;
-        const title = node?.title;
-        if (!this.nodeGate.changed([id, title]) || !node) return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive) return;
-            const current = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
-            if (current?.id !== id || current?.title !== title) return;
-            this.driver.model.setEditId(id);
-            this.driver.model.setEditTitle(title || "");
-            this.driver.model.setIdError("");
-        });
-    }
-
-    private runTabGate(state: GraphDetailState): void {
-        const isMulti = this.props.nodes.length > 1;
-        if (!this.tabGate.changed([isMulti, state.activeTab]) || !isMulti || state.activeTab !== "links") return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive || this.props.nodes.length <= 1 || this.driver.model.state.get().activeTab !== "links") return;
-            this.driver.model.setActiveTab("info");
-        });
-    }
-
-    private runSelectionGate(nodes: GraphNode[]): void {
-        const selectionKey = nodes.map((node) => node.id).sort().join(",");
-        const hasSelection = nodes.length > 0;
-        if (this.selectionGate.changed([selectionKey, hasSelection])) this.driver.model.applySelectionDependencies(hasSelection, selectionKey, () => this.live && this.driver.model.isLive);
-    }
-
-    private runExpandGate(nodes: GraphNode[]): void {
-        const request = this.props.expandRequest;
-        if (!this.expandGate.changed([request]) || !request || nodes.length === 0) return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive || this.props.expandRequest !== request || this.props.nodes.length === 0) return;
-            this.driver.model.setExpanded(true);
-            this.driver.model.markExpandedByRequest();
-        });
-    }
-
-    private runCollapseGate(): void {
-        const request = this.props.collapseRequest;
-        if (!this.collapseGate.changed([request]) || !request) return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive || this.props.collapseRequest !== request) return;
-            const state = this.driver.model.state.get();
-            if (state.expanded && !state.linksDirty && !state.propertiesDirty) {
-                this.driver.model.setExpanded(false);
-                this.driver.model.markCollapsedByRequest();
-            }
-        });
-    }
-
-    private runExpandedCallbackGate(expanded: boolean): void {
-        const callback = this.props.onPanelExpandedChange;
-        if (!this.expandedCallbackGate.changed([expanded, callback])) return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive || this.driver.model.state.get().expanded !== expanded || this.props.onPanelExpandedChange !== callback) return;
-            callback?.(expanded);
-        });
-    }
-
-    private runLinksGate(state: GraphDetailState, node: GraphNode | undefined): void {
+    private syncLinksConsequence(state: GraphDetailState): void {
+        const nodes = this.props.nodes;
+        const node = nodes.length === 1 ? nodes[0] : undefined;
         const linksTabActive = state.expanded && state.activeTab === "links" && !!node;
         const linkedNodes = this.props.linkedNodes;
         const nodeId = node?.id;
-        if (!this.linksGate.changed([linksTabActive, nodeId, linkedNodes])) return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive) return;
-            const currentNode = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
-            const currentState = this.driver.model.state.get();
-            const currentActive = currentState.expanded && currentState.activeTab === "links" && !!currentNode;
-            if (currentActive !== linksTabActive || currentNode?.id !== nodeId || this.props.linkedNodes !== linkedNodes) return;
-            if (linksTabActive && node) {
-                this.props.onExpandNode?.(node.id);
-                this.props.onHighlightSet?.(new Set([node.id, ...linkedNodes.map((linked) => linked.id)]));
-            } else {
-                this.props.onHighlightSet?.(null);
-                this.props.onExternalHover?.("");
-            }
-        });
+        const previous = this.appliedLinksSignature;
+        if (previous?.linksTabActive === linksTabActive && previous.nodeId === nodeId && previous.linkedNodes === linkedNodes) return;
+
+        // onExpandNode can re-enter syncState. Stamp first, and keep this after bodySwap so the
+        // re-entrant pass cannot observe a stale outer body tail. It terminates because expandNode
+        // does not write linkedNodes; only the two selection-refresh paths do.
+        this.appliedLinksSignature = { linksTabActive, nodeId, linkedNodes };
+        if (linksTabActive && node) {
+            this.props.onExpandNode?.(node.id);
+            this.props.onHighlightSet?.(new Set([node.id, ...linkedNodes.map((linked) => linked.id)]));
+        } else {
+            this.props.onHighlightSet?.(null);
+            this.props.onExternalHover?.("");
+        }
     }
 
     private bodyProps(state: GraphDetailState): DetailBodyProps {
@@ -542,12 +555,41 @@ type LinksTabProps = { linkedNodes: GraphNode[]; selectedNodeId: string; onApply
 interface LinksTabState { dirty: boolean; }
 
 class LinksTabModel extends TComponentModel<LinksTabState, LinksTabProps> {
-    private rowCounter = 0; seedRows: LinkRow[] = []; columns: Column<LinkRow>[] = []; grid: DataGridInstance<LinkRow> | undefined; readonly originalIds = new Set<string>();
+    private rowCounter = 0;
+    private appliedLinkedNodes: GraphNode[] | undefined;
+    seedRows: LinkRow[] = [];
+    columns: Column<LinkRow>[] = [];
+    grid: DataGridInstance<LinkRow> | undefined;
+    readonly originalIds = new Set<string>();
+
     setDirty = (dirty: boolean): void => this.state.update((state) => { state.dirty = dirty; });
     setGrid = (grid: DataGridInstance<LinkRow> | null): void => { this.grid = grid ?? undefined; };
     rowsForGrid = (): readonly LinkRow[] => this.grid?.getRows() ?? this.seedRows;
     nextRowKey = (): string => `link-${++this.rowCounter}`;
     resetRowCounter = (): void => { this.rowCounter = 0; };
+
+    /** Props are already installed before this synchronous derivation; no render/commit phase exists. */
+    setProps = (): void => {
+        const linkedNodes = this.props.linkedNodes;
+        if (linkedNodes === this.appliedLinkedNodes) return;
+        this.appliedLinkedNodes = linkedNodes;
+        this.seedFrom(linkedNodes);
+    };
+
+    seedFrom(linkedNodes: GraphNode[]): void {
+        this.resetRowCounter();
+        const rows = linkedNodes.map((node) => ({ ...node, _rowKey: this.nextRowKey() }));
+        this.seedRows = rows;
+        this.columns = makeColumns(rows);
+        this.originalIds.clear();
+        linkedNodes.forEach((node) => this.originalIds.add(node.id));
+
+        if (!this.grid) return;
+        this.grid.setRows(rows);
+        this.grid.setColumns(this.columns);
+        this.setDirty(false);
+        this.props.onDirtyChange(false);
+    }
 }
 
 const KNOWN_KEYS = new Set(["id", "title", "level", "shape"]);
@@ -567,13 +609,11 @@ function makeColumns(rows: LinkRow[]): Column<LinkRow>[] {
 
 class LinksTabView extends VanillaView<LinksTabProps> {
     private readonly driver: ComponentModelDriver<LinksTabState, LinksTabProps, LinksTabModel>;
-    private readonly seedGate: DepsGate = createDepsGate();
     private readonly gridHost = createPanelElement({ direction: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" });
     private readonly actions = createPanelElement({ direction: "row", justify: "end", gap: "xs", shrink: false });
     private readonly cancelButton: ButtonView;
     private readonly applyButton: ButtonView;
     private readonly gridView: DataGridView<LinkRow>;
-    private live = true;
 
     public constructor(props: LinksTabProps) {
         super(props, createPanelElement({ direction: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }));
@@ -584,21 +624,12 @@ class LinksTabView extends VanillaView<LinksTabProps> {
         this.actions.append(this.cancelButton.root, this.applyButton.root); this.root.append(this.gridHost, this.actions);
     }
     protected onMount(): void {
-        this.own(() => { this.live = false; }); this.own(() => this.driver.dispose());
+        this.own(() => this.driver.dispose());
         this.child(this.cancelButton); this.child(this.applyButton); this.child(this.gridView); this.driver.mount();
-        this.bind(this.driver.model.state, (state) => state.dirty, this.applyDirty); this.gridHost.append(this.gridView.root); this.gridView.mount(); this.syncSeed(this.props);
+        this.bind(this.driver.model.state, (state) => state.dirty, this.applyDirty); this.gridHost.append(this.gridView.root); this.gridView.mount();
     }
-    protected onUpdate(props: LinksTabProps): void { this.driver.update(props); this.syncSeed(props); }
+    protected onUpdate(props: LinksTabProps): void { this.driver.update(props); }
     private readonly applyDirty = (dirty: boolean): void => { this.actions.hidden = !dirty; this.props.onDirtyChange(dirty); };
-    private syncSeed(props: LinksTabProps): void {
-        const linkedNodes = props.linkedNodes; if (!this.seedGate.changed([linkedNodes])) return;
-        queueMicrotask(() => {
-            if (!this.live || !this.driver.model.isLive || this.props.linkedNodes !== linkedNodes) return;
-            const model = this.driver.model; model.resetRowCounter(); const rows = linkedNodes.map((node) => ({ ...node, _rowKey: model.nextRowKey() }));
-            model.seedRows = rows; model.columns = makeColumns(rows); model.originalIds.clear(); linkedNodes.forEach((node) => model.originalIds.add(node.id));
-            model.grid?.setRows(rows); model.grid?.setColumns(model.columns); model.setDirty(false); this.props.onDirtyChange(false);
-        });
-    }
     private gridProps(): DataGridProps<LinkRow> { return { name: "graph-links-grid", columns: this.driver.model.columns, rows: this.driver.model.seedRows, getRowKey: (row) => row._rowKey, onGrid: this.driver.model.setGrid, editable: true, canAddRows: true, canDeleteRows: true, newRow: () => ({ id: "", _rowKey: this.driver.model.nextRowKey() }), onEdit: this.handleEdit, onAddRows: this.handleAddRows, onDeleteRows: this.handleDeleteRows, rowNoun: "link", onFocusChange: this.handleFocusChange, disableFiltering: true, disableSorting: true, rowHeight: 24 }; }
     private readonly markDirty = (): void => this.driver.model.setDirty(true);
     private readonly handleEdit = (_event: CellEditEvent<LinkRow>): void => this.markDirty();
@@ -606,7 +637,7 @@ class LinksTabView extends VanillaView<LinksTabProps> {
     private readonly handleDeleteRows = (_event: DeleteRowsEvent<LinkRow>): void => this.markDirty();
     private readonly handleFocusChange = (focus: CellFocus<LinkRow> | undefined): void => { const row = focus?.rowKey ? this.driver.model.rowsForGrid().find((item) => item._rowKey === focus.rowKey) : undefined; this.props.onExternalHover?.(row?.id || ""); };
     private readonly handleApply = (): void => { const rows = this.driver.model.rowsForGrid().map(({ _rowKey, ...row }) => row); this.props.onApply(this.props.selectedNodeId, rows, this.driver.model.originalIds); };
-    private readonly handleCancel = (): void => { const model = this.driver.model; model.resetRowCounter(); const rows = this.props.linkedNodes.map((node) => ({ ...node, _rowKey: model.nextRowKey() })); model.seedRows = rows; model.columns = makeColumns(rows); model.grid?.setRows(rows); model.grid?.setColumns(model.columns); model.setDirty(false); this.props.onDirtyChange(false); };
+    private readonly handleCancel = (): void => { this.driver.model.seedFrom(this.props.linkedNodes); };
 }
 
 type PropertyRow = { _rowKey: string; key: string; value: string; _isChanged?: boolean };
@@ -619,24 +650,73 @@ function extractMultiProperties(nodes: GraphNode[]): { key: string; value: strin
 }
 const PROPERTY_COLUMNS: Column<PropertyRow>[] = [{ key: "key", name: "Name", width: 120, resizable: true }, { key: "value", name: "Value", width: 200, resizable: true }];
 class PropertiesTabModel extends TComponentModel<PropertiesTabState, PropertiesTabProps> {
-    private rowCounter = 0; seedRows: PropertyRow[] = []; columns: Column<PropertyRow>[] = PROPERTY_COLUMNS; grid: DataGridInstance<PropertyRow> | undefined; readonly originalKeys = new Set<string>(); readonly multiInfo = new Map<string, { allSame: boolean; uniqueValues: string[] }>();
-    setDirty = (dirty: boolean): void => this.state.update((state) => { state.dirty = dirty; }); setStatusMessage = (message: string): void => this.state.update((state) => { state.statusMessage = message; }); setGrid = (grid: DataGridInstance<PropertyRow> | null): void => { this.grid = grid ?? undefined; }; rowsForGrid = (): readonly PropertyRow[] => this.grid?.getRows() ?? this.seedRows; nextRowKey = (): string => `prop-${++this.rowCounter}`; resetRowCounter = (): void => { this.rowCounter = 0; };
+    private rowCounter = 0;
+    private appliedNodeIds: string | undefined;
+    private appliedNodes: GraphNode[] | undefined;
+    seedRows: PropertyRow[] = [];
+    columns: Column<PropertyRow>[] = PROPERTY_COLUMNS;
+    grid: DataGridInstance<PropertyRow> | undefined;
+    readonly originalKeys = new Set<string>();
+    readonly multiInfo = new Map<string, { allSame: boolean; uniqueValues: string[] }>();
+
+    setDirty = (dirty: boolean): void => this.state.update((state) => { state.dirty = dirty; });
+    setStatusMessage = (message: string): void => this.state.update((state) => { state.statusMessage = message; });
+    setGrid = (grid: DataGridInstance<PropertyRow> | null): void => { this.grid = grid ?? undefined; };
+    rowsForGrid = (): readonly PropertyRow[] => this.grid?.getRows() ?? this.seedRows;
+    nextRowKey = (): string => `prop-${++this.rowCounter}`;
+    resetRowCounter = (): void => { this.rowCounter = 0; };
+
+    /** Sorted IDs retain the old dependency meaning while the array identity detects new node data. */
+    setProps = (): void => {
+        const nodes = this.props.nodes;
+        const nodeIds = nodes.map((node) => node.id).sort().join(",");
+        if (nodeIds === this.appliedNodeIds && nodes === this.appliedNodes) return;
+        this.appliedNodeIds = nodeIds;
+        this.appliedNodes = nodes;
+        this.seedFrom(nodes);
+    };
+
+    seedFrom(nodes: GraphNode[]): void {
+        this.resetRowCounter();
+        this.originalKeys.clear();
+        this.multiInfo.clear();
+        const rows: PropertyRow[] = [];
+
+        if (nodes.length > 1) {
+            for (const row of extractMultiProperties(nodes)) {
+                this.multiInfo.set(row.key, { allSame: row.allSame, uniqueValues: row.uniqueValues });
+                rows.push({ _rowKey: this.nextRowKey(), key: row.key, value: row.value, _isChanged: false });
+                this.originalKeys.add(row.key);
+            }
+        } else if (nodes.length === 1) {
+            for (const row of extractCustomProperties(nodes[0])) {
+                rows.push({ _rowKey: this.nextRowKey(), key: row.key, value: row.value, _isChanged: false });
+                this.originalKeys.add(row.key);
+            }
+        }
+
+        this.seedRows = rows;
+        if (!this.grid) return;
+        this.grid.setRows(rows);
+        this.setDirty(false);
+        this.setStatusMessage("");
+        this.props.onDirtyChange(false);
+    }
 }
 class PropertiesTabView extends VanillaView<PropertiesTabProps> {
     private readonly driver: ComponentModelDriver<PropertiesTabState, PropertiesTabProps, PropertiesTabModel>;
-    private readonly seedGate: DepsGate = createDepsGate(); private readonly gridHost = createPanelElement({ direction: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }); private readonly status = createTextElement("", { size: "xs", color: color.warning.text }); private readonly actions = createPanelElement({ direction: "row", justify: "end", gap: "xs", shrink: false }); private readonly cancelButton: ButtonView; private readonly applyButton: ButtonView; private readonly gridView: DataGridView<PropertyRow>; private live = true;
+    private readonly gridHost = createPanelElement({ direction: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }); private readonly status = createTextElement("", { size: "xs", color: color.warning.text }); private readonly actions = createPanelElement({ direction: "row", justify: "end", gap: "xs", shrink: false }); private readonly cancelButton: ButtonView; private readonly applyButton: ButtonView; private readonly gridView: DataGridView<PropertyRow>;
     public constructor(props: PropertiesTabProps) { super(props, createPanelElement({ direction: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" })); this.driver = createComponentModelDriver(props, PropertiesTabModel, { dirty: false, statusMessage: "" }); this.cancelButton = new ButtonView({ size: "sm", variant: "ghost", children: "Cancel", onClick: this.handleCancel }); this.applyButton = new ButtonView({ size: "sm", variant: "primary", children: "Apply", onClick: this.handleApply }); this.gridView = new DataGridView<PropertyRow>(this.gridProps()); this.status.classList.add("graph-detail-status"); this.actions.append(this.cancelButton.root, this.applyButton.root); this.root.append(this.gridHost, this.status, this.actions); }
-    protected onMount(): void { this.own(() => { this.live = false; }); this.own(() => this.driver.dispose()); this.child(this.cancelButton); this.child(this.applyButton); this.child(this.gridView); this.driver.mount(); this.bind(this.driver.model.state, (state) => ({ dirty: state.dirty, statusMessage: state.statusMessage }), this.syncState); this.gridHost.append(this.gridView.root); this.gridView.mount(); this.syncSeed(this.props); }
-    protected onUpdate(props: PropertiesTabProps): void { this.driver.update(props); this.syncSeed(props); }
+    protected onMount(): void { this.own(() => this.driver.dispose()); this.child(this.cancelButton); this.child(this.applyButton); this.child(this.gridView); this.driver.mount(); this.bind(this.driver.model.state, (state) => ({ dirty: state.dirty, statusMessage: state.statusMessage }), this.syncState); this.gridHost.append(this.gridView.root); this.gridView.mount(); }
+    protected onUpdate(props: PropertiesTabProps): void { this.driver.update(props); }
     private readonly syncState = (state: PropertiesTabState): void => { this.actions.hidden = !state.dirty; this.status.textContent = state.statusMessage; this.status.hidden = !state.statusMessage; this.applyButton.update({ size: "sm", variant: "primary", children: "Apply", disabled: this.hasInvalidKeys(), onClick: this.handleApply }); this.props.onDirtyChange(state.dirty); };
-    private syncSeed(props: PropertiesTabProps): void { const dependencies = [props.nodes.map((node) => node.id).sort().join(","), props.nodes]; if (!this.seedGate.changed(dependencies)) return; const nodes = props.nodes; queueMicrotask(() => { if (!this.live || !this.driver.model.isLive || this.props.nodes !== nodes) return; const model = this.driver.model; model.resetRowCounter(); model.originalKeys.clear(); model.multiInfo.clear(); const rows: PropertyRow[] = []; if (nodes.length > 1) for (const row of extractMultiProperties(nodes)) { model.multiInfo.set(row.key, { allSame: row.allSame, uniqueValues: row.uniqueValues }); rows.push({ _rowKey: model.nextRowKey(), key: row.key, value: row.value, _isChanged: false }); model.originalKeys.add(row.key); } else if (nodes.length === 1) for (const row of extractCustomProperties(nodes[0])) { rows.push({ _rowKey: model.nextRowKey(), key: row.key, value: row.value, _isChanged: false }); model.originalKeys.add(row.key); } model.seedRows = rows; model.grid?.setRows(rows); model.setDirty(false); model.setStatusMessage(""); this.props.onDirtyChange(false); }); }
     private gridProps(): DataGridProps<PropertyRow> { return { name: "graph-properties-grid", columns: PROPERTY_COLUMNS, rows: this.driver.model.seedRows, getRowKey: (row) => row._rowKey, onGrid: this.driver.model.setGrid, editable: true, canAddRows: true, canDeleteRows: true, newRow: () => ({ _rowKey: this.driver.model.nextRowKey(), key: "", value: "", _isChanged: true }), onEdit: this.handleEdit, onAddRows: this.handleAddRows, onDeleteRows: this.handleDeleteRows, onCellClass: this.cellClass, rowNoun: "property", onFocusChange: this.handleFocusChange, disableFiltering: true, disableSorting: true, rowHeight: 24 }; }
     private readonly markDirty = (): void => this.driver.model.setDirty(true); private readonly handleEdit = (_event: CellEditEvent<PropertyRow>): void => this.markDirty(); private readonly handleAddRows = (event: AddRowsEvent<PropertyRow>): void => { event.rows.forEach((row) => { row._rowKey = this.driver.model.nextRowKey(); row._isChanged = true; }); this.markDirty(); }; private readonly handleDeleteRows = (_event: DeleteRowsEvent<PropertyRow>): void => this.markDirty();
     private readonly handleFocusChange = (focus: CellFocus<PropertyRow> | undefined): void => { if (this.props.nodes.length <= 1 || !focus?.rowKey) { this.driver.model.setStatusMessage(""); return; } const row = this.driver.model.rowsForGrid().find((item) => item._rowKey === focus.rowKey); const info = row?.key ? this.driver.model.multiInfo.get(row.key) : undefined; if (!info) this.driver.model.setStatusMessage(""); else if (info.allSame) this.driver.model.setStatusMessage("All nodes have the same value"); else if (!info.uniqueValues.length) this.driver.model.setStatusMessage("No nodes have this property"); else this.driver.model.setStatusMessage(`Values: ${info.uniqueValues.slice(0, 2).map((value) => `"${value}"`).join(", ")}${info.uniqueValues.length > 2 ? ", ..." : ""}`); };
     private readonly cellClass = (cell: CellContext<PropertyRow>): string => { if (cell.column.key === "key" && cell.row.key && isReservedPropertyKey(cell.row.key)) return "cell-error"; if (cell.column.key === "key" && this.props.nodes.length > 1 && cell.row.key) { const info = this.driver.model.multiInfo.get(cell.row.key); if (info && !info.allSame && !cell.row._isChanged) return "cell-mixed"; } return ""; };
     private hasInvalidKeys(): boolean { return this.driver.model.rowsForGrid().some((row) => Boolean(row.key && isReservedPropertyKey(row.key))); }
     private readonly handleApply = (): void => { const rows = this.driver.model.rowsForGrid() as PropertyRow[]; const propsToSet: Record<string, string> = {}; for (const row of rows) { if (!row._isChanged) continue; const key = row.key.trim(); if (key && !isReservedPropertyKey(key)) propsToSet[key] = row.value; } const currentKeys = new Set(rows.map((row) => row.key.trim()).filter(Boolean)); const keysToRemove = [...this.driver.model.originalKeys].filter((key) => !currentKeys.has(key)); if (this.props.nodes.length > 1) this.props.onBatchApply(this.props.nodes.map((node) => node.id), propsToSet, keysToRemove); else if (this.props.nodes.length === 1) this.props.onApply(this.props.nodes[0].id, propsToSet, keysToRemove); };
-    private readonly handleCancel = (): void => { const model = this.driver.model; model.resetRowCounter(); model.originalKeys.clear(); model.multiInfo.clear(); const rows: PropertyRow[] = []; if (this.props.nodes.length > 1) for (const row of extractMultiProperties(this.props.nodes)) { model.multiInfo.set(row.key, { allSame: row.allSame, uniqueValues: row.uniqueValues }); model.originalKeys.add(row.key); rows.push({ _rowKey: model.nextRowKey(), key: row.key, value: row.value, _isChanged: false }); } else if (this.props.nodes.length === 1) for (const row of extractCustomProperties(this.props.nodes[0])) { model.originalKeys.add(row.key); rows.push({ _rowKey: model.nextRowKey(), key: row.key, value: row.value, _isChanged: false }); } model.seedRows = rows; model.grid?.setRows(rows); model.setDirty(false); model.setStatusMessage(""); this.props.onDirtyChange(false); };
+    private readonly handleCancel = (): void => { this.driver.model.seedFrom(this.props.nodes); };
 }
 
 function createContentsHost(): HTMLSpanElement { const host = document.createElement("span"); host.style.display = "contents"; return host; }

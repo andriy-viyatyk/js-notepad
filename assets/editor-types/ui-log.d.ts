@@ -355,11 +355,11 @@ export interface IGridColumn {
  * grid.openInEditor("My Data");
  */
 export interface IGrid {
-    /** Grid data (array of objects). Setting triggers re-render. */
+    /** Grid data (array of objects). Setting updates the displayed grid in real time. */
     data: any[];
-    /** Column definitions — strings or objects. Setting triggers re-render. */
+    /** Column definitions — strings or objects. Setting updates the displayed grid in real time. */
     columns: (string | IGridColumn)[] | undefined;
-    /** Grid title. Setting triggers re-render. */
+    /** Grid title. Setting updates the displayed grid in real time. */
     title: IStyledText | undefined;
     /** Open grid data in a dedicated Grid editor page. */
     openInEditor(pageTitle?: string): void;
@@ -382,11 +382,11 @@ export interface IGrid {
  * text.openInEditor("My Code");
  */
 export interface IText {
-    /** Text content. Setting triggers re-render. */
+    /** Text content. Setting updates the displayed text in real time. */
     text: string;
     /** Syntax highlighting language (e.g., "javascript", "sql", "html"). */
     language: string | undefined;
-    /** Text title. Setting triggers re-render. */
+    /** Text title. Setting updates the displayed text in real time. */
     title: IStyledText | undefined;
     /** Enable word wrapping (default: true). */
     wordWrap: boolean | undefined;
@@ -415,9 +415,9 @@ export interface IText {
  * md.openInEditor("My Document");
  */
 export interface IMarkdown {
-    /** Markdown text content. Setting triggers re-render. */
+    /** Markdown text content. Setting updates the rendered Markdown in real time. */
     text: string;
-    /** Markdown title. Setting triggers re-render. */
+    /** Markdown title. Setting updates the rendered Markdown in real time. */
     title: IStyledText | undefined;
     /** Open markdown in a dedicated Markdown editor page. */
     openInEditor(pageTitle?: string): void;
@@ -440,9 +440,9 @@ export interface IMarkdown {
  * diagram.openInEditor("My Diagram");
  */
 export interface IMermaid {
-    /** Mermaid diagram source text. Setting triggers re-render. */
+    /** Mermaid diagram source text. Setting updates the rendered Mermaid diagram in real time. */
     text: string;
-    /** Diagram title. Setting triggers re-render. */
+    /** Diagram title. Setting updates the rendered Mermaid diagram in real time. */
     title: IStyledText | undefined;
     /** Open mermaid source in a dedicated Mermaid editor page. */
     openInEditor(pageTitle?: string): void;

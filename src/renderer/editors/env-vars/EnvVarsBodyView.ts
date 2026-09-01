@@ -437,6 +437,19 @@ class VariablesGridView extends VanillaView<{
         this.scheduleApply();
     };
 
+    /**
+     * Batching boundary, not a deferred effect. `handleEdit`, `handleAddRows` and
+     * `handleDeleteRows` can all fire within one user action — a multi-cell paste, a multi-row
+     * delete — and `applyQueued` collapses them into a single validate-and-write. Without it each
+     * event would run `validateRows` and `setProfileData` on its own, and every `setProfileData`
+     * dispatches editor state synchronously, which can reseed this grid while its mutable row
+     * buffer is still being mutated.
+     *
+     * `afterDispatch` is **not** a substitute: it runs inline when no dispatch is in flight
+     * (`core/state/dispatch.ts`), and a grid DOM event is not inside one — so it would fire
+     * immediately and collapse nothing. The `live`/`isDestroyed` checks below guard the genuinely
+     * deferred callback and must stay with it.
+     */
     private scheduleApply(): void {
         if (this.applyQueued) return;
         this.applyQueued = true;

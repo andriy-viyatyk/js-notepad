@@ -15,10 +15,15 @@ mechanisms, EPIC-082 React-pattern removal at the call sites), one backlog packa
 clauses folded into US-1131.
 
 Epics are created **one at a time**, each written when work is about to start on it — so a number in
-Part 6 with no document yet is reserved intent, not existing work. **EPIC-080 is complete**
-(2026-09-01 — see [epics/completed.md](epics/completed.md)); **EPIC-081 and EPIC-082 are still
-intent** and have no documents yet. Each gets its own entry under **Active** or **Planned** below as
-it is created.
+Part 6 with no document yet is reserved intent, not existing work. **EPIC-080 and EPIC-082 are both
+complete** (2026-09-01 — see [epics/completed.md](epics/completed.md)). **EPIC-081 is still intent**
+and has no document yet; it is the free-floating parallel track and now the only epic left in the
+programme. Part 5's package 8 stays in [`tasks/backlog.md`](tasks/backlog.md), drawn down
+opportunistically rather than as an epic.
+
+The roadmap's Part 1 sections now carry **DELIVERED** banners where EPIC-082 closed them, including
+notes on which of its original counts and claims turned out stale — read those before acting on any
+remaining item there.
 
 Two items were deferred out of EPIC-080 and belong to a later epic rather than to the roadmap's
 original packages — the fourth listener list in `src/ipc/renderer/renderer-events.ts`, and
@@ -28,7 +33,7 @@ Remove this section from the dashboard when the programme is done.
 
 ## Active
 
-- *(nothing active — EPIC-080 closed 2026-09-01; the next epic in the roadmap is created when work starts on it)*
+- *(nothing active — EPIC-082 closed 2026-09-01; the roadmap's remaining work is EPIC-081 (intent only) and package 8 in the backlog)*
 
 ## Planned
 

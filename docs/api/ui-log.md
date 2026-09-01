@@ -429,7 +429,7 @@ const progress = ui.show.progress({
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `label` | `string \| IStyledSegment[]` | Progress label (supports styled text) |
+| `label` | `string \| IStyledSegment[]` | Progress label (supports styled text). Setting updates the displayed progress overlay in real time. |
 | `value` | `number \| undefined` | Current progress value |
 | `max` | `number \| undefined` | Maximum value (default: 100) |
 | `completed` | `boolean \| undefined` | When `true`, shows the bar as fully completed |
@@ -489,9 +489,9 @@ const grid = ui.show.grid({
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `data` | `any[]` | Grid data (array of objects). Setting triggers re-render. |
-| `columns` | `(string \| IGridColumn)[] \| undefined` | Column definitions — strings (key names) or column objects. Setting triggers re-render. |
-| `title` | `string \| IStyledSegment[] \| undefined` | Grid title (supports styled text). Setting triggers re-render. |
+| `data` | `any[]` | Grid data (array of objects). Setting updates the displayed grid in real time. |
+| `columns` | `(string \| IGridColumn)[] \| undefined` | Column definitions — strings (key names) or column objects. Setting updates the displayed grid columns in real time. |
+| `title` | `string \| IStyledSegment[] \| undefined` | Grid title (supports styled text). Setting updates the displayed grid title in real time. |
 
 #### IGridColumn
 
@@ -539,12 +539,12 @@ const txt = ui.show.text({
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `text` | `string` | The text content. Setting triggers re-render. |
-| `language` | `string \| undefined` | Language for syntax highlighting (default: `"plaintext"`). Setting triggers re-render. |
-| `title` | `string \| IStyledSegment[] \| undefined` | Title displayed above the text (supports styled text). Setting triggers re-render. |
-| `wordWrap` | `boolean \| undefined` | Enable word wrap (default: `true`). Setting triggers re-render. |
-| `lineNumbers` | `boolean \| undefined` | Show line numbers (default: `false`). Setting triggers re-render. |
-| `minimap` | `boolean \| undefined` | Show minimap (default: `false`). Setting triggers re-render. |
+| `text` | `string` | The text content. Setting updates the displayed text in real time. |
+| `language` | `string \| undefined` | Language for syntax highlighting (default: `"plaintext"`). Setting updates syntax highlighting in real time. |
+| `title` | `string \| IStyledSegment[] \| undefined` | Title displayed above the text (supports styled text). Setting updates the displayed text title in real time. |
+| `wordWrap` | `boolean \| undefined` | Enable word wrap (default: `true`). Setting updates line wrapping in real time. |
+| `lineNumbers` | `boolean \| undefined` | Show line numbers (default: `false`). Setting updates the line-number display in real time. |
+| `minimap` | `boolean \| undefined` | Show minimap (default: `false`). Setting updates the minimap display in real time. |
 
 #### openInEditor(pageTitle?)
 
@@ -601,8 +601,8 @@ graph LR
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `text` | `string` | Markdown text content. Setting triggers re-render. |
-| `title` | `string \| IStyledSegment[] \| undefined` | Title displayed above the markdown (supports styled text). Setting triggers re-render. |
+| `text` | `string` | Markdown text content. Setting updates the rendered Markdown in real time. |
+| `title` | `string \| IStyledSegment[] \| undefined` | Title displayed above the markdown (supports styled text). Setting updates the displayed Markdown title in real time. |
 
 #### openInEditor(pageTitle?)
 
@@ -640,8 +640,8 @@ const diagram = ui.show.mermaid({
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `text` | `string` | Mermaid diagram text. Setting triggers re-render. |
-| `title` | `string \| IStyledSegment[] \| undefined` | Title displayed above the diagram (supports styled text). Setting triggers re-render. |
+| `text` | `string` | Mermaid diagram text. Setting updates the rendered Mermaid diagram in real time. |
+| `title` | `string \| IStyledSegment[] \| undefined` | Title displayed above the diagram (supports styled text). Setting updates the displayed diagram title in real time. |
 
 #### openInEditor(pageTitle?)
 

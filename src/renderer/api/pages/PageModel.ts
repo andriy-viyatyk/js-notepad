@@ -28,14 +28,14 @@ function unwrapToHost(editor: EditorModel | null): EditorOrHost | null {
     return editor;
 }
 
-/** Reactive page-level state — UI subscribes to this for re-render on page changes. */
+/** Reactive page-level state — UI subscribes to this for repaint on page changes. */
 export interface IPageState {
     /** Page-level pinned flag. */
     pinned: boolean;
-    /** Current main editor ID — changes on navigation, triggers re-render for editor swap. */
+    /** Current main editor ID — changes on navigation, notifies subscribers for editor swap. */
     mainEditorId: string | null;
     /** Bumped whenever `editors[]` changes (attach/detach) or an editor's panel-list
-     *  flips. Drives SecondaryViews re-render and the per-page persistence
+     *  flips. Drives the SecondaryViews repaint and the per-page persistence
      *  subscription's editor-membership reconciliation. */
     version: number;
     /** Whether the sidebar (SecondaryViewsModel) exists. Kept for backward compat
@@ -58,7 +58,7 @@ export class PageModel implements IPageHost {
     /** Stable page UUID — tab identity and cache key. Never changes. */
     readonly id: string;
 
-    /** Reactive page-level state. UI subscribes directly for re-rendering. */
+    /** Reactive page-level state. UI subscribes directly for repainting. */
     readonly state = new TOneState<IPageState>({ ...defaultPageState });
 
     /**

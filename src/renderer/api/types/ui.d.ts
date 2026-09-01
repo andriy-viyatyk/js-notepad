@@ -3,7 +3,7 @@
  * Created by `app.ui.createProgress()`.
  */
 export interface IProgressHandle {
-    /** Update the progress label. Triggers UI re-render. */
+    /** Update the progress overlay label. Setting updates the displayed progress overlay in real time. */
     label: string;
     /**
      * Show the overlay while promise is pending. Auto-closes on resolve/reject.

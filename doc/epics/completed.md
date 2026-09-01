@@ -1,3 +1,56 @@
+## EPIC-082 — React architecture removal at the call sites
+
+Completed 2026-09-01. [Epic document](EPIC-082.md). The second epic of the
+[De-React second-pass roadmap](../de-react-refactoring-2.md) — packages 4 + 5. EPIC-080 built the
+mechanisms; this epic spent them, removing React's *architecture* from the places where it survived
+as a shape rather than a dependency. Zero `queueMicrotask` and zero `DepsGate` remain in the graph
+and rest-client de-effecting targets, the `tree-provider` island's false deferrals are gone, and the
+items render-prop is a caller-supplied `itemsView(host, initialProps)` factory.
+
+**Six of the roadmap's claims did not survive verification**, and four of them would have caused a
+regression if implemented as written — see the epic document's *Corrections to the report's plan*:
+
+- the render-prop's stated cost (fresh closures per update) was false; the callbacks were stable
+  bound fields and the real defect was **split ownership**;
+- §1.5's "fresh string selector fires every dispatch" was false — `compareSelection` identity-compares
+  **arrays** only, so the joined-key selector was correct and "fixing" it would have made the legend
+  re-highlight on every property edit;
+- `EnvVarsBodyView.scheduleApply` is a deliberate **coalescer** with a re-entry flag, not effect
+  emulation — converting it would have reseeded the grid mid-mutation;
+- the link-editor's three portal refs were dead, and so was the **entire** `LinkEditorProps` interface;
+- §1.5's memo chains and §1.8's vocabulary residue were **unassigned to any package** in Part 5;
+- `CategoryViewImpl.ts:102` was a wording fix, not a code fix.
+
+Two design decisions worth carrying forward: `afterDispatch` runs **inline** when no dispatch is in
+flight, so it is not a coalescer (now documented in `state-management.md`); and a caller-supplied
+`(host, initialProps) => IOwnedView` factory is the way to move an ownership boundary **without**
+moving an import boundary across layers (now in `component-guide.md`, alongside `PopoverView`'s
+`contentView` seam).
+
+**One unrelated defect found and fixed:** graph search results never displayed matched properties —
+`SearchResultRowView.updatePropertyRow` read `row.children[2]` where an element-only collection makes
+the value span index 1, so `highlightInto` threw on every property match. Confirmed pre-existing by
+reverting to `HEAD` and reproducing.
+
+**Four runtime verifications remain outstanding by user decision** (physical drag gestures, tree
+selection adoption across six consumers, and the graph grids' apply path) — the epic document records
+exactly which task owns each.
+
+- **EPIC-082** — [React architecture removal at the call sites](epics/EPIC-082.md) — completed 2026-09-01.
+  Packages 4 + 5 of the roadmap. Two independent strands; nothing here can brick the app, but every
+  task changes behaviour a green build cannot catch, so each is verified in the running editor.
+  - Strand A — §1.1 de-effecting, per editor
+    - [x] [US-1267: `GraphDetailPanelView` — 10 gates, 10 microtasks, 12 `live`, two ~900-char lines](tasks/US-1267-graph-detail-de-effect/README.md)
+    - [x] [US-1268: The rest of graph — `GraphBodyView`, `GraphLegendPanelView`](tasks/US-1268-graph-panels-de-effect/README.md)
+    - [x] [US-1269: rest-client — `ResponseViewerView`, `RequestBuilderView`, `RestClientShared`](tasks/US-1269-rest-client-de-effect/README.md)
+    - [x] [US-1270: settings + diff + env-vars — five small files](tasks/US-1270-settings-diff-envvars-de-effect/README.md)
+  - Strand B — the `tree-provider` island
+    - [x] [US-1271: §1.2 — the three false deferrals and the `CategoryViewImpl:102` reword](tasks/US-1271-tree-provider-false-deferrals/README.md)
+    - [x] [US-1272: §1.6 — dismantle the items render-prop; one owner for the child views](tasks/US-1272-category-items-ownership/README.md)
+    - [x] [US-1273: §1.7 — portal refs → host-passing](tasks/US-1273-portal-refs-to-hosts/README.md)
+  - Residue
+    - [x] [US-1274: §1.8 vocabulary — `loadComponent` → `loadView`, stale "re-render" comments. Cuttable.](tasks/US-1274-vocabulary-residue/README.md)
+
 ## EPIC-080 — State, lifetime & scheduling core
 
 Completed 2026-09-01. [Epic document](EPIC-080.md). The first epic of the

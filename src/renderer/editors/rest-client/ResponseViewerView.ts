@@ -60,6 +60,22 @@ const defaultResponseViewerState: ResponseViewerState = {
 };
 
 class ResponseViewerModel extends TComponentModel<ResponseViewerState, ResponseViewerProps> {
+    private appliedResponse: RestResponse | null | undefined;
+    private responseInitialized = false;
+
+    setProps = (props: ResponseViewerProps): void => {
+        if (!this.responseInitialized) {
+            this.appliedResponse = props.response;
+            this.responseInitialized = true;
+            return;
+        }
+        if (this.appliedResponse === props.response) return;
+        // The driver prop pump is synchronous and has no render/commit phase; derive the local
+        // language reset at the changed-response write site. Stamp first because state publishes synchronously.
+        this.appliedResponse = props.response;
+        this.setLanguageOverride(null);
+    };
+
     setActiveTab = (activeTab: ResponseTab): void => {
         this.state.update((state) => { state.activeTab = activeTab; });
     };
@@ -110,10 +126,8 @@ export class ResponseViewerView extends VanillaView<ResponseViewerProps> {
     private readonly driver: ComponentModelDriver<ResponseViewerState, ResponseViewerProps, ResponseViewerModel>;
     private readonly branchHost = document.createElement("span");
     private readonly swap = new SubtreeSwap<"executing" | "empty" | "response">(this.branchHost);
-    private readonly responseResetGate: DepsGate = createDepsGate();
     private readonly bodyValueGate: DepsGate = createDepsGate();
     private readonly headersValueGate: DepsGate = createDepsGate();
-    private live = false;
     private activeBranch: VanillaView<unknown> | undefined;
     private pendingBranch: VanillaView<unknown> | undefined;
     private currentKey: "executing" | "empty" | "response" | undefined;
@@ -127,14 +141,11 @@ export class ResponseViewerView extends VanillaView<ResponseViewerProps> {
     }
 
     protected onMount(): void {
-        this.live = true;
-        this.own(() => { this.live = false; });
         this.own(() => this.swap.dispose());
         this.own(() => this.driver.dispose());
         this.root.append(this.branchHost);
         this.driver.mount();
         this.bind(this.driver.model.state, (state) => state, this.sync);
-        this.responseResetGate.prime([this.props.response]);
         const state = this.driver.model.state.get();
         const derived = this.derived(this.props, state);
         this.bodyValueGate.prime([state.activeTab, this.props.executing, derived.formattedBody, this.props.response]);
@@ -155,11 +166,6 @@ export class ResponseViewerView extends VanillaView<ResponseViewerProps> {
 
     private readonly sync = (state: ResponseViewerState): void => {
         const props = this.props;
-        if (this.responseResetGate.changed([props.response])) {
-            queueMicrotask(() => {
-                if (this.live) this.driver.model.setLanguageOverride(null);
-            });
-        }
         const derived = this.derived(props, state);
         const key = props.executing ? "executing" : !props.response ? "empty" : "response";
         if (this.activeBranch && this.currentKey === key) {

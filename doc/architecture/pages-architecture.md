@@ -454,7 +454,7 @@ A third optional hook, `revealFragment?(fragment)`, follows the same shape for i
 - Calls `oldEditor.beforeNavigateAway(newEditor)` — old editor decides to keep/clear its `secondaryView`
 - Checks survival: a panel contributor (`contributesPanels()`) demotes to the sidebar; a `keepAliveOnNavigation()` editor stays attached with **no view at all** — an invisible ownership handle. The one current keep-alive editor is a **busy Board**: its spawned processes must outlive its iframe, so the model stays on the page to tie their lifetime to the page (page close disposes it, which reaps the jobs). Re-navigating to the same board promotes the surviving handle back to main via the `matchesNavigationTarget` singleton reuse (Step 3). A `movePageOut` (cross-window transfer) disposes keep-alive editors — their processes never transfer. Session restore drops a persisted non-main board descriptor entirely (busy is transient; its processes died with the app), so no zombie handle survives a restart.
 - Otherwise, disposes the old native view after the replacement is attached
-- Sets `newEditor.setPage(page)`, updates `mainEditorId` for UI re-render
+- Sets `newEditor.setPage(page)`, updates `mainEditorId`, and notifies subscribers so the editor view swaps
 - Calls `notifyMainEditorChanged()` — secondary views react, cleanup runs
 - Registers new editor's secondary panel if it has one
 
