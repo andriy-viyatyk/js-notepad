@@ -16,6 +16,7 @@ import { createTreeProviderItemIconElement, subscribeFileIconElements } from "..
 import { TREE_ITEM_KEY } from "../../uikit/Tree/types";
 import type { TreeProps } from "../../uikit/Tree/types";
 import type { SlotText } from "../../uikit/shared/slots";
+import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { TreeView } from "../../uikit/Tree/TreeView";
 import { InputView } from "../../uikit/Input/InputView";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
@@ -47,6 +48,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     private readonly iconCache = new Map<string, Element>();
     private selectedSet = new Set<string>();
     private readonly modelProps = (props: ViewProps): TreeProviderViewModelProps => props;
+    private readonly treeSwap: SubtreeSwap<number>;
 
     private treeView: TreeView<TreeProviderNode> | undefined;
     private searchPanel: HTMLDivElement | undefined;
@@ -66,6 +68,11 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     public constructor(props: ViewProps) {
         super(props, document.createElement("div"));
         this.root.dataset.type = "tree-provider-view";
+        const treeHost = document.createElement("div");
+        treeHost.dataset.part = "tree-host";
+        treeHost.style.display = "contents";
+        this.root.append(treeHost);
+        this.treeSwap = new SubtreeSwap<number>(treeHost);
         this.driver = createComponentModelDriver(
             this.modelProps(props),
             TreeProviderViewModel,
@@ -77,6 +84,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
         // Tree and search views must release their DOM and listeners before the driver disposes
         // TreeProviderViewModel and clears its tree-model handoff.
         this.own(() => { this.inert = true; });
+        this.own(() => this.treeSwap.dispose());
         this.own(() => this.driver.dispose());
         // VanillaView disposes Tree/search children before these FIFO disposers. Clear the
         // model's tree handoff only after those children have released their resources.
@@ -125,8 +133,6 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     }
 
     private readonly applyState = (state: ProviderState): void => {
-        if (this.inert) return;
-
         this.syncSelection(state.selectedValues);
 
         const tNodes = this.tNodesFor(state.displayTree);
@@ -165,19 +171,25 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     }
 
     private enterTreeArm(tNodes: Traited<TreeProviderNode[]>, state: ProviderState): void {
-        const view = this.child(new TreeView<TreeProviderNode>(this.treeProps(tNodes, state)));
-        this.treeView = view;
-        this.root.insertBefore(view.root, this.searchPanel ?? null);
-        view.mount();
-        this.model.setTreeModel(view.model);
+        let created: TreeView<TreeProviderNode> | undefined;
+        this.treeSwap.set(state.searchKey, () => {
+            created = new TreeView<TreeProviderNode>(this.treeProps(tNodes, state));
+            return created;
+        });
+        if (!created) return;
+        this.treeView = created;
+        created.mount();
+        this.model.setTreeModel(created.model);
     }
 
     private leaveTreeArm(): void {
         if (!this.treeView) return;
-        this.treeView.dispose();
-        this.treeView.root.remove();
-        this.treeView = undefined;
-        this.model.setTreeModel(null);
+        try {
+            this.treeSwap.clear();
+        } finally {
+            this.treeView = undefined;
+            this.model.setTreeModel(null);
+        }
     }
 
     private showMessage(kind: "error" | "empty", value: string): void {
@@ -381,7 +393,7 @@ export class TreeProviderViewImpl extends VanillaView<ViewProps> {
     private readonly onActiveChange = (index: number | null): void => {
         if (this.activeIndex === index) return;
         this.activeIndex = index;
-        if (this.inert || this.arm !== "tree" || !this.treeView) return;
+        if (this.arm !== "tree" || !this.treeView) return;
         const state = this.model.state.get();
         const tNodes = this.tNodesFor(state.displayTree);
         if (tNodes) this.treeView.update(this.treeProps(tNodes, state));

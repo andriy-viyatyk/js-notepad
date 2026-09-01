@@ -387,7 +387,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
 
         record[releaseKey] = this.listen(button.root, "click", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             event.stopPropagation();
             current.onSelect?.(current.link);
             if (kind === "edit") current.onEdit?.(current.link);
@@ -399,7 +399,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         const row = record.rowView.root;
         this.listen(row, "click", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             current.onSelect?.(
                 current.link,
                 event,
@@ -407,13 +407,13 @@ export class LinksListView extends VanillaView<LinksListProps> {
         });
         this.listen(row, "dblclick", () => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             if (current.onDoubleClick) current.onDoubleClick(current.link);
             else current.onEdit?.(current.link);
         });
         this.listen(row, "contextmenu", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             current.onContextMenu?.(
                 event,
                 current.link,
@@ -421,7 +421,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         });
         this.listen(row, "dragstart", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             if (!current.dragSourceId) {
                 event.preventDefault();
                 return;
@@ -441,7 +441,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         });
         this.listen(row, "dragend", () => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             current.isDragging = false;
             current.rowWrapper.style.opacity = "";
         });
@@ -457,7 +457,7 @@ export class LinksListView extends VanillaView<LinksListProps> {
         event: DragEvent,
     ): void {
         const current = this.cells.get(record.cell);
-        if (!current || this.inert) return;
+        if (!current) return;
         current[callback]?.(
             current.link,
             event,

@@ -1,3 +1,4 @@
+import { DisposableStore } from "../../core/utils/DisposableStore";
 import { ImperativeSplitter } from "./ImperativeSplitter";
 
 /**
@@ -34,6 +35,7 @@ export class GroupContainer {
             container,
             leftPlaceholder,
             rightPlaceholder,
+            new DisposableStore(),
         );
 
         // Insert splitter into the container

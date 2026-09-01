@@ -65,19 +65,19 @@ export class VPlayerView extends VanillaView<VPlayerProps> {
         this.audioPlayer.mount();
 
         this.listen(this.video, "loadstart", () => {
-            if (!this.inert && this.activeMode === "native") this.props.onStateChange?.("loading");
+            if (this.activeMode === "native") this.props.onStateChange?.("loading");
         });
         this.listen(this.video, "playing", () => {
-            if (!this.inert && this.activeMode === "native") this.props.onStateChange?.("playing");
+            if (this.activeMode === "native") this.props.onStateChange?.("playing");
         });
         this.listen(this.video, "pause", () => {
-            if (!this.inert && this.activeMode === "native") this.props.onStateChange?.("paused");
+            if (this.activeMode === "native") this.props.onStateChange?.("paused");
         });
         this.listen(this.video, "volumechange", () => {
-            if (!this.inert && this.activeMode === "native") this.props.onMutedChange?.(this.video.muted);
+            if (this.activeMode === "native") this.props.onMutedChange?.(this.video.muted);
         });
         this.listen(this.video, "error", () => {
-            if (this.inert || this.activeMode !== "native") return;
+            if (this.activeMode !== "native") return;
             const error = this.video.error;
             if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
                 this.props.onStateChange?.("unsupported format", error);

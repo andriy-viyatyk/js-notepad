@@ -257,9 +257,10 @@ const text = await pipe.readText();  // FileProvider → ArchiveTransformer → 
 TextFileIOModel uses dual pipes: primary (source file) + cache (auto-save). Pipe state persists in
 `IEditorState.pipe` (`IPipeDescriptor`) for restore across restarts.
 
-### 6. Event Channels (LIFO)
-`EventChannel.sendAsync()` calls subscribers newest-first, letting late subscribers (e.g. the open
-handler) intercept before earlier ones.
+### 6. Event Channels
+`EventChannel.send()` is synchronous, freezes the event, and calls subscribers FIFO. Its
+`sendAsync()` pipeline awaits subscribers newest-first, letting late subscribers (e.g. the open
+handler) intercept before earlier ones; it stops when the event is marked handled.
 
 ### 7. React-root measurement and conversion debugging
 `editors/draw/react-island.ts` owns the only React-root adapter; `mountReactHandle` marks its host

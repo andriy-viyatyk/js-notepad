@@ -1,5 +1,5 @@
 import { createComponentModelDriver, type ComponentModelDriver, TComponentModel } from "../../core/state/model";
-import { Delayer } from "../../core/utils/scheduling";
+import type { Delayer } from "../../core/utils/scheduling";
 import type { ButtonProps } from "../../uikit/Button/ButtonView";
 import { ButtonView } from "../../uikit/Button/ButtonView";
 import type { InputProps } from "../../uikit/Input/InputView";
@@ -70,7 +70,7 @@ class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPane
         const timerKey = `${tab}:${key}`;
         let delayer = this.descriptionDelayers.get(timerKey);
         if (!delayer) {
-            delayer = new Delayer<void>(300);
+            delayer = this.schedule.delayer<void>(300);
             this.descriptionDelayers.set(timerKey, delayer);
         }
         void delayer.trigger(() => {
@@ -79,7 +79,6 @@ class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPane
     };
 
     dispose = (): void => {
-        for (const delayer of this.descriptionDelayers.values()) delayer.dispose();
         this.descriptionDelayers.clear();
     };
 }

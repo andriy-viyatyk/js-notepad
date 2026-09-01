@@ -307,7 +307,6 @@ export class PinnedLinksPanelView extends VanillaView<PinnedLinksPanelProps> {
     }
 
     protected onDispose(): void {
-        this.inert = true;
         this.keyedRows = undefined;
         this.rows.clear();
     }

@@ -1,5 +1,6 @@
 import type { IState } from "../../core/state/state";
 import { DisposableStore } from "../../core/utils/DisposableStore";
+import { OwnerScheduler } from "../../core/utils/scheduling";
 
 /**
  * The minimal surface a parent needs in order to own a child view.
@@ -47,6 +48,7 @@ export abstract class VanillaView<P> implements IOwnedView {
     private mounted = false;
     private disposed = false;
     private readonly disposers = new DisposableStore();
+    private readonly scheduler = new OwnerScheduler(this.disposers, () => this.assertActive());
     private readonly children: IOwnedView[] = [];
 
     protected constructor(props: P, root: HTMLElement = document.createElement("div")) {
@@ -153,6 +155,17 @@ export abstract class VanillaView<P> implements IOwnedView {
      */
     protected get isDisposed(): boolean {
         return this.disposed;
+    }
+
+    /** Store used by this view and by helper resources it owns. */
+    protected get disposables(): DisposableStore {
+        return this.disposers;
+    }
+
+    /** Scheduler for work owned by this view. */
+    protected get schedule(): OwnerScheduler {
+        this.assertActive();
+        return this.scheduler;
     }
 
     /** Register a resource cleanup owned by this view. */

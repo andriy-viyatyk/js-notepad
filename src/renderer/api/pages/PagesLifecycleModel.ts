@@ -651,6 +651,7 @@ export class PagesLifecycleModel {
             for (const editor of [...page.editors]) {
                 if (editor.keepAliveOnNavigation()) void editor.dispose();
             }
+            this.model.checkEmptyPage();
         }
     };
 

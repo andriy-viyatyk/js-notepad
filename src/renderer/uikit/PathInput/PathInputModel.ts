@@ -1,5 +1,6 @@
 import type { NativeHTMLAttributes } from "../shared/dom-props";
 import { TComponentModel } from "../../core/state/model";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import { exceedsMaxDepth, getPathSuggestions, PathSuggestion } from "./suggestions";
 
 // =============================================================================
@@ -92,7 +93,7 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
 
     suggestions: PathSuggestion[] = [];
     private suggestionsDeps: [string, string[], string | undefined, number | undefined] | undefined;
-    private blurTimer: ReturnType<typeof setTimeout> | undefined;
+    private blurTimer: Cleanup | undefined;
 
     private suggestionsChanged = (props: PathInputProps): boolean => {
         const nextDeps: [string, string[], string | undefined, number | undefined] = [
@@ -181,8 +182,8 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
     onInputBlur = () => {
         // 150ms grace so suggestion-row mouse clicks (and the Tab fall-through)
         // get a chance to set selectionMade before the commit fires.
-        if (this.blurTimer !== undefined) clearTimeout(this.blurTimer);
-        this.blurTimer = setTimeout(() => {
+        this.blurTimer?.();
+        this.blurTimer = this.schedule.timeout(150, () => {
             this.blurTimer = undefined;
             if (this.selectionMade || this.escapeCancelled) {
                 this.selectionMade = false;
@@ -195,7 +196,7 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
                 });
                 this.props.onBlur?.(this.props.value);
             }
-        }, 150);
+        });
     };
 
     onRowMouseDown = (e: MouseEvent) => {
@@ -304,10 +305,8 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
     }
 
     dispose = (): void => {
-        if (this.blurTimer !== undefined) {
-            clearTimeout(this.blurTimer);
-            this.blurTimer = undefined;
-        }
+        this.blurTimer?.();
+        this.blurTimer = undefined;
         this.rowRefs.clear();
         this.inputRef = null;
     }

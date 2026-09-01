@@ -1,5 +1,7 @@
 import { produce } from "immer";
 import { resolveState } from "../utils/utils";
+import { runInDispatch } from "./dispatch";
+import { ListenerList } from "./listener-list";
 
 type SetStateAction<T> = T | ((previous: T) => T);
 type Dispatch<T> = (value: SetStateAction<T>) => void;
@@ -39,18 +41,9 @@ function compareSelection(a: unknown, b: unknown): boolean {
     return a === b;
 }
 
-/**
- * One registered subscriber. `active` exists so a listener retired *during* a dispatch is not
- * called later in that same pass — see `stateChanged`.
- */
-interface StateListener {
-    readonly notify: () => void;
-    active: boolean;
-}
-
 export class TOneState<T> implements IState<T> {
     private currentState: T;
-    private listeners: StateListener[] = [];
+    private readonly listeners = new ListenerList<() => void>();
     defaultState;
 
     constructor(defaultState: T) {
@@ -77,26 +70,13 @@ export class TOneState<T> implements IState<T> {
      * The error is rethrown asynchronously so it still reaches the host unswallowed.
      */
     private readonly stateChanged = () => {
-        for (const listener of [...this.listeners]) {
-            if (!listener.active) continue;
-            try {
-                listener.notify();
-            } catch (error) {
-                setTimeout(() => { throw error; }, 0);
-            }
-        }
+        runInDispatch(() => {
+            this.listeners.dispatchSync(
+                (listener) => { listener(); },
+                (error) => { setTimeout(() => { throw error; }, 0); },
+            );
+        });
     };
-
-    /** Register a subscriber and return its idempotent unsubscribe. */
-    private register(notify: () => void): () => void {
-        const listener: StateListener = { notify, active: true };
-        this.listeners.push(listener);
-        return () => {
-            if (!listener.active) return;
-            listener.active = false;
-            this.listeners = this.listeners.filter((item) => item !== listener);
-        };
-    }
 
     get = () => this.currentState;
     set = (setter: SetStateAction<T>) => {
@@ -128,13 +108,15 @@ export class TOneState<T> implements IState<T> {
                     listener(next);
                 }
             };
-            return this.register(wrapped);
+            return this.listeners.add(wrapped);
         }
         const listener = args[0] as () => void;
-        return this.register(listener);
+        return this.listeners.add(listener);
     }) as IState<T>["subscribe"];
 }
 
+/** Intent marker only; behavior is inherited unchanged from TOneState. */
 export class TGlobalState<T> extends TOneState<T> {}
 
+/** Intent marker only; behavior is inherited unchanged from TOneState. */
 export class TComponentState<T> extends TOneState<T> {}

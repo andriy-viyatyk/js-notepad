@@ -1,4 +1,9 @@
-type Cleanup = () => void;
+export interface IDisposable {
+    dispose(): void;
+}
+
+export type Cleanup = () => void;
+type Disposable = Cleanup | IDisposable;
 
 /**
  * Tracks synchronous cleanup functions and releases them as a group.
@@ -13,11 +18,14 @@ export class DisposableStore {
     private disposables: Cleanup[] = [];
     private closed = false;
 
-    add(cleanup: Cleanup): Cleanup {
+    add(disposable: Disposable): Cleanup {
         if (this.closed) {
             throw new Error("Cannot register a cleanup on a disposed DisposableStore.");
         }
 
+        const cleanup = typeof disposable === "function"
+            ? disposable
+            : () => disposable.dispose();
         let released = false;
         const release: Cleanup = () => {
             if (released) return;
@@ -28,6 +36,12 @@ export class DisposableStore {
         };
         this.disposables.push(release);
         return release;
+    }
+
+    child(): DisposableStore {
+        const child = new DisposableStore();
+        this.add(() => child.dispose());
+        return child;
     }
 
     dispose(): void {

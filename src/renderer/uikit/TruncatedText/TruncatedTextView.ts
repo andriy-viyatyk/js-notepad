@@ -8,6 +8,7 @@ import {
     type RestPropsState,
 } from "../shared/dom-props";
 import { VanillaView } from "../shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import "./TruncatedText.css";
 
 export interface TruncatedTextProps
@@ -33,7 +34,7 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
     private tooltip: TooltipAttachment | undefined;
     private text = "";
     private overflow = false;
-    private measureFrame: number | undefined;
+    private measureFrame: Cleanup | undefined;
 
     public constructor(props: TruncatedTextViewProps) {
         super(props, document.createElement("span"));
@@ -102,7 +103,7 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
 
     private scheduleMeasure(): void {
         this.cancelMeasure();
-        this.measureFrame = window.requestAnimationFrame(() => {
+        this.measureFrame = this.schedule.raf(() => {
             this.measureFrame = undefined;
             this.measure();
             this.updateTooltip();
@@ -110,10 +111,8 @@ export class TruncatedTextView extends VanillaView<TruncatedTextViewProps> {
     }
 
     private cancelMeasure(): void {
-        if (this.measureFrame !== undefined) {
-            window.cancelAnimationFrame(this.measureFrame);
-            this.measureFrame = undefined;
-        }
+        this.measureFrame?.();
+        this.measureFrame = undefined;
     }
 
     private clearContent(): void {

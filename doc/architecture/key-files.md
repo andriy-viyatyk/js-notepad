@@ -15,7 +15,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 |--------------------------|---------------------------------------------------|
 | Shared types (IEditorState)| `/src/shared/types.ts`                            |
 | ILinkData helpers        | `/src/shared/link-data.ts`                        |
-| Cross-process helpers (`debounce`; `concatChunks`; `errMessage(e, fallback?)` — the one way to turn a caught `unknown` into a message, in `shared/` because main, renderer and the board shim all need it) | `/src/shared/utils.ts` |
+| Cross-process helpers (`debounce` with idempotent `cancel()`; `concatChunks`; `errMessage(e, fallback?)` — the one way to turn a caught `unknown` into a message, in `shared/` because main, renderer and the board shim all need it) | `/src/shared/utils.ts` |
 | App object model         | `/src/renderer/api/app.ts`                        |
 | Page/tab management      | `/src/renderer/api/pages/PagesModel.ts`           |
 | Page container (tab)     | `/src/renderer/api/pages/PageModel.ts`            |
@@ -32,7 +32,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |
 | Path utilities           | `/src/renderer/core/utils/file-path.ts`           |
 | State primitives         | `/src/renderer/core/state/`                        |
-| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen` with early-release handles, `ownSubscription`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
+| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen` with early-release handles, owner-bound scheduling, `ownSubscription`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
 | Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
 | Conditional subtree ownership (stable `PropertyKey` keys, replacement-before-disposal, and root detachment) | `/src/renderer/uikit/shared/subtree-swap.ts` |
 | Shared RenderGrid cell geometry and coordinate attributes | `/src/renderer/uikit/shared/cell-style.ts` |
@@ -44,9 +44,11 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Transient-surface focus restoration (`restoreFocus` marks synchronous programmatic focus and `isRestoringFocus` lets `focusin` consumers distinguish it from user focus) | `/src/renderer/uikit/shared/focus-restore.ts` |
 | Component model lifecycle (initial prop pump, explicit `mount`/`update`/`dispose`, model-owned cleanup, and derive-on-write fields) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
-| Shared cleanup store (function disposers, early release, ordered error-isolated drain) | `/src/renderer/core/utils/DisposableStore.ts` |
-| Named scheduling helpers (`Delayer`, paint-boundary callbacks, and focus-after-paint cancellation) | `/src/renderer/core/utils/scheduling.ts` |
-| Renderer event primitive (`Emitter<T>`, `Event<T>`, and compatibility `Subscription<T>` broadcasts) | `/src/renderer/core/state/events.ts` |
+| State dispatch boundary (module-global depth, FIFO `afterDispatch()` queue, and error-isolated drain) | `/src/renderer/core/state/dispatch.ts` |
+| Shared listener registration core (active unsubscribe, snapshot traversal, sync/async dispatch, and disposal) | `/src/renderer/core/state/listener-list.ts` |
+| Shared cleanup store (function/object disposables, child stores, early release, ordered error-isolated drain) | `/src/renderer/core/utils/DisposableStore.ts` |
+| Owner-bound scheduling helpers (`OwnerScheduler`, `Delayer`, paint-boundary callbacks, and focus-after-paint cancellation) | `/src/renderer/core/utils/scheduling.ts` |
+| Renderer event primitive (`Emitter<T>`, `Event<T>`, and disposable compatibility `Subscription<T>` broadcasts) | `/src/renderer/core/state/events.ts` |
 | Framework-free virtualization engine (render-window calculation, pooled cells, sticky regions, scroll/resize handling, and scheduled repaint) | `av-grid` via `/src/renderer/uikit/DataGrid/index.ts` |
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
 | Git-root detection for Markdown wiki links (walk up to nearest `.git`, cached) | `/src/renderer/editors/markdown/detect-git-root.ts` |
@@ -56,7 +58,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | JSON parsing helpers (`tryParseJson<T>` parse-or-fall-back; `parseObject` / `parseJSON5`) | `/src/renderer/core/utils/parse-utils.ts` |
 | Toast-on-failure wrapper (`guard(label, fn, level?)` — the "try, notify, carry on" handler shape) | `/src/renderer/core/utils/guard.ts` |
 | App settings             | `/src/renderer/api/settings.ts`                   |
-| Event channel system     | `/src/renderer/api/events/EventChannel.ts`        |
+| Event channel system (FIFO `send`, LIFO async pipeline, disposable subscriptions/channels) | `/src/renderer/api/events/EventChannel.ts` |
 | App events namespace     | `/src/renderer/api/events/AppEvents.ts`           |
 | Trait system core        | `/src/renderer/core/traits/traits.ts`             |
 | Trait registry + TraitTypeId | `/src/renderer/core/traits/TraitRegistry.ts`  |

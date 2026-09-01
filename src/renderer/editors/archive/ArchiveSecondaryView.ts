@@ -4,6 +4,7 @@ import type { ITreeProviderItem } from "../../api/types/io.tree";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import { TreeProviderViewImpl } from "../../components/tree-provider/TreeProviderViewImpl";
 import type { TreeProviderViewModel } from "../../components/tree-provider/TreeProviderViewModel";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
@@ -19,7 +20,7 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
     private closeButton: IconButtonView | undefined;
     private header: SideBarPanelHeaderHandle | undefined;
     private treeProviderModel: TreeProviderViewModel | undefined;
-    private revealFrame: number | undefined;
+    private revealFrame: Cleanup | undefined;
 
     public constructor(props: SecondaryViewProps) {
         super(props, createPanelElement({
@@ -152,14 +153,14 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
         this.cancelReveal();
         const selectedHref = this.archiveModel?.selectionState.get().selectedHref;
         if (version <= 0 || !selectedHref) return;
-        this.revealFrame = requestAnimationFrame(() => {
+        this.revealFrame = this.schedule.raf(() => {
             this.revealFrame = undefined;
             void this.treeProviderModel?.revealItem(selectedHref);
         });
     }
 
     private cancelReveal(): void {
-        if (this.revealFrame !== undefined) cancelAnimationFrame(this.revealFrame);
+        this.revealFrame?.();
         this.revealFrame = undefined;
     }
 }

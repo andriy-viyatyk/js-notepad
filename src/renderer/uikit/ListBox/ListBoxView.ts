@@ -99,7 +99,6 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
      * Set before anything else is torn down, so a cell listener that fires during disposal — the
      * pooled wrappers keep their listeners by design — cannot reach a half-disposed model.
      */
-    private inert = false;
 
     public constructor(props: ListBoxProps<T>) {
         super(props, document.createElement("div"));
@@ -114,7 +113,6 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
 
         // Registration order is load-bearing: disposal runs these FIFO, and the grid and row
         // views must go before the model driver.
-        this.own(() => { this.inert = true; });
         this.own(() => {
             this.grid?.destroy();
             this.grid = null;
@@ -493,7 +491,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
     }
 
     private activeRecord(wrapper: HTMLElement): CellRecord | undefined {
-        if (this.inert || this.arm !== "real") return undefined;
+        if (this.arm !== "real") return undefined;
         return this.cells.get(wrapper);
     }
 

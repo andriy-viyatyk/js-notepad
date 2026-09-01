@@ -1,3 +1,5 @@
+import { DisposableStore, type Cleanup, type IDisposable } from "../../core/utils/DisposableStore";
+
 /**
  * Imperative vertical splitter for the native page layout.
  * Positions two sibling placeholder divs side-by-side using absolute
@@ -14,6 +16,7 @@ export class ImperativeSplitter {
     paused = false;
     private widthK = 0.5;
     private observer: ResizeObserver;
+    private disposed = false;
     private dragging = false;
     private startX = 0;
     private startLeftWidth = 0;
@@ -22,6 +25,7 @@ export class ImperativeSplitter {
         private container: HTMLDivElement,
         private leftPane: HTMLDivElement,
         private rightPane: HTMLDivElement,
+        private readonly disposables: DisposableStore,
     ) {
         this.element = document.createElement("div");
         Object.assign(this.element.style, {
@@ -46,17 +50,27 @@ export class ImperativeSplitter {
         this.observer = new ResizeObserver(this.handleResize);
         this.observer.observe(container);
 
+        // Preserve the existing teardown order: observer first, then element listeners.
+        this.register(() => this.observer.disconnect());
+        this.register(() => this.element.removeEventListener("mouseenter", this.handleMouseEnter));
+        this.register(() => this.element.removeEventListener("mouseleave", this.handleMouseLeave));
+        this.register(() => this.element.removeEventListener("pointerdown", this.handlePointerDown));
+        this.register(() => this.element.removeEventListener("pointermove", this.handlePointerMove));
+        this.register(() => this.element.removeEventListener("pointerup", this.handlePointerUp));
+        this.register(() => this.element.removeEventListener("dblclick", this.handleDoubleClick));
+
         this.applyLayout();
     }
 
-    dispose() {
-        this.observer.disconnect();
-        this.element.removeEventListener("mouseenter", this.handleMouseEnter);
-        this.element.removeEventListener("mouseleave", this.handleMouseLeave);
-        this.element.removeEventListener("pointerdown", this.handlePointerDown);
-        this.element.removeEventListener("pointermove", this.handlePointerMove);
-        this.element.removeEventListener("pointerup", this.handlePointerUp);
-        this.element.removeEventListener("dblclick", this.handleDoubleClick);
+    dispose(): void {
+        if (this.disposed) return;
+        this.disposed = true;
+        this.disposables.dispose();
+    }
+
+    private register(disposable: Cleanup | IDisposable): void {
+        if (this.disposed) return;
+        this.disposables.add(disposable);
     }
 
     /** Re-apply the current layout (call after compare mode exit restores grouped view) */

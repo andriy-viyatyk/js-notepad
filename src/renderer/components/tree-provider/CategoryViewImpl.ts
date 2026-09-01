@@ -162,7 +162,6 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     }
 
     protected onDispose(): void {
-        this.inert = true;
         this.detachToolbarNodes();
         this.disposeBridge();
         this.gridModel = null;
@@ -222,8 +221,6 @@ export class CategoryViewImpl extends VanillaView<CategoryViewProps> {
     }
 
     private applyState(state: StateSelection): void {
-        if (this.inert) return;
-
         const contentArm = !state.error && !(state.loading && state.items.length === 0);
         this.arm = contentArm ? "content" : "message";
         this.root.toggleAttribute("data-drop-active", contentArm && state.dropOverView && !state.dropTargetHref);

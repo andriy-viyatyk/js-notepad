@@ -341,8 +341,7 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         add.style.color = color.text.light;
         add.style.transition = "opacity 0.5s ease";
         const onAdd = (): void => this.props.onAddComment?.(this.props.note.id);
-        add.addEventListener("click", onAdd);
-        this.releaseCommentListener = this.ownSubscription(() => add.removeEventListener("click", onAdd));
+        this.releaseCommentListener = this.listen(add, "click", onAdd);
         this.commentHost.replaceChildren(add);
     }
 
@@ -358,8 +357,7 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         element.style.color = color.text.light;
         element.style.backgroundColor = color.background.dark;
         element.append(iconElement(PlusIcon, 12, 12));
-        element.addEventListener("click", this.model.handleAddTagClick);
-        listeners.push(() => element.removeEventListener("click", this.model.handleAddTagClick));
+        listeners.push(this.listen(element, "click", this.model.handleAddTagClick));
         return element;
     }
 
@@ -384,12 +382,10 @@ export class NoteItemView extends VanillaView<NoteItemViewProps> {
         close.style.marginRight = "-3px";
         close.append(iconElement(CloseIcon, 12, 12));
         const onDelete = (event: MouseEvent): void => this.model.handleTagDelete(event, index);
-        close.addEventListener("click", onDelete);
-        listeners.push(() => close.removeEventListener("click", onDelete));
+        listeners.push(this.listen(close, "click", onDelete));
         element.append(label, close);
         const onEdit = (): void => this.model.handleTagClick(index);
-        element.addEventListener("click", onEdit);
-        listeners.push(() => element.removeEventListener("click", onEdit));
+        listeners.push(this.listen(element, "click", onEdit));
         return element;
     }
 

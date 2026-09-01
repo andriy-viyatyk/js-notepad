@@ -1,3 +1,28 @@
+## EPIC-080 — State, lifetime & scheduling core
+
+Completed 2026-09-01. [Epic document](EPIC-080.md). The first epic of the
+[De-React second-pass roadmap](../de-react-refactoring-2.md). Built the four missing framework
+mechanisms the renderer had been hand-rolling — one listener core, one disposal contract,
+`afterDispatch`, and owner-bound scheduling — and fixed three real defects on the way: both
+`EventChannel` unsubscribe bugs and `debounce`'s unstoppable `canRun` retry chain.
+
+Four of the roadmap's own claims did not survive verification and were corrected in the epic
+document: `DisposableCollection` was dead code rather than public API; `KeyedList` did not have the
+problem attributed to it; `PageContentView` cannot adopt `SubtreeSwap` (it retires in the opposite
+order to `afterDispatch`'s contract, and changing it would mean re-reviewing 55 call sites); and the
+`live`/`generation` family is mostly load-bearing — only 45 of ~215 references were provably
+redundant. Shrinking it further needs new owner mechanisms for async boundaries, not more sweeping.
+
+- **EPIC-080** — [State, lifetime & scheduling core](EPIC-080.md) — completed 2026-09-01
+  - [x] US-1259: P1 — one listener core behind `TOneState`/`Emitter`/`EventChannel`; **both** `EventChannel` unsubscribe bugs fixed; `dispose()` on emitters
+  - [x] US-1260: P7 — `DisposableStore` takes `Cleanup | IDisposable` and gains `child()`; `DisposableCollection` deleted (zero consumers); helper ownership for `CellTooltip`/`ImperativeSplitter`
+  - [x] US-1261: P2 — `core/state/dispatch.ts` (`afterDispatch`, module-global depth + FIFO drain); `checkEmptyPage` hoisted to its callers so the replacement page still follows teardown
+  - [x] US-1262: P2 — `PageModel.deferEditorCleanup` → `afterDispatch`; timer bookkeeping deleted, **async cleanup drain preserved**
+  - [x] US-1263: P3 — `OwnerScheduler` (`schedule.raf/timeout/delayer`) on `VanillaView`/`TModel`; 8 rAF sites converted; `debounce` gains `cancel()`
+  - [x] US-1264: Retired the *provable* duplicates only — 14 `live` + 31 `inert`; 92 `live`, 35 `inert` and all generations deliberately retained
+  - [x] US-1265: `InputDialogView` → `KeyedList`, `TreeProviderViewImpl` → `SubtreeSwap`; `PageContentView` deferred with reasons
+  - [x] US-1266: 17 raw `addEventListener` sites → `VanillaView.listen()` (split out of US-1260)
+
 ## EPIC-079 — Retire `uikit/VirtualGrid` in favour of av-grid's `RenderGrid`
 
 Completed 2026-08-30. [Epic document](EPIC-079.md). Persephone retired its forked virtualization

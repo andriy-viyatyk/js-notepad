@@ -4,6 +4,7 @@ import type { TextFileModel } from "../../editors/text/TextEditorModel";
 import { pagesModel } from "../../api/pages";
 import type { PageModel } from "../../api/pages/PageModel";
 import { SecondaryViewsView } from "../secondary-views/SecondaryViewsView";
+import { afterDispatch } from "../../core/state/dispatch";
 import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createOrnamentElement } from "../../theme/Ornament";
@@ -22,7 +23,6 @@ export class PageContentView extends VanillaView<PageContentProps> {
     private renderEditor: RenderEditorView | undefined;
     private contentIdentity: string | undefined;
     private compareView: CompareEditor | undefined;
-    private generation = 0;
     private live = true;
 
     public constructor(props: PageContentProps) {
@@ -31,7 +31,7 @@ export class PageContentView extends VanillaView<PageContentProps> {
     }
 
     protected onMount(): void {
-        this.own(() => { this.live = false; this.generation++; });
+        this.own(() => { this.live = false; });
         this.own(pagesModel.state.subscribe(
             () => this.sync(),
             (state) => ({
@@ -196,10 +196,9 @@ export class PageContentView extends VanillaView<PageContentProps> {
         const view = this.compareView;
         if (!view) return;
         this.compareView = undefined;
-        const generation = ++this.generation;
         view.root.remove();
-        queueMicrotask(() => {
-            if (this.generation === generation) void guard("Failed to dispose compare editor", () => view.dispose());
+        afterDispatch(() => {
+            void guard("Failed to dispose compare editor", () => view.dispose());
         });
     }
 }

@@ -114,7 +114,6 @@ export class LinkBodyView extends VanillaView<{ model: LinkEditor }> {
     }
 
     protected onDispose(): void {
-        this.inert = true;
         if (this.model.containerElement === this.root) this.model.containerElement = null;
         this.model.gridModel = null;
         this.activeBody = undefined;

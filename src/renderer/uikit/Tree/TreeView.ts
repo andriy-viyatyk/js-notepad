@@ -548,7 +548,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     }
 
     private activeRecord(wrapper: HTMLElement): CellRecord | undefined {
-        if (this.inert || this.arm !== "real") return undefined;
+        if (this.arm !== "real") return undefined;
         return this.cells.get(wrapper);
     }
 

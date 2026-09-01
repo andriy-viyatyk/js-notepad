@@ -1,5 +1,6 @@
 import { IState, TComponentState } from "./state";
 import { DisposableStore } from "../utils/DisposableStore";
+import { OwnerScheduler } from "../utils/scheduling";
 
 /**
  * Slot-by-slot dependency comparison, shared with `uikit/shared/deps-gate.ts` so a vanilla view's
@@ -21,14 +22,24 @@ export interface IModel<T> {
 export class TModel<T> implements IModel<T> {
     state: IState<T>;
     postCreate?: () => void;
-    private readonly disposables = new DisposableStore();
+    private readonly disposers = new DisposableStore();
+    private readonly scheduler = new OwnerScheduler(this.disposers);
+
+    protected get disposables(): DisposableStore {
+        return this.disposers;
+    }
+
+    /** Scheduler for work owned by this model. */
+    protected get schedule(): OwnerScheduler {
+        return this.scheduler;
+    }
 
     protected own(dispose: () => void): void {
-        this.disposables.add(dispose);
+        this.disposers.add(dispose);
     }
 
     dispose(): void {
-        this.disposables.dispose();
+        this.disposers.dispose();
     }
 
     constructor(

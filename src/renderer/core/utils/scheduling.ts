@@ -1,3 +1,5 @@
+import { DisposableStore, type Cleanup } from "./DisposableStore";
+
 /**
  * Debounces asynchronous or synchronous work and shares the completion promise
  * for calls in the same pending cycle.
@@ -140,6 +142,94 @@ export function afterPaint(run: () => void): () => void {
         if (handles.frame !== undefined) cancelAnimationFrame(handles.frame);
         if (handles.fallback !== undefined) clearTimeout(handles.fallback);
     };
+}
+
+type PendingRaf = {
+    active: boolean;
+    release: Cleanup;
+    cancel: Cleanup;
+};
+
+/** Owns scheduled renderer work and cancels it with the supplied owner store. */
+export class OwnerScheduler {
+    private pendingRaf: PendingRaf | undefined;
+
+    public constructor(
+        private readonly disposables: DisposableStore,
+        private readonly assertActive?: () => void,
+    ) {}
+
+    /**
+     * Schedules a callback after paint using one owner-wide coalescing slot: a second pending
+     * request replaces the first. Independent concurrent loops must keep raw handles; for example,
+     * `src/renderer/editors/video/AudioVisualizer.ts:346-388` has separate animation and sizing
+     * loops, and one owner-wide slot would make either loop clobber the other's pending frame.
+     */
+    public raf(run: () => void): Cleanup {
+        this.assertActive?.();
+        this.pendingRaf?.release();
+
+        const pending: PendingRaf = {
+            active: true,
+            release: () => undefined,
+            cancel: () => undefined,
+        };
+        pending.release = this.disposables.add(() => {
+            pending.active = false;
+            if (this.pendingRaf === pending) this.pendingRaf = undefined;
+            pending.cancel();
+        });
+        this.pendingRaf = pending;
+        try {
+            pending.cancel = afterPaint(() => {
+                if (!pending.active) return;
+                pending.active = false;
+                if (this.pendingRaf === pending) this.pendingRaf = undefined;
+                pending.release();
+                run();
+            });
+        } catch (error) {
+            pending.release();
+            throw error;
+        }
+        return pending.release;
+    }
+
+    /** Schedules a one-shot callback owned by this scheduler's store. */
+    public timeout(delay: number, run: () => void): Cleanup {
+        this.assertActive?.();
+        let active = true;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const release = this.disposables.add(() => {
+            active = false;
+            if (timer !== undefined) clearTimeout(timer);
+        });
+        try {
+            timer = setTimeout(() => {
+                if (!active) return;
+                active = false;
+                release();
+                run();
+            }, delay);
+        } catch (error) {
+            release();
+            throw error;
+        }
+        return release;
+    }
+
+    /** Creates an existing Delayer whose disposal is owned by this scheduler's store. */
+    public delayer<T>(delay: number): Delayer<T> {
+        this.assertActive?.();
+        const delayer = new Delayer<T>(delay);
+        try {
+            this.disposables.add(delayer);
+        } catch (error) {
+            delayer.dispose();
+            throw error;
+        }
+        return delayer;
+    }
 }
 
 /** Schedules focus after the next paint; selection is additive and never replaces focusing. */

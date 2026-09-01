@@ -1,33 +1,21 @@
+import { ListenerList } from "./listener-list";
+
 export type Event<T> = (listener: (event: T) => void) => () => void;
 
-interface EmitterRegistration<T> {
-    listener: (event: T) => void;
-    active: boolean;
-}
-
 export class Emitter<T> {
-    private registrations: EmitterRegistration<T>[] = [];
+    private readonly listeners = new ListenerList<(event: T) => void>();
 
-    readonly event: Event<T> = (listener) => {
-        const registration: EmitterRegistration<T> = { listener, active: true };
-        this.registrations.push(registration);
-        return () => {
-            if (!registration.active) return;
-            registration.active = false;
-            const index = this.registrations.indexOf(registration);
-            if (index >= 0) this.registrations.splice(index, 1);
-        };
-    };
+    readonly event: Event<T> = (listener) => this.listeners.add(listener);
 
     fire(event: T): void {
-        for (const registration of [...this.registrations]) {
-            if (!registration.active) continue;
-            try {
-                registration.listener(event);
-            } catch (error) {
-                setTimeout(() => { throw error; }, 0);
-            }
-        }
+        this.listeners.dispatchSync(
+            (listener) => { listener(event); },
+            (error) => { setTimeout(() => { throw error; }, 0); },
+        );
+    }
+
+    dispose(): void {
+        this.listeners.dispose();
     }
 }
 
@@ -39,6 +27,10 @@ export class Subscription<D = undefined> {
     };
 
     subscribe = (callback: (event: D) => void): (() => void) => this.emitter.event(callback);
+
+    dispose(): void {
+        this.emitter.dispose();
+    }
 }
 
 /** Global keyboard event broadcast. Sent from MainPage's window keydown listener. */

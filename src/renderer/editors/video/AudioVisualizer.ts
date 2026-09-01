@@ -232,7 +232,6 @@ export class AudioVisualizerView extends VanillaView<AudioVisualizerProps> {
 
         this.listen(this.props.media, "loadedmetadata", this.handleMetadata);
         this.listen(this.props.media, "emptied", () => {
-            if (this.inert) return;
             this.trackInfo = null;
             this.syncMetadata();
         });
@@ -389,7 +388,6 @@ export class AudioVisualizerView extends VanillaView<AudioVisualizerProps> {
     }
 
     private readonly handleMetadata = (): void => {
-        if (this.inert) return;
         const metadata = navigator.mediaSession?.metadata;
         if (metadata?.title || metadata?.artist) {
             this.trackInfo = { title: metadata.title || "", artist: metadata.artist || "" };

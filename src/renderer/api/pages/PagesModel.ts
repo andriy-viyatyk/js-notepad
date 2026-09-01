@@ -1,4 +1,5 @@
 import { Subscription } from "../../core/state/events";
+import { afterDispatch } from "../../core/state/dispatch";
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
 import type { EditorModel } from "../../editors/base";
@@ -53,6 +54,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         });
         this.query = new PagesQueryModel(this);
         this.persistence = new PagesPersistenceModel(this);
+        this.disposables.add(this.persistence.saveStateDebounced.cancel);
         this.layout = new PagesLayoutModel(this);
         this.navigation = new PagesNavigationModel(this);
         this.lifecycle = new PagesLifecycleModel(this);
@@ -96,7 +98,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         page.onClose = () => {
             this.detachPage(page);
             this.removePage(page);
-            page.dispose();
+            void page.dispose().finally(() => this.checkEmptyPage());
         };
     };
 
@@ -158,16 +160,14 @@ export class PagesModel extends TModel<OpenFilesState> {
                 this.onFocus.send(ordered[ordered.length - 1]);
             }
         }
-        this.checkEmptyPage();
     };
 
     checkEmptyPage = () => {
-        // Wait for page-removal dispatch and its observers to settle before creating a replacement.
-        setTimeout(() => {
+        afterDispatch(() => {
             if (this.state.get().pages.length === 0) {
                 this.lifecycle.addEmptyPage();
             }
-        }, 0);
+        });
     };
 
     /**

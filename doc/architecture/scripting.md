@@ -360,7 +360,9 @@ Implementation: [`src/renderer/scripting/api-wrapper/ClaudeSession.ts`](../../sr
 
 ### `app.events` — Event Channels
 
-Scripts can both subscribe to and send events. `send()` is synchronous, `sendAsync()` is async with LIFO subscriber ordering.
+Scripts can both subscribe to and send events. `send()` synchronously freezes the event and invokes
+subscribers in FIFO order; `sendAsync()` is an awaited pipeline with LIFO subscriber ordering and
+short-circuiting when the event is marked handled.
 
 ```javascript
 // Subscribe (auto-cleaned up when script ends)

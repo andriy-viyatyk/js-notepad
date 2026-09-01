@@ -30,7 +30,6 @@ export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps>
     private libraryPath = "";
     private provider: FileTreeProvider | null = null;
     private treeView: TreeProviderViewImpl | undefined;
-    private live = true;
 
     public get model(): TreeProviderViewModel | null {
         return this.treeView?.model ?? null;
@@ -72,7 +71,6 @@ export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps>
             ),
         );
         this.child(this.setupButton).mount();
-        this.own(() => { this.live = false; });
         const subscription = settings.onChanged.subscribe(({ key }) => {
             if (key === "script-library.path") this.refresh();
         });
@@ -135,7 +133,6 @@ export class ScriptLibraryPanelView extends VanillaView<ScriptLibraryPanelProps>
     }
 
     protected onDispose(): void {
-        this.live = false;
         this.removeTree();
         this.libraryPath = "";
     }

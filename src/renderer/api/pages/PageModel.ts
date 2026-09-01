@@ -1,4 +1,5 @@
 import { TOneState } from "../../core/state/state";
+import { afterDispatch } from "../../core/state/dispatch";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
 import {
     explorerRootForPanels,
@@ -111,8 +112,6 @@ export class PageModel implements IPageHost {
     private _editorSubs = new Map<string, () => void>();
     private readonly subscriptions = new DisposableStore();
     private pageDisposed = false;
-    private cleanupGeneration = 0;
-    private readonly pendingCleanupTimers = new Map<ReturnType<typeof setTimeout>, () => Promise<void>>();
     private readonly pendingCleanupPromises = new Set<Promise<void>>();
 
     // ── Transient state (not persisted) ────────────────────────────
@@ -370,13 +369,11 @@ export class PageModel implements IPageHost {
             return;
         }
 
-        const generation = this.cleanupGeneration;
-        const timer = setTimeout(() => {
-            this.pendingCleanupTimers.delete(timer);
-            if (this.pageDisposed || generation !== this.cleanupGeneration) return;
+        // A queued cleanup is held in dispatch.ts, not this PageModel. No current page-close path runs
+        // inside a state dispatch; if that invariant changes, the cleanup can escape this page's drain.
+        afterDispatch(() => {
             this.startEditorCleanup(cleanup);
-        }, 0);
-        this.pendingCleanupTimers.set(timer, cleanup);
+        });
     }
 
     private startEditorCleanup(cleanup: () => Promise<void>): void {
@@ -387,13 +384,7 @@ export class PageModel implements IPageHost {
     }
 
     private async drainDeferredEditorCleanup(): Promise<void> {
-        this.cleanupGeneration++;
-        const queued = [...this.pendingCleanupTimers.entries()];
-        this.pendingCleanupTimers.clear();
-        for (const [timer, cleanup] of queued) {
-            clearTimeout(timer);
-            this.startEditorCleanup(cleanup);
-        }
+        // This drain cannot flush callbacks still queued in dispatch.ts; it awaits only admitted cleanup promises.
         while (this.pendingCleanupPromises.size) {
             await Promise.all([...this.pendingCleanupPromises]);
         }

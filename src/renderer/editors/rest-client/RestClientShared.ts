@@ -14,6 +14,7 @@ import { createDepsGate, type DepsGate } from "../../uikit/shared/deps-gate";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { openMenu, type MenuHandle } from "../../uikit/Menu/attach-menu";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import type { RestClientSource, RestClientViewState, RestRequest } from "./restClientTypes";
 import { RequestBuilderView } from "./RequestBuilderView";
 import { ResponseViewerView } from "./ResponseViewerView";
@@ -86,8 +87,7 @@ export class RestDetailView extends VanillaView<RestDetailProps> {
     private readonly responseMetaSwap = new SubtreeSwap<"none" | "response">(this.responseMetaHost);
     private readonly resultMeasureGate: DepsGate = createDepsGate();
     private resultHeight: number | null = null;
-    private measureFrame: number | undefined;
-    private live = false;
+    private measureFrame: Cleanup | undefined;
     private collection: TextareaView | undefined;
     private name: TextareaView | undefined;
     private copyButton: IconButtonView | undefined;
@@ -147,10 +147,8 @@ export class RestDetailView extends VanillaView<RestDetailProps> {
     }
 
     protected onMount(): void {
-        this.live = true;
         this.own(() => {
-            this.live = false;
-            if (this.measureFrame !== undefined) cancelAnimationFrame(this.measureFrame);
+            this.measureFrame?.();
             this.measureFrame = undefined;
         });
         this.own(() => this.responseMetaSwap.dispose());
@@ -268,11 +266,10 @@ export class RestDetailView extends VanillaView<RestDetailProps> {
     }
 
     private scheduleMeasurement(): void {
-        if (!this.live) return;
-        if (this.measureFrame !== undefined) cancelAnimationFrame(this.measureFrame);
-        this.measureFrame = requestAnimationFrame(() => {
+        this.measureFrame?.();
+        this.measureFrame = this.schedule.raf(() => {
             this.measureFrame = undefined;
-            if (!this.live || !this.root.isConnected || this.responsePane.offsetHeight <= 0) {
+            if (!this.root.isConnected || this.responsePane.offsetHeight <= 0) {
                 this.scheduleMeasurement();
                 return;
             }

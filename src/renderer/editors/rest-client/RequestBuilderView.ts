@@ -5,6 +5,7 @@ import { createDepsGate, type DepsGate } from "../../uikit/shared/deps-gate";
 import { KeyedList } from "../../uikit/shared/keyed-list";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import { createPanelElement, applyPanelAttributes, resolvePanelAttributes } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
 import type { ButtonProps } from "../../uikit/Button/ButtonView";
@@ -77,9 +78,8 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
     private readonly headersSwap = new SubtreeSwap<"table" | "json">(this.headerContentHost);
     private readonly languageSwap = new SubtreeSwap<"raw" | "non-raw">(this.bodyLanguageHost);
     private readonly bodyMeasureGate: DepsGate = createDepsGate();
-    private bodyMeasureFrame: number | undefined;
+    private bodyMeasureFrame: Cleanup | undefined;
     private bodyHeight: number | null = null;
-    private live = false;
     private headersView: SegmentedControlView | undefined;
     private bodyTypeView: SegmentedControlView | undefined;
     private bodyContent: BodyContentView | undefined;
@@ -104,8 +104,7 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
     }
 
     protected onMount(): void {
-        this.live = true;
-        this.own(() => { this.live = false; if (this.bodyMeasureFrame !== undefined) cancelAnimationFrame(this.bodyMeasureFrame); this.bodyMeasureFrame = undefined; });
+        this.own(() => { this.bodyMeasureFrame?.(); this.bodyMeasureFrame = undefined; });
         this.own(() => this.headersSwap.dispose());
         this.own(() => this.languageSwap.dispose());
         this.own(() => this.driver.dispose());
@@ -188,11 +187,10 @@ export class RequestBuilderView extends VanillaView<RequestBuilderProps> {
     }
 
     private scheduleBodyMeasure(): void {
-        if (!this.live) return;
-        if (this.bodyMeasureFrame !== undefined) cancelAnimationFrame(this.bodyMeasureFrame);
-        this.bodyMeasureFrame = requestAnimationFrame(() => {
+        this.bodyMeasureFrame?.();
+        this.bodyMeasureFrame = this.schedule.raf(() => {
             this.bodyMeasureFrame = undefined;
-            if (!this.live || !this.root.isConnected || this.bodyPanel.offsetHeight <= 0) { this.scheduleBodyMeasure(); return; }
+            if (!this.root.isConnected || this.bodyPanel.offsetHeight <= 0) { this.scheduleBodyMeasure(); return; }
             this.bodyHeight = this.bodyPanel.offsetHeight;
             this.driver.model.setBodyHeight(this.bodyHeight);
             this.applyLayout();

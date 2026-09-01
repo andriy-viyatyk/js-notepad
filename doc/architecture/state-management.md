@@ -6,6 +6,7 @@ persephone uses a custom reactive state system built on `TOneState` + Immer:
 - Immutable updates via Immer's `produce()`
 - Synchronous subscriptions, with structural comparison for plain objects and reference comparison for other values
 - Type-safe state access via `TOneState<T>`
+- A module-global dispatch boundary for work that must run after nested state notifications settle
 
 All state primitives live in `/src/renderer/core/state/`.
 
@@ -14,7 +15,7 @@ All state primitives live in `/src/renderer/core/state/`.
 | Primitive | Use case | Location |
 |-----------|----------|----------|
 | `TOneState<T>` | Simple reactive value (standalone or inside a model) | Anywhere |
-| `TGlobalState<T>` | Application-wide state (cleared on logout) | `api/` modules |
+| `TGlobalState<T>` | Application-wide state intent marker | `api/` modules |
 | `TComponentState<T>` | Component-scoped state | `TComponentModel` instances |
 | `TModel<T>` | Stateful business logic (non-React) | Models, services |
 | `TComponentModel<T, P>` | Component model with props, state, handlers, and synchronously maintained derived fields; driven by an explicit lifecycle adapter | `VanillaView` classes |
@@ -44,7 +45,9 @@ the already-applied theme.
 
 ### TGlobalState\<T\>
 
-Extends `TOneState` — identical API, but auto-clears on logout. Used for application-wide state in Object Model implementations.
+Extends `TOneState` with the identical API. It is an intent marker for application-wide state used
+by Object Model implementations; clearing and other lifetime actions are owned by the surrounding
+model or service.
 
 ```typescript
 const globalState = new TGlobalState<AppState>(defaultState);
@@ -63,7 +66,21 @@ state.update(s => {
 });
 ```
 
-**Design Note:** Both `TGlobalState` and `TComponentState` extend `TOneState` with the same API. The distinction is organizational — `TGlobalState` clears on logout, while `TComponentState` is scoped to a component model's lifetime via `createComponentModelDriver`.
+**Design Note:** Both `TGlobalState` and `TComponentState` are empty subclasses of `TOneState` with
+the same behavior. The distinction is organizational: the names communicate intended ownership and
+scope, while lifetime actions such as logout clearing are performed by the owning model or service.
+
+### Dispatch boundary
+
+State notifications remain synchronous. Each `TOneState` notification enters a module-global
+dispatch scope, so nested updates across different states are part of the same pass. The internal
+`afterDispatch(callback)` helper in `core/state/dispatch.ts` runs callbacks in FIFO order after the
+outermost dispatch and all nested notifications settle; when no dispatch is active, it runs the
+callback immediately. This is additive—`set()` and `update()` keep their existing notification
+semantics.
+
+Use `afterDispatch` for teardown or replacement work that must wait until current subscribers have
+finished. It is an ordering boundary, not a general asynchronous task queue.
 
 ### Large Accumulating Collections Don't Belong in State
 
@@ -158,6 +175,12 @@ class MyModel extends TModel<MyState> {
     }
 }
 ```
+
+`TModel` owns a `DisposableStore` and exposes protected `disposables` and `schedule` surfaces to
+subclasses. `schedule.raf()` coalesces to one pending owner-wide paint callback, while
+`schedule.timeout()` and `schedule.delayer()` register their work with the same owner store. All
+three are canceled when the model is disposed; independent concurrent loops must retain their own
+raw handles rather than sharing the coalescing slot.
 
 ### TComponentModel\<T, P\>
 
@@ -287,25 +310,44 @@ interface IPipeDescriptor {
 
 ## Disposable Pattern
 
-Renderer-owned cleanup uses function disposers. `DisposableStore` is the common primitive for
-grouping them; it lives in `/src/renderer/core/utils/DisposableStore.ts`.
+Renderer-owned cleanup uses `DisposableStore`, the single renderer store implementation. It lives in
+`/src/renderer/core/utils/DisposableStore.ts` and accepts both function cleanups and structural
+disposable objects.
 
 ```typescript
 const store = new DisposableStore();
 const release = store.add(event.subscribe(handler));
+store.add(monacoResource);
 // Release one item early, or let the owner drain the store:
 release();
 store.dispose();
 ```
 
-`DisposableStore.add()` returns an idempotent release handle and rejects new registrations after
-the store is closed. `dispose()` snapshots and clears the store, attempts every cleanup in FIFO
-order, and rethrows the first failure after the sweep.
+`DisposableStore.add()` accepts `Cleanup | IDisposable`, returns an idempotent release handle for
+either form, and rejects new registrations after the store is closed. `dispose()` snapshots and
+clears the store, attempts every cleanup in FIFO order, and rethrows the first failure after the
+sweep. An object entry is normalized to its `dispose()` method without changing the public
+declaration used by scripts and Monaco.
+
+`child()` creates a store and immediately reserves one cleanup slot in its parent:
+
+```typescript
+const child = store.child();
+const helper = new Helper(child);
+```
+
+The slot is reserved at the call site, so later helper registrations cannot move that helper across
+the owner's existing FIFO order. A child may be disposed early; the parent slot remains safe when
+the parent later drains. `VanillaView` and `TModel` expose their owner store through a protected
+`disposables` getter. Helpers should receive a dedicated child store, keep an idempotent
+`disposed` guard, and check it before every registration. This makes a late helper attach after its
+owner is disposed a no-op through the helper guard rather than a registration into a closed store.
 
 ### IDisposable
 
 Resource object contract used by Monaco and other APIs that expose an object-based resource.
-It is separate from the renderer's subscription disposer shape.
+`DisposableStore` accepts this shape as well as function cleanup callbacks, normalizing both to the
+same idempotent release-handle contract.
 
 ```typescript
 interface IDisposable {
@@ -323,18 +365,6 @@ interface IEvent<T> {
 }
 ```
 
-### DisposableCollection
-
-Groups `IDisposable` resource objects for bulk cleanup. It is retained for object-based resources;
-event subscriptions use function disposers and belong in `DisposableStore` or a view/model owner.
-
-```typescript
-const disposables = new DisposableCollection();
-disposables.add(monacoResource);
-disposables.add(anotherMonacoResource);
-// Later: disposables.dispose();
-```
-
 ### wrapSubscription
 
 Adapts the internal `Subscription<T>` (from `core/state/events.ts`) to the public `IEvent<T>`
@@ -347,8 +377,9 @@ const onChanged: IEvent<string> = wrapSubscription(mySubscription);
 
 ### Subscription\<T\>
 
-Compatibility event wrapper in `core/state/events.ts`, implemented on the same listener-array
-primitive as `Emitter<T>`. It is used for the renderer's named global broadcasts.
+Compatibility event wrapper in `core/state/events.ts`, implemented on the shared `ListenerList`
+primitive as `Emitter<T>`. It is used for the renderer's named global broadcasts and can dispose all
+of its listeners when its owning lifetime ends.
 
 ```typescript
 const event = new Subscription<string>();
@@ -358,8 +389,9 @@ release();                               // cleanup
 ```
 
 `Emitter<T>` exposes the underlying `event` function and `fire(value)` operation. Its listener
-array is snapshotted for dispatch, and each subscription returns the one renderer teardown shape:
-`() => void`.
+array is snapshotted for dispatch, retired registrations are skipped even if dispatch is already in
+progress, and each subscription returns the one renderer teardown shape: `() => void`. `Emitter`,
+`Subscription`, and `EventChannel` all expose `dispose()`.
 
 ### EventChannel\<T\>
 

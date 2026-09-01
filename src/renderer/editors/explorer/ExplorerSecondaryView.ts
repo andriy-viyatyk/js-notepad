@@ -27,6 +27,7 @@ import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import type { IconButtonProps } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import { createIconElement } from "../../uikit/shared/slots";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import { fpBasename, fpDirname } from "../../core/utils/file-path";
@@ -47,7 +48,7 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
     private collapseButton: IconButtonView | undefined;
     private closeButton: IconButtonView | undefined;
     private readonly trailingButtons = new Map<string, IconButtonView>();
-    private revealFrame: number | undefined;
+    private revealFrame: Cleanup | undefined;
 
     public constructor(props: SecondaryViewProps) {
         super(props, createPanelElement({
@@ -393,14 +394,14 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
         this.cancelReveal();
         const selectedHref = this.model.selectionState.get().selectedHref;
         if (version <= 0 || !selectedHref) return;
-        this.revealFrame = requestAnimationFrame(() => {
+        this.revealFrame = this.schedule.raf(() => {
             this.revealFrame = undefined;
             void this.treeProviderModel?.revealItem(selectedHref);
         });
     }
 
     private cancelReveal(): void {
-        if (this.revealFrame !== undefined) cancelAnimationFrame(this.revealFrame);
+        this.revealFrame?.();
         this.revealFrame = undefined;
     }
 

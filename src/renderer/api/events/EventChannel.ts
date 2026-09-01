@@ -1,3 +1,5 @@
+import { ListenerList } from "../../core/state/listener-list";
+
 export type EventHandler<TEvent> = (event: TEvent) => void | Promise<void>;
 
 export interface EventChannelOptions {
@@ -16,7 +18,7 @@ export interface EventChannelOptions {
  * - `subscribe(handler)` — register a handler (sync or async)
  */
 export class EventChannel<TEvent extends { handled?: boolean }> {
-    private handlers: EventHandler<TEvent>[] = [];
+    private readonly listeners = new ListenerList<EventHandler<TEvent>>();
     private readonly channelName: string;
     private readonly errorHandler: (error: unknown, channelName: string) => void;
 
@@ -29,7 +31,7 @@ export class EventChannel<TEvent extends { handled?: boolean }> {
 
     /** Whether any handlers are registered. */
     get hasSubscribers(): boolean {
-        return this.handlers.length > 0;
+        return this.listeners.size > 0;
     }
 
     /**
@@ -37,14 +39,12 @@ export class EventChannel<TEvent extends { handled?: boolean }> {
      * Returns a disposer to remove the handler.
      */
     subscribe = (handler: EventHandler<TEvent>): (() => void) => {
-        this.handlers.push(handler);
-        return () => {
-            const index = this.handlers.indexOf(handler);
-            if (index >= 0) {
-                this.handlers.splice(index, 1);
-            }
-        };
+        return this.listeners.add(handler);
     };
+
+    dispose(): void {
+        this.listeners.dispose();
+    }
 
     /**
      * Fire-and-forget: freezes the event and calls all subscribers in FIFO order.
@@ -52,13 +52,10 @@ export class EventChannel<TEvent extends { handled?: boolean }> {
      */
     send = (event: TEvent): void => {
         const frozen = Object.freeze(event);
-        for (const handler of [...this.handlers]) {
-            try {
-                handler(frozen);
-            } catch (error) {
-                this.errorHandler(error, this.channelName);
-            }
-        }
+        this.listeners.dispatchSync(
+            (handler) => { handler(frozen); },
+            (error) => { this.errorHandler(error, this.channelName); },
+        );
     };
 
     /**
@@ -68,21 +65,11 @@ export class EventChannel<TEvent extends { handled?: boolean }> {
      * @returns `true` if completed normally, `false` if cancelled (future).
      */
     sendAsync = async (event: TEvent): Promise<boolean> => {
-        const snapshot = [...this.handlers];
-        for (let i = snapshot.length - 1; i >= 0; i--) {
-            const handler = snapshot[i];
-            try {
-                const result = handler(event);
-                if (result && typeof (result as Promise<void>).then === "function") {
-                    await result;
-                }
-            } catch (error) {
-                this.errorHandler(error, this.channelName);
-            }
-            if (event.handled) {
-                return true;
-            }
-        }
+        await this.listeners.dispatchAsync(
+            (handler) => handler(event),
+            (error) => { this.errorHandler(error, this.channelName); },
+            { reverse: true, afterInvocation: () => event.handled === true },
+        );
         return true;
     };
 }

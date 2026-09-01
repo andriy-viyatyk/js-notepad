@@ -176,7 +176,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── events/             # Event channel system (scriptable events)
 │   │   ├── AppEvents.ts             # app.events namespace (linkContextMenu, fileExplorer, etc.)
 │   │   ├── BaseEvent.ts             # Base event class with `handled` flag
-│   │   ├── EventChannel.ts          # EventChannel<T> — subscribe, send, sendAsync
+│   │   ├── EventChannel.ts          # EventChannel<T> — subscribe, send, sendAsync, dispose
 │   │   ├── events.ts                # Event subclasses (ContextMenuEvent<T>, etc.)
 │   │   └── index.ts
 │   │
@@ -806,6 +806,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives
 │   │   ├── state.ts        # TOneState, TComponentState, TGlobalState
+│   │   ├── dispatch.ts      # Module-global after-dispatch boundary
+│   │   ├── listener-list.ts # Shared listener registration and dispatch core
 │   │   ├── model.ts        # TModel, TDialogModel, TComponentModel, createComponentModelDriver
 │   │   ├── ComponentQueue.ts # Model-to-view event and request/reply mailbox
 │   │   ├── events.ts       # Emitter/Event primitive and named Subscription broadcasts
@@ -819,8 +821,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── index.ts        # Public exports
 │   ├── utils/              # Utility functions
 │   │   ├── utils.ts        # General helpers
-│   │   ├── DisposableStore.ts # Function-disposer ownership and ordered cleanup
-│   │   ├── scheduling.ts   # Delayer and paint-boundary scheduling helpers
+│   │   ├── DisposableStore.ts # Function/object cleanup ownership, child stores, and ordered cleanup
+│   │   ├── scheduling.ts   # OwnerScheduler, Delayer, and paint-boundary scheduling helpers
 │   │   ├── parse-utils.ts  # JSON/JSON5 parsing, tryParseJson fallback
 │   │   ├── guard.ts        # guard(label, fn) — run and report failure as a toast
 │   │   ├── csv-utils.ts    # CSV parsing/generation

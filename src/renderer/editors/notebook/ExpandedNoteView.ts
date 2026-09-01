@@ -123,8 +123,7 @@ export class ExpandedNoteView extends VanillaView<ExpandedNoteViewProps> {
         this.categoryHost.style.cursor = "pointer";
         this.categoryHost.style.flexShrink = "0";
         this.categoryHost.title = "Category";
-        this.categoryHost.addEventListener("click", this.startCategoryEdit);
-        this.ownSubscription(() => this.categoryHost.removeEventListener("click", this.startCategoryEdit));
+        this.listen(this.categoryHost, "click", this.startCategoryEdit);
         this.tagsHost.style.display = "flex";
         this.tagsHost.style.alignItems = "center";
         this.tagsHost.style.gap = "4px";
@@ -290,8 +289,7 @@ export class ExpandedNoteView extends VanillaView<ExpandedNoteViewProps> {
             add.style.cursor = "pointer";
             add.style.color = color.text.light;
             const onAdd = (): void => this.props.notebookModel.addComment(note.id);
-            add.addEventListener("click", onAdd);
-            this.releaseCommentListener = this.ownSubscription(() => add.removeEventListener("click", onAdd));
+            this.releaseCommentListener = this.listen(add, "click", onAdd);
             this.commentHost.replaceChildren(add);
         }
     }
@@ -318,12 +316,10 @@ export class ExpandedNoteView extends VanillaView<ExpandedNoteViewProps> {
             event.stopPropagation();
             this.props.notebookModel.removeNoteTag(this.props.note.id, index);
         };
-        remove.addEventListener("click", onRemove);
-        listeners.push(() => remove.removeEventListener("click", onRemove));
+        listeners.push(this.listen(remove, "click", onRemove));
         element.append(label, remove);
         const onEdit = (): void => this.startTagEdit(index);
-        element.addEventListener("click", onEdit);
-        listeners.push(() => element.removeEventListener("click", onEdit));
+        listeners.push(this.listen(element, "click", onEdit));
         return element;
     }
 
@@ -335,8 +331,7 @@ export class ExpandedNoteView extends VanillaView<ExpandedNoteViewProps> {
         element.style.backgroundColor = color.background.dark;
         element.append(iconElement(PlusIcon, 12, 12));
         const onAdd = (): void => this.setState({ addingTag: true, newTagValue: "" });
-        element.addEventListener("click", onAdd);
-        listeners.push(() => element.removeEventListener("click", onAdd));
+        listeners.push(this.listen(element, "click", onAdd));
         return element;
     }
 

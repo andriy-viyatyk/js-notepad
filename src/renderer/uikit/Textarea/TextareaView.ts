@@ -213,13 +213,10 @@ export class TextareaView extends VanillaView<TextareaProps> {
         const editable = !this.props.disabled && !this.props.readOnly;
         if (editable === this.editableListenersAttached) return;
         if (editable) {
-            this.root.addEventListener("input", this.handleInput);
-            this.root.addEventListener("paste", this.handlePaste);
-            this.root.addEventListener("keydown", this.handleKeyDown);
             this.editableListenerReleases = [
-                this.ownSubscription(() => this.root.removeEventListener("input", this.handleInput)),
-                this.ownSubscription(() => this.root.removeEventListener("paste", this.handlePaste)),
-                this.ownSubscription(() => this.root.removeEventListener("keydown", this.handleKeyDown)),
+                this.listen(this.root, "input", this.handleInput),
+                this.listen(this.root, "paste", this.handlePaste),
+                this.listen(this.root, "keydown", this.handleKeyDown),
             ];
         } else {
             this.detachEditableListeners();

@@ -4,6 +4,7 @@ import type { IContentHost } from "../../editors/base/IContentHost";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { SpinnerView } from "../../uikit/Spinner/SpinnerView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { afterDispatch } from "../../core/state/dispatch";
 import { guard } from "../../core/utils/guard";
 import { NativeEditorErrorView } from "./NativeEditorErrorView";
 
@@ -66,9 +67,7 @@ export class AsyncEditorView extends VanillaView<AsyncEditorViewProps> {
         this.vanillaViewCtor = undefined;
         this.editorHost.remove();
         if (!vanillaView) return;
-        const generation = this.generation;
-        queueMicrotask(() => {
-            if (this.generation !== generation) return;
+        afterDispatch(() => {
             void guard("Failed to dispose editor", () => vanillaView.dispose());
         });
     }

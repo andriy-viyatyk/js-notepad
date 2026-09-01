@@ -349,10 +349,7 @@ class BoardInfoBodyView extends VanillaView<BoardInfoBodyProps> {
                 const openRepository = (): void => {
                     void app.events.openRawLink.sendAsync(createLinkData(repositoryUrl));
                 };
-                repository.addEventListener("click", openRepository);
-                this.transientCleanups.push(this.ownSubscription(
-                    () => repository.removeEventListener("click", openRepository),
-                ));
+                this.transientCleanups.push(this.listen(repository, "click", openRepository));
             }
             metadata.append(this.infoRow("Repository", repository));
         }

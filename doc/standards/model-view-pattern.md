@@ -283,6 +283,11 @@ and rethrows the original mount error; a failed instance cannot be retried. The 
 view inert but does not detach its root; the adapter or structural helper that attached the root
 owns detachment.
 
+Both `VanillaView` and `TModel` own a `DisposableStore`. A helper that belongs to an owner may use a
+dedicated `owner.disposables.child()` store so its cleanup occupies one stable slot in the parent's
+FIFO order. The helper must still make its own `dispose()` idempotent and reject late registrations
+after the helper or owner is disposed.
+
 ### Vanilla update and event hazards
 
 `VanillaView.update(props)` stores the new props before it calls `onUpdate(props)`. Therefore
@@ -738,7 +743,12 @@ dependency exists, make the call directly. For a callback that needs the next vi
 `afterPaint()` or `focusAfterPaint()` from
 [`core/utils/scheduling.ts`](../../src/renderer/core/utils/scheduling.ts), retain the returned
 cancellation function, and release it from the owning view. A timer or animation frame that can
-run after disposal must be cancelled or guarded by the owner's liveness generation. Monotonic
+run after disposal should use the protected owner scheduler: `VanillaView` and `TModel` expose
+`schedule.raf()`, `schedule.timeout()`, and `schedule.delayer()`, all owned by the instance's
+disposable store. `schedule.raf()` has one coalescing slot, so a second request replaces the first;
+independent concurrent loops must keep separate raw handles. Work outside these helpers—such as
+uncancellable promises, direct subscriptions, and unowned callbacks—must still be cancelled or
+guarded by the owner's disposal/liveness state. Monotonic
 `revealVersion`-style values are command tokens consumed by a view; they are not substitutes for a
 render signal and must not be removed merely because the command's argument repeats.
 

@@ -357,7 +357,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         };
         this.listen(primaryImage, "error", () => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert || !current.imageSource) return;
+            if (!current || !current.imageSource) return;
             current.failedSrc = current.imageSource;
             this.grid?.model.update({ rows: [current.index] });
         });
@@ -516,7 +516,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         else record.deleteButton = button;
         this.listen(button.root, "click", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current?.link || this.inert) return;
+            if (!current?.link) return;
             event.stopPropagation();
             current.onSelect?.(current.link);
             if (kind === "edit") current.onEdit?.(current.link);
@@ -556,23 +556,23 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         const tile = record.tileRoot;
         this.listen(tile, "click", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current?.link || this.inert) return;
+            if (!current?.link) return;
             current.onSelect?.(current.link, event);
         });
         this.listen(tile, "dblclick", () => {
             const current = this.cells.get(record.cell);
-            if (!current?.link || this.inert) return;
+            if (!current?.link) return;
             if (current.onDoubleClick) current.onDoubleClick(current.link);
             else current.onEdit?.(current.link);
         });
         this.listen(tile, "contextmenu", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current?.link || this.inert) return;
+            if (!current?.link) return;
             current.onContextMenu?.(event, current.link);
         });
         this.listen(tile, "dragstart", (event) => {
             const current = this.cells.get(record.cell);
-            if (!current?.link || this.inert) return;
+            if (!current?.link) return;
             if (!current.dragSourceId) {
                 event.preventDefault();
                 return;
@@ -593,7 +593,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         });
         this.listen(tile, "dragend", () => {
             const current = this.cells.get(record.cell);
-            if (!current || this.inert) return;
+            if (!current) return;
             current.isDragging = false;
             current.tileRoot.style.opacity = "";
         });
@@ -609,7 +609,7 @@ export class LinksTilesView extends VanillaView<LinksTilesProps> {
         event: DragEvent,
     ): void {
         const current = this.cells.get(record.cell);
-        if (!current?.link || this.inert) return;
+        if (!current?.link) return;
         const handler = current[callback];
         handler?.(current.link, event);
     }

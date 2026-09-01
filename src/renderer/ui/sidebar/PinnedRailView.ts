@@ -139,19 +139,18 @@ export class PinnedRailView extends VanillaView<PinnedRailProps> {
             listenersCleanup: () => undefined,
         };
         this.rows.set(row, record);
-        const listeners: Array<() => void> = [];
-        const listen = <K extends keyof HTMLElementEventMap>(type: K, listener: (event: HTMLElementEventMap[K]) => void): void => {
-            row.addEventListener(type, listener as EventListener);
-            listeners.push(() => row.removeEventListener(type, listener as EventListener));
+        const releases: Array<() => void> = [];
+        const registerListener = <K extends keyof HTMLElementEventMap>(type: K, listener: (event: HTMLElementEventMap[K]) => void): void => {
+            releases.push(this.listen(row, type, listener));
         };
-        listen("click", () => this.activate(record.rowData.ref));
-        listen("dragstart", (event) => this.onDragStart(row, event));
-        listen("dragend", () => this.onDragEnd());
-        listen("dragenter", (event) => this.onDragEnter(row, event));
-        listen("dragover", (event) => this.onDragOver(row, event));
-        listen("dragleave", () => this.setDragOver(row, false));
-        listen("drop", (event) => this.onDrop(event));
-        record.listenersCleanup = () => listeners.forEach((remove) => remove());
+        registerListener("click", () => this.activate(record.rowData.ref));
+        registerListener("dragstart", (event) => this.onDragStart(row, event));
+        registerListener("dragend", () => this.onDragEnd());
+        registerListener("dragenter", (event) => this.onDragEnter(row, event));
+        registerListener("dragover", (event) => this.onDragOver(row, event));
+        registerListener("dragleave", () => this.setDragOver(row, false));
+        registerListener("drop", (event) => this.onDrop(event));
+        record.listenersCleanup = () => releases.forEach((release) => release());
         return row;
     }
 

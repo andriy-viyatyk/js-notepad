@@ -24,6 +24,7 @@ export class TextFileIOModel {
 
     constructor(private model: TextFileModel) {
         this.pipes = new PipePair(() => this.model.state.get().id);
+        this.disposables.add(this.saveModifications.cancel);
     }
 
     get cachePipe(): IContentPipe | null {

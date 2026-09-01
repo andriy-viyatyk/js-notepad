@@ -31,15 +31,19 @@ export function concatChunks(chunks: Uint8Array[]): Uint8Array {
     return out;
 }
 
+export type Debounced<T extends (...args: unknown[]) => void> =
+    ((...args: Parameters<T>) => void) & { cancel(): void };
+
 export function debounce<T extends (...args: unknown[]) => void>(
     func: T,
     delay: number,
     canRun?: () => boolean
-): (...args: Parameters<T>) => void {
+): Debounced<T> {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    return (...args: Parameters<T>) => {
+    const debounced = ((...args: Parameters<T>) => {
         const run = () => {
+            timeoutId = null;
             if (!canRun || canRun()) {
                 func(...args);
                 return;
@@ -47,9 +51,17 @@ export function debounce<T extends (...args: unknown[]) => void>(
             timeoutId = setTimeout(run, delay);
         };
 
-        if (timeoutId) {
+        if (timeoutId !== null) {
             clearTimeout(timeoutId);
         }
         timeoutId = setTimeout(run, delay);
+    }) as Debounced<T>;
+
+    debounced.cancel = () => {
+        if (timeoutId === null) return;
+        clearTimeout(timeoutId);
+        timeoutId = null;
     };
+
+    return debounced;
 }

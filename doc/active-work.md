@@ -6,10 +6,29 @@ Overview of all active and planned epics and tasks.
 - Task details tracked in [`/doc/tasks/completed.md`](tasks/completed.md) after completion
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
+## Current Refactoring Roadmap
+
+**[doc/de-react-refactoring-2.md](de-react-refactoring-2.md)** — the De-React second-pass survey is
+the active roadmap for renderer refactoring. Its **Part 6** holds the delivery plan: one standalone
+task (US-1258, quick wins), three epics (EPIC-080 state/lifetime/scheduling core, EPIC-081 DOM & IO
+mechanisms, EPIC-082 React-pattern removal at the call sites), one backlog package, and P8's lint
+clauses folded into US-1131.
+
+Epics are created **one at a time**, each written when work is about to start on it — so a number in
+Part 6 with no document yet is reserved intent, not existing work. **EPIC-080 is complete**
+(2026-09-01 — see [epics/completed.md](epics/completed.md)); **EPIC-081 and EPIC-082 are still
+intent** and have no documents yet. Each gets its own entry under **Active** or **Planned** below as
+it is created.
+
+Two items were deferred out of EPIC-080 and belong to a later epic rather than to the roadmap's
+original packages — the fourth listener list in `src/ipc/renderer/renderer-events.ts`, and
+`PageContentView`'s helper adoption. EPIC-080's document records both with the reasoning.
+
+Remove this section from the dashboard when the programme is done.
+
 ## Active
 
-- *(no epic)*
-  - [ ] US-1255: De-React review pass 2 — survey of surviving React patterns, workarounds, and recommended mechanisms; report in [doc/de-react-refactoring-2.md](de-react-refactoring-2.md) (follow-up work packages ranked in its Part 5)
+- *(nothing active — EPIC-080 closed 2026-09-01; the next epic in the roadmap is created when work starts on it)*
 
 ## Planned
 

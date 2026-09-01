@@ -154,6 +154,13 @@ disposes and recreates the editor view; updates for the same model are forwarded
 `AsyncEditorView`, which loads and mounts the editor module's required native `View`. This keeps
 Monaco and other stateful editor bodies from being reused with the wrong model.
 
+When a state notification retires an editor view, the host root is detached immediately and the
+captured view is disposed through `afterDispatch()` after the outermost notification and any nested
+updates settle. `PageModel` separately tracks promises for asynchronous editor disposal and awaits
+that set during page teardown; the dispatch boundary provides ordering, not completion of async
+cleanup. On a close path, the empty-page replacement check likewise runs from the caller after
+page disposal has settled.
+
 ---
 
 ## 3. Page Actions Taxonomy

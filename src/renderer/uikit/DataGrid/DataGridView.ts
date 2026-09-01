@@ -111,7 +111,13 @@ export class DataGridView<R = any> extends VanillaView<DataGridProps<R>> {
         // Registered before the grid-destroy disposer below, because disposal runs in
         // registration order and the tooltip's listeners must be gone before the grid they read
         // from is torn down.
-        this.cellTooltip = new CellTooltip(this.root, () => this.grid, this.props.name);
+        const tooltipDisposables = this.disposables.child();
+        this.cellTooltip = new CellTooltip(
+            this.root,
+            () => this.grid,
+            tooltipDisposables,
+            this.props.name,
+        );
         this.own(() => {
             this.cellTooltip?.dispose();
             this.cellTooltip = undefined;

@@ -6,6 +6,7 @@ import { InputView } from "../../uikit/Input/InputView";
 import { applyCellStyle } from "../../uikit/shared/cell-style";
 import { createIconElement } from "../../uikit/shared/slots";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import { createFileIconElement, subscribeFileIconElements } from "../icons/icon-elements";
 import type { FileSearchProps } from "./FileSearch";
 import {
@@ -66,9 +67,8 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
     private filtered: SearchResultRow[] = [];
     private grid: RenderGrid | undefined;
     private queryField: HTMLInputElement | undefined;
-    private focusFrame: number | undefined;
+    private focusFrame: Cleanup | undefined;
     private iconSubscription: (() => void) | undefined;
-    private live = true;
 
     public constructor(props: FileSearchProps) {
         super(props, document.createElement("div"));
@@ -162,15 +162,13 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
             this.grid?.model.update({ rows });
         });
 
-        this.focusFrame = requestAnimationFrame(() => {
+        this.focusFrame = this.schedule.raf(() => {
             this.focusFrame = undefined;
-            if (this.live) this.queryField?.focus();
+            this.queryField?.focus();
         });
         this.own(() => {
-            if (this.focusFrame !== undefined) {
-                cancelAnimationFrame(this.focusFrame);
-                this.focusFrame = undefined;
-            }
+            this.focusFrame?.();
+            this.focusFrame = undefined;
         });
     }
 
@@ -178,7 +176,6 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
     protected onUpdate(_props: FileSearchProps): void {}
 
     protected onDispose(): void {
-        this.live = false;
     }
 
     private readonly onQueryKeyDown = (event: KeyboardEvent): void => {
@@ -290,7 +287,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
             record = { row };
             this.cellRecords.set(cell, record);
             const onCellClick = () => {
-                if (!this.live || !record?.row) return;
+                if (!record?.row) return;
                 const current = record.row;
                 if (current.type === "file") {
                     this.props.onResultClick?.(current.filePath);
@@ -298,8 +295,7 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
                     this.props.onResultClick?.(current.filePath, current.lineNumber);
                 }
             };
-            cell.addEventListener("click", onCellClick);
-            this.ownSubscription(() => cell.removeEventListener("click", onCellClick));
+            this.listen(cell, "click", onCellClick);
         }
         record.row = row;
         applyCellStyle(
@@ -326,11 +322,10 @@ export class FileSearchView extends VanillaView<FileSearchProps> {
             const chevron = record.chevron;
             const onChevronClick = (event: MouseEvent) => {
                 event.stopPropagation();
-                if (!this.live || record.row?.type !== "file") return;
+                if (record.row?.type !== "file") return;
                 this.model.toggleFileExpanded(record.row.filePath);
             };
-            chevron.addEventListener("click", onChevronClick);
-            this.ownSubscription(() => chevron.removeEventListener("click", onChevronClick));
+            this.listen(chevron, "click", onChevronClick);
             record.fileName = document.createElement("span");
             record.fileName.className = "fs-file-name";
             record.matchCount = document.createElement("span");

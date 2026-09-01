@@ -1,12 +1,13 @@
 import { TDialogModel } from "../../core/state/model";
 import { focusAfterPaint } from "../../core/utils/scheduling";
-import { ButtonView } from "../../uikit/Button/ButtonView";
+import { ButtonView, type ButtonViewProps } from "../../uikit/Button/ButtonView";
 import { DialogContentView } from "../../uikit/Dialog/DialogContentView";
 import { DialogView } from "../../uikit/Dialog/DialogView";
 import { InputView } from "../../uikit/Input/InputView";
 import { RadioGroupView } from "../../uikit/RadioGroup/RadioGroupView";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement } from "../../uikit/Text/text-style";
+import { KeyedList } from "../../uikit/shared/keyed-list";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { DialogViewProps } from "./dialog-view-registry";
 import type { InputDialogProps, InputResult } from "./InputDialog";
@@ -20,6 +21,8 @@ type InputDialogModel = TDialogModel<InputDialogProps, InputResult | undefined> 
     setSelectedOption(option: string): void;
 };
 
+type DialogButton = { index: number; label: string };
+
 export class InputDialogView extends VanillaView<DialogViewProps> {
     private readonly model: InputDialogModel;
     private readonly dialogView: DialogView;
@@ -29,7 +32,8 @@ export class InputDialogView extends VanillaView<DialogViewProps> {
     private readonly messageElement: HTMLSpanElement;
     private readonly buttonsPanel: HTMLDivElement;
     private readonly radioGroupView: RadioGroupView | undefined;
-    private readonly buttonViews = new Map<number, ButtonView>();
+    private readonly buttonList: KeyedList<DialogButton, number, HTMLButtonElement>;
+    private readonly buttonViews = new Map<HTMLButtonElement, ButtonView>();
 
     public constructor(props: DialogViewProps) {
         const model = props.model as InputDialogModel;
@@ -94,6 +98,22 @@ export class InputDialogView extends VanillaView<DialogViewProps> {
         this.messageElement = messageElement;
         this.buttonsPanel = buttonsPanel;
         this.radioGroupView = radioGroupView ? this.child(radioGroupView) : undefined;
+        this.buttonList = new KeyedList(this.buttonsPanel, {
+            keyOf: (button) => button.index,
+            create: (button) => {
+                const view = new ButtonView(this.buttonProps(button.index, button.label));
+                view.mount();
+                this.buttonViews.set(view.root as HTMLButtonElement, view);
+                return view.root as HTMLButtonElement;
+            },
+            update: (element, button) => {
+                this.buttonViews.get(element)?.update(this.buttonProps(button.index, button.label));
+            },
+            remove: (element) => {
+                this.buttonViews.get(element)?.dispose();
+                this.buttonViews.delete(element);
+            },
+        });
     }
 
     protected onMount(): void {
@@ -101,7 +121,7 @@ export class InputDialogView extends VanillaView<DialogViewProps> {
         this.inputElement = this.inputView.root.querySelector<HTMLInputElement>("input") ?? undefined;
         this.radioGroupView?.mount();
         this.contentView.mount();
-        this.own(() => this.disposeButtons());
+        this.own(() => this.buttonList.dispose());
         this.syncButtons(this.model.state.get().buttons ?? []);
         this.dialogView.mount();
         this.bind(this.model.state, (state) => state.message, (message) => {
@@ -139,52 +159,20 @@ export class InputDialogView extends VanillaView<DialogViewProps> {
     }
 
     private syncButtons(buttons: string[]): void {
-        for (const [index, buttonView] of this.buttonViews) {
-            if (index < buttons.length) continue;
-            buttonView.dispose();
-            buttonView.root.remove();
-            this.buttonViews.delete(index);
-        }
-
-        buttons.forEach((label, index) => {
-            let buttonView = this.buttonViews.get(index);
-            if (!buttonView) {
-                buttonView = new ButtonView({
-                    onClick: () => {
-                        const state = this.model.state.get();
-                        void this.model.close({
-                            value: state.value ?? "",
-                            button: this.model.state.get().buttons?.[index] ?? label,
-                            selectedOption: state.selectedOption,
-                        });
-                    },
-                    children: label,
-                });
-                buttonView.mount();
-                this.buttonViews.set(index, buttonView);
-            } else {
-                buttonView.update({
-                    onClick: () => {
-                        const state = this.model.state.get();
-                        void this.model.close({
-                            value: state.value ?? "",
-                            button: this.model.state.get().buttons?.[index] ?? label,
-                            selectedOption: state.selectedOption,
-                        });
-                    },
-                    children: label,
-                });
-            }
-            const currentChild = this.buttonsPanel.children[index];
-            if (currentChild !== buttonView.root) this.buttonsPanel.append(buttonView.root);
-        });
+        this.buttonList.update(buttons.map((label, index) => ({ label, index })));
     }
 
-    private disposeButtons(): void {
-        for (const buttonView of this.buttonViews.values()) {
-            buttonView.dispose();
-            buttonView.root.remove();
-        }
-        this.buttonViews.clear();
+    private buttonProps(index: number, label: string): ButtonViewProps {
+        return {
+            onClick: () => {
+                const state = this.model.state.get();
+                void this.model.close({
+                    value: state.value ?? "",
+                    button: this.model.state.get().buttons?.[index] ?? label,
+                    selectedOption: state.selectedOption,
+                });
+            },
+            children: label,
+        };
     }
 }

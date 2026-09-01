@@ -67,7 +67,7 @@ interface ImageRecord {
 }
 
 interface TileResources {
-    readonly listener: EventListener;
+    readonly release: () => void;
     record: ImageRecord;
 }
 
@@ -170,8 +170,7 @@ class DiscoveredImagesView extends VanillaView<DiscoveredImagesProps> {
             const resources = this.tileResources.get(tile);
             if (resources) this.props.onSelect(resources.record.url);
         };
-        tile.addEventListener("click", listener);
-        this.tileResources.set(tile, { listener, record });
+        this.tileResources.set(tile, { release: this.listen(tile, "click", listener), record });
         return tile;
     }
 
@@ -210,7 +209,7 @@ class DiscoveredImagesView extends VanillaView<DiscoveredImagesProps> {
     private removeTile(tile: HTMLDivElement): void {
         const resources = this.tileResources.get(tile);
         if (!resources) return;
-        tile.removeEventListener("click", resources.listener);
+        resources.release();
         this.tileResources.delete(tile);
     }
 }

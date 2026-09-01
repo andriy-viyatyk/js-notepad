@@ -60,6 +60,7 @@
 
 import { attachTooltip, type TooltipAttachment } from "../Tooltip/attach-tooltip";
 import { overlayRegistry } from "../shared/overlayRegistry";
+import { DisposableStore, type Cleanup, type IDisposable } from "../../core/utils/DisposableStore";
 import { columnDisplayValue, formatDisplayValue } from "av-grid";
 import type { Column, DataGridInstance } from "./types";
 
@@ -163,12 +164,14 @@ function ensureAvgPopoverObserver(): void {
 
 export class CellTooltip {
     private readonly tooltip: TooltipAttachment;
+    private readonly releases: Cleanup[] = [];
     private target: Target | undefined;
     private disposed = false;
 
     constructor(
         private readonly root: HTMLElement,
         private readonly getGrid: () => DataGridInstance | undefined,
+        private readonly disposables: DisposableStore,
         private readonly name?: string,
     ) {
         ensureAvgPopoverObserver();
@@ -179,25 +182,46 @@ export class CellTooltip {
         // suppresses the compatibility mouse events for the rest of that pointer's stream — so a
         // `mousemove`-driven tooltip would freeze on whatever cell a drag began from.
         root.addEventListener("pointermove", this.onPointerMove);
+        this.register(() => root.removeEventListener("pointermove", this.onPointerMove));
         root.addEventListener("pointerleave", this.onPointerLeave);
+        this.register(() => root.removeEventListener("pointerleave", this.onPointerLeave));
         // Capture, so it still runs when something downstream stops propagation — the column
         // resize grip does exactly that.
         root.addEventListener("pointerdown", this.onPointerDown, true);
+        this.register(() => root.removeEventListener("pointerdown", this.onPointerDown, true));
         root.addEventListener("scroll", this.onScroll, true);
+        this.register(() => root.removeEventListener("scroll", this.onScroll, true));
+        this.register(this.tooltip);
     }
 
     dispose(): void {
         if (this.disposed) return;
         this.disposed = true;
-        this.root.removeEventListener("pointermove", this.onPointerMove);
-        this.root.removeEventListener("pointerleave", this.onPointerLeave);
-        this.root.removeEventListener("pointerdown", this.onPointerDown, true);
-        this.root.removeEventListener("scroll", this.onScroll, true);
+        const releases = this.releases.splice(0);
+        let firstError: unknown;
+        let hasError = false;
+        releases.forEach((release) => {
+            try {
+                release();
+            } catch (error) {
+                if (!hasError) {
+                    hasError = true;
+                    firstError = error;
+                }
+            }
+        });
         // The floating root lives in the overlay layer, not inside the grid — so unmounting the
         // grid without this leaves a visible orphan tooltip with a live `autoUpdate` observing a
         // detached element.
-        this.tooltip.dispose();
         this.target = undefined;
+        if (hasError) {
+            throw firstError;
+        }
+    }
+
+    private register(disposable: Cleanup | IDisposable): void {
+        if (this.disposed) return;
+        this.releases.push(this.disposables.add(disposable));
     }
 
     private readonly onPointerMove = (e: PointerEvent): void => {

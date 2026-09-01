@@ -10,6 +10,7 @@ import {
 import { MinimapView } from "../../uikit/Minimap/MinimapView";
 import type { MinimapProps } from "../../uikit/Minimap/MinimapView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import type { Cleanup } from "../../core/utils/DisposableStore";
 import type { EditorConfig } from "../base/EditorConfig";
 import { FindBarView, type FindBarProps } from "../shared/FindBarView";
 import { MarkdownBlockView, type MarkdownBlockProps } from "./MarkdownBlockView";
@@ -128,15 +129,13 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
         showMinimap: boolean;
     } | undefined;
     private scrollTop = 0;
-    private anchorRetry: number | null = null;
+    private anchorRetry: Cleanup | null = null;
     private lifecycleGeneration = 0;
     private active = true;
 
     private readonly cancelAnchorRetry = (): void => {
-        if (this.anchorRetry !== null) {
-            cancelAnimationFrame(this.anchorRetry);
-            this.anchorRetry = null;
-        }
+        this.anchorRetry?.();
+        this.anchorRetry = null;
     };
 
     private readonly handleQueueEvent = (event: MarkdownQueueEvent): void => {
@@ -533,7 +532,7 @@ export class MarkdownBodyView extends VanillaView<MarkdownBodyViewProps> {
                         return;
                     }
                     if (++attempts <= 10 && this.isCurrent(model, generation)) {
-                        this.anchorRetry = requestAnimationFrame(attempt);
+                        this.anchorRetry = this.schedule.raf(attempt);
                     }
                 },
                 () => {
