@@ -745,7 +745,13 @@ dependency exists, make the call directly. For a callback that needs the next vi
 cancellation function, and release it from the owning view. A timer or animation frame that can
 run after disposal should use the protected owner scheduler: `VanillaView` and `TModel` expose
 `schedule.raf()`, `schedule.timeout()`, and `schedule.delayer()`, all owned by the instance's
-disposable store. `schedule.raf()` has one coalescing slot, so a second request replaces the first;
+disposable store. For layout-dependent work, use the explicitly named
+`schedule.firstLayout(element, run)` or `schedule.settledLayout(element, run, quietMs = 200)`.
+`firstLayout` fires at the first positive content rectangle and may complete synchronously for an
+already-laid-out element; `settledLayout` waits for the initial observation and then a quiet period
+after the last resize, even when the element is already laid out. Choose the boundary that the
+measurement needs rather than adding a delay inside a callback. `schedule.raf()` has one coalescing
+slot, so a second request replaces the first;
 independent concurrent loops must keep separate raw handles. Work outside these helpers—such as
 uncancellable promises, direct subscriptions, and unowned callbacks—must still be cancelled or
 guarded by the owner's disposal/liveness state. Monotonic

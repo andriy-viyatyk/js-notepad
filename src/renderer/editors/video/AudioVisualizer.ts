@@ -142,9 +142,7 @@ export class AudioVisualizerView extends VanillaView<AudioVisualizerProps> {
     private effect: IVisualizerEffect | null = null;
     private contextClosed = false;
     private rafId: number | undefined;
-    private sizingRafId: number | undefined;
     private animationGeneration = 0;
-    private sizingGeneration = 0;
     private selectedEffect: EffectType = "bars";
     private trackInfo: TrackInfo | null = null;
     private pageVisible = true;
@@ -217,9 +215,6 @@ export class AudioVisualizerView extends VanillaView<AudioVisualizerProps> {
             this.animationGeneration++;
             if (this.rafId !== undefined) cancelAnimationFrame(this.rafId);
             this.rafId = undefined;
-            this.sizingGeneration++;
-            if (this.sizingRafId !== undefined) cancelAnimationFrame(this.sizingRafId);
-            this.sizingRafId = undefined;
         });
 
         const observer = new IntersectionObserver(([entry]) => {
@@ -362,29 +357,15 @@ export class AudioVisualizerView extends VanillaView<AudioVisualizerProps> {
     }
 
     private scheduleCanvasMeasurement(): void {
-        this.cancelCanvasMeasurement();
-        const generation = ++this.sizingGeneration;
-        let attempts = 0;
-        const measure = (): void => {
-            if (this.inert || generation !== this.sizingGeneration) return;
-            this.sizingRafId = undefined;
+        this.schedule.firstLayout(this.canvas, () => {
+            if (this.inert) return;
             const width = this.canvas.offsetWidth;
             const height = this.canvas.offsetHeight;
             if (width > 0 && height > 0) {
                 if (this.canvas.width !== width) this.canvas.width = width;
                 if (this.canvas.height !== height) this.canvas.height = height;
-                return;
             }
-            attempts++;
-            if (attempts < 3) this.sizingRafId = requestAnimationFrame(measure);
-        };
-        this.sizingRafId = requestAnimationFrame(measure);
-    }
-
-    private cancelCanvasMeasurement(): void {
-        this.sizingGeneration++;
-        if (this.sizingRafId !== undefined) cancelAnimationFrame(this.sizingRafId);
-        this.sizingRafId = undefined;
+        });
     }
 
     private readonly handleMetadata = (): void => {

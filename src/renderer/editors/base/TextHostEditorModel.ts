@@ -9,6 +9,7 @@ import type { IState } from "../../core/state/state";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry } from "./editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
+import { createEchoGuard } from "../../core/utils/echo-guard";
 import { ui } from "../../api/ui";
 import { errMessage } from "../../../shared/utils";
 
@@ -58,9 +59,10 @@ export abstract class TextHostEditorModel<
 
     private _hostUnsubs: Array<() => void> = [];
 
-    /** One-shot echo guard armed by `writeToHost`, consumed by the
-     *  `subscribeHostContent` wrapper. */
-    private _skipNextContentUpdate = false;
+    /** Exact-content echo guard armed by `writeToHost`, consumed by the `subscribeHostContent`
+     *  wrapper. Bounded rather than one-shot: a non-matching update disarms every pending token,
+     *  so a write that never produces a content dispatch cannot swallow the next genuine change. */
+    private readonly echoGuard = createEchoGuard<string>();
 
     constructor(
         modelState: IState<T> | (new (defaultState: T) => IState<T>),
@@ -271,7 +273,7 @@ export abstract class TextHostEditorModel<
      *  `TextFileModel.changeContent`. */
     protected writeToHost(content: string, byUser?: boolean): void {
         if (!this._host) return;
-        this._skipNextContentUpdate = true;
+        this.echoGuard.arm(content);
         this._host.changeContent(content, byUser);
     }
 
@@ -283,11 +285,9 @@ export abstract class TextHostEditorModel<
         this.registerHostSubscription(
             host.state.subscribe(
                 (content) => {
-                    if (this._skipNextContentUpdate) {
-                        this._skipNextContentUpdate = false;
-                        return;
-                    }
-                    handler((content as string) ?? "");
+                    const nextContent = (content as string) ?? "";
+                    if (this.echoGuard.consume(nextContent)) return;
+                    handler(nextContent);
                 },
                 (s) => s.content,
             ),

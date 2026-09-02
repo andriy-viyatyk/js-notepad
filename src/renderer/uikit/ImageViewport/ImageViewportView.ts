@@ -19,7 +19,6 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
     private readonly driver;
     private image: HTMLImageElement | undefined;
     private zoomIndicator: HTMLDivElement | undefined;
-    private sourceTimer: ReturnType<typeof setTimeout> | undefined;
     private currentSrc: string;
     private live = true;
     private visibilityReconcilePending = false;
@@ -48,7 +47,6 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
         this.root.tabIndex = 0;
         this.image.draggable = false;
         this.image.alt = this.props.alt ?? "Image";
-        this.image.src = this.props.src;
         this.root.append(this.image, this.zoomIndicator);
 
         this.listen(this.root, "mousedown", this.onMouseDown);
@@ -64,7 +62,12 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
         this.listen(this.root, "wheel", this.onWheel, { passive: false });
 
         this.driver.mount();
-        this.scheduleSourceCheck(this.props.src);
+        this.image.src = this.props.src;
+        // The `load` listener above is attached BEFORE `src` is assigned, which is what actually
+        // retired the old 50 ms re-check. This stays only as a guard for a genuinely missed event,
+        // and is skipped until the container has layout: `onImageLoad` fits the image to
+        // `getContainerBounds()`, and a 0x0 box at mount time would compute a nonsense zoom.
+        if (this.image.complete && this.root.clientWidth > 0) this.onImageLoad();
         this.bind(this.driver.model.state, (state) => state, (state) => {
             this.applyState(state);
             this.queueVisibilityReconcile();
@@ -78,31 +81,19 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
 
         if (previousSrc !== props.src) {
             this.currentSrc = props.src;
-            if (this.image) this.image.src = props.src;
-            this.scheduleSourceCheck(props.src);
+            if (this.image) {
+                this.image.src = props.src;
+                // Same guard as in `onMount`: a page that is open but not active measures 0x0, so
+                // an unguarded fit here would zoom against a zero-sized container.
+                if (this.image.complete && this.root.clientWidth > 0) this.onImageLoad();
+            }
         }
     }
 
     protected onDispose(): void {
         this.live = false;
-        if (this.sourceTimer !== undefined) {
-            clearTimeout(this.sourceTimer);
-            this.sourceTimer = undefined;
-        }
         this.image = undefined;
         this.zoomIndicator = undefined;
-    }
-
-    private scheduleSourceCheck(src: string): void {
-        if (this.sourceTimer !== undefined) {
-            clearTimeout(this.sourceTimer);
-        }
-        this.sourceTimer = setTimeout(() => {
-            this.sourceTimer = undefined;
-            if (this.live && this.props.src === src && this.image?.complete) {
-                this.onImageLoad();
-            }
-        }, 50);
     }
 
     private readonly onImageLoad = (): void => {

@@ -151,9 +151,10 @@ export class BoardTargetModel implements IBrowserTarget {
      */
     private async mountAndWait(tabId: string): Promise<void> {
         const page = this.model.page;
+        const loaded = this.waitForLoaded(tabId, 5000);
         page?.setSecondaryViewsState({ open: true });
         page?.setActivePanel(panelKey(this.model.id, tabId));
-        await this.waitForLoaded(tabId, 5000);
+        await loaded;
     }
 
     /**
@@ -163,13 +164,7 @@ export class BoardTargetModel implements IBrowserTarget {
      * genuine failure with a real message.
      */
     private waitForLoaded(tabId: string, timeoutMs: number): Promise<void> {
-        return new Promise((resolve) => {
-            const start = performance.now();
-            const tick = () => {
-                if (this.model.loadedTabs.has(tabId) || performance.now() - start > timeoutMs) resolve();
-                else setTimeout(tick, 50);
-            };
-            tick();
-        });
+        if (this.model.loadedTabs.has(tabId)) return Promise.resolve();
+        return this.model.waitForFrameLoad(tabId, timeoutMs).then((): void => undefined);
     }
 }

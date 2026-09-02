@@ -47,7 +47,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | State dispatch boundary (module-global depth, FIFO `afterDispatch()` queue, and error-isolated drain) | `/src/renderer/core/state/dispatch.ts` |
 | Shared listener registration core (active unsubscribe, snapshot traversal, sync/async dispatch, and disposal) | `/src/renderer/core/state/listener-list.ts` |
 | Shared cleanup store (function/object disposables, child stores, early release, ordered error-isolated drain) | `/src/renderer/core/utils/DisposableStore.ts` |
-| Owner-bound scheduling helpers (`OwnerScheduler`, `Delayer`, paint-boundary callbacks, and focus-after-paint cancellation) | `/src/renderer/core/utils/scheduling.ts` |
+| Owner-bound scheduling helpers (`OwnerScheduler`, first/settled layout waits, paint-boundary callbacks, and focus-after-paint cancellation) | `/src/renderer/core/utils/scheduling.ts` |
+| Exact self-write echo guard (`createEchoGuard`, bounded token matching with clear-on-nonmatch) | `/src/renderer/core/utils/echo-guard.ts` |
 | Renderer event primitive (`Emitter<T>`, `Event<T>`, and disposable compatibility `Subscription<T>` broadcasts) | `/src/renderer/core/state/events.ts` |
 | Framework-free virtualization engine (render-window calculation, pooled cells, sticky regions, scroll/resize handling, and scheduled repaint) | `av-grid` via `/src/renderer/uikit/DataGrid/index.ts` |
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |

@@ -823,6 +823,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   ├── utils.ts        # General helpers
 │   │   ├── DisposableStore.ts # Function/object cleanup ownership, child stores, and ordered cleanup
 │   │   ├── scheduling.ts   # OwnerScheduler, Delayer, and paint-boundary scheduling helpers
+│   │   ├── echo-guard.ts   # Bounded exact-value self-write echo guard
 │   │   ├── parse-utils.ts  # JSON/JSON5 parsing, tryParseJson fallback
 │   │   ├── guard.ts        # guard(label, fn) — run and report failure as a toast
 │   │   ├── csv-utils.ts    # CSV parsing/generation

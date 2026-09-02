@@ -27,7 +27,7 @@ export class BookmarksDrawerView extends VanillaView<BookmarksDrawerProps> {
     private readonly body: LinkBodyView;
     private readonly footer: LinkFooterView;
     private readonly backdrop: HTMLDivElement;
-    private animationTimer: ReturnType<typeof setTimeout> | undefined;
+    private hasFocusedOpen = false;
 
     public constructor(props: BookmarksDrawerProps) {
         const root = createPanelElement({ name: "bookmarks-drawer-root", position: "absolute", top: 0, right: 0, bottom: 0, left: 0, zIndex: 6, direction: "row" });
@@ -45,6 +45,5 @@ export class BookmarksDrawerView extends VanillaView<BookmarksDrawerProps> {
     }
     protected onMount(): void { this.listen(this.root, "keydown", (event) => { if (event.key === "Escape") this.props.onClose(); }); this.listen(this.backdrop, "click", this.props.onClose); this.splitter.mount(); this.breadcrumb.mount(); this.actions.mount(); this.secondary.mount(); this.body.mount(); this.footer.mount(); this.sync(this.props); }
     protected onUpdate(props: BookmarksDrawerProps): void { this.sync(props); }
-    protected onDispose(): void { if (this.animationTimer) clearTimeout(this.animationTimer); this.animationTimer = undefined; }
-    private sync(props: BookmarksDrawerProps): void { this.splitter.update({ name: "bookmarks-splitter", orientation: "vertical", value: props.width, onChange: props.onChangeWidth, side: "after", background: "default", hoverBackground: "light", border: "none" }); this.panelWrap.style.width = `${props.width}px`; this.panelWrap.style.transform = props.open ? "translateX(0)" : "translateX(100%)"; if (props.open && props.width === 0) props.onChangeWidth(Math.round(this.root.offsetWidth * 0.6)); if (props.open && !this.animationTimer) { this.panel.focus(); this.animationTimer = setTimeout(() => { this.panel.dataset.open = ""; this.animationTimer = undefined; }, 10); } if (!props.open) delete this.panel.dataset.open; }
+    private sync(props: BookmarksDrawerProps): void { this.splitter.update({ name: "bookmarks-splitter", orientation: "vertical", value: props.width, onChange: props.onChangeWidth, side: "after", background: "default", hoverBackground: "light", border: "none" }); this.panelWrap.style.width = `${props.width}px`; this.panelWrap.style.transform = props.open ? "translateX(0)" : "translateX(100%)"; const shouldFocus = props.open && !this.hasFocusedOpen; if (props.open) this.hasFocusedOpen = true; if (!props.open) this.hasFocusedOpen = false; if (props.open && props.width === 0) props.onChangeWidth(Math.round(this.root.offsetWidth * 0.6)); if (shouldFocus) this.panel.focus(); }
 }

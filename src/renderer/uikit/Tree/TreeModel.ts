@@ -81,6 +81,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     setGridRef = (ref: RenderGridModel | null) => {
         this.gridRef = ref;
     };
+    focusRootRef: (() => void) | null = null;
+    setFocusRootRef = (ref: (() => void) | null) => {
+        this.focusRootRef = ref;
+    };
 
     /**
      * Registered by the host view. Called after every state write, and the only thing that carries
@@ -738,10 +742,9 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         if (idx != null) this.gridRef?.scrollToRow(idx, align);
     };
 
-    /** Focus the tree root (the keyboard-nav tab stop). The root already carries
-     *  `id={rootId}`, so no extra ref plumbing is needed. */
+    /** Focus the tree root through the callback installed by `TreeView`; no-op outside its view lifetime. */
     focusRoot = () => {
-        document.getElementById(this.rootId)?.focus();
+        this.focusRootRef?.();
     };
 
     /**

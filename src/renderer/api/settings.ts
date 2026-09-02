@@ -2,6 +2,7 @@ import { debounce } from "../../shared/utils";
 import { TGlobalState } from "../core/state/state";
 import { Subscription } from "../core/state/events";
 import { parseJSON5 } from "../core/utils/parse-utils";
+import { createEchoGuard } from "../core/utils/echo-guard";
 import { fs } from "./fs";
 import { FileWatcher } from "../core/utils/file-watcher";
 import { applyTheme } from "../theme/themes";
@@ -183,7 +184,7 @@ class Settings implements ISettings {
     private readonly state = new TGlobalState(defaultAppSettingsState);
     private readonly _initPromise: Promise<void>;
     private fileWatcher: FileWatcher | undefined;
-    private skipNextFileChange = false;
+    private readonly echoGuard = createEchoGuard<string>();
 
     constructor() {
         this.onChanged = wrapSubscription(this._onChanged);
@@ -234,12 +235,10 @@ class Settings implements ISettings {
         await this.loadSettings();
     };
 
-    private fileChanged = () => {
-        if (this.skipNextFileChange) {
-            this.skipNextFileChange = false;
-            return;
-        }
-        this.loadSettings(true);
+    private fileChanged = async () => {
+        const content = await this.fileWatcher?.getTextContent();
+        if (content !== undefined && this.echoGuard.consume(content)) return;
+        await this.loadSettings(true, content);
     };
 
     /**
@@ -257,8 +256,10 @@ class Settings implements ISettings {
      * The initial load must NOT emit — startup already starts MCP/Mneme explicitly after
      * `settings.wait()`, and emitting would start them a second time.
      */
-    private loadSettings = async (emitChanges = false) => {
-        const content = parseJSON5(await this.fileWatcher?.getTextContent()) as Record<string, unknown> | undefined;
+    private loadSettings = async (emitChanges = false, rawContent?: string) => {
+        const content = parseJSON5(
+            rawContent ?? await this.fileWatcher?.getTextContent(),
+        ) as Record<string, unknown> | undefined;
         if (content) {
             const previous = this.state.get().settings as Record<string, unknown>;
             const newSettings = {
@@ -285,7 +286,6 @@ class Settings implements ISettings {
     };
 
     private saveSettings = () => {
-        this.skipNextFileChange = true;
         const content = JSON.stringify(this.state.get().settings, null, 4);
         const lines = content.split("\n");
 
@@ -316,6 +316,7 @@ class Settings implements ISettings {
         }
 
         const contentWithComments = `${settingsFileHeader}\n${lines.join("\n")}`;
+        this.echoGuard.arm(contentWithComments);
         fs.saveDataFile(settingsFileName, contentWithComments);
     };
 

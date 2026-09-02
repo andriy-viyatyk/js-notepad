@@ -6,38 +6,24 @@ Overview of all active and planned epics and tasks.
 - Task details tracked in [`/doc/tasks/completed.md`](tasks/completed.md) after completion
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
-## Current Refactoring Roadmap
-
-**[doc/de-react-refactoring-2.md](de-react-refactoring-2.md)** — the De-React second-pass survey is
-the active roadmap for renderer refactoring. Its **Part 6** holds the delivery plan: one standalone
-task (US-1258, quick wins), three epics (EPIC-080 state/lifetime/scheduling core, EPIC-081 DOM & IO
-mechanisms, EPIC-082 React-pattern removal at the call sites), one backlog package, and P8's lint
-clauses folded into US-1131.
-
-Epics are created **one at a time**, each written when work is about to start on it — so a number in
-Part 6 with no document yet is reserved intent, not existing work. **EPIC-080 and EPIC-082 are both
-complete** (2026-09-01 — see [epics/completed.md](epics/completed.md)). **EPIC-081 is still intent**
-and has no document yet; it is the free-floating parallel track and now the only epic left in the
-programme. Part 5's package 8 stays in [`tasks/backlog.md`](tasks/backlog.md), drawn down
-opportunistically rather than as an epic.
-
-The roadmap's Part 1 sections now carry **DELIVERED** banners where EPIC-082 closed them, including
-notes on which of its original counts and claims turned out stale — read those before acting on any
-remaining item there.
-
-Two items were deferred out of EPIC-080 and belong to a later epic rather than to the roadmap's
-original packages — the fourth listener list in `src/ipc/renderer/renderer-events.ts`, and
-`PageContentView`'s helper adoption. EPIC-080's document records both with the reasoning.
-
-Remove this section from the dashboard when the programme is done.
-
 ## Active
 
-- *(nothing active — EPIC-082 closed 2026-09-01; the roadmap's remaining work is EPIC-081 (intent only) and package 8 in the backlog)*
+- *(nothing active — EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
+  [epics/completed.md](epics/completed.md). The only residue is package 8 in
+  [tasks/backlog.md](tasks/backlog.md), drawn down opportunistically.)*
 
 ## Planned
 
 - *(no epic)*
+  - [ ] **US-1258: De-React roadmap quick wins** — *no task document yet.* The last unfinished item
+    of the [De-React second-pass roadmap](de-react-refactoring-2.md) (Part 5 package 1), kept here
+    so it is not lost now that the roadmap's tracking section has been retired. Six unrelated fixes
+    sharing no mechanism, **three of them live defects**: `LogBodyView`'s 50/150/300 scroll shotgun
+    (adopt the existing `scrollToRowAfterPaint`), the four fresh-**array** dialog selectors that
+    genuinely do fire on every dispatch, and `GlobalEventService` ignoring `defaultPrevented`
+    (P6 — fixing it deletes the `grid-context-menu.ts` workaround). Also: delete the
+    `getVersion()`/`useSyncExternalStore` residue, `ExpandedNoteView.setState` inline, and
+    `ToolbarView`'s single-trigger roving tabindex. Nothing gates it.
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
     — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29) until the De-React fallout was cleared. That
     programme closed 2026-08-30, so nothing blocks this now.

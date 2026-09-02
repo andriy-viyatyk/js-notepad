@@ -182,9 +182,35 @@ class MyModel extends TModel<MyState> {
 
 `TModel` owns a `DisposableStore` and exposes protected `disposables` and `schedule` surfaces to
 subclasses. `schedule.raf()` coalesces to one pending owner-wide paint callback, while
-`schedule.timeout()` and `schedule.delayer()` register their work with the same owner store. All
-three are canceled when the model is disposed; independent concurrent loops must retain their own
-raw handles rather than sharing the coalescing slot.
+`schedule.timeout()` and `schedule.delayer()` register their work with the same owner store. The
+owner scheduler also exposes two distinct layout boundaries:
+
+- `schedule.firstLayout(element, run)` runs once at the first `ResizeObserver` content rectangle
+  with positive width and height. If the element already has a non-zero layout, it may run
+  synchronously; an element that never gets laid out has no timeout and remains pending until the
+  owner is disposed.
+- `schedule.settledLayout(element, run, quietMs = 200)` runs once after a positive layout
+  observation has been quiet for `quietMs`. It deliberately waits through the initial observer
+  delivery even when the element is already laid out, and re-checks the current rectangle when the
+  quiet period expires.
+
+All scheduler work is canceled with the owner. Use `firstLayout` when the first usable geometry is
+the requirement and `settledLayout` when a changing or animated container must stop resizing before
+measurement; neither method is a substitute for `afterDispatch`, and neither uses the coalescing
+`raf()` slot. Independent concurrent loops must retain their own raw handles rather than sharing
+that slot.
+
+### Exact self-write echo guards
+
+`createEchoGuard<T>()` from `core/utils/echo-guard.ts` is the shared primitive for a writer that
+receives its own value back through a watcher or synchronous subscription. Each adopter owns its
+own guard and arms it with the exact value it writes. `consume(observed)` returns `true` only for an
+exact pending token; a match removes that token and older tokens, while newer tokens remain pending
+for later notifications. A nonmatching observation always clears every pending token before
+returning `false`, so the observed external change is processed and cannot leave an old arm-and-hope
+token waiting to swallow the next change. The guard is bounded to three pending tokens for
+overlapping writes and performs no normalization; callers must compare the raw representation they
+actually write and observe.
 
 ### TComponentModel\<T, P\>
 

@@ -22,7 +22,9 @@ Three questions decide the shape of your editor:
 2. **Does the editor write content back into the host?** (e.g. Grid edits — yes; Markdown
    preview — no)
    - **Yes** → route every write through `this.writeToHost(content, true)` and read external
-     changes via `this.subscribeHostContent(handler)` — the pair forms the echo guard.
+     changes via `this.subscribeHostContent(handler)`. The pair uses an exact-content echo guard:
+     the writer arms the value it sends, a matching callback is consumed, and every nonmatching
+     callback clears pending tokens before the external content is handled.
    - **No** → the native body can bind `host.state` directly with `VanillaView.bind()`; no separate
      subscription registry is needed.
 

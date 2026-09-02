@@ -32,8 +32,6 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
     private linksList: LinksListView | undefined;
     private gridModel: GridModelCapability | undefined;
     private bottomHeight: number | undefined;
-    private resizeObserver: ResizeObserver | undefined;
-    private resizeTimer: ReturnType<typeof setTimeout> | undefined;
     private editorBinding: (() => void) | undefined;
     private boundEditor: LinkEditor | undefined;
 
@@ -62,7 +60,7 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
 
         this.bindEditorState(this.props);
 
-        this.installResizeObserver();
+        this.seedDefaultSplit();
     }
 
     protected onUpdate(editor: LinkEditor): void {
@@ -91,10 +89,6 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
     }
 
     protected onDispose(): void {
-        if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
-        this.resizeObserver?.disconnect();
-        this.resizeTimer = undefined;
-        this.resizeObserver = undefined;
         this.gridModel = undefined;
     }
 
@@ -217,26 +211,14 @@ export class LinkTagsNavigationPanelView extends VanillaView<LinkEditor> {
         }));
     }
 
-    private installResizeObserver(): void {
-        const element = this.root;
-        const observer = new ResizeObserver(() => {
-            if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
-            this.resizeTimer = setTimeout(() => {
-                this.resizeTimer = undefined;
-                const height = element.clientHeight;
-                if (height <= 0 || this.bottomHeight !== undefined) return;
-                this.bottomHeight = Math.max(40, height * 0.5);
-                this.applyBottomHeight(this.bottomHeight);
-                this.splitter?.update(this.splitterProps(this.bottomHeight));
-                observer.disconnect();
-                this.resizeObserver = undefined;
-            }, 200);
-        });
-        observer.observe(element);
-        this.resizeObserver = observer;
-        this.own(() => {
-            if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
-            observer.disconnect();
+    /** Seed the bottom-panel default from the settled panel height, once. */
+    private seedDefaultSplit(): void {
+        this.schedule.settledLayout(this.root, () => {
+            const height = this.root.clientHeight;
+            if (height <= 0 || this.bottomHeight !== undefined) return;
+            this.bottomHeight = Math.max(40, height * 0.5);
+            this.applyBottomHeight(this.bottomHeight);
+            this.splitter?.update(this.splitterProps(this.bottomHeight));
         });
     }
 

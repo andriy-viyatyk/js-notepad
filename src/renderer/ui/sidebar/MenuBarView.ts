@@ -146,7 +146,6 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
     private readonly providerMap = new Map<string, FileTreeProvider>();
     private leftItemId = openTabsId;
     private contentWidth = 600;
-    private animationTimer: number | undefined;
     private previousOpen: boolean | undefined;
     private live = true;
 
@@ -210,7 +209,6 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         });
         this.own(() => {
             this.live = false;
-            if (this.animationTimer !== undefined) window.clearTimeout(this.animationTimer);
         });
         this.refreshFolders();
         this.updateRightView();
@@ -234,19 +232,15 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         this.previousOpen = open;
         this.applyRootState();
         if (!changed) return;
-        if (this.animationTimer !== undefined) window.clearTimeout(this.animationTimer);
-        this.animationTimer = undefined;
         this.root.classList.toggle("doDisplay", open);
         if (!open) {
             this.root.classList.remove("open");
             return;
         }
         void this.treeViewModel?.buildTree();
-        this.animationTimer = window.setTimeout(() => {
-            this.animationTimer = undefined;
-            if (!this.live) return;
-            this.root.classList.add("open");
-        }, 10);
+        // Flush the display change before adding `open`, or the opening transform can be skipped.
+        this.root.getBoundingClientRect();
+        this.root.classList.add("open");
         this.content.focus();
     }
 

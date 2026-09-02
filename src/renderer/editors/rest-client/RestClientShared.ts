@@ -267,7 +267,9 @@ export class RestDetailView extends VanillaView<RestDetailProps> {
 
     private scheduleMeasurement(): void {
         this.measureFrame?.();
-        this.measureFrame = this.schedule.raf(() => {
+        let completed = false;
+        const release = this.schedule.firstLayout(this.responsePane, () => {
+            completed = true;
             this.measureFrame = undefined;
             if (!this.root.isConnected || this.responsePane.offsetHeight <= 0) {
                 this.scheduleMeasurement();
@@ -277,6 +279,7 @@ export class RestDetailView extends VanillaView<RestDetailProps> {
             this.syncLayout();
             this.resultMeasureGate.prime([this.resultHeight]);
         });
+        if (!completed) this.measureFrame = release;
     }
 
     private getClampedHeight(value: number): number {

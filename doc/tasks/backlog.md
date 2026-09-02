@@ -178,6 +178,27 @@ written; the doc carries the research notes.
 
 ## Architecture Improvements
 
+### The three focus-after-page-focus races (deferred out of EPIC-081)
+
+`editors/base/TextChromeView.ts:492`, `editors/board/BoardWebview.ts:154`, and
+`editors/browser/BrowserView.ts:464` each wait 100–200 ms after a page-focus event before focusing
+their own element. **Recorded 2026-09-01**, deferred out of EPIC-081 after verification: P4's
+`firstLayout` cannot fix them, because the element is already laid out — they are waiting for a
+*competing* focus to finish. The honest fix is an ordering contract in the focus pipeline, which is
+materially larger and riskier than the rest of that epic's sweep and is verifiable only by hand
+across three editors. Worth doing when someone is already inside the focus path.
+
+Note these are also raw `setTimeout`, not owner-bound `this.schedule.timeout` — EPIC-080's US-1263
+swept rAF sites only. Converting them is not a fix on its own, so do not do it in isolation.
+
+### `cell-tooltip`'s module-global popover observer needs an upstream av-grid hook
+
+`uikit/DataGrid/cell-tooltip.ts:155` installs a `MutationObserver` on `document.body` that matches
+`.avg-popover` by class name and is "installed once for the module and never torn down".
+**Recorded 2026-09-01**, routed out of EPIC-081: the comment already names the right fix — an
+av-grid popover open/close hook — which is an upstream change, not a Persephone one. Pick this up
+alongside the next av-grid version adoption, where the upstream surface is already in scope.
+
 ### Two more callers of `getExpandedMap()` have US-1039's hint-only blind spot
 
 Surfaced by the `/review` pass on US-1039 (2026-08-29) and verified against source, but

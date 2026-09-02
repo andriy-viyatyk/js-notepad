@@ -1,5 +1,6 @@
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
+import { createEchoGuard } from "../../core/utils/echo-guard";
 import { FileWatcher } from "../../core/utils/file-watcher";
 import { fs } from "../../api/fs";
 
@@ -22,7 +23,7 @@ type SearchHistoryState = typeof defaultSearchHistoryState;
 class SearchHistoryStorage extends TModel<SearchHistoryState> {
     private profileName: string;
     private fileWatcher: FileWatcher | undefined;
-    private skipNextFileChange = false;
+    private readonly echoGuard = createEchoGuard<string>();
     private loaded = false;
 
     constructor(profileName: string) {
@@ -41,17 +42,15 @@ class SearchHistoryStorage extends TModel<SearchHistoryState> {
         await this.load();
     };
 
-    private fileChanged = () => {
-        if (this.skipNextFileChange) {
-            this.skipNextFileChange = false;
-            return;
-        }
-        this.load();
+    private fileChanged = async () => {
+        const content = await fs.getDataFile(getFileName(this.profileName));
+        if (content !== undefined && this.echoGuard.consume(content)) return;
+        await this.load(content);
     };
 
-    load = async (): Promise<string[]> => {
+    load = async (rawContent?: string): Promise<string[]> => {
         const fileName = getFileName(this.profileName);
-        const data = await fs.getDataFile(fileName);
+        const data = rawContent ?? await fs.getDataFile(fileName);
         const entries = (data ?? "")
             .split("\n")
             .map((s) => s.trim())
@@ -64,9 +63,10 @@ class SearchHistoryStorage extends TModel<SearchHistoryState> {
     };
 
     private save = async (entries: string[]) => {
-        this.skipNextFileChange = true;
         const fileName = getFileName(this.profileName);
-        await fs.saveDataFile(fileName, entries.join("\n"));
+        const content = entries.join("\n");
+        this.echoGuard.arm(content);
+        await fs.saveDataFile(fileName, content);
     };
 
     add = async (query: string): Promise<void> => {

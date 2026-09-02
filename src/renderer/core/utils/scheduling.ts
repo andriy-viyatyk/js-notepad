@@ -161,9 +161,8 @@ export class OwnerScheduler {
 
     /**
      * Schedules a callback after paint using one owner-wide coalescing slot: a second pending
-     * request replaces the first. Independent concurrent loops must keep raw handles; for example,
-     * `src/renderer/editors/video/AudioVisualizer.ts:346-388` has separate animation and sizing
-     * loops, and one owner-wide slot would make either loop clobber the other's pending frame.
+     * request replaces the first. Independent concurrent loops must keep raw handles because one
+     * owner-wide slot would make either loop clobber the other's pending frame.
      */
     public raf(run: () => void): Cleanup {
         this.assertActive?.();
@@ -211,6 +210,83 @@ export class OwnerScheduler {
                 release();
                 run();
             }, delay);
+        } catch (error) {
+            release();
+            throw error;
+        }
+        return release;
+    }
+
+    /** Waits for the first usable layout or for a quiet period after layout observations. */
+    public firstLayout(element: HTMLElement, run: () => void): Cleanup {
+        return this.layoutWait(element, run, undefined);
+    }
+
+    /** Waits for a usable layout to remain unobserved for the quiet period. */
+    public settledLayout(
+        element: HTMLElement,
+        run: () => void,
+        quietMs = 200,
+    ): Cleanup {
+        return this.layoutWait(element, run, quietMs);
+    }
+
+    private layoutWait(
+        element: HTMLElement,
+        run: () => void,
+        quietMs: number | undefined,
+    ): Cleanup {
+        this.assertActive?.();
+        let active = true;
+        let observer: ResizeObserver | undefined;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let release: Cleanup = () => undefined;
+
+        const cleanup = (): void => {
+            active = false;
+            if (timer !== undefined) {
+                clearTimeout(timer);
+                timer = undefined;
+            }
+            observer?.disconnect();
+            observer = undefined;
+        };
+
+        const complete = (): void => {
+            if (!active) return;
+            release();
+            run();
+        };
+
+        const hasNonZeroContentRect = (): boolean => {
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+        };
+
+        const observe = (entries: ResizeObserverEntry[]): void => {
+            if (!active) return;
+            const hasNonZeroEntry = entries.some(({ contentRect }) =>
+                contentRect.width > 0 && contentRect.height > 0);
+            if (quietMs === undefined) {
+                if (hasNonZeroEntry) complete();
+                return;
+            }
+
+            if (timer !== undefined) clearTimeout(timer);
+            timer = undefined;
+            if (!hasNonZeroEntry) return;
+            timer = setTimeout(() => {
+                timer = undefined;
+                if (!active || !hasNonZeroContentRect()) return;
+                complete();
+            }, quietMs);
+        };
+
+        release = this.disposables.add(cleanup);
+        try {
+            observer = new ResizeObserver(observe);
+            observer.observe(element);
+            if (quietMs === undefined && hasNonZeroContentRect()) complete();
         } catch (error) {
             release();
             throw error;

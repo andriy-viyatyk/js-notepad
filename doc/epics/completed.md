@@ -1,3 +1,77 @@
+## EPIC-081 — DOM & IO mechanisms
+
+Completed 2026-09-02. [Epic document](EPIC-081.md). The **final** epic of the
+[De-React second-pass roadmap](../de-react-refactoring-2.md) — packages 6 + 7, and the one epic that
+needed neither of the other two. Two mechanisms replaced two families of hand-rolled workarounds:
+**two owner-bound layout primitives** (`schedule.firstLayout` / `schedule.settledLayout`) retiring a
+triplicated `ResizeObserver` probe and two unbounded measurement retries, and **`createEchoGuard()`**
+replacing three copies of an arm-and-hope `skipNext*` flag. Net effect on the source: 17 files
+changed and 1 added, and every adopter shrank.
+
+**The epic's abort criterion fired at plan time, and that was the whole value of writing one.**
+US-1275 reported all three `ResizeObserver` adopters as wanting *settled* layout, not *first*. It
+held up: the probe's `clearTimeout` resets on **every** resize observation, so the 200 ms timer fires
+after the *last* one — settled semantics by construction — and both link panels sit inside
+`CollapsiblePanelStack`, which animates `transition: flex 0.15s ease`. A first-rect measurement would
+have frozen a 50 % split computed mid-animation at three sites. Resolution: **two named primitives**
+rather than one with a mode flag, because a `quietMs = 0` default would hand "first" semantics to
+precisely the kind of caller this finding was about.
+
+**Seven of the roadmap's claims did not survive verification** — see the epic document's *Corrections
+to the report's plan*. Four changed the work:
+
+- P4's helper shape was wrong: a free function returning a cancel handle re-creates the manual handle
+  field EPIC-080's US-1263 retired across 21 rAF sites, so both primitives are owner-bound methods;
+- `BoardTargetModel` is not a layout probe at all — it polls a plain `Set<string>`, so neither
+  `afterFirstLayout` nor a state subscription applied;
+- the three 100–200 ms focus delays are a **focus-ordering** problem, not a layout one → backlog;
+- §2.4 and §2.5 were **unassigned to any Part 5 package**, the same gap EPIC-082 found for §1.5/§1.8.
+
+Investigation then made the epic *smaller* twice, both verified: `kickTransition` was **never built**
+— `BookmarksDrawer`'s 10 ms timer set a `data-open` flag with **no consumer anywhere**, leaving
+`MenuBarView` as the only genuine adopter, so the flush is inlined rather than abstracted for one
+call site; and US-1278's waiter **already existed** one file away (`BoardEditorModel.waitForFrameLoad`),
+so that file needed no change at all.
+
+**One risk was closed by measurement rather than caveat.** US-1279 trades a boolean flag for exact
+content matching, and the failure mode is asymmetric: a token that never matches would make *every*
+settings save echo-reload. Static reading could not settle it (the read path does heuristic encoding
+detection), so the `saveDataFile` → `getDataFile` round-trip was measured in the running app across
+seven payloads. Six are byte-identical, including the real settings shape, CRLF, and full Unicode;
+only a leading BOM diverges, and neither adopter produces one. BOM-stripping was deliberately **not**
+added to the guard, because `TextHostEditorModel` passes document content where a BOM can be
+legitimate.
+
+**Two defects were caught in implementation review**, both a primitive applied to a site that was
+never a layout probe:
+
+- `MarkdownBodyView`'s anchor retry waits for *content still rendering*, not for container layout —
+  and its container is already laid out, so `firstLayout` fired immediately and burned all ten
+  attempts without a paint, silently breaking anchor navigation. **Reverted to `schedule.raf`** and
+  recorded as deliberately unconverted; a real fix needs a render-complete signal from `typedQueue`.
+- `ImageViewportView`'s synchronous `complete` check needed a `root.clientWidth > 0` guard at both
+  call sites: `onImageLoad` fits against `getContainerBounds()`, and both a fresh mount and an
+  open-but-inactive page measure 0x0.
+
+**Verification: all 14 ledger rows verified by the user, no issues** — including the five needing a
+human, and B2, the row that proves the arm-and-hope bug is genuinely fixed rather than relocated.
+Reviewed at epic level — `/review` PASS with no new findings; `/userdoc` correctly changed nothing,
+as the epic is internal mechanism with no user-facing surface. The two new scheduling primitives and
+the echo-guard contract are now documented in `state-management.md`.
+
+- **EPIC-081** — [DOM & IO mechanisms](epics/EPIC-081.md) — completed 2026-09-02.
+  Packages 6 + 7 of the roadmap, and the last epic in it. Independent of EPIC-080 and EPIC-082;
+  visual, local risk with one-file revert granularity.
+  - Strand A — P4 and the §2.2 layout sweep
+    - [x] [US-1275: `schedule.firstLayout` + `settledLayout`, and retire the 3x duplicated `ResizeObserver` probe](tasks/US-1275-schedule-first-layout/README.md)
+    - [x] [US-1276: convert the remaining layout-measurement retries](tasks/US-1276-layout-measurement-retries/README.md)
+    - [x] [US-1277: delete the two 10 ms transition hacks](tasks/US-1277-kick-transition/README.md)
+    - [x] [US-1278: `BoardTargetModel.waitForLoaded` — reuse the existing frame-load waiter](tasks/US-1278-board-tab-loaded-waiter/README.md)
+  - Strand B — P5 echo guard
+    - [x] [US-1279: `createEchoGuard()` + the three file-echo sites](tasks/US-1279-shared-echo-guard/README.md)
+  - Residue
+    - [x] [US-1280: §2.5 DOM pokes — `MenuView` row node, `TreeModel.focusRoot`](tasks/US-1280-dom-poke-cleanup/README.md)
+
 ## EPIC-082 — React architecture removal at the call sites
 
 Completed 2026-09-01. [Epic document](EPIC-082.md). The second epic of the

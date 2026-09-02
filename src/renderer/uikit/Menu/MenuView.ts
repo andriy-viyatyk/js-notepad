@@ -129,13 +129,7 @@ class MenuContentView extends VanillaView<MenuModel> {
         const hoveredId = this.model.state.get().hoveredId;
         if (hoveredId !== this.lastHoveredId) {
             this.lastHoveredId = hoveredId;
-            queueMicrotask(() => {
-                if (!this.model.isLive || !this.listRoot || !hoveredId) return;
-                const row = this.listRoot.querySelector(
-                    `[data-type="menu-row"][data-id="${CSS.escape(hoveredId)}"]`,
-                ) as HTMLElement | null;
-                row?.scrollIntoView({ block: "nearest" });
-            });
+            if (hoveredId) this.keyedList?.get(hoveredId)?.scrollIntoView({ block: "nearest" });
         }
     }
 

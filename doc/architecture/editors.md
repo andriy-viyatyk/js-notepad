@@ -192,7 +192,9 @@ lifecycle those editors would otherwise each reimplement:
   forgetting a release handle.
 - A **content echo guard**: editors that serialize back into the host call
   `writeToHost(content, byUser?)`, and read external changes via
-  `subscribeHostContent(handler)` — the handler skips the echo of the editor's own writes.
+  `subscribeHostContent(handler)`. The shared guard matches the exact written content; a matching
+  notification is consumed, while every nonmatching notification clears pending tokens before the
+  handler processes the genuine external change.
 - A **host-settings mirror**: `mirrorHostSettings(apply, snapshot, selector?)` seeds editor
   state from `host.getEditorState(editorId)` and mirrors later changes back with
   `setEditorState`, so per-editor view settings (Markdown `compactMode`, Mermaid

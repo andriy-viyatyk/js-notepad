@@ -82,6 +82,9 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     private lastActiveIndex: number | null | undefined = undefined;
     private lastSelectedIndex = -1;
     private lastEmptyMessage: TreeProps<T>["emptyMessage"] | undefined = undefined;
+    private readonly focusRoot = (): void => {
+        this.root.focus();
+    };
     /**
      * Set before anything else is torn down, so a cell listener that fires during disposal — the
      * pooled wrappers keep their listeners by design — cannot reach a half-disposed model.
@@ -115,6 +118,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
             this.rowViews.clear();
         });
         this.own(() => this.spinner?.dispose());
+        this.own(() => this.model.setFocusRootRef(null));
         this.own(() => this.driver.dispose());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
     }
@@ -133,6 +137,7 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
     }
 
     protected onMount(): void {
+        this.model.setFocusRootRef(this.focusRoot);
         this.messageHost = document.createElement("div");
         this.messageHost.dataset.part = "message";
 

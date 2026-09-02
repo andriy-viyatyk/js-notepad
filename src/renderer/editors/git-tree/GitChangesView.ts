@@ -51,8 +51,6 @@ export class GitChangesView extends VanillaView<GitChangesViewProps> {
     private branch: string | undefined;
     private selUnstaged: GitFileChange[] = [];
     private selStaged: GitFileChange[] = [];
-    private resizeObserver: ResizeObserver | undefined;
-    private resizeTimer: ReturnType<typeof setTimeout> | undefined;
 
     public constructor(props: GitChangesViewProps) {
         super(props, createPanelElement({
@@ -155,7 +153,7 @@ export class GitChangesView extends VanillaView<GitChangesViewProps> {
             }),
             this.applyState,
         );
-        this.installResizeObserver();
+        this.seedDefaultSplit();
     }
 
     protected onUpdate(props: GitChangesViewProps): void {
@@ -164,10 +162,6 @@ export class GitChangesView extends VanillaView<GitChangesViewProps> {
     }
 
     protected onDispose(): void {
-        if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
-        this.resizeObserver?.disconnect();
-        this.resizeTimer = undefined;
-        this.resizeObserver = undefined;
         this.layoutHost = undefined;
         this.unavailableHost = undefined;
         this.stagedPanel = undefined;
@@ -388,26 +382,14 @@ export class GitChangesView extends VanillaView<GitChangesViewProps> {
         }
     }
 
-    private installResizeObserver(): void {
-        const element = this.root;
-        const observer = new ResizeObserver(() => {
-            if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
-            this.resizeTimer = setTimeout(() => {
-                this.resizeTimer = undefined;
-                const height = element.clientHeight;
-                if (height <= 0 || this.bottomHeight !== undefined) return;
-                this.bottomHeight = Math.max(60, height * 0.5);
-                this.applyBottomHeight(this.bottomHeight);
-                this.splitter?.update(this.splitterProps(this.bottomHeight));
-                observer.disconnect();
-                this.resizeObserver = undefined;
-            }, 200);
-        });
-        observer.observe(element);
-        this.resizeObserver = observer;
-        this.own(() => {
-            if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
-            observer.disconnect();
+    /** Seed the bottom-panel default from the settled panel height, once. */
+    private seedDefaultSplit(): void {
+        this.schedule.settledLayout(this.root, () => {
+            const height = this.root.clientHeight;
+            if (height <= 0 || this.bottomHeight !== undefined) return;
+            this.bottomHeight = Math.max(60, height * 0.5);
+            this.applyBottomHeight(this.bottomHeight);
+            this.splitter?.update(this.splitterProps(this.bottomHeight));
         });
     }
 }

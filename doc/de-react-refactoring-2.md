@@ -324,7 +324,7 @@ documented in `uikit/CLAUDE.md:558` and used correctly by `uikit/Tree/TreeModel.
 | `editors/git-tree/GitChangesView.ts:395`, `link-editor/panels/LinkTagsSecondaryView.ts:224`, `LinkHostnamesNavigationPanel.ts:231` | 200 ms | `ResizeObserver → debounce → measure → disconnect()` — a one-shot "wait for first real layout" dressed as a resize handler, duplicated verbatim in 3 files |
 | `editors/base/TextChromeView.ts:492`, `editors/board/BoardWebview.ts:154`, `editors/browser/BrowserView.ts:464` | 100–200 ms | focus-after-page-focus races |
 | `uikit/PathInput/PathInputModel.ts:185` | 150 ms | blur/click grace so suggestion-row clicks land (classic, honestly labelled) |
-| `uikit/ImageViewportView.ts:100` | 50 ms | re-check `image.complete` in case `load` was missed |
+| `uikit/ImageViewport/ImageViewportView.ts:95-105` (path corrected 2026-09-01) | 50 ms | re-check `image.complete` in case `load` was missed — fix is a synchronous `complete` check at the `src` assignment, not a converted timer (EPIC-081) |
 | `editors/graph/GraphEditor.ts:629`, `editors/shared/MonacoEditorHostView.ts:202`, `MonacoDiffEditorHostView.ts:179` | 0 ms | popup-close / detached-Monaco-model teardown ordering |
 | `scripting/ScriptRunner.ts:119` | 1000 ms | time-window heuristic attributing unhandled rejections to a script |
 
@@ -588,8 +588,18 @@ P8's lint clauses fold into the existing **US-1131** task rather than a new one.
 
 ## Part 6 — Delivery plan: how this report becomes epics
 
-**Status:** this document is the active refactoring roadmap. It is tracked on
-[active-work.md](active-work.md) and comes off the dashboard when the programme below closes.
+**Status: all three epics are COMPLETE** — EPIC-080 and EPIC-082 closed 2026-09-01, EPIC-081 closed
+2026-09-02 (see [epics/completed.md](epics/completed.md)). This document is now a **record**, not an
+active roadmap, and its tracking section has been removed from [active-work.md](active-work.md).
+
+Two items of Part 6's delivery plan remain open and are tracked on their own:
+**US-1258** (package 1 quick wins, three live defects) is carried under *Planned* on the dashboard,
+and **package 8** sits in [tasks/backlog.md](tasks/backlog.md). P8's lint clauses remain folded into
+**US-1131**. Nothing gates any of them.
+
+Across the three epics, **writing the epic documents produced 7 + 6 + 7 corrections to this report's
+own plans**, and in each epic several of them would have shipped a regression if implemented as
+written. Read an epic document before acting on any section here that it touched.
 
 Epics are **not** created up front — each one is written when work is about to start on it, so its
 task breakdown reflects what the previous epic actually learned. The numbers below are reserved
@@ -646,11 +656,30 @@ Two constraints to carry into the epic document:
   build and a smoke test. It needs a mechanical, greppable conversion rule, not a "while we are in
   here" cleanup tacked onto P3.
 
-### EPIC-081 — DOM & IO mechanisms
+### EPIC-081 — DOM & IO mechanisms — **COMPLETED 2026-09-02**
 
-Packages 6 + 7: **P4** (`afterFirstLayout`, `kickTransition`) with the §2.2 timing-hack sweep, and
-**P5** (`createEchoGuard`) adopted at the three file-echo sites. Independent of EPIC-080, so it can
-run in parallel or fill a gap.
+Document: [epics/EPIC-081.md](epics/EPIC-081.md). Packages 6 + 7: **P4** (`afterFirstLayout`,
+`kickTransition`) with the §2.2 timing-hack sweep, and **P5** (`createEchoGuard`) adopted at the
+three file-echo sites. Independent of EPIC-080 and EPIC-082, so it can run in parallel or fill a gap.
+
+Writing it re-verified this section against source at commit `d44ab072` and produced **seven
+corrections** — see that document's *Corrections to the report's plan*. Four change what the work is:
+
+- **P4's helper shape is wrong.** A free function returning a cancel handle re-creates the manual
+  handle field EPIC-080's US-1263 retired across 21 rAF sites; it ships as owner-bound
+  `this.schedule.firstLayout(el, fn)` instead. `kickTransition` stays a free function.
+- **`BoardTargetModel` is not a layout probe.** It polls `BoardEditorModel.loadedTabs`, a plain
+  `Set<string>` (`:140`) — so neither `afterFirstLayout` nor a state subscription applies. It needs a
+  one-shot waiter at the `loadedTabs.add` write site.
+- **The three focus-race delays (100–200 ms) are out of scope** and moved to the backlog: the
+  element is already laid out, so they are a focus-ordering problem, not a layout one.
+- **§2.4 and §2.5 are unassigned to any package here** — the same gap this report had for §1.5 and
+  §1.8. The two cheap §2.5 items are absorbed as US-1280; §2.4's `cell-tooltip` module observer goes
+  to the backlog because its fix is an upstream av-grid hook.
+
+Also corrected in place: §2.2's `uikit/ImageViewportView.ts:100` is really
+`uikit/ImageViewport/ImageViewportView.ts:95-105`, and it needs a synchronous `image.complete` check
+rather than a converted timer.
 
 ### EPIC-082 — React architecture removal at the call sites — **COMPLETED 2026-09-01**
 
