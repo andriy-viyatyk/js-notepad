@@ -20,6 +20,7 @@ import { SplitterView } from "../../uikit/Splitter/SplitterView";
 import { openMenu, type MenuHandle } from "../../uikit/Menu/attach-menu";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
 import color from "../../theme/color";
+import { dismissOverlays } from "../../uikit/shared/overlayLayer";
 import { BrowserTabsPanelView } from "./BrowserTabsPanel";
 import { BookmarksDrawerView, type BookmarksDrawerProps } from "./BookmarksDrawer";
 import { TorStatusOverlayView } from "./TorStatusOverlay";
@@ -134,6 +135,8 @@ export class BrowserWebviewItemView extends VanillaView<BrowserWebviewItemProps>
             } else if (channel === "clicked-images") {
                 const urls = args[0] as string[];
                 if (Array.isArray(urls) && urls.length) this.model.bookmarksUI.trackClickedImages(this.tabId, urls);
+            } else if (channel === "guest-pointerdown") {
+                dismissOverlays();
             } else if (channel === "show-find-bar") {
                 this.model.webview.openFind();
             } else if (channel === "hide-find-bar" && this.model.state.get().findBarVisible) {

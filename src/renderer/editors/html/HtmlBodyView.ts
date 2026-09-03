@@ -1,5 +1,6 @@
 import type { EditorConfig } from "../base/EditorConfig";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { dismissOverlays } from "../../uikit/shared/overlayLayer";
 import type { HtmlEditor } from "./HtmlEditor";
 
 // Injected into the previewed HTML. The nested browser document owns both listeners
@@ -115,7 +116,7 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
             if (event.source !== this.iframe.contentWindow) return;
             const data = event.data as { __persephone?: string } | undefined;
             if (data?.__persephone === "html:interact") {
-                document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+                dismissOverlays();
                 // Clicking inside a sandboxed iframe makes it the host document's `activeElement`
                 // but dispatches no focus event here, so nothing bubbles to an ancestor that tracks
                 // focus — a notebook note holding an HTML preview stayed inactive however much the

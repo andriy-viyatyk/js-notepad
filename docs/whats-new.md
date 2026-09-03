@@ -57,6 +57,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Markdown checklists no longer break into narrow columns** — Checklist items now keep their text in normal inline flow, including entries containing bold, italic, or code formatting, while the checkbox remains in the list gutter.
 
+- **Menus close when you click inside a browser page** — With a browser page open, the page-tab
+  right-click menu, the downloads menu and the toolbar's **⋯** menu stayed open when you clicked in
+  the web page itself, and since the page fills almost the whole tab there was little left to click
+  to dismiss them. Clicking anywhere in the page now closes them, as clicking elsewhere in
+  Persephone already did. A click inside a cross-origin frame embedded in the page is still not
+  seen.
+
 - **Browser pages can claim `Ctrl+F` and `Escape`** — Web apps with their own search, popover, or dialog behavior now receive these shortcuts first, as they do in Chrome and Edge. When a page leaves them unclaimed, `Ctrl+F` opens Persephone's find bar and `Escape` stops loading and closes it.
 
 - **Global paste — any rich HTML opens in the HTML viewer** — Copying formatted content such as a Teams or Outlook conversation, a Word or Excel selection, or a web-page selection and pressing `Ctrl+V` now opens a new **HTML viewer** tab even when the clipboard HTML contains no images. The existing behavior is unchanged for bitmap images, which open the **Image Viewer**. If the destination handles the paste itself — for example, an editable field, a text editor, a grid, or another component — it keeps the paste and no viewer tab is opened. Plain-text-only clipboard content continues to paste normally, and the new HTML-viewer tab is not persisted across app restarts.

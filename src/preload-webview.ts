@@ -126,6 +126,20 @@ function observeHead() {
     });
 }
 
+// ── Overlay Dismissal ──────────────────────────────────
+// A press in here fires no `pointerdown` in the host document, so a host menu or popover
+// never sees an outside click and stays open over the page. Report every press so the host
+// can dismiss them. The guest covers nearly the whole page, so without this there is barely
+// anywhere left to click to close a menu.
+//
+// Unlike Ctrl+F above, this needs no deferral and ignores `defaultPrevented`: whether the
+// page handles its own press is irrelevant, because a press anywhere in the guest is
+// unambiguously outside every host overlay. Capture phase so a page calling
+// `stopPropagation()` cannot suppress the report.
+document.addEventListener("pointerdown", () => {
+    ipcRenderer.sendToHost("guest-pointerdown");
+}, true);
+
 // ── Keyboard Shortcuts ───────────────────────────────────────────────
 // Intercept shortcuts that should be handled by the host renderer (find bar).
 
