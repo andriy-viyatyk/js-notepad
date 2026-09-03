@@ -1,24 +1,27 @@
 import { pagesModel } from "../pages";
 
 /**
- * Shared helpers for the "paste image → open in a viewer" feature.
+ * Shared helpers for the "paste clipboard content → open it in a viewer" feature.
  *
- * `GlobalEventService` registers a single capture-phase `paste` listener on
- * `document` that inspects the clipboard:
+ * `GlobalEventService` inspects the clipboard from two `paste` listeners on
+ * `document`:
  *
- *  1. A real image **file** / bitmap (`getClipboardImageFile`) → opened in the
- *     Image viewer. This fires even when an editor is focused — a bitmap has no
- *     meaningful text representation to paste, so we always intercept it.
- *  2. An image delivered **only as an HTML fragment** (`getClipboardImageHtml`)
- *     — e.g. a picture copied from PowerPoint / Office, where the clipboard
- *     carries no bitmap, just `text/html` with an embedded `<img>`. This is
- *     opened in the HTML viewer, but **only as a fallback**: if the paste is
- *     landing in an editable target (`isEditablePasteTarget` — Monaco, an input,
- *     a contentEditable), we stand down so that component pastes it as text and
- *     no new page is created.
+ *  1. **Capture phase** — a real image **file** / bitmap
+ *     (`getClipboardImageFile`) → Image viewer. This always wins, even when an
+ *     editor is focused: a bitmap has no meaningful text representation, so
+ *     there is nothing for the focused editor to paste anyway.
+ *  2. **Bubble phase** — any rich HTML (`getClipboardRichHtml`) → HTML viewer,
+ *     as a genuine fallback. Running last gives every component that handles
+ *     paste itself first refusal; `shouldStandDownFromPaste` covers the ones
+ *     that handle it without stopping propagation. This mirrors the drop
+ *     handling in the same file (capture tags, bubble opens as a fallback).
  *
- * Everything else flows through untouched, so text editors paste as usual.
+ * A plain-text-only clipboard carries no `text/html` at all, so it falls
+ * through untouched everywhere and text editors paste as usual.
  */
+
+/** av-grid's root element class — see `shouldStandDownFromPaste`. */
+const GRID_ROOT_SELECTOR = ".avg-grid";
 
 /** Extract the first image file carried by a paste event, or `null`. */
 export function getClipboardImageFile(e: ClipboardEvent): File | null {
@@ -35,31 +38,48 @@ export function getClipboardImageFile(e: ClipboardEvent): File | null {
 }
 
 /**
- * Return clipboard HTML that carries an embedded/linked image, or `null`.
+ * Return clipboard HTML worth opening in the HTML viewer, or `null`.
  *
- * Targets the "image copied as an HTML fragment" case (PowerPoint, Office, some
- * web copies) where no bitmap/file is placed on the clipboard — only `text/html`
- * containing an `<img>`. Plain rich text without an image returns `null` so it is
- * left to normal paste handling.
+ * Any `text/html` fragment carrying markup qualifies: a picture copied from
+ * PowerPoint (an `<img>` with no bitmap beside it), a Teams conversation, a
+ * table from Excel, a selection from a web page. US-729 originally gated this
+ * on the fragment containing an `<img src=`, which silently dropped every
+ * text-only rich copy — a Teams chat selection produces ~7 KB of `<p>`/`<span>`
+ * markup and not one image tag, so nothing opened (US-1281).
+ *
+ * A `text/html` entry with no tag at all is not rich content and still returns
+ * `null`, leaving it to normal paste handling.
  */
-export function getClipboardImageHtml(e: ClipboardEvent): string | null {
+export function getClipboardRichHtml(e: ClipboardEvent): string | null {
     const html = e.clipboardData?.getData("text/html");
     if (!html) return null;
-    return /<img\b[^>]*\bsrc\s*=/i.test(html) ? html : null;
+    return /<[a-z][a-z0-9-]*(\s|\/?>)/i.test(html) ? html : null;
 }
 
 /**
- * True when the paste is landing in an editable element (input, textarea,
- * select, or a contentEditable host — which includes Monaco's hidden textarea).
- * Such targets consume the paste as text, so the global "open in a new page"
- * fallback must stand down.
+ * True when the "open pasted HTML in a new tab" fallback must not fire.
+ *
+ * Three stand-downs, each a component that owns the paste itself:
+ *
+ *  - **`defaultPrevented`** — something downstream already handled it. av-grid
+ *    calls `preventDefault()` on a successful Excel paste into a selection.
+ *  - **an editable target** (input, textarea, select, or a contentEditable
+ *    host — which includes Monaco's hidden textarea). A native paste into an
+ *    input performs the insertion as the event's *default action*, so
+ *    `defaultPrevented` stays false and this check is what covers it.
+ *  - **inside a grid.** av-grid only calls `preventDefault()` when the paste
+ *    actually landed, so a paste it rejected (nothing selected, copy-paste
+ *    disabled) would otherwise spawn a viewer tab while the user is working in
+ *    the grid.
  */
-export function isEditablePasteTarget(e: ClipboardEvent): boolean {
+export function shouldStandDownFromPaste(e: ClipboardEvent): boolean {
+    if (e.defaultPrevented) return true;
     const el = (e.target as Element | null) ?? document.activeElement;
     if (!(el instanceof HTMLElement)) return false;
     const tag = el.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-    return el.isContentEditable;
+    if (el.isContentEditable) return true;
+    return !!el.closest(GRID_ROOT_SELECTOR);
 }
 
 /** Open a pasted image file in a new Image viewer tab. */

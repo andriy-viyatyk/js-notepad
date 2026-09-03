@@ -9,10 +9,10 @@ import { RendererEvent } from "../../../ipc/api-types";
 import { pagesModel } from "../pages";
 import {
     getClipboardImageFile,
-    getClipboardImageHtml,
-    isEditablePasteTarget,
+    getClipboardRichHtml,
     openPastedHtml,
     openPastedImage,
+    shouldStandDownFromPaste,
 } from "./clipboard-image";
 import { windowClosing } from "../../core/state/events";
 import type { ILink } from "../types/io.tree";
@@ -87,7 +87,11 @@ export class GlobalEventService {
         // Bubble (runs last): open dropped files as tabs unless a target handled the drop.
         document.addEventListener("drop", this.handleFileDropFallback);
         document.addEventListener("wheel", this.handleWheel, { passive: false });
-        document.addEventListener("paste", this.handlePaste, true);
+        // Capture: a pasted bitmap wins over any focused editor (see handlePastedImage).
+        document.addEventListener("paste", this.handlePastedImage, true);
+        // Bubble (runs last): open pasted rich HTML in a viewer unless a component
+        // handled the paste itself.
+        document.addEventListener("paste", this.handlePastedHtmlFallback);
         window.addEventListener("unhandledrejection", this.handleUnhandledRejection);
         window.addEventListener("beforeunload", this.handleBeforeUnload);
     }
@@ -198,34 +202,38 @@ export class GlobalEventService {
     };
 
     /**
-     * Open image pastes in a viewer. Registered in the **capture** phase on
-     * `document` so it runs before any focused editor — notably Monaco, which
-     * otherwise consumes (and `preventDefault`s) the paste at its textarea before
-     * a bubble-phase listener could ever see it.
+     * Open a pasted bitmap in the Image viewer. Registered in the **capture**
+     * phase on `document` so it runs before any focused editor — notably Monaco,
+     * which otherwise consumes (and `preventDefault`s) the paste at its hidden
+     * textarea before a bubble-phase listener could ever see it.
      *
-     * 1. A real image file/bitmap → Image viewer; we `stopPropagation()` so the
-     *    focused editor never receives it (a bitmap has no text to paste anyway).
-     * 2. An image carried only as an HTML fragment (PowerPoint/Office) → HTML
-     *    viewer, but **only as a fallback**: if the paste is landing in an
-     *    editable target we stand down and let it paste as text — no new page.
-     *
-     * Everything else falls through untouched, so text editors paste as usual.
+     * We `stopPropagation()` so the focused editor never receives the paste; a
+     * bitmap has no text representation for it to insert anyway. Everything else
+     * falls through to the bubble-phase fallback below.
      */
-    private handlePaste = (e: ClipboardEvent) => {
+    private handlePastedImage = (e: ClipboardEvent) => {
         const file = getClipboardImageFile(e);
-        if (file) {
-            e.preventDefault();
-            e.stopPropagation();
-            openPastedImage(file);
-            return;
-        }
-        // HTML-only image paste: a fallback for editable targets, which keep
-        // their normal text paste.
-        if (isEditablePasteTarget(e)) return;
-        const html = getClipboardImageHtml(e);
-        if (!html) return;
+        if (!file) return;
         e.preventDefault();
         e.stopPropagation();
+        openPastedImage(file);
+    };
+
+    /**
+     * Open pasted rich HTML in the HTML viewer — a Teams conversation, an Office
+     * picture that arrived as HTML with no bitmap, a table from Excel, a web-page
+     * selection.
+     *
+     * Registered on the **bubble** phase (runs last) so that any component which
+     * handles the paste itself wins by default, exactly as `handleFileDropFallback`
+     * does for drops. `shouldStandDownFromPaste` covers the components that handle
+     * a paste without stopping propagation — editable targets and grids.
+     */
+    private handlePastedHtmlFallback = (e: ClipboardEvent) => {
+        if (shouldStandDownFromPaste(e)) return;
+        const html = getClipboardRichHtml(e);
+        if (!html) return;
+        e.preventDefault();
         openPastedHtml(html);
     };
 

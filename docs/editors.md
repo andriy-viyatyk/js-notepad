@@ -149,10 +149,11 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
   - **Save as .png** — re-encodes the image to PNG (useful for converting JPG, GIF, etc. to PNG)
   - **Save original** — writes the source bytes in their original format with no re-encoding
 - **Open in Drawing Editor** — toolbar button embeds the image into a new Excalidraw drawing tab for annotation
-- **Paste image from clipboard** — press `Ctrl+V` anywhere in Persephone (even when a text editor is focused) to open a clipboard image in a new viewer tab. Two cases are handled:
-  - **Bitmap image** (screenshots, images copied from Snipping Tool, Teams, browsers) — opens in a new **Image Viewer** tab titled **"Pasted image"**. The tab survives an app restart.
-  - **HTML-only image** (pictures copied from PowerPoint, Word, Excel, or any app that places the image on the clipboard as HTML with no bitmap) — opens in a new **HTML viewer** tab titled **"Pasted HTML"**. The tab is not persisted across restarts.
-  - If the paste lands in a focused editor (Monaco, any input, or other text field), those targets paste normally and no new tab is opened.
+- **Paste from clipboard** — press `Ctrl+V` anywhere in Persephone to open the clipboard content in a new viewer tab. Two cases are handled:
+  - **Bitmap image** (screenshots, images copied from Snipping Tool, Teams, browsers) — opens in a new **Image Viewer** tab titled **"Pasted image"**. This wins even when a text editor is focused, since a bitmap has no text to paste. The tab survives an app restart.
+  - **Rich HTML** (a Teams or Outlook conversation, a Word/Excel selection, a picture copied from PowerPoint that carries no bitmap, a selection from a web page) — opens in a new **HTML viewer** tab titled **"Pasted HTML"**, rendered with its original formatting. The tab is not persisted across restarts.
+  - The HTML case is a **fallback**: if the paste lands somewhere that handles it — a focused editor (Monaco, any input or text field) or a grid (where `Ctrl+V` pastes cells) — that target pastes normally and no new tab is opened. Click away from the editor first, then paste.
+  - A plain-text clipboard is never intercepted.
 - **Screen Snip** — the **…** (three-dot) button in the Persephone window header opens a snip menu with two options: **Snip Screen** (hides Persephone, then capture the desktop) and **Snip Persephone** (keeps Persephone visible so you can capture its own content). After selecting a region, the screenshot opens in a new Image Viewer tab. See [Screen Snip](#screen-snip) for details.
 
 **Scripting:** `const img = await page.asImage()` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`asImage()` API reference](./api/page.md#asimage--promiseimageeditor).
