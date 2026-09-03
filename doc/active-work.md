@@ -8,23 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(no epic)*
-  - [ ] **US-1286: Host menus did not close when clicking inside a browser page** — user-reported
-    (2026-09-03): with a browser page open, the page-tab context menu, the downloads menu and the
-    toolbar's three-dot menu stayed open when clicking in the page. `PopoverView`'s outside-click
-    listener is on the host `document`, and a press inside the `<webview>` guest fires no event
-    there — and the guest covers nearly the whole page, so there was barely anywhere left to click
-    to dismiss. The guest preload now reports every press (`guest-pointerdown`, capture phase, no
-    `defaultPrevented` deferral — a press in the guest is unambiguously outside every host overlay),
-    and `BrowserView`'s `ipc-message` handler replays it through a new shared
-    `dismissOverlays()` in `uikit/shared/overlayLayer.ts`.
-    **Not the De-React regression it looked like:** v4.0.22's popover listened on `document`
-    `mousedown`, which a guest press does not produce either, so the browser case was equally
-    broken in the last release. The genuine regression is adjacent — the HTML viewer's sandboxed
-    iframe has pinged the host since US-729 and its handler dispatched `mousedown`, which stopped
-    dismissing anything when `PopoverView` moved to `pointerdown`. Both now share one helper.
-    **Known gap:** the preload is main-frame only, so a press inside a cross-origin iframe within
-    the page still does not dismiss — the same boundary as US-1284.
+- *(nothing in flight — US-1281, US-1285 and US-1286 closed 2026-09-03.)*
 
 - *(EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
   [epics/completed.md](epics/completed.md). The only residue is package 8 in
