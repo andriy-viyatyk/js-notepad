@@ -69,3 +69,16 @@ export function splitWithSeparators(text: string, separators: string, withTrim =
     }
     return res;
 }
+
+/**
+ * Element-wise identity comparison of two arrays.
+ *
+ * For props that arrive as a freshly allocated array on every read — `PageModel.panelEditors`
+ * and `BrowserPanelHost.panelEditors` both filter or rebuild per call — an identity check on the
+ * array itself always reports "changed", so a caller gating on it would never skip an update.
+ * Compare length plus each element instead.
+ */
+export function sameItems<T>(a: readonly T[] | undefined, b: readonly T[]): boolean {
+    if (!a || a.length !== b.length) return false;
+    return a.every((item, index) => item === b[index]);
+}

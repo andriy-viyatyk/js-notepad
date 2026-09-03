@@ -275,8 +275,11 @@ The browser editor mounts a native `SecondaryViewsView` inside both `BlankPageLi
 - The host lives in `editors/browser/` (not `api/pages/`) to avoid an import cycle via `LinkEditor`.
 
 `BrowserSecondaryViewsView` wires the native `SecondaryViewsView` to a `BrowserPanelHost`, passing
-`views`, `state`, and `setState`. It is mounted in both `BlankPageLinksView` and
-`BookmarksDrawerView`.
+`views`, the host's `SecondaryViewsModel`, and stable `onActivatePanel` / `onResizeWidth`
+commands. The child binds the model's width and active-panel fields directly. The bridge's host
+subscription is only used to notice panel-list changes; it compares the ordered panel-editor model
+identities because `panelEditors` returns a fresh array. Navigation changes no longer mirror into
+the host's `state.version`. It is mounted in both `BlankPageLinksView` and `BookmarksDrawerView`.
 
 ## Key Files
 

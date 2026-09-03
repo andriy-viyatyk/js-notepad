@@ -132,7 +132,7 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
         this.closeButton = this.child(new IconButtonView(this.closeButtonProps()));
         this.closeButton.mount();
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Boards",
             actions: this.closeButton.root,
@@ -237,7 +237,7 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
     private updateHeader(props: SecondaryViewProps): void {
         this.closeButton?.update(this.closeButtonProps());
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "Boards",
             actions: this.closeButton?.root,

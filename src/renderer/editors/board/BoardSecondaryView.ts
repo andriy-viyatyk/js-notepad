@@ -46,7 +46,7 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
         });
         this.root.append(this.contentHost);
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "View",
         });
@@ -116,7 +116,7 @@ export default class BoardSecondaryView extends VanillaView<SecondaryViewProps> 
         const selectedRoot = state.selectedBoard ? state.boardRoot : undefined;
         const trusted = boardTrust.isTrusted(selectedRoot ?? "");
         this.header?.update({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: declaration?.title ?? viewId ?? "View",
         });

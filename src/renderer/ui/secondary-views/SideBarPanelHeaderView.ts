@@ -5,7 +5,7 @@ import { createIconElement } from "../../uikit/shared/slots";
 import "./SideBarPanelHeader.css";
 
 export interface SideBarPanelHeaderDomProps {
-    headerRef: HTMLDivElement | null;
+    headerHost: HTMLDivElement | null;
     icon?: Node;
     badge?: Node;
     title: string | Node;
@@ -121,9 +121,9 @@ class SideBarPanelHeaderDom implements SideBarPanelHeaderHandle {
             content: props.onShowMain ? props.showMainTitle ?? "Show in main view" : null,
         });
 
-        if (this.currentHeader !== props.headerRef) {
+        if (this.currentHeader !== props.headerHost) {
             this.detachNodes();
-            this.currentHeader = props.headerRef;
+            this.currentHeader = props.headerHost;
         }
         this.attachNodes();
     }

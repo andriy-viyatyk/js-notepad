@@ -359,7 +359,7 @@ class MyEditor extends EditorModel<MyEditorState> {
 Register the panel in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`. A registration
 returns `VanillaViewCtor<SecondaryViewProps>`; the secondary-view host owns the asynchronous load,
 stable root, and retirement lifecycle. Build headers with `SideBarPanelHeaderView` against the
-provided `headerRef`, pass DOM `Node` slots, and keep the Excalidraw React island out of secondary
+provided `headerHost`, pass DOM `Node` slots, and keep the Excalidraw React island out of secondary
 views. Do not register a replaced record view with `this.child()`.
 
 ## Testing Your Editor

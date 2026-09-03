@@ -31,6 +31,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Archive I/O (ZIP/RAR/7z/TAR) | `/src/renderer/api/archive-service.ts`          |
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |
 | Path utilities           | `/src/renderer/core/utils/file-path.ts`           |
+| Element-wise identity comparison for freshly allocated model arrays (`sameItems`) | `/src/renderer/core/utils/utils.ts` |
 | State primitives         | `/src/renderer/core/state/`                        |
 | Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen` with early-release handles, owner-bound scheduling, `ownSubscription`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
 | Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
@@ -108,7 +109,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
 | Secondary view registry (single native `VanillaView` panel loader; exact and prefix resolution) | `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
 | Composite panel keys (sidebar) | `/src/renderer/ui/secondary-views/panel-key.ts` |
-| Native shared sidebar panel header (DOM title/badge/actions adoption, show-main control, and late `headerRef` reparenting) | `/src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts` |
+| Native shared sidebar panel header (DOM title/badge/actions adoption, show-main control, and late `headerHost` reparenting) | `/src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts` |
 | Native secondary-panel loader (cancellable dynamic import, vanilla panel mount, semantic error host, and explicit retirement cleanup) | `/src/renderer/ui/secondary-views/LazySecondaryViewView.ts` |
 | Native sidebar/menu views (Menu Bar, panels, lists, pinned rail, and folder rows) | `/src/renderer/ui/sidebar/*View.ts` |
 | Shared global overlay host | `/src/renderer/uikit/shared/overlayLayer.ts` |

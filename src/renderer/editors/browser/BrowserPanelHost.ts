@@ -127,9 +127,6 @@ export class BrowserPanelHost implements IPageHost {
                 activePanel: this._activePanel,
                 ...(this._pendingWidth ? { width: this._pendingWidth } : undefined),
             });
-            this.subscriptions.add(this.secondaryViewsModel.state.subscribe(() => {
-                this.state.update((s) => { s.version++; });
-            }));
             this.state.update((s) => { s.hasSidebar = true; });
         }
         return this.secondaryViewsModel;

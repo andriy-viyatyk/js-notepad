@@ -61,7 +61,7 @@ export default class MnemeTreeSecondaryView extends VanillaView<SecondaryViewPro
         this.closeButton.mount();
 
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Wiki",
         });
@@ -214,7 +214,7 @@ export default class MnemeTreeSecondaryView extends VanillaView<SecondaryViewPro
 
     private updateHeader(props: SecondaryViewProps): void {
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             badge: this.rootTag?.root,
             title: "Wiki",

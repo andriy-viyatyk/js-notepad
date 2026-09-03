@@ -23,7 +23,6 @@ export interface CollapsiblePanelProps
     childrenFactory?: (header: HTMLDivElement, isOpen: boolean) => SlotContent;
     icon?: IconName;
     buttons?: SlotContent;
-    headerRef?: (el: HTMLDivElement | null) => void;
     alwaysRenderContent?: boolean;
 }
 
@@ -53,7 +52,6 @@ interface PanelRecord {
     buttonsCleanup?: () => void;
     headerRelease: () => void;
     buttonsRelease?: () => void;
-    headerRef?: (element: HTMLDivElement | null) => void;
     ownedHeaderNodes: Node[];
     contentCleanup?: () => void;
 }
@@ -184,17 +182,10 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
     }
 
     private updateHeader(record: PanelRecord, panel: CollapsiblePanelProps, isOpen: boolean): void {
-        const oldRef = record.headerRef;
-        const refChanged = oldRef !== panel.headerRef;
-        if (refChanged) {
-            oldRef?.(null);
-            record.headerRef = panel.headerRef;
-        }
-
         for (const node of record.ownedHeaderNodes) node.parentNode?.removeChild(node);
         record.ownedHeaderNodes = [];
 
-        const showChevron = !panel.headerRef && !panel.childrenFactory && !panel.buttons;
+        const showChevron = !panel.childrenFactory && !panel.buttons;
         if (showChevron) {
             const chevron = createIconElement(isOpen ? "chevron-down" : "chevron-right");
             record.ownedHeaderNodes.push(chevron);
@@ -233,7 +224,6 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
             record.header.insertBefore(node, firstExternal ?? null);
         }
 
-        if (refChanged) record.headerRef?.(record.header);
     }
 
     private getExternalHeaderNodes(record: PanelRecord): Node[] {
@@ -267,7 +257,6 @@ export class CollapsiblePanelStackView extends VanillaView<StackViewProps> {
     private removePanel(root: HTMLDivElement): void {
         const record = this.records.get(root);
         if (!record) return;
-        record.headerRef?.(null);
         record.headerRelease();
         record.buttonsCleanup?.();
         record.buttonsRelease?.();

@@ -64,7 +64,7 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
     protected onMount(): void {
         this.createHeaderActions();
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Explorer",
             actions: this.headerActions,
@@ -429,7 +429,7 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
             ...(this.model.page?.sidebarMandatory || !this.closeButton ? [] : [this.closeButton.root]),
         );
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "Explorer",
             actions: this.headerActions,

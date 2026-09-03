@@ -56,7 +56,7 @@ export default class RestPanelSecondaryView extends VanillaView<SecondaryViewPro
         this.tree.mount();
 
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Rest",
         });
@@ -117,7 +117,7 @@ export default class RestPanelSecondaryView extends VanillaView<SecondaryViewPro
 
     private updateHeader(props: SecondaryViewProps): void {
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "Rest",
         });

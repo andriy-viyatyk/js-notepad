@@ -29,7 +29,7 @@ export default class LinkHostnamesSecondaryView extends VanillaView<SecondaryVie
         this.root.append(this.navigation.root);
         this.navigation.mount();
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Hostnames",
         });
@@ -49,7 +49,7 @@ export default class LinkHostnamesSecondaryView extends VanillaView<SecondaryVie
 
     private updateHeader(): void {
         this.header?.update({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Hostnames",
         });

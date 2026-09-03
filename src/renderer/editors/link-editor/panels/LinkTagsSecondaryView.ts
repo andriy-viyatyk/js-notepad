@@ -251,7 +251,7 @@ export default class LinkTagsSecondaryView extends VanillaView<SecondaryViewProp
         this.root.append(this.navigation.root);
         this.navigation.mount();
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Tags",
         });
@@ -275,7 +275,7 @@ export default class LinkTagsSecondaryView extends VanillaView<SecondaryViewProp
 
     private updateHeader(): void {
         this.header?.update({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Tags",
         });

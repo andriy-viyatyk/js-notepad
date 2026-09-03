@@ -387,9 +387,11 @@ smallest targeted setter needed for that live value rather than rebuilding a pro
 calling `update()` for every state dispatch.
 
 This convention does not eliminate channels for values that do not exist at construction time. A
-DataGrid instance created during a mounted grid branch still uses its deferred `onModel` channel,
-and secondary-view headers created by a panel stack still use `headerRef`; both are lifecycle
-notifications rather than ordinary child props. Likewise, editor roots that capture a stable
+DataGrid instance created during a mounted grid branch still uses its deferred `onModel` channel —
+a lifecycle notification rather than an ordinary child prop. A secondary-view header is **not** such
+a channel: `headerHost` is a plain `HTMLDivElement` the panel stack owns and hands to the panel view
+as a normal prop. The former callback-ref protocol had no supplier and is not part of the stack.
+Likewise, editor roots that capture a stable
 model may reject an unexpected model-identity replacement at their boundary. These cases are
 separate from the `VanillaView.update()` equality decision.
 
@@ -503,9 +505,8 @@ Narrowing this distinction in the type system is deliberately deferred. Roughly 
 type-level split cannot be made without first migrating those callers. This document is therefore
 the current house convention, not an enforced type contract.
 
-The transitional option proposed as R2 step 4 in the De-React refactoring plan (that plan closed
-2026-08-30 and its document has been deleted; see [EPIC-076](../epics/EPIC-076.md))
-is rejected: a shallow-equality gate inside `VanillaView.update()` would be “a crutch, not the
+The transitional option proposed as R2 step 4 in the now-closed De-React refactoring plan is
+rejected: a shallow-equality gate inside `VanillaView.update()` would be “a crutch, not the
 fix.” It would mask exactly the call sites that need to be found and could make verification pass
 for the wrong reason. Keep the pump visible until each live-data path is
 owned by the appropriate child subscription or targeted setter.
@@ -733,7 +734,10 @@ When a model state has many fields, subscribe to only the stored fields the View
 with `VanillaView.bind(state, selector, render)`. Return direct references, primitives, or plain
 objects of those values from selectors; never allocate an array in a selector. Derive mapped arrays
 in the apply callback or maintain them as model fields at the write site, depending on ownership,
-so structural/reference comparison does not turn a selector into an always-fire path. See [The props-pump
+so structural/reference comparison does not turn a selector into an always-fire path. At an
+owner/view boundary where a getter reconstructs a model list, use `sameItems` from
+[`core/utils/utils.ts`](../../src/renderer/core/utils/utils.ts) to compare length and element identity
+instead of comparing the fresh array reference. See [The props-pump
 convention](#the-props-pump-convention).
 
 ### Deferred work and focus

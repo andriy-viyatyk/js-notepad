@@ -493,7 +493,7 @@ PageModel holds a `secondaryViews[]` array of EditorModel instances that appear 
 - **Pattern A** (separate model): A dedicated EditorModel subclass, e.g., ExplorerEditorModel
 - **Pattern B** (mainEditor as secondary): The mainEditor registers itself in `secondaryViews[]` simultaneously, e.g., ArchiveEditorModel when browsing an archive
 - Lifecycle hooks: `beforeNavigateAway()`, `onMainEditorChanged()`, `onPanelExpanded()`
-- Header contract: the native secondary-view host exposes `headerRef` DOM targets for panel views
+- Header contract: the panel stack owns each header element and passes it to the panel view as `headerHost`
 - Persistence: saved as `SecondaryModelDescriptor[]` in sidebar cache, with deduplication for Pattern B
 
 ---

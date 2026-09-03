@@ -8,7 +8,18 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(nothing active — EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
+- *(no epic)*
+  - [ ] **US-1281: Paste any rich HTML into the HTML viewer, not only image-bearing HTML** — user-reported
+    (2026-09-02): a copied Teams conversation no longer opened a viewer tab. Not a regression — US-729's
+    gate required the fragment to contain an `<img src=`, and a text-only Teams selection carries ~7 KB of
+    `<p>`/`<span>` markup with zero image tags (measured against the live clipboard). Broadened the gate to
+    any `text/html` carrying markup, and moved the HTML branch from the capture phase to a **bubble-phase**
+    fallback so components that own the paste win first — mirroring `handleFileDropFallback`. Stand-downs:
+    `defaultPrevented`, editable targets, and `.avg-grid` (av-grid only `preventDefault`s a *successful*
+    Excel paste). Files: `api/internal/clipboard-image.ts`, `api/internal/GlobalEventService.ts`, plus
+    `docs/editors.md`, `docs/shortcuts.md`, `architecture/folder-structure.md`.
+
+- *(EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
   [epics/completed.md](epics/completed.md). The only residue is package 8 in
   [tasks/backlog.md](tasks/backlog.md), drawn down opportunistically.)*
 
@@ -22,8 +33,10 @@ Overview of all active and planned epics and tasks.
     (adopt the existing `scrollToRowAfterPaint`), the four fresh-**array** dialog selectors that
     genuinely do fire on every dispatch, and `GlobalEventService` ignoring `defaultPrevented`
     (P6 — fixing it deletes the `grid-context-menu.ts` workaround). Also: delete the
-    `getVersion()`/`useSyncExternalStore` residue, `ExpandedNoteView.setState` inline, and
-    `ToolbarView`'s single-trigger roving tabindex. Nothing gates it.
+    `getVersion()`/`useSyncExternalStore` residue and `ToolbarView`'s single-trigger roving
+    tabindex. Nothing gates it. (`ExpandedNoteView.setState` was dropped from the scope on
+    2026-09-03 — three lines wrapping `state.update`, a naming preference with no behavioural
+    difference. Same decision as in package 8.)
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
     — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29) until the De-React fallout was cleared. That
     programme closed 2026-08-30, so nothing blocks this now.

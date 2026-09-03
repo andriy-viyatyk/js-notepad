@@ -227,21 +227,21 @@ this.props.views.flatMap((model) => {
 For providers that need the stack-owned header while constructing their content, use the
 `childrenFactory(header, isOpen)` form of `CollapsiblePanelStack`. It supplies the actual header
 before the child is created and is authoritative when `children` is also present. This keeps the
-header and lazy child in one construction path; `headerRef` remains the compatibility form for a
-provider that owns a separately managed header.
+header and lazy child in one construction path; each secondary view receives the stack-owned header
+element as its `headerHost` prop.
 
 Each descriptor is backed by a native `LazySecondaryViewView` and a native
 `CollapsiblePanelStackView`. The stack's `childrenFactory(header, isOpen)` receives the
 stack-created header before the content is built, so a secondary provider can create/update its
 lazy child exactly once with the real header element. This avoids the old render-then-publish-
-`headerRef` handshake. `headerRef` remains available for providers that manage a header separately;
-when both are supplied, `childrenFactory` is authoritative.
+header handshake. The secondary view's `headerHost` prop is that stack-owned element, and
+`childrenFactory` remains authoritative for constructing the panel content.
 
 The stable view key stays `${model.id}-${panelId}`; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 
 **Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor DOM icon otherwise** — by `createIconElement()` or `createEditorIconElement()`. Editor models that own a no-language glyph may expose `getIconElement()`; language editors use the shared file-icon resolver. The resulting `Node` is passed as `SecondaryViewProps.iconElement` to the native panel and then to `SideBarPanelHeaderView`.
 
-**Native headers — `SideBarPanelHeaderView`:** `CollapsiblePanel` publishes the header `<div>` through `headerRef`. Each secondary view creates a [`SideBarPanelHeaderView`](../../src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts), which adopts its caller-owned `Node` values into that host and lays them out as `[icon] [title group] [actions] [show-main zone]`. It accepts `title: string | Node`, a generic `badge?: Node`, and `actions?: Node`; callers own the lifetime of supplied nodes and must provide fresh nodes for each host/use. Appending a node to another host moves it, so do not cache, memoise, hoist, or share one between panels or other consumers:
+**Native headers — `SideBarPanelHeaderView`:** `CollapsiblePanel` owns the header `<div>` and passes it to each secondary view as `headerHost`. Each secondary view creates a [`SideBarPanelHeaderView`](../../src/renderer/ui/secondary-views/SideBarPanelHeaderView.ts), which adopts its caller-owned `Node` values into that host and lays them out as `[icon] [title group] [actions] [show-main zone]`. It accepts `title: string | Node`, a generic `badge?: Node`, and `actions?: Node`; callers own the lifetime of supplied nodes and must provide fresh nodes for each host/use. Appending a node to another host moves it, so do not cache, memoise, hoist, or share one between panels or other consumers:
 
 - the **icon** is rendered first and unwrapped so it stays a direct child of the header `<div>` — the stack's `[data-part="header"] > svg { width: 14; height: 14 }` rule sizes only direct-child SVGs;
 - the **title group** (`badge` + `title`) is a flex-grow `Panel` with `width={0}` + `overflow: hidden`, so the title (`<Text truncate size="md">`) and a `truncate` `Tag` badge ellipsize as the sidebar narrows;
@@ -252,7 +252,16 @@ This replaces per-panel hand-rolled portal + layout. Native children are directl
 
 **`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for native providers to keep their header handle and other owned resources synchronized while a panel is collapsed.
 
-**Reactivity:** `secondaryViews` is a plain array (EditorModel instances can't be in TOneState — Immer proxies would corrupt them). A `secondaryViewsVersion` counter (`TOneState<{ version }>`) is bumped on every add/remove. SecondaryViews subscribes via `.use()`.
+**Owner/view contract:** `SecondaryViewsView` receives the owner-supplied `views` list and the
+`SecondaryViewsModel` as `nav`. It binds the model's `width` and `activePanel` fields directly, so
+layout notifications do not pump a snapshot through the panel tree. The owner supplies two stable
+commands: `onActivatePanel(panelId)` routes through `setSecondaryViewsState({ activePanel: panelId })`
+and preserves panel-expansion side effects; `onResizeWidth(width)` routes through
+`setSecondaryViewsState({ width })` and preserves clamping and persistence mirrors. Owners update
+the child only when the ordered `views` model list changes; a fresh array with the same model
+identities is not itself a change.
+
+**Reactivity:** `secondaryViews` is a plain array (EditorModel instances can't be in TOneState — Immer proxies would corrupt them). PageModel's page-state notifications cause the owner to re-read `panelEditors`; it uses element-wise model identity to update the child only when the ordered list changes. Once mounted, `SecondaryViewsView` binds `width` and `activePanel` directly from `SecondaryViewsModel.state`.
 
 **Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel IDs to dynamically-loaded `VanillaViewCtor<SecondaryViewProps>` classes. There is one native registration shape with no runtime renderer discriminator. [`LazySecondaryViewView`](../../src/renderer/ui/secondary-views/LazySecondaryViewView.ts) owns a stable host, cancels stale dynamic imports, and explicitly disposes/removes a panel record when it retires. All built-in secondary providers use this native contract; a board secondary panel uses the native `BoardSecondaryView` and its native `BoardWebview` frame, so its panel host does not add a separate framework root.
 
@@ -438,7 +447,7 @@ secondaryViewRegistry.register({
 
 ### Step 3: Create the native panel provider
 
-Create a `VanillaView<SecondaryViewProps>` provider. Build a `SideBarPanelHeaderView` against `headerRef`; pass `iconElement`, a string or DOM `Node` title, an optional caller-owned `badge` node, and native action roots. Keep the panel body and all subscriptions under the view's lifecycle ownership:
+Create a `VanillaView<SecondaryViewProps>` provider. Build a `SideBarPanelHeaderView` against `headerHost`; pass `iconElement`, a string or DOM `Node` title, an optional caller-owned `badge` node, and native action roots. Keep the panel body and all subscriptions under the view's lifecycle ownership:
 
 ```typescript
 export default class MySecondaryView extends VanillaView<SecondaryViewProps> {
@@ -449,7 +458,7 @@ export default class MySecondaryView extends VanillaView<SecondaryViewProps> {
         super(props, createPanelElement({ name: "my-secondary-view", flex: true }));
         this.model = props.model as MySecondaryModel;
         this.header = createSideBarPanelHeader({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "My Panel Title",
         });
@@ -461,7 +470,7 @@ export default class MySecondaryView extends VanillaView<SecondaryViewProps> {
     }
 
     protected onUpdate(props: SecondaryViewProps): void {
-        this.header.update({ headerRef: props.headerRef, icon: props.iconElement, title: "My Panel Title" });
+        this.header.update({ headerHost: props.headerHost, icon: props.iconElement, title: "My Panel Title" });
     }
 
     protected onDispose(): void {
@@ -470,7 +479,7 @@ export default class MySecondaryView extends VanillaView<SecondaryViewProps> {
 }
 ```
 
-A title-only panel supplies only `headerRef`, `iconElement`, and `title`. Conditional actions are native roots: mount or update the action view only while `expanded !== false`, and pass `actions: undefined` when the panel is collapsed.
+A title-only panel supplies only `headerHost`, `iconElement`, and `title`. Conditional actions are native roots: mount or update the action view only while `expanded !== false`, and pass `actions: undefined` when the panel is collapsed.
 
 `SecondaryViewProps` also carries `expanded` — `true` when this panel is the one currently expanded in the stack, `false` when it is collapsed to a header strip. Panels stay mounted while collapsed (`alwaysRenderContent`), and the native header remains synchronized, so actions that only make sense while the body is visible should be omitted when `expanded === false`.
 
@@ -478,7 +487,7 @@ To add a standardized "show main view" button at the right edge, pass `onShowMai
 
 ```typescript
 this.header.update({
-    headerRef: props.headerRef,
+    headerHost: props.headerHost,
     icon: props.iconElement,
     title: "My Panel Title",
     onShowMain: props.expanded === false ? undefined : this.showMain,

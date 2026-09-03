@@ -123,27 +123,39 @@ of [`active-work.md`](../active-work.md) along with its task list.
 ### De-React package 8 — teardown-rebuild renders, `{state,setState}` props, ref drilling
 
 **No document, and deliberately not an epic** — package 8 of
-[de-react-refactoring-2.md](../de-react-refactoring-2.md) Part 5. An epic here would accumulate
-fifteen per-editor tasks and never close, so it is drawn down **opportunistically**: when a task
-already has someone inside one of these editors, fix that editor's instance and move on. Recorded
-2026-09-01 when EPIC-082 was cut.
+[de-react-refactoring-2.md](../de-react-refactoring-2.md) Part 5. Recorded 2026-09-01 when EPIC-082
+was cut; **re-scoped 2026-09-03** after the four strands were verified against source. Two slices
+were worth extracting as tasks, two were not worth doing at all.
 
-- **§1.4 — teardown-and-rebuild `render()`** — 76 `replaceChildren()` sites renderer-wide, 24 of
-  them full rebuild-on-every-update (`BoardInfoEditorView:171-185`, `McpInspectorView:255,264`,
-  `AboutView:112`, `TextChromeView:335,470`, `MarkdownBlockView:210,339,362`, …). Fix is the
-  sanctioned helpers — `KeyedList`, `SubtreeSwap`, per-field `bind()` — or, for rarely-changing
-  panels, gating the rebuild on the inputs that matter.
-- **§1.3 — controlled `{ state, setState }` props** — `SecondaryViewsView.ts:23-31` and its feeding
-  bridges; pass the model and let the child `bind()`. Plus `ExpandedNoteView.ts:372-374`'s private
-  `setState(partial)`, called 10× with object literals.
-- **§1.7 — callback-ref drilling** — 43 uses of the `(el | null)` unmount convention, declared in
-  `CollapsiblePanelStackView.ts:26,56` and passed through eight secondary views without being
-  consumed in between. Plus the `{ current: T }` ref boxes.
-- **§1.5 — the `lastProjection` shallow-compare chains** *(added here 2026-09-01)* — `React.memo`
-  inlined by hand at `editors/git-tree/GitRefsView.ts:116-120` (4 terms),
-  `editors/markdown/MarkdownBodyView.ts:391-405`, and `uikit/Popover/PopoverView.ts:377-380`.
-  Part 5 assigned these to no package; the fourth instance (`CategoryViewImpl`, 8 terms) is inside
-  EPIC-082's island and is handled there by US-1272.
+**Extracted as standalone tasks (see [active-work.md](../active-work.md) Planned):**
+
+- [US-1282](US-1282-header-host-rename/README.md) — §1.7's ref work. The "43 uses of the
+  `(el | null)` unmount convention" claim was wrong: only **8** occurrences are the callback
+  protocol, all inside `uikit/CollapsiblePanelStack/CollapsiblePanelStackView.ts`, and **nothing
+  supplies it** — the sole `CollapsiblePanelProps` producer (`SecondaryViewsView:171-181`) never
+  sets the field, so the protocol is unreachable and deletable. The other 35 sites drill a plain
+  `HTMLDivElement | null` **element** through ~17 sibling leaf views that each consume it one hop
+  down — host-passing, exactly what US-1273 concluded for `toolbarPortalRef`. Actionable work: a
+  dead-code deletion plus a `headerRef` → `headerHost` rename.
+
+**Not doing:**
+
+- **§1.4 teardown-and-rebuild `render()`** — dropped as a blanket item, replaced by a rule:
+  *rebuild-on-update is a defect only when the rebuilt subtree holds something a user can be in the
+  middle of* (focus, caret, selection, scroll offset, `<details>` state, an in-flight drag). By that
+  test `AboutView` and `BoardInfoEditorView` are fine — they update on demand and hold nothing. The
+  one live specimen is `editors/mcp-inspector/McpInspectorView.ts:255` (`ServerInfoPanelView.render`
+  disposes and rebuilds a `MarkdownBlockView` inside an `overflow: auto` panel, resetting the
+  Instructions scroll position on every update); fix it if it ever annoys anyone. Also note
+  `editors/base/TextChromeView.ts:335,470` never belonged on the list — both `replaceChildren()`
+  calls are *branch teardown* on a content-host identity change, where a full rebuild is correct.
+- **`ExpandedNoteView.ts:367-369`'s private `setState(partial)`** — dropped. Three lines wrapping
+  `state.update`, called 10x with literals. A naming preference with no behavioural difference.
+- **§1.5's three `lastProjection` chains** (`GitRefsView:116-120`, `MarkdownBodyView:391-405`,
+  `PopoverView:377-380`) — still recorded, still unscheduled. Hand-inlined `React.memo` shallow
+  compares where a selector `bind()` would do. Cheap individually; take one when already in the file.
+- **The `{ current: T }` ref boxes** (`components/git-tree/GitTreeView.ts:204,242`) — still
+  recorded. Out of scope for US-1282, which is scoped to `headerRef`.
 
 ### [EPIC-039: Secure Peer-to-Peer Connections](../epics/EPIC-039.md) (Contacts, Chat, Remote Control)
 

@@ -36,7 +36,7 @@ export default class NotebookTagsSecondaryView extends VanillaView<SecondaryView
         this.mountList(editor);
         this.subscribeToEditor(editor);
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Tags",
         });
@@ -110,7 +110,7 @@ export default class NotebookTagsSecondaryView extends VanillaView<SecondaryView
     private ensureHeader(props: SecondaryViewProps): void {
         if (this.header || !this.editor) return;
         this.header = createSideBarPanelHeader({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "Tags",
         });
@@ -119,7 +119,7 @@ export default class NotebookTagsSecondaryView extends VanillaView<SecondaryView
 
     private updateHeader(props: SecondaryViewProps): void {
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "Tags",
         });

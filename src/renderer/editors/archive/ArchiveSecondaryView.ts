@@ -50,7 +50,7 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
         }));
 
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Archive",
             actions: this.shouldShowClose(this.props) ? this.closeButton.root : undefined,
@@ -123,7 +123,7 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
 
     private updateHeader(props: SecondaryViewProps): void {
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "Archive",
             actions: this.shouldShowClose(props) ? this.closeButton?.root : undefined,

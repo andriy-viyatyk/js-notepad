@@ -1,22 +1,23 @@
 import { SecondaryViewsView } from "../../ui/secondary-views/SecondaryViewsView";
-import type { ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
 import type { EditorModel } from "../base/EditorModel";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { BrowserPanelHost } from "./BrowserPanelHost";
+import { sameItems } from "../../core/utils/utils";
 
-/** Native controlled bridge used by both browser bookmark surfaces. */
+/** Native bridge used by both browser bookmark surfaces. */
 export class BrowserSecondaryViewsView extends VanillaView<{ host: BrowserPanelHost }> {
     private host: BrowserPanelHost;
     private nav: ReturnType<BrowserPanelHost["ensureSecondaryViewsModel"]>;
     private readonly secondary: SecondaryViewsView;
-    private navSubscription: (() => void) | undefined;
     private hostSubscription: (() => void) | undefined;
+    private lastViews: EditorModel[];
 
     public constructor(props: { host: BrowserPanelHost }) {
         super(props, document.createElement("span"));
         this.root.style.display = "contents";
         this.host = props.host;
         this.nav = props.host.ensureSecondaryViewsModel();
+        this.lastViews = this.host.panelEditors;
         this.secondary = this.child(new SecondaryViewsView(this.childProps()));
     }
 
@@ -28,29 +29,48 @@ export class BrowserSecondaryViewsView extends VanillaView<{ host: BrowserPanelH
     }
 
     protected onUpdate(props: { host: BrowserPanelHost }): void {
-        if (props.host !== this.host) {
+        const hostChanged = props.host !== this.host;
+        if (hostChanged) {
             this.unsubscribe();
             this.host = props.host;
             this.nav = props.host.ensureSecondaryViewsModel();
             this.subscribe();
         }
-        this.secondary.update(this.childProps());
+        const views = this.host.panelEditors;
+        if (hostChanged || !sameItems(this.lastViews, views)) {
+            this.secondary.update(this.childProps(views));
+        }
+        this.lastViews = views;
     }
 
     protected onDispose(): void { this.unsubscribe(); }
 
-    private childProps(): { views: EditorModel[]; state: ISecondaryViewsState; setState: (patch: Partial<ISecondaryViewsState>) => void } {
-        return { views: this.host.panelEditors, state: this.nav.state.get(), setState: this.host.setSecondaryViewsState };
+    private childProps(views = this.host.panelEditors) {
+        return {
+            views,
+            nav: this.nav,
+            onActivatePanel: this.activatePanel,
+            onResizeWidth: this.resizeWidth,
+        };
     }
 
-    // Binder helper calls above are not subscriptions themselves; this method owns the
-    // two actual state subscriptions and replaces them on host changes.
+    private readonly activatePanel = (panelId: string): void => {
+        this.host.setSecondaryViewsState({ activePanel: panelId });
+    };
+
+    private readonly resizeWidth = (width: number): void => {
+        this.host.setSecondaryViewsState({ width });
+    };
+
     private subscribe(): void {
-        this.navSubscription = this.ownSubscription(this.nav.state.subscribe(() => this.sync()));
         this.hostSubscription = this.ownSubscription(
             this.host.state.subscribe(() => this.sync(), (state) => state.version),
         );
     }
-    private unsubscribe(): void { this.navSubscription?.(); this.hostSubscription?.(); this.navSubscription = undefined; this.hostSubscription = undefined; }
-    private readonly sync = (): void => { this.secondary.update(this.childProps()); };
+    private unsubscribe(): void { this.hostSubscription?.(); this.hostSubscription = undefined; }
+    private readonly sync = (): void => {
+        const views = this.host.panelEditors;
+        if (!sameItems(this.lastViews, views)) this.secondary.update(this.childProps(views));
+        this.lastViews = views;
+    };
 }

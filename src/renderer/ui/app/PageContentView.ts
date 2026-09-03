@@ -10,6 +10,7 @@ import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { createOrnamentElement } from "../../theme/Ornament";
 import { RenderEditorView } from "./RenderEditorView";
 import "./Pages.css";
+import { sameItems } from "../../core/utils/utils";
 
 export interface PageContentProps { pageId: string; }
 
@@ -24,6 +25,8 @@ export class PageContentView extends VanillaView<PageContentProps> {
     private contentIdentity: string | undefined;
     private compareView: CompareEditor | undefined;
     private live = true;
+    private lastViews: EditorModel[] | undefined;
+    private lastSecondaryNav: PageModel["secondaryViewsModel"];
 
     public constructor(props: PageContentProps) {
         super(props);
@@ -107,20 +110,40 @@ export class PageContentView extends VanillaView<PageContentProps> {
             this.clearSecondary();
             return;
         }
-        const props = { views: page.panelEditors, state, setState: page.setSecondaryViewsState };
+        const views = page.panelEditors;
+        const props = {
+            views,
+            nav,
+            onActivatePanel: this.activatePanel,
+            onResizeWidth: this.resizeWidth,
+        };
+        const viewsChanged = !sameItems(this.lastViews, views);
+        const navChanged = this.lastSecondaryNav !== nav;
         if (!this.secondaryView) {
             this.secondaryView = this.child(new SecondaryViewsView(props));
             this.root.append(this.secondaryView.root);
             this.secondaryView.mount();
-        } else this.secondaryView.update(props);
+        } else if (viewsChanged || navChanged) this.secondaryView.update(props);
+        this.lastViews = views;
+        this.lastSecondaryNav = nav;
     }
 
     private clearSecondary(): void {
         const view = this.secondaryView;
         if (!view) return;
         this.secondaryView = undefined;
+        this.lastViews = undefined;
+        this.lastSecondaryNav = undefined;
         void guard("Failed to dispose secondary views", () => this.releaseChild(view));
     }
+
+    private readonly activatePanel = (panelId: string): void => {
+        this.page?.setSecondaryViewsState({ activePanel: panelId });
+    };
+
+    private readonly resizeWidth = (width: number): void => {
+        this.page?.setSecondaryViewsState({ width });
+    };
 
     private syncContent(editor: EditorModel | null): void {
         const identity = editor ? `${editor.id}:${editor.showBackgroundOrnament ? "ornament" : "plain"}` : "empty";

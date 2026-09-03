@@ -144,7 +144,7 @@ export default class GitPanelSecondaryView extends VanillaView<SecondaryViewProp
         this.titleNode = this.createTitleElement(0);
 
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             badge: this.repoBadge.root,
             title: this.titleNode,
@@ -306,7 +306,7 @@ export default class GitPanelSecondaryView extends VanillaView<SecondaryViewProp
             this.titleNode = this.createTitleElement(this.fileCount);
         }
         this.header.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             badge: this.repoBadge.root,
             title: this.titleNode,

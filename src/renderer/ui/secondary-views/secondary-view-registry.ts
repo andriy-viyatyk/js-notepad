@@ -10,7 +10,7 @@ export interface SecondaryViewProps {
      *  is; single-id panels can ignore it. */
     panelId: string;
     /** Header host element owned by the panel stack. */
-    headerRef: HTMLDivElement | null;
+    headerHost: HTMLDivElement | null;
     /** Resolved leading header icon supplied by the host. */
     iconElement?: Node;
     /** `true` when this panel is the currently-expanded one in the stack; `false`

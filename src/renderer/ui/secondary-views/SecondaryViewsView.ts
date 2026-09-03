@@ -15,18 +15,21 @@ import {
 import { createIconElement } from "../../uikit/shared/slots";
 import { guard } from "../../core/utils/guard";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
-import type { ISecondaryViewsState } from "./SecondaryViewsModel";
+import type { SecondaryViewsModel } from "./SecondaryViewsModel";
 import { LazySecondaryViewView } from "./LazySecondaryViewView";
 import { isCompositePanelKey, panelKey } from "./panel-key";
 import { secondaryViewRegistry } from "./secondary-view-registry";
+import { sameItems } from "../../core/utils/utils";
 
 export interface SecondaryViewsProps {
     /** Panel-contributing editors supplied by the owner. */
     views: EditorModel[];
-    /** Controlled layout state, held by the owner. */
-    state: ISecondaryViewsState;
-    /** Owner-provided state update carrying layout side effects. */
-    setState: (patch: Partial<ISecondaryViewsState>) => void;
+    /** Reactive layout state. The view binds `width` and `activePanel` itself. */
+    nav: SecondaryViewsModel;
+    /** Activate a panel, running the owner's side effects (panelExpanded, onPanelExpanded). */
+    onActivatePanel: (panelId: string) => void;
+    /** Commit a splitter drag, running the owner's clamp and mirror. */
+    onResizeWidth: (width: number) => void;
 }
 
 interface RenderedPanel {
@@ -53,6 +56,10 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
     private splitter: SplitterView | undefined;
     private outerPanel: HTMLDivElement | undefined;
     private iconUnsubscribe: (() => void) | undefined;
+    private widthBinding: (() => void) | undefined;
+    private activePanelBinding: (() => void) | undefined;
+    private boundNav: SecondaryViewsModel | undefined;
+    private lastViews: EditorModel[] | undefined;
 
     public constructor(props: SecondaryViewsProps) {
         super(props, document.createElement("div"));
@@ -65,7 +72,7 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
 
         this.stack = stack;
         this.splitter = splitter;
-        const outerPanel = createPanelElement(this.outerPanelProps(this.props.state.width), [
+        const outerPanel = createPanelElement(this.outerPanelProps(this.props.nav.state.get().width), [
             stack.root,
         ]);
         this.outerPanel = outerPanel;
@@ -84,16 +91,21 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
 
         stack.mount();
         splitter.mount();
+        this.lastViews = this.props.views;
         this.reconcile();
+        this.bindNav(this.props.nav);
     }
 
     protected onUpdate(props: SecondaryViewsProps): void {
-        applyPanelAttributes(
-            this.requireOuterPanel(),
-            resolvePanelAttributes(this.outerPanelProps(props.state.width)),
-        );
-        this.requireSplitter().update(this.splitterProps());
-        this.reconcile();
+        const viewsChanged = !sameItems(this.lastViews, props.views);
+        if (viewsChanged) {
+            this.lastViews = props.views;
+            this.reconcile();
+        }
+        if (props.nav !== this.boundNav) {
+            this.releaseNav();
+            this.bindNav(props.nav);
+        }
     }
 
     protected onDispose(): void {
@@ -150,7 +162,7 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
     }
 
     private resolveActiveKey(rendered: RenderedPanel[]): string {
-        const activePanel = this.props.state.activePanel;
+        const activePanel = this.props.nav.state.get().activePanel;
         if (isCompositePanelKey(activePanel)) return activePanel;
         return rendered.find((panel) => panel.panelId === activePanel)?.key ?? activePanel;
     }
@@ -203,7 +215,7 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
         return {
             model: record.model,
             panelId: record.panelId,
-            headerRef: record.headerElement,
+            headerHost: record.headerElement,
             iconElement: record.iconElement,
             expanded,
         };
@@ -256,11 +268,11 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
         };
     }
 
-    private splitterProps() {
+    private splitterProps(width = this.props.nav.state.get().width) {
         return {
             name: "secondary-views-splitter",
             orientation: "vertical" as const,
-            value: this.props.state.width,
+            value: width,
             onChange: this.setWidth,
             side: "before" as const,
             min: 120,
@@ -271,11 +283,38 @@ export class SecondaryViewsView extends VanillaView<SecondaryViewsProps> {
     }
 
     private readonly setActivePanel = (id: string): void => {
-        this.props.setState({ activePanel: id });
+        this.props.onActivatePanel(id);
     };
 
     private readonly setWidth = (width: number): void => {
-        this.props.setState({ width });
+        this.props.onResizeWidth(width);
+    };
+
+    private bindNav(nav: SecondaryViewsModel): void {
+        this.boundNav = nav;
+        this.widthBinding = this.bind(nav.state, (state) => state.width, this.applyWidth);
+        this.activePanelBinding = this.bind(nav.state, (state) => state.activePanel, this.syncPanels);
+    }
+
+    private releaseNav(): void {
+        this.widthBinding?.();
+        this.activePanelBinding?.();
+        this.widthBinding = undefined;
+        this.activePanelBinding = undefined;
+        this.boundNav = undefined;
+    }
+
+    private readonly applyWidth = (width: number): void => {
+        applyPanelAttributes(
+            this.requireOuterPanel(),
+            resolvePanelAttributes(this.outerPanelProps(width)),
+        );
+        this.requireSplitter().update(this.splitterProps(width));
+    };
+
+    private readonly syncPanels = (): void => {
+        const rendered = this.getRenderedPanels();
+        this.updateStack(this.resolveActiveKey(rendered), rendered);
     };
 
     private clearRecords(): void {

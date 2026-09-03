@@ -52,7 +52,7 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
         this.categoryPanel.mount();
 
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Collections",
         });
@@ -118,7 +118,7 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
         if (!editor || !header || !saveButton) return;
 
         header.update({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "Collections",
             actions: this.props.expanded === false || !editor.host?.state.get().modified

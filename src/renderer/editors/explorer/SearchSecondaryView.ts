@@ -70,7 +70,7 @@ export default class SearchSecondaryView extends VanillaView<SecondaryViewProps>
         this.closeButton = this.createCloseButton();
         const title = searchTitle(model);
         this.header = createSideBarPanelHeader({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: title.text,
             titleAttribute: title.path,
@@ -126,7 +126,7 @@ export default class SearchSecondaryView extends VanillaView<SecondaryViewProps>
     private updateHeader(props: SecondaryViewProps): void {
         const title = searchTitle(this.model);
         this.header.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: title.text,
             titleAttribute: title.path,

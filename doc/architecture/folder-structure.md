@@ -168,7 +168,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │
 │   ├── internal/           # Event services (init-only, not public API)
 │   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, paste (image / image-bearing HTML), unhandled rejections
-│   │   ├── clipboard-image.ts       # Paste helpers: image file → Image viewer; image-bearing HTML → HTML viewer (editable-target fallback)
+│   │   ├── clipboard-image.ts       # Paste helpers: image file → Image viewer (capture); any rich HTML → HTML viewer (bubble fallback)
 │   │   ├── KeyboardService.ts       # Global keyboard shortcuts
 │   │   ├── WindowStateService.ts    # Window maximize/zoom state tracking
 │   │   └── RendererEventsService.ts # IPC event subscriptions (open file, quit, etc.)
@@ -314,7 +314,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   │   └── types.ts
 │   │   └── index.ts
 │   └── secondary-views/    # SecondaryViews — native controlled panel host
-│       ├── SecondaryViewsView.ts    # Native panel host; retains headerRef ownership
+│       ├── SecondaryViewsView.ts    # Native panel host; owns the header element (headerHost)
 │       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
 │       ├── LazySecondaryViewView.ts  # Native dynamic panel loader (vanilla arm)
 │       ├── SideBarPanelHeaderView.ts # React-free DOM header factory

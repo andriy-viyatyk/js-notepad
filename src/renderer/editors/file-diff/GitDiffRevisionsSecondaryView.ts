@@ -70,7 +70,7 @@ export default class GitDiffRevisionsSecondaryView extends VanillaView<Secondary
         this.refreshButton.mount();
 
         this.header = createSideBarPanelHeader({
-            headerRef: this.props.headerRef,
+            headerHost: this.props.headerHost,
             icon: this.props.iconElement,
             title: "File History",
             actions: this.refreshButton.root,
@@ -171,7 +171,7 @@ export default class GitDiffRevisionsSecondaryView extends VanillaView<Secondary
 
     private updateHeader(props: SecondaryViewProps): void {
         this.header?.update({
-            headerRef: props.headerRef,
+            headerHost: props.headerHost,
             icon: props.iconElement,
             title: "File History",
             actions: props.expanded === false ? undefined : this.refreshButton?.root,
