@@ -221,7 +221,7 @@ export default class MnemeTreeSecondaryView extends VanillaView<SecondaryViewPro
             actions: props.expanded === false ? undefined : this.closeButton?.root,
             showMainTitle: "Open Mneme search",
             showMainActive: this.mnemeModel.isMain,
-            onShowMain: props.expanded === false ? undefined : this.showMain,
+            onShowMain: this.showMain,
         });
     }
 

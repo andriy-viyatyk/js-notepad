@@ -481,7 +481,7 @@ export default class MySecondaryView extends VanillaView<SecondaryViewProps> {
 
 A title-only panel supplies only `headerHost`, `iconElement`, and `title`. Conditional actions are native roots: mount or update the action view only while `expanded !== false`, and pass `actions: undefined` when the panel is collapsed.
 
-`SecondaryViewProps` also carries `expanded` — `true` when this panel is the one currently expanded in the stack, `false` when it is collapsed to a header strip. Panels stay mounted while collapsed (`alwaysRenderContent`), and the native header remains synchronized, so actions that only make sense while the body is visible should be omitted when `expanded === false`.
+`SecondaryViewProps` also carries `expanded` — `true` when this panel is the one currently expanded in the stack, `false` when it is collapsed to a header strip. Panels stay mounted while collapsed (`alwaysRenderContent`), and the native header remains synchronized, so actions that only make sense while the body is visible should be omitted when `expanded === false`. This does not gate the show-main zone: keep `onShowMain` supplied while collapsed so the chevron remains available.
 
 To add a standardized "show main view" button at the right edge, pass `onShowMain` (a callback that calls `page.promoteSecondaryToMain(model)` or an editor-specific equivalent) and optionally `showMainActive` (blue-tints the chevron when the editor is already main) and `showMainTitle` (tooltip override). The zone is always rendered when `onShowMain` is provided — never hidden, even when already main:
 
@@ -490,7 +490,7 @@ this.header.update({
     headerHost: props.headerHost,
     icon: props.iconElement,
     title: "My Panel Title",
-    onShowMain: props.expanded === false ? undefined : this.showMain,
+    onShowMain: this.showMain,
     showMainActive: this.model.page?.mainEditor === this.model,
     showMainTitle: "Show in main view",
 });

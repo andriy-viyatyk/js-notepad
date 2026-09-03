@@ -84,6 +84,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Browser pages can claim `Ctrl+F` and `Escape`** — Web apps with their own search, popover, or dialog behavior now receive these shortcuts first, as they do in Chrome and Edge. When a page leaves them unclaimed, `Ctrl+F` opens Persephone's find bar and `Escape` stops loading and closes it.
 
+- **Sidebar panel chevrons remain available when panels are collapsed** — The **Show Git Tree**, **Show links**, and **Open Mneme search** chevrons remain available in the Git, Collections, and Wiki panel headers whether each panel is expanded or collapsed, so you can return any of these editors to the main view at any time.
+
+- **Global paste — any rich HTML opens in the HTML viewer** — Copying formatted content such as a Teams or Outlook conversation, a Word or Excel selection, or a web-page selection and pressing `Ctrl+V` now opens a new **HTML viewer** tab even when the clipboard HTML contains no images. The existing behavior is unchanged for bitmap images, which open the **Image Viewer**. If the destination handles the paste itself — for example, an editable field, a text editor, a grid, or another component — it keeps the paste and no viewer tab is opened. Plain-text-only clipboard content continues to paste normally, and the new HTML-viewer tab is not persisted across app restarts.
+
 - **Unsaved-changes dialogs stay centered over the page** — The save prompt could appear below the page instead of as a modal overlay. It now remains visible in the center while you choose whether to save, discard, or cancel.
 
 - **Tooltips keep their normal styling** — Tooltips could appear as bare, unstyled text. Their background, border, and shadow now render normally again.

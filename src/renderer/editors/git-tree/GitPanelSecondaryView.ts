@@ -313,7 +313,7 @@ export default class GitPanelSecondaryView extends VanillaView<SecondaryViewProp
             actions: props.expanded === false ? undefined : this.headerActions,
             showMainTitle: "Show Git Tree",
             showMainActive: model.isMain,
-            onShowMain: props.expanded === false ? undefined : this.showMain,
+            onShowMain: this.showMain,
         });
     }
 

@@ -8,16 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(no epic)*
-  - [ ] **US-1281: Paste any rich HTML into the HTML viewer, not only image-bearing HTML** — user-reported
-    (2026-09-02): a copied Teams conversation no longer opened a viewer tab. Not a regression — US-729's
-    gate required the fragment to contain an `<img src=`, and a text-only Teams selection carries ~7 KB of
-    `<p>`/`<span>` markup with zero image tags (measured against the live clipboard). Broadened the gate to
-    any `text/html` carrying markup, and moved the HTML branch from the capture phase to a **bubble-phase**
-    fallback so components that own the paste win first — mirroring `handleFileDropFallback`. Stand-downs:
-    `defaultPrevented`, editable targets, and `.avg-grid` (av-grid only `preventDefault`s a *successful*
-    Excel paste). Files: `api/internal/clipboard-image.ts`, `api/internal/GlobalEventService.ts`, plus
-    `docs/editors.md`, `docs/shortcuts.md`, `architecture/folder-structure.md`.
+- *(nothing in flight — US-1281 and US-1285 closed 2026-09-03.)*
 
 - *(EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
   [epics/completed.md](epics/completed.md). The only residue is package 8 in

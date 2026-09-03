@@ -126,7 +126,7 @@ export default class LinkCategorySecondaryView extends VanillaView<SecondaryView
                 : saveButton.root,
             showMainTitle: "Show links",
             showMainActive: editor.isMain,
-            onShowMain: this.props.expanded === false ? undefined : this.showMain,
+            onShowMain: this.showMain,
         });
     }
 }

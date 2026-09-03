@@ -152,7 +152,7 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
 - **Paste from clipboard** — press `Ctrl+V` anywhere in Persephone to open the clipboard content in a new viewer tab. Two cases are handled:
   - **Bitmap image** (screenshots, images copied from Snipping Tool, Teams, browsers) — opens in a new **Image Viewer** tab titled **"Pasted image"**. This wins even when a text editor is focused, since a bitmap has no text to paste. The tab survives an app restart.
   - **Rich HTML** (a Teams or Outlook conversation, a Word/Excel selection, a picture copied from PowerPoint that carries no bitmap, a selection from a web page) — opens in a new **HTML viewer** tab titled **"Pasted HTML"**, rendered with its original formatting. The tab is not persisted across restarts.
-  - The HTML case is a **fallback**: if the paste lands somewhere that handles it — a focused editor (Monaco, any input or text field) or a grid (where `Ctrl+V` pastes cells) — that target pastes normally and no new tab is opened. Click away from the editor first, then paste.
+  - The HTML case is a **fallback**: if the paste lands somewhere that handles it — such as a focused editor (Monaco, any input or text field), a grid, or another component — that target keeps the paste and no new tab is opened. Click away from the editor or grid first, then paste.
   - A plain-text clipboard is never intercepted.
 - **Screen Snip** — the **…** (three-dot) button in the Persephone window header opens a snip menu with two options: **Snip Screen** (hides Persephone, then capture the desktop) and **Snip Persephone** (keeps Persephone visible so you can capture its own content). After selecting a region, the screenshot opens in a new Image Viewer tab. See [Screen Snip](#screen-snip) for details.
 
@@ -432,7 +432,7 @@ For `.link.json` files — a structured link manager:
 
 - **Collections**, **tags**, and **hostnames** for organizing and filtering links
 - **Sidebar panels** — Collections, Tags, and Hostnames appear as separate panels in the always-open page sidebar. The sidebar cannot be closed while a link file is open. Click a panel header to expand it. The breadcrumb in the toolbar shows the current filter path.
-  - **Collections panel** — Shows the category tree (all categories + their links). Click a category folder to filter the main link list. Click a link to open it in the main view. The panel header has a **Show in main view** button (chevron-right, right edge) that brings the link list back as the main editor. The button is always visible; it turns blue when the link editor is already the main view.
+  - **Collections panel** — Shows the category tree (all categories + their links). Click a category folder to filter the main link list. Click a link to open it in the main view. The panel header has a **Show links** button (chevron-right, right edge) that brings the link list back as the main editor. The button remains available whether the panel is expanded or collapsed; it turns blue when the link editor is already the main view.
   - **Tags panel** — In addition to the tag list, the Tags panel shows a resizable bottom pane listing all links in the selected tag. Click a link to open it. When the main editor is an audio player, clicking a link in this pane establishes the tag set as the audio source, enabling **Next Track** and **Shuffle** navigation within that tag. The pane scrolls automatically to highlight the current track as the player auto-advances.
   - **Hostnames panel** — In addition to the hostname list, the Hostnames panel shows a resizable bottom pane listing all links under the selected hostname. Click a link to open it. `mneme://` links are excluded from this panel — they appear only in Collections and Tags.
 - **Multiple view modes** — List, Landscape tiles, Portrait tiles (normal and large variants)
@@ -672,7 +672,7 @@ The panel has three tabs selected with a segmented control:
 
 The panel header has two buttons:
 
-- **Show in main view** (chevron-right, right edge) — brings the Git Tree commit graph back as the main editor. The button is always visible; it turns blue when the Git Tree is already the main view. Use this after clicking a file or ref opened a diff as the main editor.
+- **Show Git Tree** (chevron-right, right edge) — brings the Git Tree commit graph back as the main editor. The button remains available whether the panel is expanded or collapsed; it turns blue when the Git Tree is already the main view. Use this after clicking a file or ref opened a diff as the main editor.
 - **× (Close Git Tree)** — removes the Git Tree editor entirely (see [Closing the Git Tree](#closing-the-git-tree) below).
 
 **Changes tab — file lists:**
@@ -844,7 +844,7 @@ Requires **Mneme** to be enabled (Settings → **Mneme (vector memory)** → **E
 Mneme is an optional, local knowledge base that indexes folders of Markdown for full-text and semantic search. It surfaces as two editors:
 
 - **Config & monitoring editor** — open from the **Tools & Editors** panel → **Mneme**. Manage indexed roots, include/ignore patterns, reindexing (with live progress), and the semantic-search embedding model. Toolbar buttons restart the service, open it in the MCP Inspector, and open its log.
-- **Mneme root editor** — click the small **Open Mneme Root** button (memory icon) that appears on the right side of the **`.mneme`** row in the **File Explorer** (shown for any indexed folder while Mneme is enabled, mirroring the `.git` entry). Clicking the `.mneme` row itself expands or collapses it and opens the folder's plain contents; only the trailing icon button opens the Mneme root editor. The editor opens a search view (Text / Vector / Hybrid modes, tag and date filters, Markdown results) with an Explorer-like document tree in the sidebar for browsing, editing, and organizing documents.
+- **Mneme root editor** — click the small **Open Mneme Root** button (memory icon) that appears on the right side of the **`.mneme`** row in the **File Explorer** (shown for any indexed folder while Mneme is enabled, mirroring the `.git` entry). Clicking the `.mneme` row itself expands or collapses it and opens the folder's plain contents; only the trailing icon button opens the Mneme root editor. The editor opens a search view (Text / Vector / Hybrid modes, tag and date filters, Markdown results) with an Explorer-like document tree in the sidebar for browsing, editing, and organizing documents. The **Wiki** panel header includes an **Open Mneme search** button (chevron-right) that remains available whether the panel is expanded or collapsed; it turns blue when the search view is already the main editor.
 
 AI agents can read, search, and maintain the same knowledge base over MCP.
 

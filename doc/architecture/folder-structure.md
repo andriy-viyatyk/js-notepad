@@ -167,7 +167,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   └── well-known-pages.ts     # Singleton page definitions (MCP Log, etc.)
 │   │
 │   ├── internal/           # Event services (init-only, not public API)
-│   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, paste (image / image-bearing HTML), unhandled rejections
+│   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, paste (image capture; rich HTML bubble fallback with handled/editable/grid stand-downs), unhandled rejections
 │   │   ├── clipboard-image.ts       # Paste helpers: image file → Image viewer (capture); any rich HTML → HTML viewer (bubble fallback)
 │   │   ├── KeyboardService.ts       # Global keyboard shortcuts
 │   │   ├── WindowStateService.ts    # Window maximize/zoom state tracking
