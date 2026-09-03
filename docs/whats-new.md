@@ -20,9 +20,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
   active. The browser's own tab labels are unchanged. `execute_script` remains a separate,
   unrestricted scripting path and can still read private-session state.
 
-- **Folder shortcuts open faster in a full Explorer tab** — Double-click a saved folder in the
-  sidebar, or a folder in its right-hand file tree, to open that folder in a new page with the
-  Explorer panel rooted there.
+- **Open a folder from the side menu's file tree in a full Explorer tab** — Double-click a folder in
+  the side menu's right-hand file tree to open it in a new page with the Explorer panel rooted
+  there, matching what double-clicking a saved folder shortcut already did.
 
 - **Suggestions reopen with a click** — After choosing a tag or category suggestion — in a Link
   editor's Tags field, or a Notebook note — click the field again to keep adding entries, instead of
@@ -41,67 +41,19 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Bug Fixes
 
-- **File Explorer hover and selection stay visible** — Moving over a row restores its hover
-  highlight, and selecting a different row immediately clears the previous highlight.
-
-- **The main editor no longer shows a stray focus ring** — The non-control editor container no
-  longer gets Chromium's platform outline when it receives focus. Focus indicators on actual
-  controls remain unchanged.
-
 - **Long menus no longer fill the whole window** — A menu with many entries, such as the tab's language picker, could stretch to the full height of the window. Long menus are now capped and scroll instead; short menus are unchanged.
 
 - **Session restore no longer risks losing open tabs if interrupted** — If Persephone was closed, crashed, or lost power while it was still restoring your previous session (for example, right after opening a large number of tabs), a save triggered during that window could overwrite the saved session with an empty or partial tab list. Restore now finishes before any save is allowed to run, so an interrupted restore can no longer erase your tabs for next time.
 
 - **Closing a grouped or compared tab no longer leaves it stuck** — Closing one half of a side-by-side tab pair could fail and leave that tab orphaned, so it could not be closed again. The tab now closes normally, and the remaining tab stays usable.
 
-- **App-menu glyph follows theme changes immediately** — The app-menu glyph now updates as soon as you switch themes, without needing another header rebuild.
-
-- **CSV grids reload correctly after changing options** — Enabling **First row is header** or changing the delimiter could leave the Grid editor showing an error instead of the data. The grid now rereads the file correctly after either change.
-
-- **Grid search now clears completely** — Emptying the toolbar search could leave the grid filtered by the last search term. Clearing it now restores all rows immediately.
-
-- **Rapid grid scrolling no longer leaves stale rows visible** — Fast scrolling or repeated updates in grid-backed views could leave cells from an earlier render visible after the view had moved on. The affected cells are now reclaimed correctly, so the visible rows stay in sync with the current position.
-
-- **The Edit Columns popover now shows the full grid** — The column-management popover could show its grid as a narrow sliver, making the list of columns difficult to use. It now fills the available popover area so you can see and edit the column options normally.
-
-- **File Explorer search restores expanded folders** — Clearing a tree search could leave folders collapsed when their expansion had been restored from saved state. Clearing the search now brings those previously expanded folders back.
-
-- **File Explorer keeps its place after tab activity** — Opening or closing another tab could send a long Explorer tree back to the top and leave its first visible rows blank. The tree now keeps its scroll position and rendered rows when unrelated page activity updates the sidebar.
-
-- **Script panels over Grid editors stay usable** — The script panel now appears the first time you open it, and dragging its splitter keeps both the panel and the grid visible and accessible as either side grows or shrinks.
-
-- **Git change lists now fill and resize with the panel** — With many changed files, the **Unstaged** list could leave empty space below it, and the splitter between the **Unstaged** and **Staged** lists could move down but not back up. The lists now fill their panes, and dragging the splitter in either direction makes them grow or shrink with the available space. Content that exceeds a panel's bounds now stays inside the panel and scrolls instead of spilling outside.
-
 - **Editor failures now report an error** — If a built-in editor cannot load, Persephone now shows an error notification instead of silently opening nothing. This applies to standalone pages such as About, Settings, Mneme configuration, Storybook, and Tools & Editors, as well as files opened from File Explorer, clicked links, drag-and-drop, or either side of a comparison; file errors name the file and the app continues running.
-
-- **Environment Variables error states use the full editor area** — When an encrypted environment-variables file is locked or the file is invalid, the message is centred in the available editor space and the footer stays at the bottom of the window.
 
 - **Markdown checklists no longer break into narrow columns** — Checklist items now keep their text in normal inline flow, including entries containing bold, italic, or code formatting, while the checkbox remains in the list gutter.
 
-- **Rest Client body choices update immediately** — Changing a request's **BODY** type (none, form-data, x-www-form-urlencoded, raw, or binary) used to leave the body area showing the type selected when the request was opened, so a new request could stay stuck on "This request has no body." The body area now switches immediately, including the raw editor.
-
-- **The Browser bookmarks drawer opens at a usable width** — The first time you opened the bookmarks drawer on a newly opened browser page, it could appear as a zero-width sliver and be effectively invisible. It now opens at a usable width the first time.
-
 - **Browser pages can claim `Ctrl+F` and `Escape`** — Web apps with their own search, popover, or dialog behavior now receive these shortcuts first, as they do in Chrome and Edge. When a page leaves them unclaimed, `Ctrl+F` opens Persephone's find bar and `Escape` stops loading and closes it.
 
-- **Sidebar panel chevrons remain available when panels are collapsed** — The **Show Git Tree**, **Show links**, and **Open Mneme search** chevrons remain available in the Git, Collections, and Wiki panel headers whether each panel is expanded or collapsed, so you can return any of these editors to the main view at any time.
-
 - **Global paste — any rich HTML opens in the HTML viewer** — Copying formatted content such as a Teams or Outlook conversation, a Word or Excel selection, or a web-page selection and pressing `Ctrl+V` now opens a new **HTML viewer** tab even when the clipboard HTML contains no images. The existing behavior is unchanged for bitmap images, which open the **Image Viewer**. If the destination handles the paste itself — for example, an editable field, a text editor, a grid, or another component — it keeps the paste and no viewer tab is opened. Plain-text-only clipboard content continues to paste normally, and the new HTML-viewer tab is not persisted across app restarts.
-
-- **Unsaved-changes dialogs stay centered over the page** — The save prompt could appear below the page instead of as a modal overlay. It now remains visible in the center while you choose whether to save, discard, or cancel.
-
-- **Tooltips keep their normal styling** — Tooltips could appear as bare, unstyled text. Their background, border, and shadow now render normally again.
-
-- **Tooltips no longer reappear over closing dialogs** — A page tooltip could remain visible near an open dialog or reopen briefly when a transient surface closed. Tooltips are now suppressed while a dialog is open and stay closed during that focus transition.
-
-- **The browser's collapsed tab list reads correctly again** — With the tab panel narrowed to icons,
-  hovering a tab shows a strip with its title and close button. The two were stacked vertically, so
-  the title was clipped to a couple of characters and the close button needed scrolling to reach.
-  They now sit side by side in the strip.
-
-- **The browser's new-tab button matches the other tabs** — The **+** button is now centred and
-  shaped like a tab at every panel width, and hovering highlights the whole row rather than just the
-  **+** glyph. Clicking anywhere on it opens a new tab.
 
 ---
 
