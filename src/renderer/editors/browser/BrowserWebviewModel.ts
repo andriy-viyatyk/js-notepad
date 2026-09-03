@@ -79,7 +79,9 @@ export class BrowserWebviewModel {
             e.preventDefault();
             this.model.urlBar.focusUrlInput();
         }
-        if (e.ctrlKey && e.key === "f") {
+        // `key` is "F" under Shift or Caps Lock, and a missed match leaves the
+        // shortcut dead rather than opening the find bar.
+        if (e.ctrlKey && e.key.toLowerCase() === "f") {
             e.preventDefault();
             this.openFind();
         }

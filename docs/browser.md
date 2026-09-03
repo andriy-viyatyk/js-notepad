@@ -282,12 +282,21 @@ Right-click in the web page for contextual actions:
 
 ## Find in Page
 
-Press `Ctrl+F` to open the search bar (works whether focus is on the toolbar or inside the web page):
+Press `Ctrl+F` to open the search bar when the page does not claim the shortcut (works whether focus
+is on the toolbar or inside the web page):
 
 - **Match counter** — shows "3 of 15" or "No results"
 - **Next/Previous** — `Enter` or `F3` for next match, `Shift+Enter` or `Shift+F3` for previous
 - **Close** — `Escape` or close button; clears all highlights
 - The search bar closes automatically when navigating to a different page or switching internal tabs
+
+**Pages that provide their own search win.** A web app with its own find UI — a filter box over a
+table, say — claims `Ctrl+F` first, exactly as it would in Chrome or Edge, and Persephone's search
+bar stays out of the way. Persephone opens its own bar only when the page leaves the shortcut
+unclaimed, which it decides per keystroke: a page that hands the key back while a dialog is open
+gets the browser bar for that press. `Escape` works the same way — a page closing its own popover
+or dialog gets the key; an unclaimed `Escape` stops loading and closes the find bar. One gap: with focus parked inside a cross-origin `<iframe>`,
+`Ctrl+F` reaches that frame and stops there — click the surrounding page first.
 
 ---
 

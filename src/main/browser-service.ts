@@ -302,7 +302,15 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         });
     });
 
-    // Intercept browser hotkeys before the webview consumes them
+    // Intercept browser hotkeys before the webview consumes them.
+    //
+    // Ctrl+F and Escape are deliberately NOT handled here (US-1284). This hook
+    // fires *before* the key is dispatched to the guest page, so
+    // `preventDefault()` means the page's own DOM never sees the keydown — a
+    // page with its own find UI, or one that closes its popover on Escape,
+    // could never claim the key, unlike in Chrome or Edge. The decision needs
+    // the outcome of the page's handlers, which only exists after dispatch, so
+    // it lives in `preload-webview.ts` instead.
     on("before-input-event", (_e: Electron.Event, input: Electron.Input) => {
         if (input.type !== "keyDown") return;
         const keyLower = input.key.toLowerCase();
@@ -320,13 +328,6 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         } else if (input.key === "F12") {
             _e.preventDefault();
             wc.openDevTools();
-        } else if (input.key === "Escape") {
-            _e.preventDefault();
-            wc.stop();
-            sendEvent(sender, tabId, internalTabId, "hide-find-bar", {});
-        } else if (keyLower === "f" && input.control) {
-            _e.preventDefault();
-            sendEvent(sender, tabId, internalTabId, "show-find-bar", {});
         } else if (input.alt && (input.key === "ArrowLeft" || input.key === "ArrowRight")) {
             _e.preventDefault();
             if (input.key === "ArrowLeft") {

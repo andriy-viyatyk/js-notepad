@@ -82,6 +82,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **The Browser bookmarks drawer opens at a usable width** — The first time you opened the bookmarks drawer on a newly opened browser page, it could appear as a zero-width sliver and be effectively invisible. It now opens at a usable width the first time.
 
+- **Browser pages can claim `Ctrl+F` and `Escape`** — Web apps with their own search, popover, or dialog behavior now receive these shortcuts first, as they do in Chrome and Edge. When a page leaves them unclaimed, `Ctrl+F` opens Persephone's find bar and `Escape` stops loading and closes it.
+
 - **Unsaved-changes dialogs stay centered over the page** — The save prompt could appear below the page instead of as a modal overlay. It now remains visible in the center while you choose whether to save, discard, or cancel.
 
 - **Tooltips keep their normal styling** — Tooltips could appear as bare, unstyled text. Their background, border, and shadow now render normally again.

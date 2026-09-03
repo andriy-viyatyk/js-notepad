@@ -128,19 +128,55 @@ function observeHead() {
 
 // ── Keyboard Shortcuts ───────────────────────────────────────────────
 // Intercept shortcuts that should be handled by the host renderer (find bar).
-// Capture phase ensures we fire before page scripts that may stopPropagation.
 
+// Ctrl+F belongs to the PAGE first and to Persephone only if the page passes
+// (US-1284) — the rule Chrome and Edge follow. A page running its own find UI
+// calls `preventDefault()`; a page that ignores the key leaves it unclaimed and
+// expects the browser's find bar. The earlier version prevented and
+// `stopImmediatePropagation()`'d in the capture phase, deliberately beating
+// page scripts, so a page could never claim it.
+//
+// The choice cannot be made synchronously in this listener. This preload runs
+// at document-start, so on any node and phase its listener is registered FIRST
+// and so runs FIRST: a page handler on `document` — the common shape — has not
+// executed yet and `defaultPrevented` is still false. Moving to the bubble
+// phase would not help, since registration order decides among listeners on the
+// same node. Reading the flag from a later TASK lets the entire propagation
+// finish first, which is independent of both node and registration order.
+//
+// It must be a task (`setTimeout`), not a microtask. For a real, browser-
+// dispatched event the JS stack is empty between listeners, so a microtask
+// checkpoint runs after EACH listener — a `queueMicrotask` here fires before
+// the page's handler and still sees `defaultPrevented === false`. Only a
+// script-driven `dispatchEvent()` defers microtasks past the whole dispatch,
+// which is why a synthetic test passes where a real keypress fails.
+//
+// Leaving the default action alone is free: the guest has no native find UI, so
+// an unclaimed Ctrl+F does nothing until the host opens the find bar below.
+//
+// Note this listener only exists in the MAIN frame (the webview does not enable
+// `nodeIntegrationInSubFrames`), so Ctrl+F with focus parked inside a
+// cross-origin iframe now reaches that frame and stops there.
 document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.key === "f") {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        ipcRenderer.sendToHost("show-find-bar");
+    if (e.ctrlKey && e.key.toLowerCase() === "f") {
+        setTimeout(() => {
+            if (e.defaultPrevented) return;
+            ipcRenderer.sendToHost("show-find-bar");
+        }, 0);
     } else if (e.key === "Escape") {
+        // Cinema mode is Persephone's own overlay, so it takes the key outright.
         if (expandedTarget) {
             exitCinema();
-        } else {
-            ipcRenderer.sendToHost("hide-find-bar");
+            return;
         }
+        // Otherwise the same page-first rule as Ctrl+F: a page that closes its
+        // own popover on Escape calls `preventDefault()`; an unclaimed Escape
+        // gets the browser meaning — stop loading, close the find bar.
+        setTimeout(() => {
+            if (e.defaultPrevented) return;
+            window.stop();
+            ipcRenderer.sendToHost("hide-find-bar");
+        }, 0);
     }
 }, true);
 

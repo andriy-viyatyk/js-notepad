@@ -164,6 +164,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Native settings page and section composition (settings controls, model-backed branches, and lifecycle ownership) | `/src/renderer/editors/settings/SettingsView.ts`, `/src/renderer/editors/settings/sections/` |
 | Native link editor body and chrome (list/tiles switching, pinned links, tooltip content, and direct TextChrome composition) | `/src/renderer/editors/link-editor/LinkBody.ts`, `/src/renderer/editors/link-editor/index.ts`, `/src/renderer/editors/link-editor/PinnedLinksPanelView.ts` |
 | Browser editor coordinator (restore/persistence, navigation normalization, profile presentation, privacy-safe page-title projection for incognito/Tor, keyboard shortcuts, and composed browser sub-model lifecycle) | `/src/renderer/editors/browser/BrowserEditor.ts` |
+| Browser webview interaction model (webview refs, guest IPC, navigation commands, context menus, find bar, and host-side keyboard shortcuts) | `/src/renderer/editors/browser/BrowserWebviewModel.ts` |
 | Browser internal-tab and bookmark resource model (tab lifecycle, current URL/favicon caches, privacy-safe top-level title synchronization, mute/panel operations, bookmark initialization) | `/src/renderer/editors/browser/BrowserTabsModel.ts` |
 | Browser native view composition (toolbar, URL bar, overlays, and internal-tab host) | `/src/renderer/editors/browser/BrowserView.ts`, `/src/renderer/editors/browser/BrowserTabsPanel.ts`, `/src/renderer/editors/browser/BrowserSecondaryViews.ts` |
 | Browser native overlays and URL suggestions (bookmarks drawer, blank-page links, downloads, Tor status, and URL history) | `/src/renderer/editors/browser/BookmarksDrawer.ts`, `/src/renderer/editors/browser/BrowserSecondaryViews.ts`, `/src/renderer/editors/browser/DownloadButton.ts`, `/src/renderer/editors/browser/TorStatusOverlay.ts`, `/src/renderer/editors/browser/UrlSuggestionsDropdown.ts` |
@@ -172,6 +173,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Page-manager placeholder ownership bridge (stable page slots with one native view arm and detach-before-dispose teardown) | `/src/renderer/components/page-manager/PageSlot.ts` |
 | Browser Tor lifecycle model (per-page partition IDs, fail-closed proxy arming, listeners/reconnect, window-close cleanup) | `/src/renderer/editors/browser/BrowserTorModel.ts` |
 | Browser webview context-menu builder (bounded DOM/SVG/resource probes and menu actions) | `/src/renderer/editors/browser/webview-context-menu.ts` |
+| Browser guest preload (title/favicon and image tracking, page-first keyboard handling, and cinema mode) | `/src/preload-webview.ts` |
+| Browser webContents service (main-process webview registration, event relay, navigation guards, and pre-dispatch browser shortcuts) | `/src/main/browser-service.ts` |
 | Graph editor host lifecycle, parsing, serialization and composed-model orchestration | `/src/renderer/editors/graph/GraphEditor.ts` |
 | Native graph body and composed graph panels (canvas renderer, detail/settings/legend/tooltip views, and scoped geometry) | `/src/renderer/editors/graph/GraphBodyView.ts`, `/src/renderer/editors/graph/*View.ts`, `/src/renderer/editors/graph/*.css` |
 | Graph interactive grouping and membership operations | `/src/renderer/editors/graph/GraphGroupActionsModel.ts` |

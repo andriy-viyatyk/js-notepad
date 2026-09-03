@@ -720,7 +720,7 @@ Browser hotkeys (F5, F12, Alt+Left/Right, etc.) must work regardless of where fo
 
 ### Layer 1: Main Process (`before-input-event`)
 
-When focus is inside a `<webview>`, keyboard events are consumed by the guest page and never reach the renderer's DOM. The main process intercepts these via `webContents.on("before-input-event")` in `browser-service.ts`, handling F5, Ctrl+R, F12, Escape, and Alt+Left/Right directly on the webContents.
+When focus is inside a `<webview>`, keyboard events are consumed by the guest page and never reach the renderer's DOM. The main process intercepts these via `webContents.on("before-input-event")` in `browser-service.ts`, handling F5, Ctrl+R, F12, and Alt+Left/Right directly on the webContents. Escape is handled by the guest preload after the page has had a chance to claim it.
 
 ### Layer 2: Global Key Event Bus (`globalKeyDown` Subscription)
 
@@ -728,7 +728,7 @@ When focus is on any renderer element (toolbar, URL bar, tab panel, or no specif
 
 ### Layer 3: Root div `onKeyDown` (`BrowserWebviewModel`)
 
-The root browser `<div>` handles `Ctrl+L` (focus URL bar) and `Ctrl+F` (find in page) — shortcuts specific to the browser UI that don't need global reach.
+The root browser `<div>` handles `Ctrl+L` (focus URL bar) and `Ctrl+F` (find in page) — shortcuts specific to the browser UI that don't need global reach. This layer covers focus on Persephone's own chrome; `Ctrl+F` with focus *inside* the page is decided by the guest preload instead (see below).
 
 ### Supported Hotkeys
 
@@ -740,9 +740,41 @@ The root browser `<div>` handles `Ctrl+L` (focus URL bar) and `Ctrl+F` (find in 
 | `F12` | Open DevTools | Main process + global |
 | `Alt+Left` / `Alt+Right` | Back / Forward | Main process + global |
 | `Alt+Home` | Go to home page | Global only |
-| `Escape` | Stop loading | Main process + global |
+| `Escape` | Stop loading / close find bar | Global (host focus) + guest preload (page focus) |
 | `Ctrl+L` | Focus URL bar | Root div only |
-| `Ctrl+F` | Find in page | Root div only |
+| `Ctrl+F` | Find in page | Root div (host focus) + guest preload (page focus) |
+
+#### `Ctrl+F` and `Escape` are the two keys the page can take
+
+The other Layer 1 rows above are claimed unconditionally in `before-input-event`, which runs in the
+main process *before* the key is dispatched to the guest page. For `Ctrl+F` and `Escape` that was wrong:
+a page with its own find UI, or one that closes a popover on `Escape`, could never claim the key,
+because `preventDefault()` there means the page's DOM never sees the keydown at all. Chrome and Edge
+instead give the page first refusal and apply the browser meaning only to unclaimed keys.
+
+So both are deliberately absent from `before-input-event`, and the decision lives in
+`src/preload-webview.ts`. The choice cannot be made synchronously: the preload runs at
+document-start, so on any node and phase its listener is registered first and therefore runs first —
+a page handler on `document` has not executed yet and `defaultPrevented` is still false. Switching
+to the bubble phase does not help, since registration order decides among listeners on one node.
+The preload reads the flag from a **`setTimeout(0)` task** instead, which resolves after the whole
+propagation and is independent of both node and registration order; if the flag is still clear, it
+sends `show-find-bar` to the host as before. It has to be a task and not a microtask: for a real,
+browser-dispatched event the JS stack is empty between listeners, so a microtask checkpoint runs after
+*each* one and a `queueMicrotask` check fires before the page's handler. Only a script-driven
+`dispatchEvent()` (or a CDP-injected key) defers microtasks past the whole dispatch — so a synthetic
+test passes where a real keypress fails.
+
+Two consequences worth knowing. The verdict is per keystroke, not per page, so a page that claims
+the key normally but stands down while a modal is open yields the browser bar for exactly those
+presses. And the preload only runs in the main frame (the webview does not enable
+`nodeIntegrationInSubFrames`), so `Ctrl+F` with focus inside a cross-origin iframe reaches that
+frame and stops there rather than opening the find bar.
+
+`Escape` follows the same shape: cinema mode takes it outright (Persephone's own overlay), otherwise
+the deferred check runs `window.stop()` and sends `hide-find-bar` only when the page left it
+unclaimed. Native `Escape` behaviour the page relies on — closing a `<dialog>`, leaving fullscreen —
+now works too, since nothing prevents the default any more.
 
 ### Reload and the `beforeunload` guard
 

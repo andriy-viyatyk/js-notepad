@@ -259,7 +259,7 @@ A built-in web browser for viewing documentation, APIs, and web resources withou
 - **Context menu** — contextual actions for links, images, text, SVG elements, and developer tools
 - **Default browser registration** — set persephone as your Windows default browser
 - **Session restore** — all tabs, URLs, history, and profile selection saved across restarts
-- **Find in page** — `Ctrl+F` opens inline search bar with match counter and navigation
+- **Find in page** — `Ctrl+F` opens the inline search bar with match counter and navigation when the page does not handle the shortcut; a page's own search UI gets first chance
 - **Keyboard shortcuts** — `Ctrl+L` URL bar, `Ctrl+F` find, `F5` reload, `F12` DevTools, `Alt+Left/Right` back/forward, and more
 
 See **[Browser](./browser.md)** for complete documentation including profiles, bookmarks, downloads, and all keyboard shortcuts.
