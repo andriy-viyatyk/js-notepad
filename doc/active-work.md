@@ -8,19 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(no epic)*
-  - [ ] **US-1287: HTML preview blanks in a packaged build when the page rewrites its history URL**
-    — *no task document (single-file fix).* The preview iframe is sandboxed without
-    `allow-same-origin`, so `history.replaceState`/`pushState` from the previewed document is
-    refused; over http (dev server) Chromium throws a catchable `SecurityError`, but under
-    `file://` (installed build) it destroys the frame, leaving a blank grey preview. Mockups that
-    keep their active tab in the URL hash therefore rendered in dev only. Not a De-React
-    regression — `sandbox="allow-scripts"` + `srcDoc` is unchanged since v4.0.22, so every
-    packaged build has had this. Fixed by no-opping both methods in an injected prologue
-    (`HtmlBodyView.ts`); verified live in the installed 4.0.23 renderer. Needs a packaged build
-    to confirm end to end.
-
-- *(US-1281, US-1285 and US-1286 closed 2026-09-03.)*
+- *(nothing in flight — US-1281, US-1285, US-1286, US-1287 and US-1288 closed 2026-09-03.)*
 
 - *(EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
   [epics/completed.md](epics/completed.md). The only residue is package 8 in

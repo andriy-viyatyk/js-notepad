@@ -20,7 +20,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { fpDirname } from "../../core/utils/file-path";
 import type { ITreeProvider, ILink } from "../../api/types/io.tree";
 import { errMessage } from "../../../shared/utils";
-import type { Cleanup } from "../../core/utils/DisposableStore";
+import { afterPaint } from "../../core/utils/scheduling";
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -74,8 +74,6 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     noLanguage = true;
     skipSave = true;
-    private navigationFrame: Cleanup | undefined;
-    private navigationGeneration = 0;
 
     constructor(state: TComponentState<VideoEditorState>) {
         super(state);
@@ -302,7 +300,6 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
         const page = this.page;
         const itemHref = item.href;
-        const navigationGeneration = ++this.navigationGeneration;
         app.events.openRawLink.sendAsync(
             createLinkData(navUrl, {
                 pageId,
@@ -315,11 +312,20 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
                 title: item.title,
             }),
         ).then(() => {
-            // Update link panel selection AFTER navigation completes.
-            // Use requestAnimationFrame to ensure the navigation update has reached the DOM before we trigger another state update for selection.
-            this.navigationFrame = this.schedule.raf(() => {
-                this.navigationFrame = undefined;
-                if (this.navigationGeneration !== navigationGeneration || this.page !== page || !page) return;
+            // Update link panel selection AFTER navigation completes, so the navigation's own
+            // state changes have reached the DOM before this second update lands.
+            //
+            // Owned by nobody on purpose. The navigation above REPLACES this editor: the page
+            // adopts a fresh VideoEditor for the next track and this instance is detached
+            // (`this.page` becomes null) and then disposed, all before this callback would run.
+            // So anything editor-scoped here is dead on arrival — `this.schedule.raf` is
+            // cancelled by (and throws on) disposal, and a `this.page !== page` guard can never
+            // pass. That is what stopped the Collections/Tags highlight following the track from
+            // one auto-advance to the next (US-1288). The callback closes over everything it
+            // needs, touches no editor state, and re-reads `page.panelEditors` — which is empty
+            // once the page is gone — so it is safe to outlive the editor that scheduled it.
+            afterPaint(() => {
+                if (!page) return;
                 for (const editor of page.panelEditors) {
                     if (!("treeProvider" in editor) || !("selectByHref" in editor)) continue;
                     const tp = (editor as any).treeProvider; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -361,9 +367,6 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     /** Clean up streaming server sessions when the editor tab is closed. */
     async dispose(): Promise<void> {
-        this.navigationGeneration++;
-        this.navigationFrame?.();
-        this.navigationFrame = undefined;
         const pageId = this.page?.id;
         if (pageId) {
             await api.deleteVideoStreamSessionsByPage(pageId);

@@ -8,7 +8,11 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.24 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **HTML Preview no longer goes blank in installed builds** — HTML that uses browser history methods to manage its own tabs could render in development but show a blank preview in a packaged installation. The preview now remains visible.
+
+- **Link Editor highlights follow auto-advanced tracks again** — When a media player advances to the next link automatically, the selected item in the Collections and Tags panels now follows the new track and remains highlighted.
 
 ---
 
