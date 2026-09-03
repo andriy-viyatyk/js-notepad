@@ -12,6 +12,31 @@ import type { HtmlEditor } from "./HtmlEditor";
 //     don't bubble to the host document.
 const injectedScript = `<script>document.addEventListener("click",function(e){var a=e.target.closest("a");if(a&&a.href){e.preventDefault();}},true);document.addEventListener("pointerdown",function(){try{window.parent.postMessage({__persephone:"html:interact"},"*");}catch(e){}},true);</script>`;
 
+// Injected ahead of the previewed document's own scripts, so it must go at the very top.
+//
+// The preview iframe is sandboxed without `allow-same-origin`, so its document has an opaque
+// origin and its URL is `about:srcdoc` — rewriting the history URL from there is not allowed.
+// How Chromium refuses depends on the host document's scheme: served over http (the dev server)
+// it throws a catchable `SecurityError` and the page carries on, but under `file://` (a packaged
+// build) it tears the frame down instead, leaving the preview a blank grey rectangle. Mockups
+// that keep their tab in the URL (`history.replaceState(null, "", "#tab")`) therefore rendered in
+// dev and showed nothing in the installed app.
+//
+// A no-op is the whole fix: the preview has no address bar and no session history of its own, so
+// there is nothing for a history rewrite to mean here. Guarded on an opaque origin so this stays
+// inert if the preview ever gains a real origin.
+const injectedPrologue = `<script>(function(){if(location.origin!=="null")return;var noop=function(){};try{history.replaceState=noop;history.pushState=noop;}catch(e){}})();</script>`;
+
+// A leading `<!doctype html>` has to stay first — anything ahead of it drops the preview into
+// quirks mode.
+const doctypePattern = /^\s*<!doctype[^>]*>/i;
+
+function withInjectedScripts(content: string): string {
+    const doctype = doctypePattern.exec(content);
+    const at = doctype ? doctype[0].length : 0;
+    return content.slice(0, at) + injectedPrologue + content.slice(at) + injectedScript;
+}
+
 export interface HtmlBodyViewProps {
     model: HtmlEditor;
     editorConfig?: EditorConfig;
@@ -75,7 +100,7 @@ export class HtmlBodyView extends VanillaView<HtmlBodyViewProps> {
         // the value actually changed, and `onUpdate` fires on every shell re-render, so an
         // unguarded write would reload the preview (losing
         // scroll position) on updates that did not touch the content.
-        const next = content + injectedScript;
+        const next = withInjectedScripts(content);
         if (next === this.appliedSrcdoc) return;
         this.appliedSrcdoc = next;
         this.iframe.srcdoc = next;
