@@ -5,17 +5,12 @@ import { TextChromeView } from "../base/TextChromeView";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import { DrawIcon, DrawOrangeIcon } from "../../theme/language-icons";
 import { createIconComponentElement } from "../../theme/icons";
-import { pagesModel } from "../../api/pages";
-import {
-    buildExcalidrawJsonWithImage,
-    buildExcalidrawJsonFromMermaid,
-    getImageDimensions,
-} from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
 import { ui } from "../../api/ui";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
+import { errMessage } from "../../../shared/utils";
 
 function createContentsRoot(): HTMLSpanElement {
     const root = document.createElement("span");
@@ -180,39 +175,16 @@ class MermaidToolbarBitsView extends VanillaView<MermaidToolbarProps> {
         };
     }
 
-    private readonly onOpenDraw = async (): Promise<void> => {
-        const svgUrl = this.model.state.get().svgUrl;
-        if (!svgUrl) return;
-        const svgText = decodeURIComponent(svgUrl.replace("data:image/svg+xml,", ""));
-        const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgText, "utf-8").toString("base64")}`;
-        const dims = await getImageDimensions(dataUrl);
-        const json = buildExcalidrawJsonWithImage(dataUrl, "image/svg+xml", dims.width, dims.height);
-        const host = this.model.host;
-        const title = (host?.state.get().title ?? "Mermaid").replace(/\.\w+$/, "") + ".excalidraw";
-        pagesModel.addEditorPage("draw-view", "json", title, json);
+    private readonly onOpenDraw = (): void => {
+        void this.model.openInDrawingEditor().catch((error: unknown) => {
+            ui.notify(`Failed to open Mermaid in Drawing Editor: ${errMessage(error)}`, "error");
+        });
     };
 
-    private readonly onConvertToExcalidraw = async (): Promise<void> => {
-        const source = this.model.host?.state.get().content?.trim();
-        if (!source) return;
-        const title =
-            (this.model.host?.state.get().title ?? "Mermaid").replace(/\.\w+$/, "") + ".excalidraw";
-        try {
-            const { json, imageOnly } = await buildExcalidrawJsonFromMermaid(source);
-            pagesModel.addEditorPage("draw-view", "json", title, json);
-            if (imageOnly) {
-                ui.notify(
-                    "This diagram type can't be converted to editable shapes — opened as an image.",
-                    "info",
-                );
-            }
-        } catch {
-            ui.notify(
-                "Couldn't convert to editable shapes — opening as an image instead.",
-                "info",
-            );
-            await this.onOpenDraw();
-        }
+    private readonly onConvertToExcalidraw = (): void => {
+        void this.model.convertToExcalidraw().catch((error: unknown) => {
+            ui.notify(`Failed to convert Mermaid diagram: ${errMessage(error)}`, "error");
+        });
     };
 }
 

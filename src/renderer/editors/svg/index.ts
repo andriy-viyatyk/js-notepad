@@ -6,11 +6,11 @@ import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import { DrawIcon } from "../../theme/language-icons";
 import { createIconComponentElement } from "../../theme/icons";
-import { pagesModel } from "../../api/pages";
-import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
+import { ui } from "../../api/ui";
+import { errMessage } from "../../../shared/utils";
 
 function createContentsRoot(): HTMLSpanElement {
     const root = document.createElement("span");
@@ -68,15 +68,11 @@ class SvgToolbarBitsView extends VanillaView<SvgToolbarBitsViewProps> {
     }
 
     private readonly onOpenDraw = async (): Promise<void> => {
-        const host = this.model.host;
-        if (!host) return;
-        const svgContent = host.state.get().content;
-        if (!svgContent.trim()) return;
-        const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgContent, "utf-8").toString("base64")}`;
-        const dims = await getImageDimensions(dataUrl);
-        const json = buildExcalidrawJsonWithImage(dataUrl, "image/svg+xml", dims.width, dims.height);
-        const title = host.state.get().title.replace(/\.svg$/i, "") + ".excalidraw";
-        pagesModel.addEditorPage("draw-view", "json", title, json);
+        try {
+            await this.model.openInDrawingEditor();
+        } catch (error) {
+            ui.notify(`Failed to open SVG in Drawing Editor: ${errMessage(error)}`, "error");
+        }
     };
 
     private openDrawButtonProps(): IconButtonViewProps {

@@ -1,3 +1,5 @@
+import type { IHighlightResult } from "./ui";
+
 /**
  * IMermaidEditor — script interface for the Mermaid diagram preview.
  *
@@ -12,6 +14,15 @@
 export interface IMermaidEditor {
     readonly id: "mermaid-view";
     readonly name: string;
+    /** Curated persistent controls owned by this preview, with live visibility. */
+    readonly elements: readonly {
+        readonly name: string;
+        readonly purpose: string;
+        readonly selector: string;
+        readonly visible: boolean;
+    }[];
+    /** Highlight one curated preview control by name. */
+    highlight(name: string, message?: string): Promise<IHighlightResult>;
     /** Data URL of the rendered SVG diagram. Empty while loading or on error. */
     readonly svgUrl: string;
 
@@ -20,6 +31,7 @@ export interface IMermaidEditor {
 
     /** Error message if rendering failed. Empty on success. */
     readonly error: string;
+    readonly lightMode: boolean;
 
     /**
      * Render the diagram to PNG (1× scale) and write it to `filePath`. Parent
@@ -31,4 +43,9 @@ export interface IMermaidEditor {
      * await m.savePngToFile("D:/tmp/diagram.png");
      */
     savePngToFile(filePath: string): Promise<string>;
+
+    toggleLightMode(): void;
+    openInDrawingEditor(): Promise<void>;
+    convertToExcalidraw(): Promise<void>;
+    copyImageToClipboard(): Promise<void>;
 }

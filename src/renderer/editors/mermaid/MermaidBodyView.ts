@@ -8,6 +8,8 @@ import type { EditorConfig } from "../base/EditorConfig";
 import { guard } from "../../core/utils/guard";
 import { SubtreeSwap } from "../../uikit/shared/subtree-swap";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
+import { ui } from "../../api/ui";
+import { errMessage } from "../../../shared/utils";
 
 export interface MermaidBodyViewProps {
     model: MermaidEditor;
@@ -190,6 +192,8 @@ export class MermaidBodyView extends VanillaView<MermaidBodyViewProps> {
     }
 
     public copyImage = (): void => {
-        void this.activeViewport?.copyToClipboard();
+        void this.model.copyImageToClipboard().catch((error: unknown) => {
+            ui.notify(`Failed to copy Mermaid image: ${errMessage(error)}`, "error");
+        });
     }
 }

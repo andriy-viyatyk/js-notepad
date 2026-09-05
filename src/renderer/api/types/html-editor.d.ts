@@ -1,3 +1,5 @@
+import type { IHighlightResult } from "./ui";
+
 /**
  * IHtmlEditor — script interface for the HTML preview.
  *
@@ -10,6 +12,21 @@
 export interface IHtmlEditor {
     readonly id: "html-view";
     readonly name: string;
+    /** Curated host-chrome controls, with live visibility. Selectors do not cross the preview iframe. */
+    readonly elements: readonly {
+        readonly name: string;
+        readonly purpose: string;
+        readonly selector: string;
+        readonly visible: boolean;
+    }[];
+    /** Highlight one curated host-chrome control by name. */
+    highlight(name: string, message?: string): Promise<IHighlightResult>;
     /** The HTML source content. */
     readonly html: string;
+    readonly capturing: boolean;
+
+    savePngToFile(filePath: string): Promise<string>;
+    copyImageToClipboard(): Promise<void>;
+    openInImageView(): Promise<void>;
+    editImage(): Promise<void>;
 }

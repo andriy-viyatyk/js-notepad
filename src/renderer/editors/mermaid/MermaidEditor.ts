@@ -7,6 +7,14 @@ import { themeState } from "../../theme/theme-state";
 import { renderMermaid } from "./render-mermaid";
 import type { IImageExport } from "../base/IImageExport";
 import { rasterToPngBlob } from "../shared/image-export";
+import { pagesModel } from "../../api/pages";
+import {
+    buildExcalidrawJsonWithImage,
+    buildExcalidrawJsonFromMermaid,
+    getImageDimensions,
+} from "../draw/drawExport";
+import { ui } from "../../api/ui";
+import { errMessage } from "../../../shared/utils";
 
 export type MermaidQueueEvent = { type: "focus" };
 
@@ -156,7 +164,8 @@ export class MermaidEditor
                 })
                 .catch((e) => {
                     this.state.update((s) => {
-                        s.error = e.message || "Failed to render diagram";
+                        s.svgUrl = "";
+                        s.error = errMessage(e, "Failed to render diagram");
                         s.loading = false;
                     });
                 });
@@ -178,16 +187,89 @@ export class MermaidEditor
     /** Rasterise the rendered diagram to a PNG blob. Renders on demand when
      *  `svgUrl` is empty (page never shown / not the active tab). */
     async exportPng(): Promise<Blob> {
-        let url = this.state.get().svgUrl;
-        if (!url) {
-            const content = this._host?.state.get().content ?? "";
-            url = await renderMermaid(content, this.state.get().lightMode);
+        const url = await this.renderForAction("export PNG");
+        try {
+            return await rasterToPngBlob(url);
+        } catch (error) {
+            throw new Error(`Mermaid preview cannot export PNG because rasterisation failed: ${errMessage(error)}`);
         }
-        return rasterToPngBlob(url);
     }
 
     suggestedImageName(): string {
         return (this.state.get().title || "diagram").replace(/\.\w+$/, "");
+    }
+
+    async openInDrawingEditor(): Promise<void> {
+        const svgUrl = await this.renderForAction("open in Drawing Editor");
+        try {
+            const svgText = decodeURIComponent(svgUrl.replace("data:image/svg+xml,", ""));
+            const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgText, "utf-8").toString("base64")}`;
+            const dims = await getImageDimensions(dataUrl);
+            const json = buildExcalidrawJsonWithImage(dataUrl, "image/svg+xml", dims.width, dims.height);
+            const title = (this.host?.state.get().title || "Mermaid").replace(/\.\w+$/, "") + ".excalidraw";
+            pagesModel.addEditorPage("draw-view", "json", title, json);
+        } catch (error) {
+            throw new Error(`Mermaid preview cannot open in Drawing Editor: ${errMessage(error)}`);
+        }
+    }
+
+    async convertToExcalidraw(): Promise<void> {
+        const source = this.host?.state.get().content?.trim();
+        if (!source) {
+            throw new Error("Mermaid preview cannot convert to Excalidraw because the source is empty or unavailable.");
+        }
+        const title = (this.host?.state.get().title || "Mermaid").replace(/\.\w+$/, "") + ".excalidraw";
+        let conversion: { json: string; imageOnly: boolean };
+        try {
+            conversion = await buildExcalidrawJsonFromMermaid(source);
+        } catch (error) {
+            ui.notify(
+                `Couldn't convert to editable shapes (${errMessage(error)}) - opening as an image instead.`,
+                "info",
+            );
+            await this.openInDrawingEditor();
+            return;
+        }
+
+        try {
+            pagesModel.addEditorPage("draw-view", "json", title, conversion.json);
+        } catch (error) {
+            throw new Error(`Mermaid preview cannot open the Excalidraw page: ${errMessage(error)}`);
+        }
+        if (conversion.imageOnly) {
+            ui.notify(
+                "This diagram type can't be converted to editable shapes - opened as an image.",
+                "info",
+            );
+        }
+    }
+
+    async copyImageToClipboard(): Promise<void> {
+        try {
+            const blob = await this.exportPng();
+            await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+            ]);
+        } catch (error) {
+            throw new Error(`Mermaid preview cannot copy an image: ${errMessage(error)}`);
+        }
+    }
+
+    private async renderForAction(action: string): Promise<string> {
+        const currentUrl = this.state.get().svgUrl;
+        if (currentUrl) return currentUrl;
+
+        const source = this.host?.state.get().content?.trim();
+        if (!source) {
+            throw new Error(`Mermaid preview cannot ${action} because the source is empty or unavailable.`);
+        }
+        try {
+            const url = await renderMermaid(source, this.state.get().lightMode);
+            if (!url) throw new Error("rendering returned no SVG");
+            return url;
+        } catch (error) {
+            throw new Error(`Mermaid preview cannot ${action} because rendering failed: ${errMessage(error)}`);
+        }
     }
 
     // ── Dispose ─────────────────────────────────────────────────────────

@@ -9,6 +9,8 @@ import {
 import { VanillaView } from "../../uikit/shared/vanilla-view";
 import type { EditorConfig } from "../base/EditorConfig";
 import type { SvgEditor } from "./SvgEditor";
+import { ui } from "../../api/ui";
+import { errMessage } from "../../../shared/utils";
 
 export interface SvgBodyViewProps {
     model: SvgEditor;
@@ -99,6 +101,8 @@ export class SvgBodyView extends VanillaView<SvgBodyViewProps> {
     }
 
     public copyImage = (): void => {
-        void this.viewport?.copyToClipboard();
+        void this.model.copyImageToClipboard().catch((error: unknown) => {
+            ui.notify(`Failed to copy SVG image: ${errMessage(error)}`, "error");
+        });
     }
 }

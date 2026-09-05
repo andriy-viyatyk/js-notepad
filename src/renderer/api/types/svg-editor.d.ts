@@ -1,3 +1,5 @@
+import type { IHighlightResult } from "./ui";
+
 /**
  * ISvgEditor — script interface for the SVG preview.
  *
@@ -10,6 +12,15 @@
 export interface ISvgEditor {
     readonly id: "svg-view";
     readonly name: string;
+    /** Curated persistent controls owned by this preview, with live visibility. */
+    readonly elements: readonly {
+        readonly name: string;
+        readonly purpose: string;
+        readonly selector: string;
+        readonly visible: boolean;
+    }[];
+    /** Highlight one curated preview control by name. */
+    highlight(name: string, message?: string): Promise<IHighlightResult>;
     /** The SVG source content. */
     readonly svg: string;
 
@@ -22,4 +33,7 @@ export interface ISvgEditor {
      * await svg.savePngToFile("D:/tmp/image.png");
      */
     savePngToFile(filePath: string): Promise<string>;
+
+    openInDrawingEditor(): Promise<void>;
+    copyImageToClipboard(): Promise<void>;
 }
