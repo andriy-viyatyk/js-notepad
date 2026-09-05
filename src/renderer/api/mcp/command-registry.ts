@@ -1,4 +1,5 @@
 import { handleBoardRefresh, handleCreateBoard, handleOpenBoard } from "./board-commands";
+import { handleCall } from "./call-command";
 import { handleAppInfo, handleCreatePage, handleExecuteScript, handleGetActivePage, handleGetPageContent, handleGetPages, handleOpenUrl, handleSetPageContent } from "./page-commands";
 import { handleCreateToolset, handleExecuteTool, handleRefreshToolset, handleSearchTools } from "./tool-commands";
 import { handleUiPush } from "./ui-push";
@@ -20,9 +21,11 @@ type McpCommandMethod =
     | "execute_tool"
     | "refresh_toolset"
     | "create_toolset"
-    | "ui_push";
+    | "ui_push"
+    | "call";
 
 export const commandRegistry: Record<McpCommandMethod, McpCommandHandler> = {
+    call: handleCall,
     execute_script: handleExecuteScript,
     get_pages: handleGetPages,
     get_page_content: handleGetPageContent,

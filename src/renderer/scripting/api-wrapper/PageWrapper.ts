@@ -33,8 +33,71 @@ import { BrowserEditorFacade } from "./BrowserEditorFacade";
 import { McpInspectorFacade } from "./McpInspectorFacade";
 import type { ScriptOutputFlags } from "../ScriptContext";
 import { errMessage } from "../../../shared/utils";
+import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
-export class PageWrapper {
+// AiVision (EPIC-083): kind-level description of a page. `grouped` carries a caution because reading
+// it creates the grouped page; children() lists it only when it already exists.
+const PAGE_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "Stable page id (use in pages[\"<id>\"])." },
+    { name: "title", kind: "property", summary: "Tab title." },
+    { name: "filePath", kind: "property", summary: "Backing file path, or nothing for an unsaved page." },
+    { name: "modified", kind: "property", summary: "Whether there are unsaved changes." },
+    { name: "pinned", kind: "property", summary: "Whether the tab is pinned." },
+    { name: "content", kind: "property", writable: true, summary: "The page's text (text-based editors only; empty for browser/image pages). Assign with \"value\"." },
+    { name: "language", kind: "property", writable: true, summary: "Language id (json, markdown, typescript, …)." },
+    { name: "editor", kind: "property", writable: true, summary: "Current editor id (monaco, grid-json, md-view, …). Assign to switch editors." },
+    { name: "data", kind: "property", summary: "Free-form per-page data bag shared between scripts." },
+    { name: "grouped", kind: "property", summary: "The page shown beside this one.", caution: "reading it CREATES a grouped page if none exists" },
+    { name: "asText", kind: "method", signature: "asText(force = false)", summary: "Text (Monaco) facade: selection, cursor, insert, reveal line." },
+    { name: "asGrid", kind: "method", signature: "asGrid(force = false)", summary: "Grid facade for JSON/CSV/JSONL pages: rows, columns, edit cells, add/delete rows." },
+    { name: "asNotebook", kind: "method", signature: "asNotebook(force = false)", summary: "Notebook facade: notes, categories." },
+    { name: "asLink", kind: "method", signature: "asLink(force = false)", summary: "Links-page facade: items, categories, tags." },
+    { name: "asMarkdown", kind: "method", signature: "asMarkdown(force = false)", summary: "Markdown preview facade." },
+    { name: "asSvg", kind: "method", signature: "asSvg(force = false)", summary: "SVG preview facade." },
+    { name: "asHtml", kind: "method", signature: "asHtml(force = false)", summary: "HTML preview facade." },
+    { name: "asMermaid", kind: "method", signature: "asMermaid(force = false)", summary: "Mermaid diagram facade." },
+    { name: "asGraph", kind: "method", signature: "asGraph(force = false)", summary: "Force-graph facade: nodes, links, groups." },
+    { name: "asDraw", kind: "method", signature: "asDraw(force = false)", summary: "Drawing (Excalidraw) facade." },
+    { name: "asBrowser", kind: "method", signature: "asBrowser()", summary: "Browser page facade: tabs, navigation, evaluate." },
+    { name: "asImage", kind: "method", signature: "asImage()", summary: "Image page facade: export PNG." },
+    { name: "asMcpInspector", kind: "method", signature: "asMcpInspector()", summary: "MCP inspector page facade." },
+    { name: "runScript", kind: "method", signature: "runScript()", summary: "Run this page's JavaScript/TypeScript content as a script; returns the output text." },
+];
+
+const PAGE_HELP = `
+One open page (tab). Plain properties describe it; "content" holds the text for text-based editors
+and can be assigned (pass "value"). The as*() methods return an editor facade with editor-specific
+operations — pass true to switch the page to that editor first. Only the facade matching the current
+editor is listed under children; the others need the switch.
+`;
+
+/** Editor id → the facade segment and kind an agent should use on a page showing that editor. */
+const FACADE_FOR_EDITOR: Record<string, { segment: string; kind: string }> = {
+    "monaco": { segment: ".asText()", kind: "TextEditor" },
+    "grid-json": { segment: ".asGrid()", kind: "GridEditor" },
+    "grid-csv": { segment: ".asGrid()", kind: "GridEditor" },
+    "grid-jsonl": { segment: ".asGrid()", kind: "GridEditor" },
+    "notebook-view": { segment: ".asNotebook()", kind: "NotebookEditor" },
+    "link-view": { segment: ".asLink()", kind: "LinkEditor" },
+    "md-view": { segment: ".asMarkdown()", kind: "MarkdownEditor" },
+    "svg-view": { segment: ".asSvg()", kind: "SvgEditor" },
+    "html-view": { segment: ".asHtml()", kind: "HtmlEditor" },
+    "mermaid-view": { segment: ".asMermaid()", kind: "MermaidEditor" },
+    "graph-view": { segment: ".asGraph()", kind: "GraphEditor" },
+    "draw-view": { segment: ".asDraw()", kind: "DrawEditor" },
+    "browser-view": { segment: ".asBrowser()", kind: "BrowserEditor" },
+    "mcp-view": { segment: ".asMcpInspector()", kind: "McpInspector" },
+    "image-view": { segment: ".asImage()", kind: "ImageEditor" },
+};
+
+interface IBrowserPrivacyState {
+    profileName?: string;
+    isIncognito?: boolean;
+    isTor?: boolean;
+    url?: string;
+}
+
+export class PageWrapper implements IAiVisible {
     constructor(
         private readonly model: EditorOrHost,
         private readonly releaseList: Array<() => void>,
@@ -130,6 +193,74 @@ export class PageWrapper {
         const editor = groupedPage?.mainEditor
             ?? pagesModel.requireGroupedText(pageId);
         return new GroupedPageWrapper(editor, this.releaseList, this.outputFlags);
+    }
+
+    // ── AiVision ──────────────────────────────────────────────────────
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "Page",
+            summary: "One open page (tab): its text, language, editor, and editor-specific facades.",
+            members: PAGE_MEMBERS,
+            help: PAGE_HELP,
+            children: () => this.aiChildren(),
+            restricted: () => this.aiRestricted(),
+            summarize: () => this.aiSummary(),
+        };
+    }
+
+    /** Browser editor state, only when this page shows a browser. */
+    private browserState(): IBrowserPrivacyState | undefined {
+        if (this.currentEditorId() !== "browser-view") return undefined;
+        return this.model.state.get() as IBrowserPrivacyState;
+    }
+
+    /** Same refusal the browser_* tools give: private browsing is off limits to agents. */
+    private aiRestricted(): string | undefined {
+        const state = this.browserState();
+        if (state?.isTor) return "This browser page is in Tor mode. Agent access is disabled for privacy protection; open a normal browser page instead (pages.showBrowserPage / open_url).";
+        if (state?.isIncognito) return "This browser page is in incognito mode. Agent access is disabled for privacy protection; open a normal browser page instead (pages.showBrowserPage / open_url).";
+        return undefined;
+    }
+
+    private aiChildren(): IAiChild[] {
+        const children: IAiChild[] = [];
+        const editorId = this.currentEditorId();
+        const facade = FACADE_FOR_EDITOR[editorId];
+        if (facade) {
+            children.push({ segment: facade.segment, kind: facade.kind, summary: `facade for the current editor (${editorId})` });
+        }
+        const pageId = this.model.page?.id ?? this.model.id;
+        if (pagesModel.isGrouped(pageId)) {
+            const grouped = pagesModel.getGroupedPage(pageId);
+            if (grouped) {
+                children.push({ segment: ".grouped", kind: "Page", summary: `grouped beside this page: "${grouped.title}"` });
+            }
+        }
+        return children;
+    }
+
+    private aiSummary(): Record<string, unknown> {
+        const summary: Record<string, unknown> = {
+            kind: "Page",
+            id: this.id,
+            title: this.title,
+            editor: this.editor,
+            language: this.language,
+            filePath: this.filePath,
+            modified: this.modified,
+            pinned: this.pinned,
+            active: pagesModel.activePage?.id === this.id,
+        };
+        const state = this.browserState();
+        if (state) {
+            const isPrivate = !!state.isIncognito || !!state.isTor;
+            summary.profileName = state.profileName ?? "";
+            summary.isIncognito = !!state.isIncognito;
+            summary.isTor = !!state.isTor;
+            if (!isPrivate) summary.url = state.url;
+        }
+        return summary;
     }
 
     // ── Editor facades ────────────────────────────────────────────────

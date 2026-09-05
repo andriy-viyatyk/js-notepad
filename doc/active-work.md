@@ -8,7 +8,20 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(nothing in flight — US-1281, US-1285, US-1286, US-1287 and US-1288 closed 2026-09-03.)*
+- **EPIC-083** — [AiVision: a single self-discoverable MCP tool over the app object model](epics/EPIC-083.md)
+  — one `call` tool taking a path into the live `app`/`pages`/facade tree and returning
+  the value plus a hint; descriptors are an interface implemented by the existing script wrappers,
+  not a second tree. Long-term direction: every MCP tool becomes a path under this one, but
+  nothing is removed in this epic. Created 2026-09-05; task documents are written per task as
+  each starts.
+  - [ ] [US-1289: AiVision core — types, path parser, resolver, root + pages descriptors, helpSearch](tasks/US-1289-ai-vision-core/README.md) — implemented 2026-09-05, awaiting user test; leads the epic
+  - [ ] US-1290: `call` MCP tool — main-side definition with the optional `windows[i]` prefix, renderer command, per-session hint dedupe, guide updates *(no task document yet)*
+  - [ ] US-1291: Descriptors for `PageWrapper` and every editor facade *(no task document yet; parallel with US-1292)*
+  - [ ] US-1292: Descriptors for the `app` namespaces with `caution` on destructive members *(no task document yet; parallel with US-1291)*
+  - [ ] US-1293: Evaluation with `mcp-test-agent`, full tool set vs `call` alone; go/no-go for the consolidation epic *(no task document yet; closes the epic)*
+  - [ ] US-1294: *(optional)* generate descriptors from `api/types/*.d.ts` JSDoc *(no task document yet)*
+  - [ ] US-1296: Programmatic surface — `app.call(path, options)` in scripts and `persephone.call` on the board bridge; decide board permissions *(no task document yet; after US-1291/US-1292)*
+  - [ ] US-1295: Main-process `main` node — curated service descriptors and settings-gated `main.script.execute(code)` for developing/testing Persephone *(no task document yet; after US-1290)*
 
 - *(EPIC-081 closed 2026-09-02, completing the De-React second-pass roadmap; see
   [epics/completed.md](epics/completed.md). The only residue is package 8 in

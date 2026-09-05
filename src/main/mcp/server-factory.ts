@@ -4,6 +4,7 @@ import { McpServerInstance, requireSdk } from "./sdk";
 import { agentTools } from "./tools/agent-tools";
 import { boardTools } from "./tools/board-tools";
 import { browserTools } from "./tools/browser-tools";
+import { callTools } from "./tools/call-tools";
 import { guideTools } from "./tools/guide-tools";
 import { pageTools } from "./tools/page-tools";
 import { createToolContext } from "./tools/params";
@@ -25,6 +26,7 @@ export function createMcpServer(options: IMcpServerOptions): McpServerInstance {
 
     const ctx = createToolContext(z);
     const groups = [
+        callTools(ctx),
         windowTools(ctx),
         pageTools(ctx),
         boardTools(ctx),
