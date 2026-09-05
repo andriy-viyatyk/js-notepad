@@ -190,6 +190,7 @@ export class VideoEditorView extends VanillaView<{ model: EditorModel }> {
             shuffle: this.shuffle,
             onNext: this.model.playNext,
             onToggleShuffle: this.model.toggleShuffle,
+            onMediaElementChange: this.model.setMediaElement,
         };
     }
 

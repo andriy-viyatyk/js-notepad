@@ -1,5 +1,6 @@
 import { createComponentModelDriver } from "../../core/state/model";
 import { VanillaView } from "../shared/vanilla-view";
+import { copyPngBlobToClipboard } from "../../editors/shared/image-export";
 import { imageElementToPngBlob } from "./image-raster";
 import {
     defaultImageViewportState,
@@ -190,10 +191,7 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
     public copyToClipboard = async (): Promise<void> => {
         const image = this.image;
         if (!image) return;
-        const blob = await imageElementToPngBlob(image);
-        await navigator.clipboard.write([
-            new ClipboardItem({ "image/png": blob }),
-        ]);
+        await copyPngBlobToClipboard(await imageElementToPngBlob(image));
     };
 
     private resetView(): void {

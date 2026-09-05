@@ -27,6 +27,7 @@ export interface VPlayerProps {
     shuffle?: boolean;
     onNext?: () => void;
     onToggleShuffle?: () => void;
+    onMediaElementChange?: (element: HTMLMediaElement | null) => void;
 }
 
 type ActiveMode = "none" | "hls" | "native" | "audio";
@@ -88,6 +89,8 @@ export class VPlayerView extends VanillaView<VPlayerProps> {
 
         this.own(() => { this.inert = true; });
         this.own(() => this.disposeVideoAdapter());
+        this.own(() => this.props.onMediaElementChange?.(null));
+        this.props.onMediaElementChange?.(this.video);
         this.syncMode();
     }
 
@@ -111,6 +114,7 @@ export class VPlayerView extends VanillaView<VPlayerProps> {
             shuffle: this.props.shuffle,
             onNext: this.props.onNext,
             onToggleShuffle: this.props.onToggleShuffle,
+            onMediaElementChange: this.props.onMediaElementChange,
         };
     }
 
@@ -127,6 +131,7 @@ export class VPlayerView extends VanillaView<VPlayerProps> {
                     : "native";
 
         if (nextMode !== this.activeMode) {
+            this.props.onMediaElementChange?.(null);
             this.disposeVideoAdapter();
             this.activeMode = nextMode;
             this.hlsSource = "";
@@ -138,15 +143,18 @@ export class VPlayerView extends VanillaView<VPlayerProps> {
         this.audioPlayer.root.hidden = nextMode !== "audio";
 
         if (nextMode === "hls") {
+            this.props.onMediaElementChange?.(this.video);
             this.ensureVideoJsPlayer();
             this.syncHlsSource(source);
         } else if (nextMode === "native") {
+            this.props.onMediaElementChange?.(this.video);
             this.video.className = "native";
             this.video.controls = true;
             this.video.autoplay = true;
             this.video.muted = this.props.muted ?? false;
             if (this.video.getAttribute("src") !== source) this.video.src = source;
         } else {
+            this.props.onMediaElementChange?.(null);
             this.video.removeAttribute("src");
         }
     }

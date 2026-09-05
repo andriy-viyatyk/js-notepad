@@ -21,6 +21,7 @@ import { fpDirname } from "../../core/utils/file-path";
 import type { ITreeProvider, ILink } from "../../api/types/io.tree";
 import { errMessage } from "../../../shared/utils";
 import { afterPaint } from "../../core/utils/scheduling";
+import type { EffectType } from "./effects/types";
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -74,11 +75,22 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     noLanguage = true;
     skipSave = true;
+    private mediaElement: HTMLMediaElement | null = null;
 
     constructor(state: TComponentState<VideoEditorState>) {
         super(state);
         this.getIconElement = () => PlayerIcon.createElement({ color: DEFAULT_BROWSER_COLOR });
     }
+
+    /** The active media element handed off by the mounted player view. */
+    get activeMediaElement(): HTMLMediaElement | null {
+        return this.mediaElement;
+    }
+
+    /** Keep facade reads attached to the media element owned by this page. */
+    setMediaElement = (element: HTMLMediaElement | null): void => {
+        this.mediaElement = element;
+    };
 
     /** Update raw input text as user types. */
     setInputText = (text: string) => {
@@ -183,6 +195,17 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
     /** Toggle shuffle mode. */
     toggleShuffle = () => {
         settings.set("audio-shuffle", !this.shuffle);
+    };
+
+    /** Whether the shared audio visualizer uses bars, circular, or no effect. */
+    get visualizerEffect(): EffectType {
+        const effect = settings.get("visualizer-effect");
+        return effect === "circular" || effect === "none" ? effect : "bars";
+    }
+
+    /** Set the shared audio visualizer effect. */
+    setVisualizerEffect = (effect: EffectType): void => {
+        settings.set("visualizer-effect", effect);
     };
 
     /** Whether the player can potentially play a next track (has a source provider). */
@@ -367,6 +390,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
     /** Clean up streaming server sessions when the editor tab is closed. */
     async dispose(): Promise<void> {
+        this.mediaElement = null;
         const pageId = this.page?.id;
         if (pageId) {
             await api.deleteVideoStreamSessionsByPage(pageId);

@@ -16,6 +16,7 @@ export interface AudioPlayerProps {
     shuffle?: boolean;
     onNext?: () => void;
     onToggleShuffle?: () => void;
+    onMediaElementChange?: (element: HTMLMediaElement | null) => void;
 }
 
 export class AudioPlayerView extends VanillaView<AudioPlayerProps> {
@@ -54,6 +55,7 @@ export class AudioPlayerView extends VanillaView<AudioPlayerProps> {
         this.audio.muted = this.props.muted ?? false;
         this.audio.dataset.part = "audio-media";
         this.active = this.props.active !== false;
+        if (this.active) this.props.onMediaElementChange?.(this.audio);
 
         this.visualizer = this.child(new AudioVisualizerView({
             media: this.audio,
@@ -120,12 +122,15 @@ export class AudioPlayerView extends VanillaView<AudioPlayerProps> {
     protected onUpdate(props: AudioPlayerProps): void {
         const wasActive = this.active;
         this.active = props.active !== false;
+        if (wasActive && !this.active) this.props.onMediaElementChange?.(null);
+        if (!wasActive && this.active) this.props.onMediaElementChange?.(this.audio);
         this.syncSourceAndMute();
         this.syncChildren();
         if (this.active && !wasActive && this.audio.src) this.audio.play().catch(() => {});
     }
 
     protected onDispose(): void {
+        if (this.active) this.props.onMediaElementChange?.(null);
         this.audio.pause();
         this.audio.removeAttribute("src");
         this.audio.load();

@@ -14,6 +14,7 @@ import { MermaidEditor } from "../../editors/mermaid/MermaidEditor";
 import { GraphEditor } from "../../editors/graph/GraphEditor";
 import { DrawEditor } from "../../editors/draw/DrawEditor";
 import type { ImageEditor } from "../../editors/image/ImageEditor";
+import type { VideoEditor } from "../../editors/video/VideoEditor";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
 import type { ScriptOutputFlags } from "../ScriptContext";
@@ -36,13 +37,14 @@ import { PagePanelsNode } from "../ai-vision/page-panels";
 import { PageTabNode } from "../ai-vision/page-tab";
 import { SvgEditorFacade } from "./SvgEditorFacade";
 import { TextEditorFacade } from "./TextEditorFacade";
+import { VideoEditorFacade } from "./VideoEditorFacade";
 
 type EditorOrHost = EditorModel | TextFileModel;
 type EditorFacade =
     | TextEditorFacade | GridEditorFacade | NotebookEditorFacade | LinkEditorFacade
     | MarkdownEditorFacade | SvgEditorFacade | HtmlEditorFacade | MermaidEditorFacade
     | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
-    | ImageEditorFacade | GenericEditorFacade;
+    | ImageEditorFacade | VideoEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
@@ -61,6 +63,7 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "browser-view": (editor, id, name) => new BrowserEditorFacade(editor as unknown as BrowserEditorModel, id, name),
     "mcp-view": (editor, id, name) => new McpInspectorFacade(editor as unknown as McpInspectorEditorModel, id, name),
     "image-view": (editor, id, name) => new ImageEditorFacade(editor as unknown as ImageEditor, id, name),
+    "video-view": (editor, id, name) => new VideoEditorFacade(editor as unknown as VideoEditor, id, name),
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [

@@ -38,6 +38,18 @@ export async function blobToBuffer(blob: Blob): Promise<Buffer> {
     return Buffer.from(await blob.arrayBuffer());
 }
 
+/** Copy an already-rasterised PNG blob to the system clipboard. */
+export async function copyPngBlobToClipboard(blob: Blob): Promise<void> {
+    await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+    ]);
+}
+
+/** Render an image-export-capable editor and copy its PNG representation. */
+export async function copyImageToClipboard(source: IImageExport): Promise<void> {
+    await copyPngBlobToClipboard(await source.exportPng());
+}
+
 /** Read a Blob as a `data:` URL (e.g. to hand a PNG blob to `addDrawPage`). */
 export function blobToDataUrl(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {

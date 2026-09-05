@@ -1,6 +1,6 @@
 # US-1314 - Media: the image surface, and a new video facade
 
-Status: investigation complete; implementation has not started.
+Status: Implemented
 
 Epic: [EPIC-086](../../epics/EPIC-086.md), task 5 of 8.
 
@@ -456,39 +456,39 @@ The implementation plan is subject to these repository constraints from
 
 ## Acceptance Criteria
 
-- [ ] `ImageEditorFacade` exposes the complete agreed image state/actions,
+- [x] `ImageEditorFacade` exposes the complete agreed image state/actions,
   retains file export, includes the three curated elements, and has help for the
   save menu and conditional visibility.
-- [ ] A new `VideoEditorFacade.ts` is implemented and is the registered facade for
+- [x] A new `VideoEditorFacade.ts` is implemented and is the registered facade for
   `video-view`; `video-view` no longer falls back to `GenericEditorFacade`.
-- [ ] The video facade exposes model state and live media state through the
+- [x] The video facade exposes model state and live media state through the
   model-owned view handoff,
   documents synchronous getters and undefined-before-mount behaviour, and does
   not claim subtitles/tracks that the editor does not implement. Live media state
   is obtained from the model's nullable view handoff, never from a `data-part`
   DOM query.
-- [ ] `source` is optional in both media facades and canonical declarations:
+- [x] `source` is optional in both media facades and canonical declarations:
   neither facade fabricates `""` when no source exists.
-- [ ] Video actions mirror existing reachable UI capabilities only; playback and
+- [x] Video actions mirror existing reachable UI capabilities only; playback and
   external-player actions carry `caution`, and no volume-rate or invented playback
   controls are added.
-- [ ] `submitUrl` carries `caution`; `setVisualizerEffect` explicitly has no
+- [x] `submitUrl` carries `caution`; `setVisualizerEffect` explicitly has no
   `caution` because it is purely visual. Help and member summaries identify
   `shuffle` and `visualizerEffect` as global settings and explain inactive-page
   playback risk for `play`, `seek`, and `playNext`.
-- [ ] `elements` contains exactly 3 image names and 10 video names, with the
+- [x] `elements` contains exactly 3 image names and 10 video names, with the
   conditional visibility described in this document. No existing `data-type` is
   renamed; no unnecessary `data-name` is added.
-- [ ] `PageWrapper.ts` imports/registers the video facade and includes it in the
+- [x] `PageWrapper.ts` imports/registers the video facade and includes it in the
   `EditorFacade` union and `FACADE_FOR_EDITOR` map.
-- [ ] Canonical API declarations add `IVideoEditor`, include the
+- [x] Canonical API declarations add `IVideoEditor`, include the
   `"video-view"` discriminant in `IFacadeEditorId`, and include `IVideoEditor` in
   `IEditorFacade`; `npm run build-prod` regenerates matching assets.
-- [ ] `$help` names the image save menu, page-tab context menu ownership, VLC
+- [x] `$help` names the image save menu, page-tab context menu ownership, VLC
   error dialog, conditional media controls, and absent track/subtitle surface.
-- [ ] `qa/surfaces/editors/media.md` contains the M.1-M.6 call-oriented scenarios
+- [x] `qa/surfaces/editors/media.md` contains the M.1-M.6 call-oriented scenarios
   and introduces no unit tests or test harnesses.
-- [ ] Implementation follows the required `theme`/`color`, `errMessage`,
+- [x] Implementation follows the required `theme`/`color`, `errMessage`,
   `file-path`, and dynamic `import()` constraints.
 
 ## Files that need NO changes

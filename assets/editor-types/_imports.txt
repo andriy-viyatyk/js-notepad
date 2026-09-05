@@ -39,5 +39,6 @@ svg-editor.d.ts
 text-editor.d.ts
 ui-log.d.ts
 ui.d.ts
+video-editor.d.ts
 window.d.ts
 index.d.ts
