@@ -570,6 +570,23 @@ type _AppWrapperCoversIApp = AssertNever<Exclude<keyof IApp, keyof AppWrapper>>;
 
 It is fully type-erased (no runtime cost) and names the offender on failure: `Type '"boardVars"' does not satisfy the constraint 'never'`. It verifies names, not shapes — a getter returning the wrong type still compiles. If the facade types are ever reconciled with their interfaces, replace it with a real `implements IApp`.
 
+### AiVision path calls
+
+`src/shared/ai-vision/` contains the process-neutral descriptor interfaces, path parser, resolver,
+hint builder, help search, and result shaper used by path callers. Renderer wrappers and editor
+facades implement `IAiVisible` with descriptors beside their public members; dynamic pages and
+facades enumerate their own children so discovery does not probe side-effecting getters. Namespace
+objects that cannot carry a descriptor use the shared instance registry.
+
+For renderer routes, the MCP `call` tool builds a fresh `ScriptContext` and resolves paths through
+`AiRoot`; the main process separately resolves process-owned `windows` and `main` paths before
+forwarding renderer paths. `AppWrapper.call(path, options?)` uses the same resolver and renderer
+descriptors but is rooted in the current script's page context, with hints disabled and JSON-safe
+results; it does not route `main.*` or `windows[i]`.
+The Board `persephone.call()` surface is similarly page-scoped to the Board's hosting page, checks
+trust for every request, and returns only shaped values. Use the MCP call path for main-process
+diagnostics or the settings-gated `main.script.execute(code)` branch.
+
 ### PageCollectionWrapper
 
 Wraps `PagesModel` and mirrors `IPageCollection`. Returns `PageWrapper` instances instead of raw `EditorModel` for all query methods.

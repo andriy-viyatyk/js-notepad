@@ -24,6 +24,12 @@ export interface IAiMember {
     readonly caution?: string;
     /** Properties only: the agent may assign to it via the `value` parameter. */
     readonly writable?: boolean;
+    /**
+     * The value is itself an AiVision node; `helpSearch` may follow this property. Says that
+     * *reading* it is safe — independent of `caution`, which describes what its members do.
+     * Never set it on a getter with side effects (see `Page.grouped`).
+     */
+    readonly node?: boolean;
 }
 
 export interface IAiChild {
@@ -76,15 +82,23 @@ type Constructor = abstract new (...args: never[]) => unknown;
 type DescriptorFactory = (instance: unknown) => IAiVisionDescriptor;
 
 const registry = new Map<Constructor, DescriptorFactory>();
+const instanceRegistry = new WeakMap<object, DescriptorFactory>();
 
 export function registerAiVision(ctor: Constructor, describe: DescriptorFactory): void {
     registry.set(ctor, describe);
 }
 
+export function registerAiVisionFor(instance: object, describe: DescriptorFactory): void {
+    instanceRegistry.set(instance, describe);
+}
+
 /** The descriptor for a value: its own `aiVision`, else the registry (walking the prototype chain). */
 export function getAiVision(value: unknown): IAiVisionDescriptor | undefined {
     if (isAiVisible(value)) return value.aiVision;
-    if (!value || typeof value !== "object" || registry.size === 0) return undefined;
+    if (!value || typeof value !== "object") return undefined;
+    const instanceFactory = instanceRegistry.get(value);
+    if (instanceFactory) return instanceFactory(value);
+    if (registry.size === 0) return undefined;
     let proto = Object.getPrototypeOf(value) as object | null;
     while (proto && proto !== Object.prototype) {
         const factory = registry.get(proto.constructor as Constructor);

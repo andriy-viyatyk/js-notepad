@@ -8,6 +8,7 @@ export interface McpSectionProps {
     mcpEnabled: boolean;
     mcpPort: number;
     browserToolsEnabled: boolean;
+    mainScriptsEnabled: boolean;
     mnemeEnabled: boolean;
     mnemePort: number;
 }
@@ -110,6 +111,7 @@ export class McpSectionModel extends TComponentModel<McpSectionState, McpSection
 
     handleToggle = () => settings.set("mcp.enabled", !this.props.mcpEnabled);
     handleBrowserToolsToggle = () => settings.set("mcp.browser-tools.enabled", !this.props.browserToolsEnabled);
+    handleMainScriptsToggle = () => settings.set("main.scripting.enabled", !this.props.mainScriptsEnabled);
     handleMnemeToggle = () => settings.set("mneme.enabled", !this.props.mnemeEnabled);
 
     handlePortBlur = () => {

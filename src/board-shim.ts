@@ -40,6 +40,7 @@ import type {
 } from "./ipc/board-bridge-channels";
 import { installBoardDiagnostics } from "./board-console-mirror";
 import { installBoardContextMenu } from "./board-context-menu";
+import { errMessage } from "./shared/utils";
 
 // ── Boot context (injected synchronously before this script) ─────────────────
 
@@ -196,6 +197,9 @@ const sendQueue: BoardToMain[] = [];
 /** Pending request/reply promises keyed by rpc id. */
 const pendingRpc = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let rpcId = 0;
+const pendingCalls = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
+let callId = 0;
+const BOARD_CALL_TIMEOUT_MS = 30_000;
 /** Per-job runner routers (an execute handle registers/unregisters its jobId). */
 const runnerHandlers = new Map<
     string,
@@ -261,6 +265,36 @@ function rpc(method: BoardRpcMethod, args: unknown[]): Promise<unknown> {
     });
 }
 
+function call(path: string, options?: { args?: unknown[]; value?: unknown; maxLength?: number }): Promise<unknown> {
+    if (typeof path !== "string" || !path) return Promise.reject(new Error("persephone.call() needs a non-empty path."));
+    if (options?.args !== undefined && !Array.isArray(options.args)) {
+        return Promise.reject(new Error("persephone.call() options.args must be an array."));
+    }
+    return new Promise<unknown>((resolve, reject) => {
+        const id = ++callId;
+        const timer = setTimeout(() => {
+            pendingCalls.delete(id);
+            reject(new Error("persephone.call() timed out."));
+        }, BOARD_CALL_TIMEOUT_MS);
+        pendingCalls.set(id, { resolve, reject, timer });
+        const request = {
+            path,
+            ...(options?.args !== undefined ? { args: options.args } : {}),
+            ...(options && Object.prototype.hasOwnProperty.call(options, "value")
+                ? { value: options.value }
+                : {}),
+            ...(options?.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
+        };
+        try {
+            post({ kind: "call", id, request });
+        } catch (error) {
+            clearTimeout(timer);
+            pendingCalls.delete(id);
+            reject(new Error(errMessage(error, "Persephone host is unavailable.")));
+        }
+    });
+}
+
 function fire(method: BoardFireMethod, args: unknown[]): void {
     post({ kind: "fire", method, args });
 }
@@ -279,6 +313,20 @@ function onPortMessage(data: MainToBoard): void {
         pendingRpc.delete(data.id);
         if (data.error != null) p.reject(new Error(data.error));
         else p.resolve(data.result);
+        return;
+    }
+    if (data.kind === "call-result") {
+        const pending = pendingCalls.get(data.id);
+        if (!pending) return;
+        pendingCalls.delete(data.id);
+        clearTimeout(pending.timer);
+        if (typeof data.error === "string") {
+            pending.reject(new Error(data.error));
+        } else if (Object.prototype.hasOwnProperty.call(data, "result")) {
+            pending.resolve(data.result);
+        } else {
+            pending.reject(new Error("Malformed persephone.call() response."));
+        }
         return;
     }
     if (data.kind === "runner") {
@@ -513,8 +561,8 @@ function createHandle(
 
 (window as unknown as { persephone: unknown }).persephone = {
     // Bridge API version — bumped when the `persephone.*` surface gains something.
-    // 1.1.0: readFile/writeFile accept `encoding: "binary"` (US-933).
-    version: "1.1.0",
+    // 1.2.0: programmatic AiVision calls (US-1296).
+    version: "1.2.0",
 
     /** This frame's view role (EPIC-044): "main" for the board's main view, or the id of a
      *  declared secondary view. Branch on it to render every view from one HTML file. */
@@ -553,6 +601,9 @@ function createHandle(
     execute(command: string, options?: IExecuteOptions): IExecuteHandle {
         return createHandle(command, options);
     },
+
+    /** Resolve a page-scoped path in Persephone's bounded AiVision object model. */
+    call,
 
     /** Run a Node script on Persephone's bundled runtime — no Node install needed.
      *  `script` is resolved against the board folder when relative. Same handle

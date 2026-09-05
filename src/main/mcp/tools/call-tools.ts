@@ -39,9 +39,11 @@ export function routeCallPath(path: string, explicitWindow: number | undefined):
         return { forward: { path, windowIndex: explicitWindow } };
     }
     const first = segments[0];
-    if (!first || first.type !== "member" || first.name !== "windows") {
+    if (!first || first.type !== "member") {
         return { forward: { path, windowIndex: explicitWindow } };
     }
+    if (first.name === "main") return { local: true };
+    if (first.name !== "windows") return { forward: { path, windowIndex: explicitWindow } };
     // windows | windows.$help | windows.count | windows[i] | windows[i].$help | windows[i].<own member>
     const index = segments[1];
     if (!index || index.type !== "index") return { local: true };
@@ -49,6 +51,9 @@ export function routeCallPath(path: string, explicitWindow: number | undefined):
     if (!third || third.type === "help") return { local: true };
     if (typeof index.key !== "number") return { error: `windows[...] takes a window index (a number), got ${JSON.stringify(index.key)}.` };
     if (third.type === "member" || third.type === "call") {
+        if (third.name === "main") {
+            return { error: `\"main\" is process-wide and is only valid at the root; call path \"main\" (not \"${path}\").` };
+        }
         // `pages` is the window's live collection when it is open; only a closed window answers
         // from persisted state (there is no renderer to ask).
         const isLivePages = third.name === "pages" && isWindowOpen(index.key);
@@ -97,6 +102,10 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                 "  path: \"helpSearch\", args: [\"add rows\"]  → find where something lives",
                 "  path: \"pages[0].$help\"                  → long-form help for a node",
                 "  path: \"windows\"                         → all windows; prefix any path with windows[i]. to target one (default: the main window)",
+                "",
+                "  path: \"main\"                            -> main-process diagnostics and gated scripting",
+                "  path: \"main.script.execute\"             -> settings-gated main-process code execution",
+                "  windows[i].main is invalid: main is process-wide; use root path \"main\".",
                 "",
                 "Paths use the same names as the scripting API (execute_script). Put method arguments in `args` and assignments in `value`; the path itself takes only short JSON literals like pages[2] or pages[\"id\"]. An unknown member returns the valid member list instead of failing.",
             ].join("\n"),

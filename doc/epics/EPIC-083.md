@@ -2,10 +2,10 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-09-05
 **Started:** 2026-09-05
-**Completed:**
+**Completed:** 2026-09-05
 
 ## Overview
 
@@ -338,14 +338,14 @@ adding a method to a facade and forgetting its descriptor is visible in the same
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1289](../tasks/US-1289-ai-vision-core/README.md) | AiVision core: interface, path parser, resolver, result shaping, root + `pages` + `page` descriptors, `helpSearch(query)` over the descriptor graph | Implemented |
-| [US-1290](../tasks/US-1290-call-tool-windows/README.md) | `call` MCP tool: main-side definition incl. the optional `windows[i]` prefix and the `windows` node, renderer command, per-session hint dedupe, overview/scripting guide updates | Implemented |
-| [US-1291](../tasks/US-1291-facade-descriptors/README.md) | Descriptors for every editor facade (`as*` methods, text, grid, notebook, link, markdown, svg, html, mermaid, graph, draw, image, browser, mcp-inspector) | Implemented (awaiting test) |
-| US-1292 | Descriptors for the `app` namespaces: `fs`, `settings`, `ui`, `shell`, `window`, `proc`, `boards`, `recent`, `downloads`, with `caution` on destructive members | Planned |
-| US-1293 | Evaluation with the `mcp-test-agent` skill (haiku): scenario set run twice — once with the full tool set, once with `call` alone — add the tool to the skill's allow-list, and write the go/no-go recommendation for the consolidation epic | Planned |
-| US-1294 | *(optional)* Generate `members`/`help` from `src/renderer/api/types/*.d.ts` JSDoc at build time | Planned |
-| US-1296 | Programmatic surface: `app.call(path, options)` in the script API and a `call` envelope on the board bridge (`persephone.call`) — hints off by default, results JSON-only, same guards; decide whether boards need a manifest-declared capability before they get it | Planned |
-| US-1295 | Main-process node: `main` with curated service descriptors (windows, MCP sessions, Tor, boards protocol, downloads, network log, version) and `main.script.execute(code)` behind a settings toggle | Planned |
+| [US-1289](../tasks/US-1289-ai-vision-core/README.md) | AiVision core: interface, path parser, resolver, result shaping, root + `pages` + `page` descriptors, `helpSearch(query)` over the descriptor graph | Complete |
+| [US-1290](../tasks/US-1290-call-tool-windows/README.md) | `call` MCP tool: main-side definition incl. the optional `windows[i]` prefix and the `windows` node, renderer command, per-session hint dedupe, overview/scripting guide updates | Complete |
+| [US-1291](../tasks/US-1291-facade-descriptors/README.md) | Descriptors for every editor facade (`as*` methods, text, grid, notebook, link, markdown, svg, html, mermaid, graph, draw, image, browser, mcp-inspector) | Complete |
+| [US-1292](../tasks/US-1292-app-namespaces/README.md) | Descriptors for the `app` namespaces: `fs`, `settings`, `ui`, `shell`, `window`, `proc`, `boards`, `boardVars`, `editors`, `recent`, `downloads`, `menuFolders`, with `caution` on destructive and user-visible members | Complete (live-verified) |
+| [US-1293](../tasks/US-1293-call-evaluation/README.md) | Evaluation with the `mcp-test-agent` skill (haiku): scenario set run twice — once with the full tool set, once with `call` alone — add the tool to the skill's allow-list, and write the go/no-go recommendation for the consolidation epic | Complete — **go**, see [run log](../../qa/runs/2026-09-05-epic-083-call-vs-tools.md) |
+| US-1294 | *(optional)* Generate `members`/`help` from `src/renderer/api/types/*.d.ts` JSDoc at build time | **Declined** — recommendation, see notes 2026-09-05 |
+| [US-1296](../tasks/US-1296-programmatic-call/README.md) | Programmatic surface: `app.call(path, options)` in the script API and a `call` envelope on the board bridge (`persephone.call`) — hints off by default, results JSON-only, same guards; trusted Boards use the full AiVision tree with the resolver's `restricted()` guard | Complete (live-verified) |
+| [US-1295](../tasks/US-1295-main-node/README.md) | Main-process node: `main` with curated service descriptors (windows, MCP sessions, Tor, boards protocol, downloads, network log, runtime) and `main.script.execute(code)` behind a settings toggle | Complete (live-verified) |
 
 Task documents are written per task via `codex-dev` when the task starts; US-1289 leads because
 everything else depends on its types. US-1291 and US-1292 are independent of each other and can run
@@ -470,3 +470,61 @@ epic has not met its goal regardless of code landed.
   Reasoning in Design decision 7; the same hook gates `main.script` (US-1295).
 - Interface over base class, and not the trait system's `Traited` wrapper — reasoning in Design
   decision 1.
+- US-1292 delegated to Codex (plan reviewed by Claude). The reviewed correction that mattered:
+  `helpSearch` must not read every uncautioned property — `Page.content` holds a whole file and the
+  safety guarantee would have rested on authors remembering `caution` — so traversal is an explicit
+  opt-in, `IAiMember.node`. During implementation that surfaced its own conflict: the root's `fs`,
+  `shell` and `proc` entries carry `caution`, which would have made them unreachable. Resolved by
+  separating the two ideas: `node: true` says *reading this property is safe*, `caution` says *what
+  its members do*. The app namespaces are described in `scripting/ai-vision/namespaces/` and
+  attached with a new instance-keyed registry (`registerAiVisionFor`), because `proc` and `boards`
+  are object literals that cannot carry an `aiVision` property or be keyed by constructor.
+  Live-verified: `settings`, `fs.exists`, `shell.version.runtimeVersions()`, `ui.log` refused with
+  the member list, and `helpSearch("read file")` reaching `fs.readFile`.
+- US-1295 delegated to Codex (plan reviewed by Claude). Two must-fixes in review: the plan wanted a
+  final-node `restricted()` check in the shared resolver so `main.script` would answer with the
+  refusal — that would have broken decision 7's requirement that a user's private browser page stay
+  *summarisable* at `pages[i]`, so the gate is reported through `MainScriptNode.summarize()`
+  instead and the resolver is untouched; and `main.*` was trimmed of everything the renderer tree
+  already exposes (`main.downloads` is read-only, `main.boards.published` dropped, `main.version`
+  merged into `main.runtime`) — two paths to one action is the confusion this epic exists to
+  remove. The settings gate is a renderer-owned `main.scripting.enabled` key mirrored into main
+  over IPC, following the `mcp.enabled` precedent, defaulting to `!app.isPackaged`. Live-verified
+  both ways: with the toggle off `main.script.execute` is refused while `$help` still answers and
+  the node reports `enabled: false`; with it on, `execute` runs code, captures `console.log`, and
+  returns `isError: true` for a throw instead of escaping to the unhandled-rejection path.
+  `windows[0].main` is rejected in main with guidance to use the root path.
+- US-1296 delegated to Codex (plan reviewed by Claude). Review removed two thirds of the plumbing:
+  main already holds the board's `hostWebContents`, so a `WebContents` → window-index lookup feeds
+  the existing `sendToRenderer` instead of a second transport; and `pagesModel.findPage(id)` already
+  matches *any editor id*, so the board's hosting page is found from the `ownerId` main already
+  stores — no IPC signature change at all. Trusted board = full tree (a trusted board already has
+  `execute()`), enforced at the root's `restricted()`, and a board is subject to the same
+  descriptor guards as MCP, so it cannot read the user's private browser pages either.
+  Live-verified with the regex board in `assets/board-call-regex/`: it reads `page.grouped.content`,
+  matches, and writes the result back. Page affinity was proven with the board's page *inactive* —
+  a timer-triggered call still resolved `page.grouped.title` to its own host's neighbour. Trust
+  revocation could not be exercised end-to-end because untrusting unmounts the webview; the guard
+  is verified by inspection.
+- US-1293 run (2026-09-05, haiku, four scenarios, twice): `call` alone completed 4/4 in 14 calls
+  with no guide, no errors and no guessing; the full tool set completed 4/4 in 9 calls but produced
+  the run's only wrong answer (theme `system` instead of `default-dark`, read from a fixed tool's
+  payload rather than the live setting). Recommendation recorded: **go** for the consolidation
+  epic, on condition that no tool is retired until its replacement path passes the same test, that
+  `browser_*` gets its ref-lifecycle design first, and that removal goes through a deprecation
+  period. Log: `qa/runs/2026-09-05-epic-083-call-vs-tools.md`.
+- US-1294 (generate descriptors from `.d.ts` JSDoc) **declined** — a recommendation, reversible if
+  the user disagrees. Writing the descriptors by hand produced exactly the things typings cannot
+  express and that make the hints work: "reading it CREATES a grouped page", `node: true`,
+  `restricted()`, the deliberate omissions (`downloads.init` as internal, `ui.log` belonging to a
+  different `ui`), and prose `help`. A generator would have to be overridden at nearly every
+  interesting member, and the drift it protects against is already handled by co-locating each
+  descriptor with the code it describes. Not worth the build step.
+- **Epic closed 2026-09-05.** All eight tasks resolved (seven implemented, US-1294 declined), the
+  completion skills run at epic level by Codex (`/review` PASS with no architecture findings;
+  `/document` and `/userdoc` updated the architecture, scripting, board and user-facing docs), and
+  `npm run typecheck`, `npm run lint` and `npm run build-prod` green. Summary and the full
+  verification ledger: [epics/completed.md](completed.md). Follow-on: the consolidation epic, which
+  US-1293 recommends starting under the three conditions recorded there. Left for the user to
+  exercise: board trust revocation while mounted, the Settings checkbox wording/placement, packaged
+  gate defaults, and the uninterruptible synchronous-loop warning for `main.script`.

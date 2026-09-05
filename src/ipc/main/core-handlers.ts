@@ -11,6 +11,7 @@ import { fileIconCache } from "../../main/fileIconCache";
 import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
+import { setMainScriptsEnabled } from "../../main/mcp/ai-vision/main-script-gate";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
 import { startMneme, stopMneme, restartMneme, getMnemeStatus as getMnemeServiceStatus } from "../../main/mneme-service";
 import type { ClipboardFileList } from "../clipboard-ipc";
@@ -206,6 +207,10 @@ class Controller implements Omit<MainApi, BoardEndpoint | GitEndpoint> {
         }
     }
 
+    setMainScriptsEnabled = async (_event: IpcMainEvent, enabled: boolean): Promise<void> => {
+        setMainScriptsEnabled(enabled);
+    }
+
     setBrowserToolsEnabled = async (event: IpcMainEvent, enabled: boolean): Promise<void> => {
         const { setBrowserToolsEnabled } = await import("../../main/mcp-http-server");
         setBrowserToolsEnabled(enabled);
@@ -351,6 +356,7 @@ export function initCoreHandlers(): void {
     bindEndpoint(Endpoint.showDownloadInFolder, controllerInstance.showDownloadInFolder);
     bindEndpoint(Endpoint.clearCompletedDownloads, controllerInstance.clearCompletedDownloads);
     bindEndpoint(Endpoint.setMcpEnabled, controllerInstance.setMcpEnabled);
+    bindEndpoint(Endpoint.setMainScriptsEnabled, controllerInstance.setMainScriptsEnabled);
     bindEndpoint(Endpoint.getMcpStatus, controllerInstance.getMcpStatus);
     bindEndpoint(Endpoint.setMnemeEnabled, controllerInstance.setMnemeEnabled);
     bindEndpoint(Endpoint.restartMneme, controllerInstance.restartMneme);

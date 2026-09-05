@@ -7,6 +7,9 @@ guide to read for which task. It is intentionally short — read it once per ses
 
 ## The mental model
 
+- **`main` is process-wide.** `call` resolves `main.windows`, `main.mcp`, `main.tor`,
+  `main.boards`, `main.downloads`, `main.networkLog`, `main.runtime`, and the settings-gated
+  `main.script.execute(code)` branch in the main process. `windows[i].main` is invalid.
 - **Windows → pages → editors.** A window holds tabbed **pages**; each page renders through an
   **editor** (`monaco` text, `grid-json`, `md-view`, `notebook-view`, `browser-view`,
   `board-view`, …). `list_pages` / `list_windows` show what's open; every tool takes an
@@ -36,6 +39,7 @@ guide to read for which task. It is intentionally short — read it once per ses
 
 | You want to… | Use | Read first |
 |---|---|---|
+| Inspect main-process state or use gated main scripting | `call` (path `"main"`) | `read_guide("scripting")` before `main.script.execute` |
 | Look around, read a page, activate a tab, simple edits — with no guide | `call` (path `""` first) | nothing — the hints are the guide |
 | Show results, logs, progress; ask the user something | `ui_push` | `read_guide("ui-push")` |
 | Open text/code for the user | `create_page` (editor `monaco`) | nothing — monaco is safe to guess |
@@ -48,6 +52,11 @@ guide to read for which task. It is intentionally short — read it once per ses
 | Drive a web page / board / the app UI | `browser_*` (pass `pageId`) | `read_guide("browser")` |
 | Build a custom dashboard/tool/editor | `create_board`, `open_board`, `board_refresh` | `read_guide("boards")` |
 | Recurring external-system task (ADO, SQL, email, CLI) | `search_tools` → `execute_tool` | `read_guide("tools")` |
+
+`main` is resolved locally by the main process, alongside root `windows`. Use `main.windows` for
+the same live window collection, and use root `main` rather than `windows[i].main`; the latter is
+rejected before any renderer bridge. `main.script.execute` is visible for discovery but requires
+the Settings → MCP Server toggle `Allow main-process scripts`.
 
 ## Reading order
 

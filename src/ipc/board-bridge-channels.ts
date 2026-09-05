@@ -129,6 +129,22 @@ export interface BoardJobInfo {
 /** Fire-and-forget methods (board → main, no reply). */
 export type BoardFireMethod = "openRawLink" | "notify";
 
+/** JSON-compatible request for the page-scoped AiVision call surface. */
+export interface BoardCallRequest {
+    path: string;
+    args?: unknown[];
+    value?: unknown;
+    maxLength?: number;
+}
+
+/** Correlated result for `persephone.call()`. */
+export interface BoardCallResultMsg {
+    kind: "call-result";
+    id: number;
+    result?: unknown;
+    error?: string;
+}
+
 /** A runner envelope sent board → main (the caller→runner half of `RunnerChannel`). */
 export interface BoardRunnerOutMsg {
     kind: "runner";
@@ -154,6 +170,7 @@ export interface BoardRunnerInMsg {
 /** Everything the board posts to main over the port. */
 export type BoardToMain =
     | { kind: "rpc"; id: number; method: BoardRpcMethod; args: unknown[] }
+    | { kind: "call"; id: number; request: BoardCallRequest }
     | { kind: "fire"; method: BoardFireMethod; args: unknown[] }
     | { kind: "connected" } // shim → main: handshake liveness (mode D, EPIC-037 C11)
     | BoardRunnerOutMsg;
@@ -161,6 +178,7 @@ export type BoardToMain =
 /** Everything main posts to the board over the port. */
 export type MainToBoard =
     | { kind: "rpc-result"; id: number; result?: unknown; error?: string }
+    | BoardCallResultMsg
     | { kind: "theme"; palette: BoardThemePalette }
     | BoardRunnerInMsg;
 

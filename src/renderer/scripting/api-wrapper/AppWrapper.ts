@@ -1,7 +1,10 @@
 import { app } from "../../api/app";
 import { PageCollectionWrapper } from "./PageCollectionWrapper";
+import type { PageWrapper } from "./PageWrapper";
 import type { EventChannel, EventHandler } from "../../api/events/EventChannel";
-import type { IApp } from "../../api/types/app";
+import type { IApp, IAppCallOptions } from "../../api/types/app";
+import { resolveCall } from "../../../shared/ai-vision/resolver";
+import { AiRoot } from "../ai-vision/root";
 
 /**
  * Wrap an EventChannel to auto-track subscriptions in the releaseList.
@@ -64,7 +67,11 @@ export class AppWrapper {
     private readonly releaseList: Array<() => void>;
 
     /** @param openedByAgent true for MCP-originated contexts — browser pages they open are the agent's own. */
-    constructor(releaseList: Array<() => void>, openedByAgent = false) {
+    constructor(
+        releaseList: Array<() => void>,
+        openedByAgent = false,
+        private readonly contextPage?: PageWrapper,
+    ) {
         this.releaseList = releaseList;
         this._pages = new PageCollectionWrapper(app.pages, releaseList, openedByAgent);
     }
@@ -130,6 +137,21 @@ export class AppWrapper {
             this._events = createEventsProxy(app.events, this.releaseList);
         }
         return this._events;
+    }
+
+    async call(path: string, options?: IAppCallOptions): Promise<unknown> {
+        const request = {
+            path,
+            hints: "never" as const,
+            ...(options?.args !== undefined ? { args: options.args } : {}),
+            ...(options && Object.prototype.hasOwnProperty.call(options, "value")
+                ? { value: options.value }
+                : {}),
+            ...(options?.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
+        };
+        const result = await resolveCall(new AiRoot(this, { page: this.contextPage }), request);
+        if (result.error) throw new Error(result.error);
+        return result.result;
     }
 
     fetch = app.fetch;

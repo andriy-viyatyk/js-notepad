@@ -70,6 +70,20 @@ export interface IApp {
     readonly events: IAppEvents;
 
     /**
+     * Resolve a path in Persephone's live AiVision object model.
+     *
+     * The call uses the page associated with the current script context, always
+     * suppresses navigation hints, and returns only the plain bounded value.
+     * Resolver failures reject with an Error. Pass either `args` to invoke the
+     * final member or `value` to assign a writable property; they are mutually
+     * exclusive. `maxLength` bounds shaped string results.
+     *
+     * @param path - AiVision path such as `page.grouped.content`.
+     * @param options - Optional invocation, assignment, and result-size options.
+     */
+    call(path: string, options?: IAppCallOptions): Promise<unknown>;
+
+    /**
      * Make an HTTP request using Node.js (bypasses Chromium headers).
      * Full header control — no automatic Origin, User-Agent, Sec-Fetch-*, etc.
      * Returns a standard web Response object.
@@ -171,6 +185,16 @@ export interface IApp {
         data: TData,
         proxy?: TProxy
     ): Promise<TResult>;
+}
+
+/** Options for `app.call()`. `args` and `value` cannot be used together. */
+export interface IAppCallOptions {
+    /** JSON-compatible arguments for the final method in `path`. */
+    args?: unknown[];
+    /** JSON-compatible value assigned to the final writable property in `path`. */
+    value?: unknown;
+    /** Maximum length used when shaping a string result. */
+    maxLength?: number;
 }
 
 /**

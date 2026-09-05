@@ -423,6 +423,25 @@ app.settings.set("theme", "monokai");
 await app.shell.openExternal("https://github.com");
 ```
 
+### Resolve the live object model
+
+`app.call()` lets a script address the same discoverable object-model paths used by the MCP `call`
+tool. Use `args` to invoke the final method or `value` to assign a writable property; these options
+are mutually exclusive:
+
+```javascript
+const content = await app.call("page.content");
+const rows = await app.call("page.asGrid().rowCount");
+await app.call("page.grouped.content", {
+    value: JSON.stringify({ rows }, null, 2),
+});
+```
+
+The path is rooted in the current script's window, so `app.call()` does not resolve the
+MCP-only `main.*` or `windows[i].*` paths. See the [app API reference](./api/app.md#callpath-options)
+for options and examples. For the equivalent API inside a trusted Board, see
+[`persephone.call()`](./boards.md#persephonecallpath-options).
+
 ### Available services
 
 | Property | Description |
@@ -439,6 +458,7 @@ await app.shell.openExternal("https://github.com");
 | [`app.downloads`](./api/downloads.md) | Download tracking |
 | [`app.fetch()`](./api/app.md#fetchurl-options) | HTTP client (Node.js, no automatic headers) |
 | [`app.runAsync()`](./api/app.md#runasyncfn-data-proxy) | Run a function in a background worker thread |
+| [`app.call()`](./api/app.md#callpath-options) | Resolve or update the live object model |
 
 For the complete API with all methods and parameters, see the [Scripting API Reference](./api/index.md).
 

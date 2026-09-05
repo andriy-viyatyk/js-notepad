@@ -20,6 +20,22 @@ The `execute_script` tool runs JavaScript or TypeScript in Persephone's context.
 - **Result = last expression** (or `return …`), serialized to text in the tool result.
   `console.log` output is captured separately into `consoleLogs`.
 
+## Main-process scripts via `call`
+
+The `call` tree also exposes `main.script.execute(code)`, guarded by Settings → MCP Server →
+`Allow main-process scripts`. This runs in Electron's main process and can freeze or terminate the
+whole app, so use it only for deliberate diagnostics. The evaluator supplies these scope names:
+`electron`, `openWindows`, `torService`, `downloadService`, `boardDownloadService`,
+`publishedBoardsService`, `boardProtocol`, and `networkLogger`. Expressions and `await` work, and
+the result is shaped as `{ result, isError, timedOut?, consoleLogs }`; console logs use
+`{ level, args, timestamp }` entries like renderer script capture.
+
+Main evaluation has a 10-second timeout. A timed-out async promise cannot be cancelled by
+`Promise.race`, so it may continue and can still perform side effects. Side effects before an
+exception or timeout remain performed. A synchronous `while (true) {}` blocks the main event loop,
+defeats the timer, and freezes every window until the code returns or the process is killed; it is
+not safely timeout-able.
+
 ## The `app` Object
 
 Root application object with all services. The `call` tool addresses the same objects by path with
@@ -42,6 +58,31 @@ logic, loops, or Node.js.
 | `app.boards` | Boards — `createBoard(name, dir)` / `createDemoBoard(name, dir)` / `openBoard(root)`. See `read_guide("boards")`. |
 | `app.boardVars` | Env vars/secrets store for boards — get/set/list per namespace, resolve a board's namespace, open the editor. See `read_guide("boards")`. |
 | `app.openRawLink(href, options?)` | Open any link (file path, URL, or in-app scheme) in a new/reused tab and make it active. `options.editor` requests a specific editor (e.g. `{ editor: "md-view" }` for rendered Markdown); falls back to the default when omitted/unmatched |
+| `app.call(path, options?)` | Resolve the live AiVision tree from the script's own page context; returns a plain bounded value and rejects `Error` on resolver failure |
+
+### `app.call(path, options?)`
+
+`app.call()` uses the same descriptor tree as the MCP `call` tool, but it is rooted in the page
+that owns the running script. It always sends `hints: "never"`, so the result is only the shaped
+plain value. `args` invokes the final method, `value` assigns a writable property, and `maxLength`
+controls string shaping; `args` and `value` are mutually exclusive.
+
+This is the renderer-side tree only. `app.call()` cannot resolve the MCP router's process-wide
+`main.*` or `windows[i].*` paths; use the MCP `call` tool for those paths. In particular,
+`main.script.execute(code)` is not available through a script's `app.call()`.
+
+```javascript
+const source = await app.call("page.grouped.content");
+const rows = await app.call("page.asGrid().rows");
+await app.call("page.grouped.content", {
+    value: JSON.stringify({ checked: true }, null, 2),
+});
+const result = await app.call("page.asGrid().getCell", { args: [0, "name"] });
+```
+
+The method does not return hints or resolver metadata. Invalid paths, restricted descriptors,
+invocation failures, and invalid assignments reject as `Error`, so use ordinary `try`/`catch` when
+a script wants to report or recover from a failed call.
 
 ### app.pages
 
@@ -373,6 +414,11 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 ```
+
+When using `main.script.execute`, a caught error returns `{ result: <error text>, isError: true,
+consoleLogs }` and never escapes as an MCP unhandled rejection. The timeout response sets
+`timedOut: true`; an async evaluation may still be running. These semantics are separate from the
+renderer `execute_script` 30-second request timeout above.
 
 ## Errors & verification
 

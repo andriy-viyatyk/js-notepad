@@ -1,6 +1,7 @@
 import { ScriptContext } from "../ScriptContext";
 import { ICallRequest, ICallResult, resolveCall, SeenKinds } from "../../../shared/ai-vision/resolver";
 import { AiRoot } from "./root";
+import type { AiRootOptions } from "./root";
 
 /**
  * Renderer entry point for the `call` MCP tool: build the tree root inside a fresh script context
@@ -13,8 +14,18 @@ import { AiRoot } from "./root";
 export async function aiCall(request: ICallRequest, seenKinds?: SeenKinds): Promise<ICallResult> {
     const context = new ScriptContext(undefined, []);
     try {
-        return await resolveCall(new AiRoot(context.app), request, seenKinds);
+        return await resolveAiCall(context, request, seenKinds);
     } finally {
         context.dispose();
     }
+}
+
+/** Resolve through an existing script context without changing its lifecycle. */
+export function resolveAiCall(
+    context: ScriptContext,
+    request: ICallRequest,
+    seenKinds?: SeenKinds,
+    rootOptions?: AiRootOptions,
+): Promise<ICallResult> {
+    return resolveCall(new AiRoot(context.app, rootOptions), request, seenKinds);
 }

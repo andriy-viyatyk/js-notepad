@@ -267,6 +267,7 @@ class App {
         // Ensure settings are loaded from disk before checking mcp.enabled
         const { settings: settingsInstance } = await import("./settings");
         await settingsInstance.wait();
+        api.setMainScriptsEnabled(!!this._settings.get("main.scripting.enabled"));
 
         // Defer MCP auto-start and autoload scripts to not block window rendering
         setTimeout(async () => {
@@ -312,6 +313,9 @@ class App {
         // Keep these subscriptions alive until the renderer process exits.
         // Watch for mcp.enabled setting changes
         this._settings.onChanged.subscribe(({ key, value }) => {
+            if (key === "main.scripting.enabled") {
+                api.setMainScriptsEnabled(!!value);
+            }
             if (key === "mcp.enabled") {
                 const port = this._settings.get("mcp.port") as number | undefined;
                 api.setMcpEnabled(!!value, port || undefined);

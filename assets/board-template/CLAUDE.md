@@ -208,6 +208,28 @@ close reaps the child.
 
 ## Integration tier (in-app effects `execute()` can't express)
 
+### `persephone.call(path, options?)`
+
+Trusted Boards can read and update the AiVision tree through the page that hosts the Board. The
+hosting page is stable even if the user activates another tab. Calls always use `hints: "never"`,
+return a JSON-safe shaped value, and reject `Error` on resolver, transport, timeout, serialization,
+or trust failures. Existing descriptor restrictions still apply, including private browser pages.
+The bridge exposes the renderer-side page/app tree only; process-wide `main.*` and `windows[i].*`
+are MCP call-tool paths and are not available through `persephone.call()`.
+
+```js
+const source = await persephone.call("page.grouped.content");
+const matches = [...source.matchAll(new RegExp(pattern, flags))]
+    .map((match) => ({ match: match[0], index: match.index }));
+await persephone.call("page.grouped.content", {
+    value: JSON.stringify(matches, null, 2),
+});
+```
+
+Pass `args` to invoke the final method, `value` to assign a writable property, or `maxLength` to
+bound string shaping. `args` and `value` cannot be combined. See the bundled regex verification
+Board under `assets/board-call-regex/` for a complete Run/Write example.
+
 - `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass
   `{ editor }` (e.g. `{ editor: "md-view" }`) to request a specific editor — useful to open a
   Markdown doc rendered rather than as source; falls back to the default editor when omitted/unmatched.

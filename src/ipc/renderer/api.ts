@@ -230,6 +230,10 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.setMcpEnabled, enabled, port);
     }
 
+    setMainScriptsEnabled = async (enabled: boolean) => {
+        return executeOnce<void>(Endpoint.setMainScriptsEnabled, enabled);
+    }
+
     setBrowserToolsEnabled = async (enabled: boolean) => {
         return executeOnce<void>(Endpoint.setBrowserToolsEnabled, enabled);
     }

@@ -30,6 +30,7 @@ import {
 } from "electron";
 import {
     BoardFileEncoding,
+    BoardCallRequest,
     BoardFireMethod,
     BoardNotifyType,
     BoardRunnerOutMsg,
@@ -58,6 +59,7 @@ import {
     writeJobStdin,
 } from "./command-runner";
 import { errMessage } from "../shared/utils";
+import { sendToRendererForWebContents } from "./mcp/renderer-bridge";
 
 interface BoardPortEntry {
     /** Main's end of the per-board channel. */
@@ -137,6 +139,7 @@ const wiredHosts = new Set<number>();
 /** Mode-D (C11) handshake watchdog window: a healthy board connects in tens of ms; this
  *  is generous against a slow first paint while still catching a dead bridge. */
 const BOARD_HANDSHAKE_TIMEOUT_MS = 5000;
+const BOARD_CALL_TIMEOUT_MS = 30_000;
 
 /**
  * The BrowserWindow that owns a board's host renderer. With the iframe model the
@@ -238,6 +241,36 @@ async function runRpc(entry: BoardPortEntry, method: BoardRpcMethod, args: unkno
     if (!handler) throw new Error(`Unknown board RPC method: ${method}`);
     return handler(entry, args);
 }
+
+function jsonSafe(value: unknown): unknown {
+    const encoded = JSON.stringify(value);
+    if (encoded === undefined) throw new Error("Board call returned a non-serializable value.");
+    return JSON.parse(encoded);
+}
+
+async function runBoardCall(boardId: string, entry: BoardPortEntry, id: number, request: BoardCallRequest): Promise<void> {
+    try {
+        const response = await sendToRendererForWebContents(
+            "board_call",
+            { ownerId: entry.ownerId, request },
+            entry.hostWebContents,
+            BOARD_CALL_TIMEOUT_MS,
+        );
+        if (boardPorts.get(boardId) !== entry) return;
+        if (response.error) throw new Error(response.error.message);
+        if (!Object.prototype.hasOwnProperty.call(response, "result")) {
+            throw new Error("Malformed Board call response.");
+        }
+        entry.port.postMessage({ kind: "call-result", id, result: jsonSafe(response.result) });
+    } catch (error) {
+        if (boardPorts.get(boardId) !== entry) return;
+        try {
+            entry.port.postMessage({ kind: "call-result", id, error: errMessage(error, "Board call failed.") });
+        } catch {
+            // The Board disconnected while its request was completing.
+        }
+    }
+}
 /** Fire-and-forget effects (no reply). */
 function runFire(entry: BoardPortEntry, method: BoardFireMethod, args: unknown[]): void {
     const win = ownerWindow(entry.hostWebContents);
@@ -336,6 +369,11 @@ function handleBoardMessage(boardId: string, data: BoardToMain): void {
                     error: errMessage(e),
                 }),
             );
+        return;
+    }
+
+    if (data.kind === "call") {
+        void runBoardCall(boardId, entry, data.id, data.request);
     }
 }
 

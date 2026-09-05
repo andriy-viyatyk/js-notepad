@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { BrowserWindow, ipcMain, WebContents } from "electron";
 import { openWindows } from "../open-windows";
 import { MCP_EXECUTE, MCP_RESULT } from "../../shared/constants";
 import { McpResponse } from "./types";
@@ -67,6 +67,21 @@ export async function sendToRenderer(method: string, params: unknown, windowInde
 
         windowData.window.window.webContents.send(MCP_EXECUTE, requestId, method, params);
     });
+}
+
+/** Send through the existing correlated renderer transport to a specific host WebContents. */
+export function sendToRendererForWebContents(
+    method: string,
+    params: unknown,
+    hostWebContents: WebContents,
+    timeoutMs?: number,
+): Promise<McpResponse> {
+    const hostWindow = BrowserWindow.fromWebContents(hostWebContents);
+    const windowData = openWindows.windows.find((entry) => entry.window?.window === hostWindow);
+    if (!windowData) {
+        return Promise.resolve({ error: { code: -32603, message: "The Board host renderer is unavailable." } });
+    }
+    return sendToRenderer(method, params, windowData.index, timeoutMs);
 }
 
 /** Resolve every in-flight renderer request with an error (server shutdown). */

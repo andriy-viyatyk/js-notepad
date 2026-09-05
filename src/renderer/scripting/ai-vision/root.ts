@@ -1,8 +1,17 @@
+import "./namespaces";
+
 import type { AppWrapper } from "../api-wrapper/AppWrapper";
 import type { PageCollectionWrapper } from "../api-wrapper/PageCollectionWrapper";
 import type { PageWrapper } from "../api-wrapper/PageWrapper";
 import { helpSearch, IHelpSearchHit } from "../../../shared/ai-vision/help-search";
 import { IAiChild, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+
+export interface AiRootOptions {
+    /** Page supplied by a live script or by a Board owner lookup. */
+    page?: PageWrapper;
+    /** Additional root gate evaluated by the shared resolver for each call. */
+    restricted?: () => string | undefined;
+}
 
 /**
  * The root of the renderer's AiVision tree — what `call` with an empty path lands on.
@@ -25,21 +34,22 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "page", kind: "property", summary: "The active page (same as the `page` global in scripts)." },
     { name: "helpSearch", kind: "method", signature: "helpSearch(query: string, limit = 20)", summary: "Search every hint/help text in the tree; returns paths with the matching line. Use when you know what you want but not where it lives." },
     { name: "version", kind: "property", summary: "Persephone version string." },
-    { name: "settings", kind: "property", summary: "Application settings (read/write)." },
-    { name: "fs", kind: "property", summary: "File system access (read/write files, list folders).", caution: "writes touch the user's disk" },
-    { name: "ui", kind: "property", summary: "Notifications, dialogs, the Log View." },
-    { name: "shell", kind: "property", summary: "Open paths/URLs with the OS and run shell commands.", caution: "runs processes with the user's privileges" },
-    { name: "window", kind: "property", summary: "This window: title, size, focus, sidebar." },
-    { name: "proc", kind: "property", summary: "Spawn and manage child processes.", caution: "runs processes with the user's privileges" },
-    { name: "boards", kind: "property", summary: "Boards — sandboxed mini web-apps: create, open, refresh." },
-    { name: "boardVars", kind: "property", summary: "Variables shared with boards." },
-    { name: "editors", kind: "property", summary: "The editor registry: which editors exist and which languages they take." },
-    { name: "recent", kind: "property", summary: "Recently opened files." },
-    { name: "downloads", kind: "property", summary: "Download manager." },
-    { name: "menuFolders", kind: "property", summary: "Folders pinned to the menu bar." },
+    { name: "settings", kind: "property", node: true, summary: "Application settings (read/write)." },
+    { name: "fs", kind: "property", node: true, summary: "File system access (read/write files, list folders).", caution: "writes touch the user's disk" },
+    { name: "ui", kind: "property", node: true, summary: "Dialogs, notifications, progress overlays, screen locks, and app-window highlights." },
+    { name: "shell", kind: "property", node: true, summary: "Open URLs, capture screen snippets, encrypt/decrypt text, and inspect runtime/update versions.", caution: "runs processes with the user's privileges" },
+    { name: "window", kind: "property", node: true, summary: "This window: state, sidebar, zoom, and multi-window actions." },
+    { name: "proc", kind: "property", node: true, summary: "Spawn and manage child processes.", caution: "runs processes with the user's privileges" },
+    { name: "boards", kind: "property", node: true, summary: "Boards — sandboxed mini web-apps: create, open, trust, install, update, and remove." },
+    { name: "boardVars", kind: "property", node: true, summary: "Administer board environment variables and secrets." },
+    { name: "editors", kind: "property", node: true, summary: "The editor registry: which editors exist and which languages they take." },
+    { name: "recent", kind: "property", node: true, summary: "Recently opened files." },
+    { name: "downloads", kind: "property", node: true, summary: "Download manager." },
+    { name: "menuFolders", kind: "property", node: true, summary: "Configured folders shown in the sidebar." },
     // Answered by the main process before the path reaches this window — listed here so the root
     // hint is complete. See RESERVED_ROOT_NAMES.
     { name: "windows", kind: "property", summary: "All Persephone windows (open and closed). windows[i] is one window; prefix any path with windows[i]. to target it — without the prefix you are talking to the main window." },
+    { name: "main", kind: "property", summary: "Main-process diagnostics and settings-gated scripting; process-wide, never windows[i].main." },
 ];
 
 const ROOT_HELP = `
@@ -53,6 +63,7 @@ Common paths:
   pages[0].asGrid().rowCount  rows in a grid page (facades: asText, asGrid, asNotebook, …)
   pages.showPage("<id>")      activate a page
   helpSearch("add rows")      find where something lives
+  main                        main-process diagnostics and gated scripting
   <path>.$help                long-form help for any node
 
 Rules: arguments for the last segment go in "args" (a JSON array); assignments go in "value";
@@ -60,14 +71,17 @@ the path itself takes only short JSON literals. Unknown members return the valid
 `;
 
 export class AiRoot implements IAiVisible {
-    constructor(private readonly app: AppWrapper) {}
+    constructor(
+        private readonly app: AppWrapper,
+        private readonly options: AiRootOptions = {},
+    ) {}
 
     get pages(): PageCollectionWrapper {
         return this.app.pages;
     }
 
     get page(): PageWrapper | undefined {
-        return this.app.pages.activePage;
+        return this.options.page ?? this.app.pages.activePage;
     }
 
     helpSearch(query: string, limit?: number): Promise<IHelpSearchHit[]> {
@@ -95,6 +109,7 @@ export class AiRoot implements IAiVisible {
             members: ROOT_MEMBERS,
             help: ROOT_HELP,
             children: () => this.children(),
+            ...(this.options.restricted ? { restricted: this.options.restricted } : {}),
             summarize: () => ({ kind: "Persephone", version: this.app.version, pageCount: this.app.pages.all.length, activePageId: this.page?.id ?? null }),
         };
     }

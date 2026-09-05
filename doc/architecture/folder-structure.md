@@ -10,7 +10,7 @@ persephone/
 │   ├── main/               # Electron main process
 │   ├── renderer/           # Native VanillaView frontend plus the Excalidraw React island (see below)
 │   ├── ipc/                # IPC communication layer
-│   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine)
+│   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine, AiVision resolver/types)
 │   ├── renderer.ts          # Async bootstrap; calls renderer/index.ts mount(container)
 │   ├── preload.ts          # Preload script (main renderer)
 │   ├── board-shim.ts       # Board bridge shim entry — browser IIFE inlined into board HTML; boot, host trust gate, MessagePort plumbing, window.persephone
@@ -117,6 +117,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── mcp-handler.ts      # Thin MCP IPC shell (receives commands from main, logs and returns results)
 │   ├── mcp/                # Renderer MCP command dispatch and focused command handlers
 │   │   ├── command-registry.ts # Built-in command registry + dynamic browser_* dispatch
+│   │   ├── call-command.ts  # Renderer-side MCP call command; creates a ScriptContext and resolves AiVision
+│   │   ├── board-call-command.ts # Page-scoped Board bridge calls; owner-page and trust checks
 │   │   ├── page-commands.ts # Page, script, app-info, and URL command handlers
 │   │   ├── board-commands.ts # Board lifecycle and refresh command handlers
 │   │   ├── ui-push.ts       # ui_push validation and Log View integration
@@ -687,7 +689,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── library-require.ts  # Library require() resolution + .ts extension handler
 │   ├── worker/             # Background worker execution (app.runAsync)
 │   │   └── WorkerRunner.ts # Renderer-side: IPC to main, proxy dispatch
-│   └── api-wrapper/        # Safe wrappers for script access
+│   ├── api-wrapper/        # Safe wrappers for script access
 │       ├── AppWrapper.ts           # Wraps app → IApp (events proxy; compile-time member check)
 │       ├── PageCollectionWrapper.ts # Wraps pages → IPageCollection
 │       ├── PageWrapper.ts          # Wraps page → IPage (with asX() + auto-release)
@@ -708,6 +710,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── Markdown.ts            # Markdown helper class (returned by ui.show.markdown)
 │       ├── Mermaid.ts             # Mermaid helper class (returned by ui.show.mermaid)
 │       └── StyledTextBuilder.ts    # Fluent styled text builder + styledText() factory
+│   └── ai-vision/           # Renderer AiVision root, call entry point, and namespace descriptors
 │
 ├── automation/             # Browser Automation (Playwright-compatible MCP tools)
 │   ├── types.ts            # IBrowserTarget interface
@@ -881,7 +884,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── sdk.ts              # Lazy MCP SDK + zod loader (loadSdk / requireSdk)
 │   ├── tool-results.ts     # Response → MCP content mappers (text, page content with image, screenshot)
 │   ├── types.ts            # IMcpToolDef and friends
-│   └── tools/              # The tools themselves, as data — one module per group (window, page, board, agent, browser, guide)
+│   ├── tools/              # The tools themselves, as data — one module per group (window, page, board, agent, browser, guide)
+│   └── ai-vision/          # Main-process AiVision roots, service descriptors, and gated main scripting
 ├── browser-service.ts      # Browser page support (webview management)
 ├── browser-registration.ts # Default browser registration
 ├── sidecar-process.ts      # Shared sidecar lifecycle (spawn → stdout-readiness sentinel → stop) used by tor-service and mneme-service: start dedupe, readiness timeout, stale-child guard, unexpected-death callback, stop-and-wait before respawn
@@ -894,7 +898,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
 ├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and the board bridge's execute(); whole-tree kill via taskkill; jobs carry an optional caller-chosen name + a getJobsBySinkIds query (board job re-association)
 ├── board-protocol-service.ts # board:// scheme handler — host→board-root registry; serves board files + CSP; injects --p-* palette, boot context, and the bridge shim into served HTML
-├── board-bridge.ts         # Per-board MessagePort bridge — execute() over the command runner, dialogs/readFile/writeFile, openRawLink/notify, theme push; busy-owner job retention (a busy board's jobs survive its unload, reaped on final teardown/page close/crash)
+├── board-bridge.ts         # Per-board MessagePort bridge — execute(), page-scoped call(), dialogs/readFile/writeFile, openRawLink/notify, theme push; busy-owner job retention (a busy board's jobs survive its unload, reaped on final teardown/page close/crash)
 ├── cdp-service.ts          # CDP session service for browser_* automation — attaches the debugger to webContents; board frames registered/resolved by their ?v= nonce
 ├── mneme-service.ts        # Mneme concerns on top of sidecar-process: port/config wiring and MnemeStatus broadcasts for the knowledge-base service
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout; exports getSnipToolPath for clip-service)

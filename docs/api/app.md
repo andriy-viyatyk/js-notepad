@@ -33,6 +33,38 @@ app.pages.activePage.content;
 
 ## Methods
 
+### call(path, options?)
+
+Resolve a path in the live application object model from a script. Paths use the same names as the
+scripting API and can read values, invoke the final method, or assign a writable property. Results
+are plain JSON-safe values, and long strings can be bounded with `maxLength`.
+
+```javascript
+// Read the grouped output page for the current script
+const output = await app.call("page.grouped.content");
+
+// Invoke a method with JSON-compatible arguments
+await app.call("pages.showPage", { args: [pageId] });
+
+// Assign a writable property
+await app.call("page.grouped.content", {
+    value: JSON.stringify({ done: true }, null, 2),
+});
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `string` | Object-model path, such as `page.grouped.content`, `pages[0].content`, or `settings.theme`. |
+| `options.args` | `unknown[]` | Arguments for the final method. Cannot be combined with `value`. |
+| `options.value` | `unknown` | Value for the final writable property. Cannot be combined with `args`. |
+| `options.maxLength` | `number` | Maximum length for a shaped string result. |
+
+`app.call()` is rooted in the current script's window. It can address pages, editor
+facades, and application services exposed to scripts, but it cannot resolve the MCP-only
+`main.*` or `windows[i].*` paths. Failures reject the returned promise with an `Error`.
+
+---
+
 ### fetch(url, options?)
 
 Make an HTTP request using Node.js. Unlike browser `fetch()`, this sends **only the headers you specify** — no automatic Chromium headers (Origin, User-Agent, Sec-Fetch-*, etc.). Returns a standard `Response` object.

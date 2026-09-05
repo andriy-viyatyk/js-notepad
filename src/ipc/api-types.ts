@@ -60,6 +60,7 @@ export enum Endpoint {
     showDownloadInFolder = "showDownloadInFolder",
     clearCompletedDownloads = "clearCompletedDownloads",
     setMcpEnabled = "setMcpEnabled",
+    setMainScriptsEnabled = "setMainScriptsEnabled",
     getMcpStatus = "getMcpStatus",
     setMnemeEnabled = "setMnemeEnabled",
     restartMneme = "restartMneme",
@@ -195,6 +196,7 @@ export type Api = {
     [Endpoint.showDownloadInFolder]: (id: string) => Promise<void>;
     [Endpoint.clearCompletedDownloads]: () => Promise<void>;
     [Endpoint.setMcpEnabled]: (enabled: boolean, port?: number) => Promise<void>;
+    [Endpoint.setMainScriptsEnabled]: (enabled: boolean) => Promise<void>;
     [Endpoint.getMcpStatus]: () => Promise<McpStatus>;
     [Endpoint.setMnemeEnabled]: (enabled: boolean, port?: number) => Promise<MnemeStatus>;
     [Endpoint.restartMneme]: (port?: number) => Promise<MnemeStatus>;

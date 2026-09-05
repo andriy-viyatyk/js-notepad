@@ -95,6 +95,7 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
     private model: McpSectionModel | undefined;
     private mcpEnabledCheckbox: CheckboxView | undefined;
     private browserToolsCheckbox: CheckboxView | undefined;
+    private mainScriptsCheckbox: CheckboxView | undefined;
     private mnemeEnabledCheckbox: CheckboxView | undefined;
     private portInput: InputView | undefined;
     private mnemePortInput: InputView | undefined;
@@ -141,6 +142,17 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
         browserRow.append(this.browserToolsCheckbox.root);
         this.browserToolsCheckbox.mount();
         this.root.append(browserRow);
+
+        const mainScriptsRow = panel({ direction: "column", gap: "sm", paddingBottom: "lg" });
+        this.mainScriptsCheckbox = this.child(new CheckboxView(this.checkboxProps(
+            model.props.mainScriptsEnabled,
+            model.handleMainScriptsToggle,
+            "Allow main-process scripts",
+        )));
+        mainScriptsRow.append(this.mainScriptsCheckbox.root);
+        mainScriptsRow.append(text("Warning: code runs in the main process and can freeze the app.", { color: "light", size: "xs" }));
+        this.mainScriptsCheckbox.mount();
+        this.root.append(mainScriptsRow);
 
         const portRow = panel({ direction: "row", align: "center", gap: "md", paddingBottom: "lg" });
         portRow.append(text("Port:", { size: "sm" }));
@@ -199,7 +211,7 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
         driver.mount();
         this.bind(model.state, (state) => state, (state) => this.syncState(state));
         const subscription = settings.onChanged.subscribe(({ key }) => {
-            if (key === "mcp.enabled" || key === "mcp.port" || key === "mcp.browser-tools.enabled" || key === "mneme.enabled" || key === "mneme.port") {
+            if (key === "mcp.enabled" || key === "mcp.port" || key === "mcp.browser-tools.enabled" || key === "main.scripting.enabled" || key === "mneme.enabled" || key === "mneme.port") {
                 driver.update(this.currentProps());
                 this.syncState(model.state.get());
             }
@@ -212,6 +224,7 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
         this.model = undefined;
         this.mcpEnabledCheckbox = undefined;
         this.browserToolsCheckbox = undefined;
+        this.mainScriptsCheckbox = undefined;
         this.mnemeEnabledCheckbox = undefined;
         this.portInput = undefined;
         this.mnemePortInput = undefined;
@@ -226,6 +239,7 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
             mcpEnabled: settings.get("mcp.enabled"),
             mcpPort: settings.get("mcp.port"),
             browserToolsEnabled: settings.get("mcp.browser-tools.enabled"),
+            mainScriptsEnabled: settings.get("main.scripting.enabled"),
             mnemeEnabled: settings.get("mneme.enabled"),
             mnemePort: settings.get("mneme.port"),
         };
@@ -267,6 +281,7 @@ export class McpSectionView extends VanillaView<Record<string, never>> {
         if (!model) return;
         this.mcpEnabledCheckbox?.update(this.checkboxProps(model.props.mcpEnabled, model.handleToggle, "Enable MCP server"));
         this.browserToolsCheckbox?.update({ ...this.checkboxProps(model.props.browserToolsEnabled, model.handleBrowserToolsToggle, "Enable browser interaction"), disabled: model.props.mcpEnabled });
+        this.mainScriptsCheckbox?.update(this.checkboxProps(model.props.mainScriptsEnabled, model.handleMainScriptsToggle, "Allow main-process scripts"));
         this.mnemeEnabledCheckbox?.update(this.checkboxProps(model.props.mnemeEnabled, model.handleMnemeToggle, "Enable Mneme"));
         this.portInput?.update(this.portProps(false));
         this.mnemePortInput?.update(this.portProps(true));

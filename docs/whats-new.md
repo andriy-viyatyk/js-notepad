@@ -14,6 +14,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Link Editor highlights follow auto-advanced tracks again** — When a media player advances to the next link automatically, the selected item in the Collections and Tags panels now follows the new track and remains highlighted.
 
+### Improvements
+
+- **AI agents and scripts can navigate Persephone's live object model** — The MCP `call` tool and
+  scripting API `app.call()` can discover pages, editor facades, and application services by path,
+  invoke methods, and update writable properties. MCP callers can also target a specific window;
+  main-process script execution is separately gated by **Settings → MCP Server → Allow main-process
+  scripts**. Private browser pages opened by the user remain protected from object-model access.
+
 ---
 
 ## Version 4.0.23

@@ -1,12 +1,13 @@
 import { joinChildPath, parsePath } from "./path-parser";
 import { formatMember } from "./hint";
-import { getAiVision, IAiVisionDescriptor } from "./types";
+import { getAiVision } from "./types";
+import type { IAiVisionDescriptor } from "./types";
 
 /**
  * `helpSearch(query)` — full-text search over the descriptor graph (EPIC-083, long-term table).
  *
- * Walks from the root through `children()` only, so the walk is side-effect free by construction:
- * a child is something its parent already declared safe to visit. Matches every query token
+ * Walks from the root through `children()` and through properties a descriptor marked `node: true`,
+ * so the walk is side-effect free by construction: it visits only what a node declared safe. Matches every query token
  * against member name/summary/signature and node kind/summary/help. Instance paths (containing an
  * index) rank above kind-level ones so the agent gets a path it can call right away.
  */
@@ -41,6 +42,15 @@ export async function helpSearch(root: unknown, query: string, limit = 20): Prom
         }
 
         if (depth >= MAX_DEPTH || descriptor.restricted?.()) continue;
+        for (const member of descriptor.members) {
+            // `node: true` is the author's statement that *reading* this property is safe; a
+            // `caution` on it describes what its members do (fs writes), not the read itself.
+            if (member.kind !== "property" || member.node !== true) continue;
+            const childNode = await stepTo(node, `.${member.name}`);
+            if (getAiVision(childNode)) {
+                queue.push({ node: childNode, path: joinChildPath(path, `.${member.name}`), depth: depth + 1 });
+            }
+        }
         for (const child of descriptor.children?.() ?? []) {
             const childPath = joinChildPath(path, child.segment);
             const childLine = `${childPath} — ${child.kind}: ${child.summary}`;

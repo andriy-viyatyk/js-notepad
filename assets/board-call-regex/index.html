@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AiVision Regex Call</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main>
+    <h1>AiVision Regex Call</h1>
+    <p class="hint">Run against the grouped content of the page hosting this Board.</p>
+    <label>Source<textarea id="source" readonly></textarea></label>
+    <div class="fields">
+      <label>Pattern<input id="pattern" value="TODO\w*"></label>
+      <label>Flags<input id="flags" value="g"></label>
+    </div>
+    <div class="actions">
+      <button id="run" type="button">Run</button>
+      <button id="write" type="button">Write matches</button>
+    </div>
+    <p id="status" role="status"></p>
+    <pre id="matches">Run a match to see results.</pre>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

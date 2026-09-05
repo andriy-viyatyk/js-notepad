@@ -1,3 +1,93 @@
+## EPIC-083 — AiVision: one self-discoverable MCP tool over the app object model
+
+Completed 2026-09-05. [Epic document](EPIC-083.md). One MCP tool, `call`, takes a **path** into the
+live object model (the empty path, `pages[2].content`, `pages[0].asGrid().addRows`, `windows[1].pages`,
+`main.runtime`) and returns the value **plus a hint** describing what it landed on. No second object
+tree was built: the tree *is* the existing `AppWrapper` → `PageCollectionWrapper` → `PageWrapper` →
+facade graph, and AiVision is metadata hung on those same objects through one interface
+(`src/shared/ai-vision/types.ts`), shared by both processes.
+
+**The epic's own acceptance test passed.** US-1293 ran the same four-part scenario twice on haiku:
+with `call` alone (no guides, no other tool) it completed 4/4 in 14 calls, discovering everything
+from the empty path, hints, `helpSearch` and `$help` — no guessing, no errors. With the full ~25-tool
+set it completed 4/4 in 9 calls but produced the run's only **wrong** answer, reading the theme from
+a fixed tool's payload (`system`) instead of the live setting (`default-dark`). Recommendation
+recorded: **go** for the consolidation epic, conditional on no tool being retired until its
+replacement path passes the same test, `browser_*` getting its ref-lifecycle design first, and
+removal going through a deprecation period. Log: `qa/runs/2026-09-05-epic-083-call-vs-tools.md`.
+
+**Discovery is cooperative, and that is the load-bearing decision.** The tree is dynamic — pages
+open and close, a page's facade depends on its current editor — but the resolver must never probe
+getters, because `PageWrapper.grouped` *creates* the grouped page when read. So every node answers
+for itself: `members` is the static kind-level shape (deduped per MCP session), `children()` is what
+exists right now, and `restricted()` closes a node instance-by-instance. Nothing enumerates by
+reflection.
+
+**Four review findings changed the work, each caught against the source rather than the plan:**
+
+- `helpSearch` was to follow every uncautioned property. `Page.content` holds a whole file, and the
+  safety guarantee would have rested on authors remembering `caution` on future side-effecting
+  getters. Replaced with an explicit opt-in, `IAiMember.node`. Implementation then hit the
+  complement: the root's `fs`/`shell`/`proc` carry `caution` and would have become unreachable —
+  resolved by separating the two ideas, `node: true` = *reading this is safe*, `caution` = *what its
+  members do*.
+- US-1295 wanted a final-node `restricted()` check in the shared resolver so `main.script` would
+  answer with its refusal. That would have broken design decision 7: a user's private browser page
+  must stay **summarisable** at `pages[i]` while everything under it is refused. The gate is
+  reported through `summarize()` instead; the resolver is untouched.
+- `main.*` was trimmed of everything the renderer tree already exposes (`main.downloads` read-only,
+  `main.boards.published` dropped, `main.version` merged into `main.runtime`). Two paths to one
+  action is exactly the confusion this epic exists to remove.
+- US-1296's board transport shrank by two thirds: main already holds the board's `hostWebContents`,
+  so a `WebContents` → window-index lookup feeds the existing `sendToRenderer`; and
+  `pagesModel.findPage(id)` already matches **any editor id**, so the hosting page is found from the
+  `ownerId` main already stores — no IPC signature change at all.
+
+**Privacy got a better design than the one first asked for.** The user's initial idea was a dev-only
+constant letting the agent see incognito/Tor pages for testing; it was replaced before commit by a
+provenance rule that also holds in release: `openedByAgent` marks pages an MCP tool or MCP-run script
+opened, and only those are readable. The flag is never persisted (a restored page is the user's
+again), an agent-opened private page's tab reads "Browser (agent)", and an agent asking for an
+incognito tab never joins the user's own. One helper, `editors/browser/agent-access.ts`, is consulted
+by browser targeting, MCP page summaries and `Page.restricted()` alike. A board reaching the tree
+through `persephone.call` inherits the same guard.
+
+**Verified live, not asserted:** root/`pages`/`$help`/unknown-member self-correction/`value`
+assignment/`maxLength`; every facade including `asGrid(true)` switching editors; all twelve `app`
+namespaces (`fs.exists`, `shell.version.runtimeVersions()`, `ui.log` correctly refused with the
+member list); `main.runtime`, `main.mcp.sessions`, `main.script.execute` capturing `console.log` and
+returning `isError` for a throw instead of escaping to the unhandled-rejection path, the settings
+gate in **both** states, and `windows[0].main` rejected with guidance; `app.call` in a script bound
+to a non-active page returning *its own* page; and the regex board reading `page.grouped.content`,
+matching, and writing back — with page affinity proven while the board's page was **inactive**, via
+a timer-triggered call that still resolved to its own host's neighbour.
+
+**US-1294 (generating descriptors from `.d.ts` JSDoc) was declined**, reversibly. Hand-writing them
+produced precisely what typings cannot express and what makes the hints work — "reading it CREATES a
+grouped page", `node: true`, `restricted()`, the deliberate omissions (`downloads.init` as internal,
+`ui.log` belonging to a different `ui`), and prose `help`. A generator would be overridden at nearly
+every interesting member, and co-location already handles the drift it would guard against.
+
+**Not verifiable without the user**, and recorded as such: trust revocation while a board is mounted
+(untrusting unmounts the webview, so the guard is verified by inspection), the Settings checkbox
+wording and placement, packaged-build gate defaults, and the uninterruptible synchronous-loop warning
+for `main.script`. Reviewed at epic level — `/review` PASS with no architecture findings; `/document`
+and `/userdoc` updated the AiVision architecture, scripting boundaries, key-file index, board guides
+and the user-facing API/scripting/settings docs.
+
+- **EPIC-083** — [AiVision: a single self-discoverable MCP tool over the app object model](epics/EPIC-083.md) — completed 2026-09-05.
+  One `call` tool taking a path into the live `app`/`pages`/facade tree and returning the value plus
+  a hint; descriptors are an interface implemented by the existing script wrappers, not a second
+  tree. Nothing was removed — the consolidation epic does that, gated on US-1293's evidence.
+  - [x] [US-1289: AiVision core — types, path parser, resolver, root + pages descriptors, helpSearch](tasks/US-1289-ai-vision-core/README.md)
+  - [x] [US-1290: `call` MCP tool — `windows[i]` prefix, main-process `windows` node, guides](tasks/US-1290-call-tool-windows/README.md)
+  - [x] [US-1291: AiVision descriptors for every editor facade](tasks/US-1291-facade-descriptors/README.md)
+  - [x] [US-1292: AiVision descriptors for the `app` namespaces](tasks/US-1292-app-namespaces/README.md)
+  - [x] [US-1293: Evaluation — `call` alone vs the full tool set](tasks/US-1293-call-evaluation/README.md) — **go** for the consolidation epic
+  - [x] US-1294: *(optional)* generate descriptors from `api/types/*.d.ts` JSDoc — **declined**; reasoning in the epic notes
+  - [x] [US-1295: Main-process `main` node — curated service descriptors and settings-gated `main.script.execute(code)`](tasks/US-1295-main-node/README.md)
+  - [x] [US-1296: Programmatic surface — `app.call(path, options)` in scripts and `persephone.call` on the board bridge](tasks/US-1296-programmatic-call/README.md)
+
 ## EPIC-081 — DOM & IO mechanisms
 
 Completed 2026-09-02. [Epic document](EPIC-081.md). The **final** epic of the

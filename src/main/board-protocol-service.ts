@@ -312,6 +312,27 @@ export function unregisterBoard(host: string): void {
     hostToDesign.delete(host);
 }
 
+export interface BoardRegistrationSnapshot {
+    host: string;
+    root: string;
+    refCount: number;
+}
+
+/** Return only the live board registration identity, not protocol design internals. */
+export function getBoardRegistrationSnapshot(): {
+    registeredCount: number;
+    registrations: BoardRegistrationSnapshot[];
+} {
+    return {
+        registeredCount: hostToRoot.size,
+        registrations: [...hostToRoot.entries()].map(([host, root]) => ({
+            host,
+            root,
+            refCount: hostRefCount.get(host) ?? 0,
+        })),
+    };
+}
+
 /** Resolve a `board://` host → its absolute board root. Used by the per-board port
  *  bridge (US-771) to default `execute()` cwd + relative file paths. */
 export function getBoardRootForHost(host: string): string | undefined {

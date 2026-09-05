@@ -141,6 +141,41 @@ export function clearNetworkLog(key: string): void {
     pagePending.delete(key);
 }
 
+export interface NetworkLogMetadata {
+    id: number;
+    url: string;
+    method: string;
+    resourceType: string;
+    referrer: string;
+    timestamp: number;
+    statusCode?: number;
+    statusLine?: string;
+    fromCache?: boolean;
+    error?: string;
+}
+
+export function getNetworkLogSnapshot(): { keys: Array<{ key: string; count: number }> } {
+    return { keys: [...pageLogs.entries()].map(([key, entries]) => ({ key, count: entries.length })) };
+}
+
+/** Return only bounded request metadata; headers and bodies never leave this module. */
+export function getNetworkLogMetadata(key: string, limit = 20): NetworkLogMetadata[] {
+    const entries = pageLogs.get(key) ?? [];
+    const boundedLimit = Math.max(0, Math.min(200, Math.floor(limit)));
+    return entries.slice(-boundedLimit).map(({ id, url, method, resourceType, referrer, timestamp, statusCode, statusLine, fromCache, error }) => ({
+        id,
+        url,
+        method,
+        resourceType,
+        referrer,
+        timestamp,
+        ...(statusCode === undefined ? {} : { statusCode }),
+        ...(statusLine === undefined ? {} : { statusLine }),
+        ...(fromCache === undefined ? {} : { fromCache }),
+        ...(error === undefined ? {} : { error }),
+    }));
+}
+
 /** Initialize network logging. Call once during app startup. */
 export function initNetworkLogger(): void {
     app.on("session-created", (ses: Session) => {

@@ -167,6 +167,24 @@ class TorService {
         return this.sidecar.isRunning && this.activePartitions.has(partition);
     }
 
+    getStatus(): {
+        running: boolean;
+        pending: boolean;
+        activePartitionCount: number;
+        activePartitions: string[];
+        socksPort: number;
+        torExeConfigured: boolean;
+    } {
+        return {
+            running: this.sidecar.isRunning,
+            pending: this.sidecar.pending !== null,
+            activePartitionCount: this.activePartitions.size,
+            activePartitions: [...this.activePartitions],
+            socksPort: this.socksPort,
+            torExeConfigured: !!this.torExePath,
+        };
+    }
+
     /**
      * Restart tor.exe so fresh circuits — and normally a new exit node — are
      * used, then re-apply the proxy to every active partition (US-897).

@@ -277,3 +277,21 @@ export function getMcpUrl(): string {
 export function getMcpClientCount(): number {
     return sessions.size;
 }
+
+export interface McpSessionSnapshot {
+    ordinal: number;
+    idPrefix: string;
+    lastActivity: number;
+    idleMs: number;
+}
+
+/** Return bounded metadata for the active MCP sessions without exposing SDK objects or full ids. */
+export function getMcpSessionSnapshots(): McpSessionSnapshot[] {
+    const now = Date.now();
+    return [...sessions.entries()].map(([id, session], index) => ({
+        ordinal: index + 1,
+        idPrefix: id.slice(0, 8),
+        lastActivity: session.lastActivity,
+        idleMs: Math.max(0, now - session.lastActivity),
+    }));
+}

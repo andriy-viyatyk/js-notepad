@@ -1,6 +1,7 @@
 import { openWindows } from "../../open-windows";
 import { windowStates } from "../../window-states";
 import { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+import { MainNode } from "./main-services";
 
 /**
  * The main process's half of the AiVision tree (EPIC-083, US-1290).
@@ -154,12 +155,16 @@ export class WindowsNode implements IAiVisible {
 /** The root the main process resolves against: only what the main process owns. */
 export class MainAiRoot implements IAiVisible {
     readonly windows = new WindowsNode();
+    readonly main = new MainNode(this.windows);
 
     get aiVision(): IAiVisionDescriptor {
         return {
             kind: "PersephoneMain",
             summary: "Main-process part of the object model.",
-            members: [{ name: "windows", kind: "property", summary: "All windows; windows[i] addresses one." }],
+            members: [
+                { name: "windows", kind: "property", node: true, summary: "All windows; windows[i] addresses one." },
+                { name: "main", kind: "property", node: true, summary: "Main-process diagnostics and gated scripting." },
+            ],
         };
     }
 }

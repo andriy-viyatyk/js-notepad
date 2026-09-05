@@ -265,6 +265,26 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
   download — build your UI in parallel rather than awaiting first) and it can **reject** (missing
   archive entry, HTTP failure), which is different from `undefined`. Report a rejection; never leave a
   blank frame.
+- `persephone.call(path, options?)` — resolve the same bounded AiVision descriptor tree as the MCP
+  `call` tool, rooted at the page hosting this Board. The Board must be trusted; trust is checked
+  again when each call resolves, so revoking trust also blocks an already-mounted Board. The call
+  always uses `hints: "never"` and returns only a JSON-safe plain value; it rejects an `Error` for
+  resolver, transport, timeout, or serialization failures. `args` invokes the final method,
+  `value` assigns a writable property, and `maxLength` bounds shaped strings. `args` and `value`
+  cannot be combined.
+  ```js
+  const source = await persephone.call("page.grouped.content");
+  const matches = [...source.matchAll(/TODO\w*/g)].map((m) => ({ match: m[0], index: m.index }));
+  await persephone.call("page.grouped.content", {
+      value: JSON.stringify(matches, null, 2),
+  });
+  ```
+  The hosting page is identified from the Board editor's owner id, not from the active tab, so
+  switching tabs does not retarget the call. The resolver's existing descriptor restrictions still
+  apply, including the private incognito/Tor browser-page guard. No renderer object or method crosses
+  the Board port.
+  This is the renderer-side, page-scoped tree: `main.*` and `windows[i].*` are MCP-only routing
+  paths and cannot be resolved through the Board bridge.
 - `persephone.host.*` — for a **content-host** editor board (`"editorKind": "content-host"` in the
   manifest) Persephone owns the file (pipe, encoding, encryption, auto-save, dirty tracking) and the
   board works with the content instead of a path: `host.getContent()` → `Promise<string>`,

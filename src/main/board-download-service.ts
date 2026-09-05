@@ -101,6 +101,10 @@ export function cancelBoardDownload(installId: string): void {
     inFlight.get(installId)?.abort();
 }
 
+export function getBoardDownloadSnapshot(): { activeCount: number; installIds: string[] } {
+    return { activeCount: inFlight.size, installIds: [...inFlight.keys()] };
+}
+
 /**
  * Remove leftover ZIPs in the downloads folder at startup — covers the one case
  * delete-before/delete-after can't: a hard crash mid-download (unique installId → the

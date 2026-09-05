@@ -230,6 +230,22 @@ These handle in-app effects that `execute()` cannot express:
 | `persephone.readFile(path, options?)` | Read a file and return its contents (Promise). A relative `path` resolves against the board folder; absolute reads anywhere. Text by default; `{ encoding: "binary" }` returns a `Uint8Array` (the right choice for binary files — app 4.0.21+), `{ encoding: "base64" }` a base64 string. |
 | `persephone.writeFile(path, data, options?)` | Write a file (Promise); creates parent folders. A relative `path` resolves against the board folder. Text by default; `{ encoding: "binary" }` takes a `Uint8Array`, `{ encoding: "base64" }` a base64 string. |
 
+### `persephone.call(path, options?)`
+
+Trusted Boards can resolve the bounded AiVision object model from the page hosting the Board:
+
+```js
+const source = await persephone.call("page.grouped.content");
+const matches = [...source.matchAll(/TODO\w*/g)].map((m) => ({ match: m[0], index: m.index }));
+await persephone.call("page.grouped.content", { value: JSON.stringify(matches, null, 2) });
+```
+
+The method always suppresses hints and returns only a JSON-safe shaped value. `args` calls the final
+method, `value` assigns a writable property, and `maxLength` bounds strings; `args` and `value` are
+mutually exclusive. Calls reject as `Error` on resolver, transport, timeout, or trust failures.
+Trust is checked at resolution time, and existing descriptor restrictions still apply. Calls remain
+anchored to the Board's hosting page even when another tab becomes active.
+
 Use `readFile`/`writeFile` to persist small board state (last filter, column layout, selected item) or load a board-local config — no backend script needed:
 
 ```js

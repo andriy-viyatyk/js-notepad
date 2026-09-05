@@ -72,8 +72,8 @@ export class ScriptContext {
         // consoleLogs is only passed for MCP-originated runs (execute_script, `call`) — that is the
         // provenance signal: browser pages such a run opens are "opened by agent".
         const isMcp = !!consoleLogs;
-        this.app = new AppWrapper(this.releaseList, isMcp);
         this.page = page ? new PageWrapper(page, this.releaseList, this.outputFlags) : undefined;
+        this.app = new AppWrapper(this.releaseList, isMcp, this.page);
         this.preventOutput = () => { this.outputFlags.outputPrevented = true; };
         this.customRequire = this.createCustomRequire(libraryPath);
 

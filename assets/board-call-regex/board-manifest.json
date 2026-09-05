@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "name": "AiVision Regex Call",
+  "description": "Exercises persephone.call against the grouped page content.",
+  "author": "Persephone"
+}

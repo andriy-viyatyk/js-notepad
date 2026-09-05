@@ -55,6 +55,7 @@ gemini --mcp-server http://127.0.0.1:7865/mcp
 | **list_windows** | List all windows (open and closed) with their status, page count, and page metadata. Browser pages also include `profileName`, `isIncognito`, and `isTor`. |
 | **open_window** | Open or reopen a window by index. Closed windows are recreated with their persisted pages. |
 | **execute_script** | Execute JavaScript or TypeScript with access to `page` and `app` objects. Accepts an optional `language` parameter (`"javascript"` or `"typescript"`; defaults to `"javascript"`). The most powerful tool — can do anything the scripting system supports. |
+| **call** | Read or act on the live object model with a path. Use `args` for the final method, `value` for a writable property, and `maxLength` to bound long strings. It can target `windows[i].*` and the process-wide `main.*` tree; main-process script execution requires the separate opt-in below. |
 | **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and a URL for normal sessions; private pages omit the URL and use the generic title `Browser`. Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
 | **get_page_content** | Get the content of a page by ID. Text-based pages return `{ id, title, content }`. Image pages (e.g. screen snips) return the rendered PNG as an image block in the tool result — you see the picture directly, even for a background (non-active) tab. Other non-text pages (browser, board, video, PDF, etc.) return `{ id, title, hint }` describing how to read them instead. |
 | **get_active_page** | Get the active page with metadata plus the same content/image/hint handling as `get_page_content`. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
@@ -217,6 +218,11 @@ AI agents also receive **server instructions** on connection — a concise overv
 | `mcp.enabled` | `false` | Enable/disable the MCP HTTP server |
 | `mcp.port` | `7865` | Port number for the MCP server |
 | `mcp.browser-tools.enabled` | `false` | Expose browser automation tools to connected AI agents. When disabled, all `browser_*` tools are hidden from agents entirely. Reconnect the agent after changing this setting. |
+| `main.scripting.enabled` | `false` in packaged builds | Allow the MCP `call` tool to execute code in the main process. Enable this only for trusted clients; main-process code can freeze the app. Development builds enable it by default. The Settings label is **Allow main-process scripts**. |
+
+The `call` tool follows the browser privacy boundary: a user-opened incognito or Tor page is not
+readable through its object-model path, while a private page opened by the agent is available to
+that agent. The `app.call()` method in ordinary scripts has the same page privacy rule.
 
 ## Examples
 

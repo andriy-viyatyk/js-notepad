@@ -98,6 +98,7 @@ ui.log("Hello");
 
 - **[app](./app.md)** — Application root
   - `.version` — Application version string
+  - [`.call(path, options?)`](./app.md#callpath-options) — Read or act on the live object model from a script
   - [`.fetch(url, options?)`](./app.md#fetchurl-options) — Node.js HTTP client (no browser headers)
   - **[.pages](./pages.md)** — Open pages (tabs)
     - `.all` — All open pages in the current window → `IPage[]`
