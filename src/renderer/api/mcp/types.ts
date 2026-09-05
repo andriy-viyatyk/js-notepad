@@ -20,6 +20,8 @@ export interface McpPageInfo {
     profileName?: string;
     isIncognito?: boolean;
     isTor?: boolean;
+    /** Present (true) when an agent opened this browser page — its private pages are readable by agents. */
+    openedByAgent?: boolean;
     url?: string;
     boardRoot?: string;
     selectedBoard?: string;

@@ -27,7 +27,7 @@ const PAGES_MEMBERS: readonly IAiMember[] = [
     { name: "showAboutPage", kind: "method", signature: "showAboutPage()", summary: "Show the About page." },
     { name: "showSettingsPage", kind: "method", signature: "showSettingsPage()", summary: "Show Settings." },
     { name: "showMcpInspectorPage", kind: "method", signature: "showMcpInspectorPage(options?: { url? })", summary: "Show the MCP inspector page." },
-    { name: "showBrowserPage", kind: "method", signature: "showBrowserPage(options?: { profileName?, incognito?, tor?, url? })", summary: "Show (or open) a browser page." },
+    { name: "showBrowserPage", kind: "method", signature: "showBrowserPage(options?: { profileName?, incognito?, tor?, url? })", summary: "Show (or open) a browser page. Incognito/Tor pages you open this way are yours to read and drive; the user's own private pages stay blocked." },
     { name: "openUrlInBrowserTab", kind: "method", signature: "openUrlInBrowserTab(url, options?: { incognito?, profileName?, external? })", summary: "Open a URL in a browser tab; returns the tab id." },
     { name: "showPage", kind: "method", signature: "showPage(pageId: string)", summary: "Activate (focus) a page." },
     { name: "showNext", kind: "method", signature: "showNext()", summary: "Activate the next tab." },
@@ -57,6 +57,8 @@ export class PageCollectionWrapper implements IAiVisible {
     constructor(
         private readonly pages: PagesModel,
         private readonly releaseList: Array<() => void>,
+        /** MCP-originated context: browser pages opened here are marked as the agent's own. */
+        private readonly openedByAgent = false,
     ) {}
 
     get aiVision(): IAiVisionDescriptor {
@@ -203,7 +205,7 @@ export class PageCollectionWrapper implements IAiVisible {
     }): Promise<void> {
         // Internal showBrowserPage returns the PageModel; the script-facing API
         // stays void — scripts must not receive internal model instances.
-        return this.pages.showBrowserPage(options).then((): void => undefined);
+        return this.pages.showBrowserPage({ ...options, openedByAgent: this.openedByAgent }).then((): void => undefined);
     }
 
     openUrlInBrowserTab(
@@ -214,7 +216,7 @@ export class PageCollectionWrapper implements IAiVisible {
             external?: boolean;
         },
     ): Promise<string | undefined> {
-        return this.pages.openUrlInBrowserTab(url, options);
+        return this.pages.openUrlInBrowserTab(url, { ...options, openedByAgent: this.openedByAgent });
     }
 
     // ── Navigation ────────────────────────────────────────────────────

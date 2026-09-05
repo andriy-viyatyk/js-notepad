@@ -19,6 +19,11 @@ guide to read for which task. It is intentionally short — read it once per ses
   drive/test it with the same `browser_*` tools.
 - **The app window itself is automatable.** Pass `pageId: "app"` to `browser_*` tools to see and
   click Persephone's own UI (tabs, sidebar, dialogs).
+- **`call` is the one tool you can use without reading anything.** It addresses Persephone's live
+  object model by path — `""` lists the top level, `pages` the open tabs, `page.content` the active
+  text, `pages[0].asGrid().rowCount` a grid, `windows[1].pages` another window — and every answer
+  carries a hint listing what is under it. Unknown members return the valid list. Paths use the
+  same names as `app.*` in scripts, so what you learn there transfers to `execute_script`.
 - **`execute_script` is the power tool.** JavaScript/TypeScript with the `app` object (pages,
   fs, settings, ui, boards, …) and **full, unsandboxed Node.js** with the user's privileges.
 - **Agent Tools are executable memory.** Registered, parameterized scripts you discover with
@@ -31,6 +36,7 @@ guide to read for which task. It is intentionally short — read it once per ses
 
 | You want to… | Use | Read first |
 |---|---|---|
+| Look around, read a page, activate a tab, simple edits — with no guide | `call` (path `""` first) | nothing — the hints are the guide |
 | Show results, logs, progress; ask the user something | `ui_push` | `read_guide("ui-push")` |
 | Open text/code for the user | `create_page` (editor `monaco`) | nothing — monaco is safe to guess |
 | Show a mermaid diagram | `create_page` (`mermaid-view`, language `mermaid`) | nothing |

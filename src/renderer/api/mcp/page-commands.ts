@@ -8,6 +8,7 @@ import { settings } from "../settings";
 import type { EditorView } from "../types/common";
 import { api } from "../../../ipc/renderer/api";
 import type { McpActivePage, McpAppInfo, McpPageInfo, McpParams, McpResponse } from "./types";
+import { agentMayAccessBrowserPage } from "../../editors/browser/agent-access";
 
 const BOARDS_ASSETS_BASE_URL =
     "https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/";
@@ -46,14 +47,13 @@ function toPageSummary(page: NonNullable<ReturnType<typeof pagesModel.findPage>>
 
     if (editor?.editorId === "browser-view") {
         const state = page.mainEditor?.state.get() as
-            | { profileName?: string; isIncognito?: boolean; isTor?: boolean; url?: string }
+            | { profileName?: string; isIncognito?: boolean; isTor?: boolean; openedByAgent?: boolean; url?: string }
             | undefined;
-        const isIncognito = !!state?.isIncognito;
-        const isTor = !!state?.isTor;
         result.profileName = state?.profileName ?? "";
-        result.isIncognito = isIncognito;
-        result.isTor = isTor;
-        if (!isIncognito && !isTor) result.url = state?.url;
+        result.isIncognito = !!state?.isIncognito;
+        result.isTor = !!state?.isTor;
+        if (state?.openedByAgent) result.openedByAgent = true;
+        if (agentMayAccessBrowserPage(state)) result.url = state?.url;
     }
 
     if (isBoardEditorId(editor?.editorId)) {
@@ -197,6 +197,7 @@ export async function handleOpenUrl(params: McpParams): Promise<McpResponse> {
     const pageId = await pagesModel.openUrlInBrowserTab(url, {
         profileName: asString(params?.profileName),
         incognito: asBoolean(params?.incognito),
+        openedByAgent: true,
     });
     const page = pageId ? pagesModel.findPage(pageId) : undefined;
     return { result: { opened: url, pageId, title: page?.title } };

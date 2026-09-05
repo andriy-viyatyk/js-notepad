@@ -34,6 +34,7 @@ import { McpInspectorFacade } from "./McpInspectorFacade";
 import type { ScriptOutputFlags } from "../ScriptContext";
 import { errMessage } from "../../../shared/utils";
 import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+import { agentMayAccessBrowserPage, privateBrowserRefusal } from "../../editors/browser/agent-access";
 
 // AiVision (EPIC-083): kind-level description of a page. `grouped` carries a caution because reading
 // it creates the grouped page; children() lists it only when it already exists.
@@ -94,6 +95,7 @@ interface IBrowserPrivacyState {
     profileName?: string;
     isIncognito?: boolean;
     isTor?: boolean;
+    openedByAgent?: boolean;
     url?: string;
 }
 
@@ -215,12 +217,11 @@ export class PageWrapper implements IAiVisible {
         return this.model.state.get() as IBrowserPrivacyState;
     }
 
-    /** Same refusal the browser_* tools give: private browsing is off limits to agents. */
+    /** Same rule the browser_* tools apply: the user's private pages are off limits; the agent's own are not. */
     private aiRestricted(): string | undefined {
         const state = this.browserState();
-        if (state?.isTor) return "This browser page is in Tor mode. Agent access is disabled for privacy protection; open a normal browser page instead (pages.showBrowserPage / open_url).";
-        if (state?.isIncognito) return "This browser page is in incognito mode. Agent access is disabled for privacy protection; open a normal browser page instead (pages.showBrowserPage / open_url).";
-        return undefined;
+        if (!state || agentMayAccessBrowserPage(state)) return undefined;
+        return privateBrowserRefusal(state, "call");
     }
 
     private aiChildren(): IAiChild[] {
@@ -254,11 +255,11 @@ export class PageWrapper implements IAiVisible {
         };
         const state = this.browserState();
         if (state) {
-            const isPrivate = !!state.isIncognito || !!state.isTor;
             summary.profileName = state.profileName ?? "";
             summary.isIncognito = !!state.isIncognito;
             summary.isTor = !!state.isTor;
-            if (!isPrivate) summary.url = state.url;
+            if (state.openedByAgent) summary.openedByAgent = true;
+            if (agentMayAccessBrowserPage(state)) summary.url = state.url;
         }
         return summary;
     }

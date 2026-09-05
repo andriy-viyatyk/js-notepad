@@ -272,6 +272,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         incognito?: boolean;
         tor?: boolean;
         url?: string;
+        openedByAgent?: boolean;
     }) => this.lifecycle.showBrowserPage(options);
     showMcpInspectorPage = (options?: { url?: string; name?: string; autoConnect?: boolean }) =>
         this.lifecycle.showMcpInspectorPage(options);
@@ -287,6 +288,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             incognito?: boolean;
             profileName?: string;
             external?: boolean;
+            openedByAgent?: boolean;
         }
     ) => this.lifecycle.openUrlInBrowserTab(url, options);
 

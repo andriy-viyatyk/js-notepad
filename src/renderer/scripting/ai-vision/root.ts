@@ -37,6 +37,9 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "recent", kind: "property", summary: "Recently opened files." },
     { name: "downloads", kind: "property", summary: "Download manager." },
     { name: "menuFolders", kind: "property", summary: "Folders pinned to the menu bar." },
+    // Answered by the main process before the path reaches this window — listed here so the root
+    // hint is complete. See RESERVED_ROOT_NAMES.
+    { name: "windows", kind: "property", summary: "All Persephone windows (open and closed). windows[i] is one window; prefix any path with windows[i]. to target it — without the prefix you are talking to the main window." },
 ];
 
 const ROOT_HELP = `

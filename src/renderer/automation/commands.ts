@@ -18,6 +18,7 @@ import type { BrowserEditor } from "../editors/browser";
 import type { BoardEditorModel } from "../editors/board/BoardEditorModel";
 import { isBoardEditorId } from "../editors/board/custom-editor-registry";
 import { pressKey, typeText } from "./input";
+import { agentMayAccessBrowserPage, privateBrowserRefusal } from "../editors/browser/agent-access";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
 import type { IBrowserTarget } from "./types";
@@ -173,11 +174,8 @@ async function getTarget(
     }
 
     const state = editor.state.get();
-    if (state.isIncognito) {
-        return { error: { code: -32602, message: "Active browser page is in incognito mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
-    }
-    if (state.isTor) {
-        return { error: { code: -32602, message: "Active browser page is in Tor mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
+    if (!agentMayAccessBrowserPage(state)) {
+        return { error: { code: -32602, message: privateBrowserRefusal(state, "browser tools") } };
     }
     return editor.target;
 }

@@ -797,6 +797,7 @@ export class PagesLifecycleModel {
         incognito?: boolean;
         tor?: boolean;
         url?: string;
+        openedByAgent?: boolean;
     }): Promise<PageModel | undefined> => {
         const { showBrowserPage } = await import(
             "../../editors/browser/browser-pages"
@@ -867,6 +868,7 @@ export class PagesLifecycleModel {
             incognito?: boolean;
             profileName?: string;
             external?: boolean;
+            openedByAgent?: boolean;
         },
     ): Promise<string | undefined> => {
         const { openUrlInBrowserTab } = await import(

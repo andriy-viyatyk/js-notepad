@@ -182,6 +182,12 @@ export interface BrowserEditorState extends IEditorState {
 
     // -- Ephemeral state (managed by sub-models, not persisted) --
 
+    /**
+     * True when an agent (MCP tool or MCP-run script) opened this page. Agents are blocked from
+     * incognito/Tor pages the *user* opened; a private page the agent opened itself is its own to
+     * read and drive. Deliberately not persisted: after a restart the page counts as the user's.
+     */
+    openedByAgent: boolean;
     /** Current text in URL input (managed by BrowserUrlBarModel). */
     urlInput: string;
     /** Whether the URL suggestions dropdown is visible. */
@@ -276,6 +282,7 @@ export const getDefaultBrowserPageState = (): BrowserEditorState => {
         searchEngineId: "google",
         lastSearchQuery: "",
         // Ephemeral state (managed by sub-models)
+        openedByAgent: false,
         urlInput: DEFAULT_URL,
         suggestionsOpen: false,
         userHasTyped: false,
@@ -309,10 +316,12 @@ export const getDefaultBrowserPageState = (): BrowserEditorState => {
  * still tracks the page, so the user still sees which tab is which inside the session.
  */
 export function browserPageTitle(
-    flags: { isIncognito?: boolean; isTor?: boolean },
+    flags: { isIncognito?: boolean; isTor?: boolean; openedByAgent?: boolean },
     pageTitle: string | undefined,
 ): string {
-    if (flags.isIncognito || flags.isTor) return "Browser";
+    // A private page the agent opened is readable by the agent — say so in the tab, so the user
+    // never mistakes it for their own private session.
+    if (flags.isIncognito || flags.isTor) return flags.openedByAgent ? "Browser (agent)" : "Browser";
     return pageTitle || "Browser";
 }
 

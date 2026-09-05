@@ -233,6 +233,19 @@ The same hook serves other gates for free: `main.script` returns "disabled — e
 main-process scripts* in Settings" until the toggle is on (US-1295), and any future node that must
 exist but not open uses it too.
 
+**Provenance rule (2026-09-05, replaces an earlier dev-only constant).** Testing incognito/Tor
+behaviour needs an agent that can see those pages, and a release-safe way to allow it is to ask
+*who opened the page*. `BrowserEditorState.openedByAgent` is set when an MCP tool (`open_url`) or an
+MCP-originated script context (`execute_script`, `call` — `ScriptContext` knows it is MCP-run
+because it receives `consoleLogs`) opens a browser page; user actions and user-run scripts never
+set it. The rule, in one dependency-free helper `editors/browser/agent-access.ts`
+(`agentMayAccessBrowserPage`): a private page is off limits unless the agent opened it. All three
+sites consult it — `automation/commands.ts` targeting, `page-commands.ts` url omission, and
+`Page.restricted()` / summaries. Safeguards: the flag is **not persisted** (a restored page is the
+user's again); the tab of an agent-opened private page reads "Browser (agent)" so the user never
+mistakes it for their own session; an agent asking for an incognito tab never reuses the user's
+incognito page — only its own, or a fresh one. Works identically in dev and release.
+
 `call` is an MCP entry point even though it walks the script wrappers, so it applies MCP privacy
 rules regardless of what a user-run script may do through the same wrappers. When `browser_*` is
 later folded into paths (consolidation epic), this guard is what preserves the current behaviour.
@@ -326,7 +339,7 @@ adding a method to a facade and forgetting its descriptor is visible in the same
 | Task | Title | Status |
 |------|-------|--------|
 | [US-1289](../tasks/US-1289-ai-vision-core/README.md) | AiVision core: interface, path parser, resolver, result shaping, root + `pages` + `page` descriptors, `helpSearch(query)` over the descriptor graph | Implemented (awaiting test) |
-| US-1290 | `call` MCP tool: main-side definition incl. the optional `windows[i]` prefix and the `windows` node, renderer command, per-session hint dedupe, overview/scripting guide updates | Planned |
+| [US-1290](../tasks/US-1290-call-tool-windows/README.md) | `call` MCP tool: main-side definition incl. the optional `windows[i]` prefix and the `windows` node, renderer command, per-session hint dedupe, overview/scripting guide updates | Implemented (awaiting test) |
 | US-1291 | Descriptors for `PageWrapper` and every editor facade (`as*` methods, text, grid, notebook, link, markdown, svg, html, mermaid, graph, draw, image, browser, mcp-inspector) | Planned |
 | US-1292 | Descriptors for the `app` namespaces: `fs`, `settings`, `ui`, `shell`, `window`, `proc`, `boards`, `recent`, `downloads`, with `caution` on destructive members | Planned |
 | US-1293 | Evaluation with the `mcp-test-agent` skill (haiku): scenario set run twice — once with the full tool set, once with `call` alone — add the tool to the skill's allow-list, and write the go/no-go recommendation for the consolidation epic | Planned |
@@ -424,6 +437,14 @@ epic has not met its goal regardless of code landed.
   self-correction, `value` assignment + writable check, `maxLength` truncation, `helpSearch`, and
   that hints never create a grouped page. The `call` tool shipped minimal (no `windows[i]` prefix
   yet) so the tree is testable; US-1290 finishes it.
+- US-1290 also implemented by Claude (first main-process node = the pattern for US-1295): `windows`
+  resolved in main against `MainAiRoot` with the shared resolver; deeper paths forwarded to the
+  window's renderer with the prefix re-applied to reported paths; guides and server instructions
+  now lead with `call`.
+- User, same day: first a dev-only constant to let the agent access incognito/Tor pages for
+  testing; then the better design — mark who opened the page, and let agents access private pages
+  they opened themselves, in release too. The constant was replaced before commit; see Design
+  decision 7, *Provenance rule*. Landed alongside US-1290.
 - User, same day: the path API should also become a programmatic Persephone API — `app.call` in
   scripts and `persephone.call` inside boards, so a board can use any app feature. No change to the
   implemented code (the resolver is root-agnostic and JSON-in/JSON-out by design); added as US-1296

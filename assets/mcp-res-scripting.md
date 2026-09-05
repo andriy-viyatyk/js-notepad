@@ -22,7 +22,10 @@ The `execute_script` tool runs JavaScript or TypeScript in Persephone's context.
 
 ## The `app` Object
 
-Root application object with all services.
+Root application object with all services. The `call` tool addresses the same objects by path with
+the same names — `call("pages[0].content")` is `app.pages.all[0].content` here, `call("page")` is
+`page`. Use `call` to look around and for one-step reads and actions; write a script when you need
+logic, loops, or Node.js.
 
 | Property | Description |
 |----------|-------------|

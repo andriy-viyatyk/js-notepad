@@ -63,9 +63,10 @@ export class AppWrapper {
     private _events: unknown;
     private readonly releaseList: Array<() => void>;
 
-    constructor(releaseList: Array<() => void>) {
+    /** @param openedByAgent true for MCP-originated contexts — browser pages they open are the agent's own. */
+    constructor(releaseList: Array<() => void>, openedByAgent = false) {
         this.releaseList = releaseList;
-        this._pages = new PageCollectionWrapper(app.pages, releaseList);
+        this._pages = new PageCollectionWrapper(app.pages, releaseList, openedByAgent);
     }
 
     get version() {

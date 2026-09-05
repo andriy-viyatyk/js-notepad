@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import { BrowserEditor } from "./BrowserEditor";
-import { getDefaultBrowserPageState } from "./BrowserEditorModel";
+import { browserPageTitle, getDefaultBrowserPageState } from "./BrowserEditorModel";
 import type { PagesModel } from "../../api/pages/PagesModel";
 import type { PageModel } from "../../api/pages/PageModel";
 import { settings } from "../../api/settings";
@@ -21,6 +21,8 @@ export interface ShowBrowserPageOptions {
     incognito?: boolean;
     tor?: boolean;
     url?: string;
+    /** Set by MCP tools and MCP-run scripts; lets the agent read/drive its own private pages. */
+    openedByAgent?: boolean;
 }
 
 export async function showBrowserPage(
@@ -45,11 +47,15 @@ export async function showBrowserPage(
     const editor = new BrowserEditor(
         new TComponentState(getDefaultBrowserPageState()),
     );
-    if (options?.profileName || options?.incognito || options?.tor) {
+    if (options?.profileName || options?.incognito || options?.tor || options?.openedByAgent) {
         editor.state.update((s) => {
             if (options.profileName) s.profileName = options.profileName;
             if (options.incognito) s.isIncognito = true;
             if (options.tor) s.isTor = true;
+            if (options.openedByAgent) s.openedByAgent = true;
+            // The default state's title predates these flags; recompute so an agent-opened private
+            // page shows "Browser (agent)" from the first paint.
+            s.title = browserPageTitle(s, s.pageTitle);
         });
     }
     const openUrl = options?.url;
@@ -105,6 +111,7 @@ export async function openUrlInBrowserTab(
         incognito?: boolean;
         profileName?: string;
         external?: boolean;
+        openedByAgent?: boolean;
     },
 ): Promise<string | undefined> {
     const pages = model.state.get().pages;
@@ -115,7 +122,11 @@ export async function openUrlInBrowserTab(
         const editor = page.mainEditorInstance;
         if (!(editor instanceof BrowserEditor)) return false;
         const pageState = editor.state.get();
-        if (options?.incognito) return !!pageState.isIncognito;
+        if (options?.incognito) {
+            // An agent never adds its tab to the user's private page (it could not see it anyway);
+            // it reuses only an incognito page it opened itself, or gets a fresh one below.
+            return !!pageState.isIncognito && (!options.openedByAgent || pageState.openedByAgent);
+        }
         if (options?.external) {
             return !pageState.isIncognito && !pageState.isTor;
         }
@@ -174,8 +185,9 @@ export async function openUrlInBrowserTab(
         ? undefined
         : (options?.profileName ??
               settings.get("browser-default-profile")) || undefined;
-    const showOptions = {
+    const showOptions: ShowBrowserPageOptions = {
         url,
+        ...(options?.openedByAgent ? { openedByAgent: true } : {}),
         ...(options?.incognito
             ? { incognito: true }
             : profileName

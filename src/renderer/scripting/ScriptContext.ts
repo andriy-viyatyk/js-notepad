@@ -69,7 +69,10 @@ export class ScriptContext {
     private previousUiDescriptor: PropertyDescriptor | undefined;
 
     constructor(page?: EditorOrHost, consoleLogs?: ConsoleLogEntry[], libraryPath?: string) {
-        this.app = new AppWrapper(this.releaseList);
+        // consoleLogs is only passed for MCP-originated runs (execute_script, `call`) — that is the
+        // provenance signal: browser pages such a run opens are "opened by agent".
+        const isMcp = !!consoleLogs;
+        this.app = new AppWrapper(this.releaseList, isMcp);
         this.page = page ? new PageWrapper(page, this.releaseList, this.outputFlags) : undefined;
         this.preventOutput = () => { this.outputFlags.outputPrevented = true; };
         this.customRequire = this.createCustomRequire(libraryPath);
@@ -89,7 +92,6 @@ export class ScriptContext {
         // Stack-based ui getter — save previous (e.g., autoload's) and define ours.
         // On dispose, restore previous. This ensures autoload's getter survives F5 runs.
         this.previousUiDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ui");
-        const isMcp = !!consoleLogs;
         let uiFacade: UiFacade | undefined;
         let uiLogPageId: string | undefined;
 
