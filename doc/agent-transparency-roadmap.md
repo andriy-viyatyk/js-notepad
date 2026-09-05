@@ -1,0 +1,155 @@
+# Agent Transparency Roadmap — everything through `call`
+
+**Date:** 2026-09-05
+**Builds on:** [EPIC-083](epics/completed.md) (AiVision, the `call` tool) and its evaluation,
+[US-1293](tasks/US-1293-call-evaluation/README.md) — **go** for consolidation, with conditions.
+**Tracking:** each epic below gets its own `doc/epics/EPIC-XXX.md` when it starts and appears on
+[active-work.md](active-work.md) only while active. This document is the sequence and the rules;
+it is not a dashboard.
+
+## The goal
+
+Persephone becomes **transparent to an agent**: the agent sees what the user sees, can do what the
+user can do, and in places more (`fs`, `main.script`). One MCP tool remains at the end — `call`.
+Every current tool, the browser automation family included, becomes a path under it. Highlighting
+for the user is a `call` path too, reachable from whatever node owns the element.
+
+The end state is tested before it is committed to: all tools except `call` are **disabled behind a
+flag**, the QA suite is re-run with Haiku and Codex agents, and only if that passes are the old
+tools deleted. If it fails, the flag is turned off and the failing surface goes back to work — the
+tools are never cut over on faith.
+
+## Three principles carried from EPIC-083
+
+1. **Cooperative discovery.** Nodes describe themselves (`members`, `children()`, `restricted()`);
+   nothing enumerates by reflection, and no getter is probed. A surface joins the tree by writing
+   a descriptor next to its model.
+2. **Hand-written purpose.** US-1294 (generating descriptors from typings) was declined because the
+   valuable words are the ones a type cannot carry. The same holds for UI elements: an `elements`
+   list says *what a control is for*, not just that it exists.
+3. **Retire nothing until its replacement path passes the same test.** The `mcp-test-agent-call`
+   skill (Haiku, `call` only, no guides) is the acceptance gate for every surface and every retired
+   tool. A run log goes to `qa/runs/`.
+
+## Two protocols every surface implements
+
+Defined once in EPIC-084 and then applied surface by surface.
+
+### Attention
+
+Every `call` result carries an optional `attention` block when something is demanding the user's
+input in the target window: a blocking dialog (Unsaved Changes, Trust this Board, password), an
+open popup menu, a native OS dialog. It names the thing, quotes its title, message and buttons,
+and gives the path that resolves it — `dialogs[0].click("Don't Save")`. This is the fix for the
+observed stall: an agent closes a modified page, the save prompt appears, and the agent spends
+several calls working out why nothing responds.
+
+### Elements and highlight
+
+Any node that corresponds to something on screen exposes `elements` — a hand-written list of
+`{ name, purpose, selector }` with `visible` resolved live from the DOM — and
+`highlight(name, message?)`, which draws the existing ring-and-tooltip overlay
+(`app.ui.highlightElement`) on that element. The agent discovers what is on a screen, learns what
+each control is for, and can point the user at one of them, all from the node it is already
+looking at. This reverses the "editor internals have no consumer" rule in
+[ui-element-contract.md](architecture/ui-element-contract.md): `data-name` coverage now has a
+consumer, and the descriptor is the source of truth for which names exist.
+
+## Epic sequence
+
+| # | Epic | Surface | Retires (when its paths pass the gate) |
+|---|---|---|---|
+| 1 | **EPIC-084** — Attention, `dialogs`, `menus`, elements/highlight protocol | Cross-cutting infrastructure; the shell header strip as the protocol's first consumer | — (adds only) |
+| 2 | EPIC-085 — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions |
+| 3 | EPIC-086 — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content`, `open_url` for non-browser targets |
+| 4 | EPIC-087 — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer, git tree | `ui_push` (becomes the Log View page's node) |
+| 5 | EPIC-088 — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` |
+| 6 | EPIC-089 — Browser | `pages[i].asBrowser()`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
+| 7 | EPIC-090 — Consolidation | Call-only flag, full QA re-run on Haiku and Codex, deletion, guide rewrite | `execute_script`, `read_guide`, and everything still standing |
+
+Epics 2–5 are independent of each other once EPIC-084 lands and can be reordered by demand. The
+editor epics are smaller than their lists suggest: US-1291 already gave every editor a content
+facade; the remaining gap is the **UI layer** — toolbars, panels, the dialogs the editor raises —
+plus the `elements` list.
+
+EPIC-089 is deliberately late. US-1293 named the browser family's open design question: the
+snapshot **ref lifecycle** (`src/renderer/automation/ref.ts` keys refs on `backendDOMNodeId` per
+frame, populated by each snapshot). Moving that under a page facade is a design task before it is
+a descriptor task. Whether the browser tools go at all is a decision for that epic; the roadmap's
+default is that they do, and the same automation surface is reused for board pages and the app
+window (`pageId: "app"` today).
+
+**One automation surface, three hosts** (user direction, 2026-09-05). The Playwright-style
+operations — accessibility snapshot with refs, click, type, press key, hover, select, wait-for,
+screenshot, evaluate — are implemented once and hung on every node that owns a live DOM:
+
+| Host | Node | Today |
+|---|---|---|
+| A browser page (webview) | `pages[i].asBrowser()` | `browser_*` with `pageId` |
+| A board or HTML page (webview / iframe) | `pages[i].asBoard()` / `asHtml()` — the same members | `browser_*` with `pageId` |
+| **Persephone's own window** — header, tabs, Menu Bar, dialogs, every editor's DOM | `window.ui` (name decided in EPIC-089) — the same members | `browser_*` with `pageId: "app"` |
+
+The third row is not optional. `elements` and `highlight` describe the controls a surface *chose*
+to document; the snapshot of the app window is the complete, purpose-free fallback that lets an
+agent see and drive anything on screen that no descriptor has reached yet — a new dialog, an
+editor toolbar nobody wrote an `elements` list for, a third-party control inside Monaco. It is
+also how the agent verifies that what it did through a path actually shows on screen. Refs from an
+app-window snapshot must be clickable from the same node, so the ref store is per host node, not
+global (`src/renderer/automation/ref.ts` is global today — that is the design task).
+
+The **`mcp.browser-tools.enabled` setting goes with them** (user decision, 2026-09-05). It exists
+for one reason — to keep fifteen tools out of the agent's context when it does not need them
+(`src/renderer/api/app.ts:278`, `src/main/mcp/server-factory.ts:34`). With a single tool that
+reason is gone: browser automation is a set of paths under a page, costs nothing until called, and
+is on by default. The setting, its main-process mirror, and its Settings-editor row are deleted in
+EPIC-089, and the browser guide's "enable browser tools first" instructions with them.
+
+## Tool → path map (starting point, verified per epic)
+
+| Tool today | Path under `call` | Epic |
+|---|---|---|
+| `get_app_info`, `list_windows`, `open_window` | `""`, `windows`, `windows.open()` | 085 |
+| `list_pages`, `get_active_page` | `pages`, `page` | already |
+| `create_page` | `pages.addEditorPage(...)` | already; 086 for the remaining editors |
+| `get_page_content`, `set_page_content` | `pages[i].content` | already |
+| `open_url` | `pages.openUrl(url, options)` | 086 / 089 |
+| `ui_push` | `pages.logView.push(...)` (well-known page) | 087 |
+| `create_board`, `open_board`, `board_refresh` | `boards.create/open`, `pages[i].asBoard().refresh()` | 088 |
+| `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` | `toolsets.*`, `pages[i].asToolset()` | 088 |
+| `browser_*` | `pages[i].asBrowser().snapshot/click/type/...`; the same members on board/HTML facades and on `window.ui` for the app window | 089 |
+| `execute_script` | `script.execute(code)` — the renderer analogue of `main.script.execute` | 090 |
+| `read_guide` | MCP resources stay (`persephone://guides/*`); prose moves into `$help` | 090 |
+| `app.ui.highlightElement` via script | `<node>.highlight(name, message)` | 084, then every surface |
+
+## Per-surface checklist (the template every task in epics 2–6 follows)
+
+1. Descriptor for the surface's model, next to it, registered like the existing ones.
+2. `elements` list: every control the user can see, its purpose in one line, its `data-name`.
+   Add missing `data-name`s to the view; never rename an existing load-bearing `data-type`.
+3. Actions the user can take from that screen, as methods, with `caution` where they write.
+4. Dialogs and popup menus the surface raises: covered by the `dialogs`/`menus` nodes, but the
+   surface's `$help` names them so the agent expects them.
+5. `restricted()` where privacy or trust applies (private browser pages, untrusted boards).
+6. A scenario for `mcp-test-agent-call`, run on Haiku, logged in `qa/runs/`. The scenario must
+   include one thing the user sees and one thing the user can do on that screen.
+7. Only then: the tool(s) the surface replaces are marked *retirable* in this document.
+
+## The final gate (EPIC-090)
+
+1. A flag (settings or environment) hides every tool except `call` from the MCP manifest.
+2. The full QA suite in `qa/` is re-written for `call` and run twice: Haiku via
+   `mcp-test-agent-call`, and Codex as a second model family.
+3. Pass → delete the tool implementations, the guide-tool, the standalone highlight instructions
+   in `assets/mcp-res-ui.md`, and the per-tool QA files; rewrite the manifest instructions.
+4. Fail → the flag stays off, the failing surface's epic reopens, and nothing is deleted.
+
+## Out of scope / recorded concerns
+
+- **Native OS dialogs** (file pickers, main-process message boxes) can be *reported* by attention
+  but not driven. The agent is told to ask the user.
+- **Passwords and encryption dialogs**: buttons and cancel only; a typed value is never readable.
+- **Coverage vs cost**: 37 editors and 14 dialogs is months of descriptor writing if done
+  exhaustively. Rarely used editors (storybook, about, category, link editor) may stop at the
+  facade plus a minimal `elements` list, and the roadmap does not promise full coverage of them.
+- **App-window snapshot vs `elements`**: both survive by design. The snapshot is complete but
+  purpose-free; `elements` is curated. See *One automation surface, three hosts*.

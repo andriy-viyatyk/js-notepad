@@ -8,33 +8,26 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(Nothing active. EPIC-083 closed 2026-09-05 — the `call` tool over the app object model; its
-  follow-on is the consolidation epic, which US-1293 recommends starting. EPIC-081 closed
-  2026-09-02, completing the De-React second-pass roadmap. Both are in
-  [epics/completed.md](epics/completed.md); the De-React residue is package 8 in
-  [tasks/backlog.md](tasks/backlog.md), drawn down opportunistically.)*
+- *(Nothing active. EPIC-083 closed 2026-09-05 — the `call` tool over the app object model; see
+  [epics/completed.md](epics/completed.md).)*
 
 ## Planned
 
+- **EPIC-084** — [Agent transparency infrastructure — attention, `dialogs`, `menus`, elements/highlight](epics/EPIC-084.md)
+  — epic 1 of 7 in the [agent transparency roadmap](agent-transparency-roadmap.md), which ends
+  with `call` as the only MCP tool. Task documents are written when each task starts.
+  - [ ] US-1297: `attention` on every `call` result — blocking dialogs and popup menus
+  - [ ] US-1298: `dialogs` root node — base descriptor, `click`/`cancel`, per-class descriptors
+  - [ ] US-1299: `menus` root node — open popup menu items, `click(label)`, `close()`
+  - [ ] US-1300: elements/highlight protocol in the shared AiVision layer; header strip as first consumer
+  - [ ] US-1301: native OS dialog tracking in main and its attention report
+  - [ ] US-1302: acceptance run on Haiku via `mcp-test-agent-call`
 - *(no epic)*
-  - [ ] **US-1258: De-React roadmap quick wins** — *no task document yet.* The last unfinished item
-    of the [De-React second-pass roadmap](de-react-refactoring-2.md) (Part 5 package 1), kept here
-    so it is not lost now that the roadmap's tracking section has been retired. Six unrelated fixes
-    sharing no mechanism, **three of them live defects**: `LogBodyView`'s 50/150/300 scroll shotgun
-    (adopt the existing `scrollToRowAfterPaint`), the four fresh-**array** dialog selectors that
-    genuinely do fire on every dispatch, and `GlobalEventService` ignoring `defaultPrevented`
-    (P6 — fixing it deletes the `grid-context-menu.ts` workaround). Also: delete the
-    `getVersion()`/`useSyncExternalStore` residue and `ToolbarView`'s single-trigger roving
-    tabindex. Nothing gates it. (`ExpandedNoteView.setState` was dropped from the scope on
-    2026-09-03 — three lines wrapping `state.update`, a naming preference with no behavioural
-    difference. Same decision as in package 8.)
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
-    — an enhancement, not a De-React defect. Deferred by user decision (2026-08-29) until the De-React fallout was cleared. That
-    programme closed 2026-08-30, so nothing blocks this now.
+    — an enhancement, deferred by user decision (2026-08-29); nothing blocks it now.
   - [ ] [US-1131: Close the remaining gaps in the VanillaView lifecycle lint rules](tasks/US-1131-vanillaview-lint-gaps/README.md)
     — tooling, not a defect: the guard itself shipped as US-1142 in EPIC-071 and this is the
-    residue. Deferred by user decision (2026-08-29); the programme that blocked it closed 2026-08-30.
-    It now carries **five** clause candidates,
+    residue. Deferred by user decision (2026-08-29). It carries **five** clause candidates,
     two with measured baselines — clause 3's 77-site sweep showing "not retained" is the wrong
     detector, and clause 5's 0-vs-95 precision measurement — so it gets cheaper to land as the
     evidence accumulates, but nothing depends on it.
