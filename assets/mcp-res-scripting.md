@@ -73,11 +73,11 @@ This is the renderer-side tree only. `app.call()` cannot resolve the MCP router'
 
 ```javascript
 const source = await app.call("page.grouped.content");
-const rows = await app.call("page.asGrid().rows");
+const rows = await app.call("page.editor.rows");
 await app.call("page.grouped.content", {
     value: JSON.stringify({ checked: true }, null, 2),
 });
-const result = await app.call("page.asGrid().getCell", { args: [0, "name"] });
+const result = await app.call("page.editor.getCell", { args: [0, "name"] });
 ```
 
 The method does not return hints or resolver metadata. Invalid paths, restricted descriptors,
@@ -249,12 +249,12 @@ await app.recent.clear()              // Clear all
 
 ## Editor Facades
 
-Specialized access to page content through typed editors. Call `page.asX()` — all are async. Facades auto-release when the script finishes.
+Specialized access to page content through typed editor facades. Read `page.editor` synchronously, inspect its `id`, and use the narrowed facade. Use `page.editorSwitches.switchTo(id)` to change editors; facades are stateless and need no release.
 
-### asText() — Monaco text editor
+### `page.editor` when `id === "monaco"` — Monaco text editor
 
 ```javascript
-const text = await page.asText();
+const text = page.editor;
 text.editorMounted          // boolean — true when Monaco is visible
 text.getSelectedText()      // Current selection
 text.insertText("hello")    // Insert at cursor
@@ -264,10 +264,10 @@ text.setHighlightText("q")  // Highlight occurrences
 text.getCursorPosition()    // { lineNumber, column }
 ```
 
-### asGrid() — Grid data editor (JSON/CSV)
+### `page.editor` when `id` is `"grid-json"`, `"grid-csv"`, or `"grid-jsonl"` — Grid data editor
 
 ```javascript
-const grid = await page.asGrid();
+const grid = page.editor;
 grid.rows                            // All rows as objects
 grid.columns                         // Column definitions [{ key, name }]
 grid.rowCount                        // Number of rows
@@ -280,10 +280,10 @@ grid.setSearch(text)                 // Filter rows
 grid.clearSearch()
 ```
 
-### asNotebook() — Notebook editor (.note.json)
+### `page.editor` when `id === "notebook-view"` — Notebook editor
 
 ```javascript
-const nb = await page.asNotebook();
+const nb = page.editor;
 nb.notes                             // All notes [{ id, title, content, category, tags }]
 nb.categories                        // All category names
 nb.tags                              // All tag names
@@ -296,54 +296,54 @@ nb.removeNoteTag(id, tagIndex)
 nb.deleteNote(id)
 ```
 
-### asLink() — Link collection (.link.json)
+### `page.editor` when `id === "link-view"` — Link collection
 
 ```javascript
-const le = await page.asLink();
+const le = page.editor;
 le.links                             // [{ id, url, title, category, tags, pinned }]
 le.addLink(url, title?, category?)
 le.deleteLink(id)
 le.updateLink(id, { title?, category?, url? })
 ```
 
-### asBrowser() — Browser page
+### `page.editor` when `id === "browser-view"` — Browser page
 
 ```javascript
-const browser = await page.asBrowser();
+const browser = page.editor;
 browser.url                          // Current URL (read-only)
 browser.title                        // Page title (read-only)
 browser.navigate(url)                // Navigate or search
 browser.back() / browser.forward() / browser.reload()
 ```
 
-### asMarkdown(), asSvg(), asHtml(), asMermaid()
+### Preview facades: `md-view`, `svg-view`, `html-view`, and `mermaid-view`
 
 Preview facades for rendered content. Check `viewMounted` / `loading` before accessing.
 
-The **Mermaid** and **SVG** preview facades (and the **Image viewer** facade `asImage()`) can save
+The **Mermaid** and **SVG** preview facades (and the **Image viewer** facade `editor`) can save
 their rendered image to a file as PNG. This rasterises the diagram exactly as Persephone renders it
 (fonts and text included), then writes the PNG. Use it to obtain a viewable image of a diagram:
 
 ```
 // Render a mermaid page, save the PNG to a temp file, then read it back as an image.
-const m = await page.asMermaid();
+const m = page.editor;
 const file = await m.savePngToFile("D:/tmp/diagram.png");   // returns the written path
 
 // Also available on SVG and Image pages:
-await (await page.asSvg()).savePngToFile("D:/tmp/image.png");
-await (await page.asImage()).savePngToFile("D:/tmp/photo.png");
+page.editor.savePngToFile("D:/tmp/image.png");
+page.editor.savePngToFile("D:/tmp/photo.png");
 ```
 
 To simply *look at* an image page, you usually don't need a script at all: `get_page_content`
 returns the rendered PNG directly as an image block in the tool result. `savePngToFile` remains
 the way to put the image on disk (or to read one that is too large to inline).
 
-### asDraw()
+### `page.editor` when `id === "draw-view"`
 
 Drawing editor facade for Excalidraw pages (`.excalidraw`).
 
 ```
-const draw = await page.asDraw();
+const draw = page.editor;
 draw.editorIsMounted  // true if editor is mounted (pages stay mounted)
 draw.elementCount     // number of canvas elements
 
@@ -380,7 +380,7 @@ TypeScript scripts have the same access to `page`, `app`, and Node.js APIs as Ja
 const data = JSON.parse(page.content);
 const filtered = data.filter(item => item.status === "active");
 page.grouped.language = "json";
-page.grouped.editor = "grid-json";
+page.grouped.editorSwitches.switchTo("grid-json");
 return filtered;
 ```
 
@@ -414,7 +414,7 @@ if (name) {
 ### Grid manipulation
 
 ```javascript
-const grid = await page.asGrid();
+const grid = page.editor;
 grid.addColumns(1);  // Add a column
 const newCol = grid.columns[grid.columns.length - 1];
 grid.rows.forEach(row => {

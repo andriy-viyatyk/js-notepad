@@ -5,7 +5,7 @@
  *   segment  := identifier suffix* | "$help"
  *   suffix   := "[" json-index "]" | "(" json-args ")"
  *
- * `pages[2].asGrid().rows` → member(pages) index(2) call(asGrid, []) member(rows).
+ * `pages[2].editor.rows` → member(pages) index(2) call(editor, []) member(rows).
  * Indexes and arguments are JSON literals (`2`, `"abc"`, `true`, `{"a":1}`); arguments are
  * comma-separated. Large or awkward values travel in the tool's `args`/`value` parameters, never in
  * the path — the grammar is deliberately small.
@@ -58,7 +58,7 @@ export function formatPath(segments: readonly PathSegment[]): string {
     return text;
 }
 
-/** Append a child's `segment` text (`[2]`, `.grouped`, `.asGrid()`) to a parent path. */
+/** Append a child's `segment` text (`[2]`, `.grouped`, `.editor`) to a parent path. */
 export function joinChildPath(parentPath: string, childSegment: string): string {
     if (childSegment.startsWith("[")) return parentPath + childSegment;
     if (childSegment.startsWith(".")) return parentPath ? parentPath + childSegment : childSegment.slice(1);

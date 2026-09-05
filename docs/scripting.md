@@ -50,7 +50,7 @@ console.log(page.language);  // "javascript"
 page.language = "json";
 
 // Get/set editor type
-page.editor = "grid-json";  // Switch to grid view
+await page.editorSwitches.switchTo("grid-json");  // Switch to grid view
 
 // Custom data storage
 page.data.myValue = 123;
@@ -58,15 +58,15 @@ page.data.myValue = 123;
 
 ### Editor Facades
 
-For specialized access to editor-specific features, use `page.asX()` methods. Each returns an async facade tailored to a particular editor type:
+`page.editor` is the current editor facade. It is read-only and exposes `id` and `name`; narrow on
+the id before using editor-specific operations. Use `page.editorSwitches.switchTo(id)` to change
+editors.
 
 ```javascript
-const grid = await page.asGrid();    // Grid — rows, columns, cells
-const graph = await page.asGraph();  // Graph — nodes, links, search, traversal
-const nb = await page.asNotebook();  // Notebook — notes, categories
-const text = await page.asText();    // Text — Monaco selection, cursor
-const browser = await page.asBrowser(); // Browser — navigation, tab management, DOM query, interaction, wait, snapshot
-const mcp = await page.asMcpInspector(); // MCP Inspector — connection, history
+const editor = page.editor;
+if (editor.id === "grid-json") editor.addRows(5);
+if (editor.id === "graph-view") console.log(editor.nodes);
+await page.editorSwitches.switchTo("monaco");
 ```
 
 Facades are stateless wrappers — nothing needs to be released. Event subscriptions made via `app.events` are still auto-unsubscribed when the script completes. See the [page API reference](./api/page.md#editor-facades) for the full list and detailed documentation.
@@ -89,7 +89,7 @@ You can configure the output page before returning:
 ```javascript
 // Set language and editor type for the output
 page.grouped.language = "json";
-page.grouped.editor = "grid-json";
+await page.grouped.editorSwitches.switchTo("grid-json");
 return result.recordset;
 ```
 
@@ -354,7 +354,7 @@ await sql.close();
 
 // Display as grid
 page.grouped.language = 'json';
-page.grouped.editor = 'grid-json';
+await page.grouped.editorSwitches.switchTo('grid-json');
 return result.recordset;
 ```
 
@@ -431,7 +431,7 @@ are mutually exclusive:
 
 ```javascript
 const content = await app.call("page.content");
-const rows = await app.call("page.asGrid().rowCount");
+const rows = await app.call("page.editor.rowCount");
 await app.call("page.grouped.content", {
     value: JSON.stringify({ rows }, null, 2),
 });
@@ -689,4 +689,4 @@ See the [app.runAsync() API reference](./api/app.md#runasyncfn-data-proxy) for f
 3. **Use `ui`** for structured logging and inline dialogs instead of grouped page output
 4. **Use `preventOutput()`** when displaying results via dialogs instead of the grouped page
 5. **Set language** on grouped page for syntax highlighting: `page.grouped.language = 'json'`
-6. **Use grid view** for tabular data: `page.grouped.editor = 'grid-json'`
+6. **Use grid view** for tabular data: `await page.grouped.editorSwitches.switchTo('grid-json')`

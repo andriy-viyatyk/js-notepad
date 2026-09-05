@@ -22,12 +22,13 @@ ui.log("Hello");
   - `.filePath` — File path (if file-backed)
   - `.content` — Text content *(read/write)*
   - `.language` — Language ID *(read/write)*
-  - `.editor` — Active editor ID *(read/write)*
+  - `.editor` — Current editor facade *(read-only; narrow on `.id`)*
+  - `.editorSwitches` — Current editor ID, available switch options, and `.switchTo(id)`
   - `.data` — In-memory storage across script runs
   - `.panels` — Live sidebar panels and whole-sidebar controls
   - `.grouped` — Grouped partner page (auto-creates) → `IPage`
-  - [`.runScript()`](./page.md#runscriptpromisestring) — Run page content as script (F5)
-  - **[.asText()](./page.md#astextpromiseitexteditor)** — Monaco text editor facade
+  - [`.runScript()`](./page.md#runscript) — Run page content as script (F5)
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "monaco"` — Monaco text editor facade
     - `.editorMounted` — True when editor is visible
     - `.getSelectedText()` — Currently selected text
     - `.getCursorPosition()` — `{lineNumber, column}`
@@ -35,7 +36,7 @@ ui.log("Hello");
     - `.replaceSelection(text)` — Replace selection
     - `.revealLine(lineNumber)` — Scroll to line
     - `.setHighlightText(text)` — Highlight occurrences
-  - **[.asGrid()](./page.md#asgridpromiseigrideditor)** — Grid data facade
+  - **[.editor](./page.md#editor-facades)** when `.editor.id` is a grid ID — Grid data facade
     - `.rows` — All rows as objects
     - `.columns` — Column definitions
     - `.rowCount` — Number of rows
@@ -45,7 +46,7 @@ ui.log("Hello");
     - `.addColumns(count?, insertBeforeKey?)` — Add columns
     - `.deleteColumns(columnKeys)` — Delete columns
     - `.setSearch(text)` / `.clearSearch()` — Filter rows
-  - **[.asNotebook()](./page.md#asnotebookpromiseinotebookeditor)** — Notebook facade (`.note.json`)
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "notebook-view"` — Notebook facade (`.note.json`)
     - `.notes` — All notes
     - `.categories` / `.tags` — Category and tag lists
     - `.notesCount` — Total count
@@ -53,12 +54,12 @@ ui.log("Hello");
     - `.deleteNote(id)` — Delete note
     - `.updateNoteTitle(id, title)` / `.updateNoteContent(id, content)` / `.updateNoteCategory(id, category)`
     - `.addNoteTag(id, tag)` / `.removeNoteTag(id, tagIndex)`
-  - **[.asLink()](./page.md#aslinkpromiseilinkeditor)** — Link collection facade (`.link.json`)
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "link-view"` — Link collection facade (`.link.json`)
     - `.links` — All links
     - `.categories` / `.tags` — Category and tag lists
     - `.linksCount` — Total count
     - `.addLink(url, title?, category?)` / `.deleteLink(id)` / `.updateLink(id, props)`
-  - **[.asBrowser()](./page.md#asbrowserpromiseibrowsereditor)** — Browser facade
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "browser-view"` — Browser facade
     - `.url` / `.title` — Current URL and page title (active tab)
     - `.navigate(url)` / `.back()` / `.forward()` / `.reload()`
     - `.tabs` / `.activeTab` — Internal tab list and active tab info
@@ -69,30 +70,31 @@ ui.log("Hello");
     - `.click(selector, options?)` / `.type(selector, text, options?)` / `.select(selector, value, options?)` / `.check(selector, options?)` / `.uncheck(selector, options?)` / `.clear(selector, options?)` — DOM interactions
     - `.pressKey(key, options?)` — Press a key or key combination (e.g. `"Enter"`, `"Control+a"`)
     - `.waitForSelector(selector, options?)` / `.waitForNavigation(options?)` / `.wait(ms)` — Wait helpers
-  - **[.asMarkdown()](./page.md#asmarkdownpromiseimarkdowneditor)** — Markdown preview facade
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "md-view"` — Markdown preview facade
     - `.viewMounted` — True if preview is mounted
     - `.html` — Rendered HTML content
-  - **[.asSvg()](./page.md#assvgpromiseisvgeditor)** — SVG preview: `.svg`
-  - **[.asHtml()](./page.md#ashtmlpromiseihtmleditor)** — HTML preview: `.html`
-  - **[.asMermaid()](./page.md#asmermaidpromiseimermaideditor)** — Mermaid diagram preview
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "svg-view"` — SVG preview: `.svg`
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "html-view"` — HTML preview: `.html`
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "mermaid-view"` — Mermaid diagram preview
     - `.svgUrl` — Rendered SVG data URL
     - `.loading` / `.error` — Render state
-  - **[.asGraph()](./page.md#asgraphpromiseigrapheditor)** — Graph query facade
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "graph-view"` — Graph query facade
     - `.nodes` / `.links` / `.nodeCount` / `.linkCount` / `.getNode(id)`
     - `.selectedIds` / `.selectedNodes` / `.select(ids)` / `.addToSelection(ids)` / `.clearSelection()`
     - `.getNeighborIds(id)` / `.getVisualNeighborIds(id)`
     - `.getGroupOf(id)` / `.getGroupMembers(id)` / `.getGroupMembersDeep(id)` / `.getGroupChain(id)` / `.isGroup(id)`
     - `.search(query)` / `.bfs(startId, maxDepth?)` / `.getComponents()`
     - `.rootNodeId` / `.groupingEnabled`
-  - **[.asDraw()](./page.md#asdrawpromiseidraweditor)** — Drawing (Excalidraw) facade
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "draw-view"` — Drawing (Excalidraw) facade
     - `.elementCount` / `.editorIsMounted`
     - `.addImage(dataUrl, options?)` — Insert image onto canvas
     - `.exportAsSvg()` / `.exportAsPng(options?)` — Export drawing
-  - **[.asMcpInspector()](./page.md#asmcpinspectorpromiseimcpinspectoreditor)** — MCP Inspector facade
+  - **[.editor](./page.md#editor-facades)** when `.editor.id === "mcp-view"` — MCP Inspector facade
     - `.connectionStatus` / `.serverName` / `.serverTitle` / `.serverVersion` / `.errorMessage`
     - `.transportType` / `.url` / `.command` / `.args` / `.connectionName` *(read/write)*
     - `.connect()` / `.disconnect()`
     - `.history` / `.historyCount` / `.clearHistory()` / `.showHistory()`
+  - **Generic editor facade** — Other editor IDs expose `.id` and `.name`; no editor-specific methods yet
 
 ---
 

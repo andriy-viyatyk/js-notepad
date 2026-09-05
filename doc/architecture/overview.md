@@ -177,7 +177,8 @@ See [editors.md](./editors.md).
 - All editors in `/editors/` — every editor is an `EditorModel` subclass (31 editor IDs as of current catalog)
 - Text-bearing editors compose an `IContentHost` (`TextFileModel` for file-backed, `NoteItemEditModel` for notebook notes) and expose `CONTENT_HOST_TRAIT` for owner-orchestrated switching
 - Dynamic loading via `import()` for code splitting
-- Scripting facades expose editor APIs via `page.asX()` methods
+- Scripting facades expose the current editor API through `page.editor`; `page.editorSwitches` mirrors
+  the page toolbar's editor choices and performs verified editor switches
 
 ### 3. Scripting System
 
@@ -187,7 +188,8 @@ See [scripting.md](./scripting.md).
 - TypeScript transpilation via sucrase (lazy-loaded, type stripping only)
 - Full Node.js access for scripts; renderer UI frameworks are not part of the script context
 - API wrappers (AppWrapper, PageWrapper) provide safe, typed access
-- Editor facades (TextEditorFacade, GridEditorFacade, etc.) for typed editor operations
+- Editor facades (13 operation facades plus GenericEditorFacade) for typed current-editor operations;
+  narrow the union by `page.editor.id`
 - Auto-cleanup of event subscriptions on script completion
 - Monaco IntelliSense via `.d.ts` files
 
@@ -201,7 +203,7 @@ See [scripting.md](./scripting.md).
 - Renderer `call` results can carry a leading attention block for open renderer dialogs and popup menus. If the action itself opens a blocking renderer dialog, the call returns a pending result while the action continues; a subsequent `call` can inspect `dialogs[i]` and use its adapter's `click(button)` or `cancel()` path. Popup menus are exposed as `menus[0]` with read-only item snapshots and `click(label)` / `close()` actions.
 - The renderer AiVision root also exposes curated `ui.elements` declarations with live visibility and resolved selectors, plus `ui.highlight(name, message?)`, which delegates to the app highlight overlay and resolves once the overlay is drawn. The element list is intentionally curated rather than an exhaustive DOM inventory.
 - Native file, folder, and message-box dialogs are tracked per application window in main. An ordinary renderer result may carry non-actionable native attention while an asynchronous native dialog remains open; the native-dialog tracker never exposes a driver, and synchronous native dialogs cannot be reported while they block main's event loop. A bridge timeout is converted to `pending` only when the tracker still reports an active native dialog.
-- Page-content reads adapt to the page type: `get_page_content` / `get_active_page` return text-host source text when present; otherwise, an editor with the `IImageExport` capability (image viewer) renders to PNG and the server returns it as an MCP **image content block** (agents see the picture directly; works for background pages — `exportPng` is headless; images over a ~5 MB base64 cap degrade to a hint pointing at `page.asImage().savePngToFile()`); all other non-text pages return a one-line `hint` naming the right tool (`browser_*`, board guide, `filePath`, or `execute_script` facades)
+- Page-content reads adapt to the page type: `get_page_content` / `get_active_page` return text-host source text when present; otherwise, an editor with the `IImageExport` capability (image viewer) renders to PNG and the server returns it as an MCP **image content block** (agents see the picture directly; works for background pages — `exportPng` is headless; images over a ~5 MB base64 cap degrade to a hint pointing at `page.editor.savePngToFile()`); all other non-text pages return a one-line `hint` naming the right tool (`browser_*`, board guide, `filePath`, or `execute_script` facades)
 - Multi-window support: all tools accept optional `windowIndex` parameter (defaults to first open window). `list_windows` tool runs in main process (no IPC) to discover windows and their status. `open_window` tool reopens closed windows with persisted pages.
 - Browser profile support: browser pages report `profileName` / `isIncognito` / `isTor` / active-tab `url` in page metadata (`url` omitted when the page is private to the user); `get_app_info` lists `browserProfiles` + `defaultBrowserProfile`; every `browser_*` tool accepts optional `pageId` / `profileName` to deterministically target a browser page — see [browser-editor.md](browser-editor.md) "Browser Automation (MCP)".
 - App-window automation: the `browser_*` tools also drive Persephone's own UI with `pageId: "app"` (snapshot/click/type/press_key/screenshot/evaluate the tab strip, sidebar, dialogs, and active editor) — explicit-only (never resolved by fallback), no registration (the calling window's own webContents is the target), behind the same `mcp.browser-tools.enabled` gate; see [browser-editor.md](browser-editor.md) "App-Window Target".

@@ -96,11 +96,13 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Menu Bar AiVision descriptor (live folders/selection, strict ID-based open, and curated Menu Bar elements) | `/src/renderer/scripting/ai-vision/namespaces/menu-bar.ts` |
 | Settings AiVision descriptor (catalog sections/keys, lifecycle-aware highlighting, browser-profile projections, and call-only self-severing guards) | `/src/renderer/scripting/ai-vision/namespaces/settings.ts` |
 | Page sidebar-panels AiVision node (live panel projection, bare-ID expansion, sidebar state/actions, and curated elements) | `/src/renderer/scripting/ai-vision/page-panels.ts` |
+| Page editor-switches AiVision node (current editor, toolbar-identical options, verified switching, and switch control elements) | `/src/renderer/scripting/ai-vision/page-editor-switches.ts` |
 | Curated element visibility and named highlight protocol | `/src/renderer/scripting/ai-vision/elements.ts`, `/src/renderer/scripting/ai-vision/namespaces/ui.ts` |
 | TypeScript transpilation | `/src/renderer/scripting/transpile.ts`            |
 | Async worker (renderer)  | `/src/renderer/scripting/worker/WorkerRunner.ts`  |
 | Async worker (main)      | `/src/main/worker-host.ts`                        |
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
+| Script-facing page wrapper and current-editor facade factory (read-only discriminated facade union with a GenericEditorFacade fallback) | `/src/renderer/scripting/api-wrapper/PageWrapper.ts`, `/src/renderer/scripting/api-wrapper/GenericEditorFacade.ts` |
 | Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
 | Monaco setup (languages, theme, keybindings, compiler and IntelliSense configuration; construction is delegated to the shared hosts) | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors; embeddable editors expose `BodyView`) | `/src/renderer/editors/base/editorRegistry.ts`    |
@@ -131,7 +133,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |
 | Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
 | Native text-host chrome (toolbar, focus/key handling, script panel, footer, overlay, and DOM slot projection) | `/src/renderer/editors/base/TextChromeView.ts` |
-| Page toolbar native view (NavPanel, editor switch, and toolbar slots) | `/src/renderer/editors/base/PageToolbarView.ts` |
+| Page toolbar native view and shared editor-switch projection (NavPanel, editor switch, toolbar slots, and toolbar/node option parity) | `/src/renderer/editors/base/PageToolbarView.ts`, `/src/renderer/editors/base/editor-switch-options.ts` |
 | Native editor toolbar view | `/src/renderer/editors/base/EditorToolbarView.ts` |
 | Shared text-host footer (`script` toggle · `footerContributions` slot · provider icon · encoding label; shared by built-in text editors and content-host boards via `BoardEditorView` — boards fill the contributions slot with a footer status label via `persephone.setStatusText`) | `/src/renderer/editors/base/ContentHostFooterView.ts` |
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |

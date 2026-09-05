@@ -64,7 +64,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 | 3 | EPIC-086 — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content`, `open_url` for non-browser targets |
 | 4 | EPIC-087 — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer, git tree | `ui_push` (becomes the Log View page's node) |
 | 5 | EPIC-088 — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` |
-| 6 | EPIC-089 — Browser | `pages[i].asBrowser()`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
+| 6 | EPIC-089 — Browser | `pages[i].editor`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
 | 7 | EPIC-090 — Consolidation | Call-only flag, full QA re-run on Haiku and Codex, deletion, guide rewrite | `execute_script`, `read_guide`, and everything still standing |
 
 Epics 2–5 are independent of each other once EPIC-084 lands and can be reordered by demand. The
@@ -85,8 +85,8 @@ screenshot, evaluate — are implemented once and hung on every node that owns a
 
 | Host | Node | Today |
 |---|---|---|
-| A browser page (webview) | `pages[i].asBrowser()` | `browser_*` with `pageId` |
-| A board or HTML page (webview / iframe) | `pages[i].asBoard()` / `asHtml()` — the same members | `browser_*` with `pageId` |
+| A browser page (webview) | `pages[i].editor` | `browser_*` with `pageId` |
+| A board or HTML page (webview / iframe) | `pages[i].editor` / `editor` — the same members | `browser_*` with `pageId` |
 | **Persephone's own window** — header, tabs, Menu Bar, dialogs, every editor's DOM | `window.ui` (name decided in EPIC-089) — the same members | `browser_*` with `pageId: "app"` |
 
 The third row is not optional. `elements` and `highlight` describe the controls a surface *chose*
@@ -114,9 +114,9 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `get_page_content`, `set_page_content` | `pages[i].content` | already |
 | `open_url` | `pages.openUrl(url, options)` | 086 / 089 |
 | `ui_push` | `pages.logView.push(...)` (well-known page) | 087 |
-| `create_board`, `open_board`, `board_refresh` | `boards.create/open`, `pages[i].asBoard().refresh()` | 088 |
-| `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` | `toolsets.*`, `pages[i].asToolset()` | 088 |
-| `browser_*` | `pages[i].asBrowser().snapshot/click/type/...`; the same members on board/HTML facades and on `window.ui` for the app window | 089 |
+| `create_board`, `open_board`, `board_refresh` | `boards.create/open`, `boards.refresh()` | 088 |
+| `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` | `toolsets.*`, `toolsets.*` | 088 |
+| `browser_*` | `pages[i].editor.snapshot/click/type/...`; the same members on board/HTML facades and on `window.ui` for the app window | 089 |
 | `execute_script` | `script.execute(code)` — the renderer analogue of `main.script.execute` | 090 |
 | `read_guide` | MCP resources stay (`persephone://guides/*`); prose moves into `$help` | 090 |
 | `app.ui.highlightElement` via script | `<node>.highlight(name, message)` | 084, then every surface |

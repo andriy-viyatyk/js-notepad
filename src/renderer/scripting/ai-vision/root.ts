@@ -64,7 +64,7 @@ Common paths:
   pages                       list open pages
   page.content                text of the active page (assign with "value")
   pages["<id>"].content       text of a specific page
-  pages[0].asGrid().rowCount  rows in a grid page (facades: asText, asGrid, asNotebook, …)
+  pages[0].editorSwitches.switchTo("grid-json")  switch the page, then use pages[0].editor.addRows(5)
   dialogs[0].click("OK")   answer the first open renderer dialog (or use dialogs[0].cancel())
   menus[0].items           inspect the open popup menu, including nested items
   menus[0].click("Parent > Child")
@@ -136,7 +136,7 @@ export class AiRoot implements IAiVisible {
         const active = this.page;
         if (active) {
             const restricted = active.aiVision.restricted?.();
-            children.push({ segment: ".page", kind: "Page", summary: `active: "${active.title}" (${active.editor})`, ...(restricted ? { restricted } : {}) });
+            children.push({ segment: ".page", kind: "Page", summary: `active: "${active.title}" (${active.editor.id})`, ...(restricted ? { restricted } : {}) });
         }
         return children;
     }

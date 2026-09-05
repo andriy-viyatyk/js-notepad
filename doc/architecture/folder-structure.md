@@ -33,7 +33,7 @@ persephone/
 │   ├── mcp-res-ui-push.md  # MCP resource: ui_push tool guide
 │   ├── mcp-res-pages.md    # MCP resource: pages & windows guide
 │   ├── mcp-res-scripting.md # MCP resource: scripting API reference
-│   ├── mcp-res-graph.md    # MCP resource: force-graph data format & page.asGraph() API
+│   ├── mcp-res-graph.md    # MCP resource: force-graph data format & page.editor API
 │   ├── mcp-res-notebook.md # MCP resource: notebook editor JSON format
 │   ├── mcp-res-links.md    # MCP resource: links editor JSON format
 │   ├── mcp-res-boards.md   # MCP resource: boards guide (create/open lifecycle, bridge, testing)
@@ -208,7 +208,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── app.d.ts        # IApp interface
 │       ├── common.d.ts     # IDisposable, IEvent, Language
 │       ├── pages.d.ts      # IPageCollection interface
-│       ├── page.d.ts       # IPage interface (with asX() methods)
+│       ├── page.d.ts       # IPage interface (with `editor` and `editorSwitches`)
 │       ├── page-panels.d.ts # IPagePanels — live page sidebar panel surface
 │       ├── settings.d.ts   # ISettings
 │       ├── editors.d.ts    # IEditorRegistry
@@ -698,7 +698,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── api-wrapper/        # Safe wrappers for script access
 │       ├── AppWrapper.ts           # Wraps app → IApp (events proxy; compile-time member check)
 │       ├── PageCollectionWrapper.ts # Wraps pages → IPageCollection
-│       ├── PageWrapper.ts          # Wraps page → IPage (with asX() + auto-release)
+│       ├── PageWrapper.ts          # Wraps page → IPage (with the current editor facade and switch node)
 │       ├── TextEditorFacade.ts     # ITextEditor facade
 │       ├── GridEditorFacade.ts     # IGridEditor facade
 │       ├── NotebookEditorFacade.ts # INotebookEditor facade

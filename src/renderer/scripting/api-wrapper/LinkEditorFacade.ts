@@ -3,6 +3,8 @@ import type { LinkItem } from "../../editors/link-editor/linkTypes";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const LINK_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "links", kind: "property", summary: "All links (complete data, not filtered by UI)." },
     { name: "categories", kind: "property", summary: "All category names." },
     { name: "tags", kind: "property", summary: "All tag names." },
@@ -12,7 +14,7 @@ const LINK_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "updateLink", kind: "method", signature: "updateLink(id: string, data: { title?: string; category?: string; url?: string }): void", summary: "Update link properties. Map url to the link's href." },
 ];
 
-const LINK_EDITOR_HELP = `Obtain via pages[i].asLink() on a links page (\`link-view\`); pass true — \`asLink(true)\` — to switch a compatible page to this editor first.
+const LINK_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "link-view".
 Links, categories, and tags management.`;
 
 /**
@@ -24,7 +26,7 @@ Links, categories, and tags management.`;
  * - Delete operations skip confirmation dialogs
  */
 export class LinkEditorFacade implements IAiVisible {
-    constructor(private readonly editor: LinkEditor) {}
+    constructor(private readonly editor: LinkEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -33,7 +35,7 @@ export class LinkEditorFacade implements IAiVisible {
             members: LINK_EDITOR_MEMBERS,
             help: LINK_EDITOR_HELP,
             summarize: () => ({
-                kind: "LinkEditor",
+                kind: "LinkEditor", id: this.id, name: this.name,
                 linksCount: this.linksCount,
                 categories: this.categories,
                 tags: this.tags,

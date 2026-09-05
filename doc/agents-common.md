@@ -222,12 +222,14 @@ import { ArchiveEditorView } from "../archive/ArchiveEditorView";
 ### 2. Script Context (`page`, `app`, `io`, `ai`)
 ```javascript
 const data = JSON.parse(page.content);
-page.grouped.content = JSON.stringify(result);
-page.grouped.editor = "grid-json";
+const output = page.grouped;
+output.content = JSON.stringify(result);
+await output.editorSwitches.switchTo("grid-json");
 
 // Typed editor access via facades
-const grid = await page.asGrid();
-grid.addRows(5);
+if (output.editor.id === "grid-json") {
+    output.editor.addRows(5);
+}
 
 // Content pipe API — providers, transformers, events
 const pipe = io.createPipe(new io.HttpProvider(url, { headers }));

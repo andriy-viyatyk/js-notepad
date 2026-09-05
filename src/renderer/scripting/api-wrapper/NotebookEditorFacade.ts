@@ -3,6 +3,8 @@ import type { NoteItem } from "../../editors/notebook/notebookTypes";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const NOTEBOOK_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "notes", kind: "property", summary: "All notes (complete data, not filtered by UI)." },
     { name: "categories", kind: "property", summary: "All category names." },
     { name: "tags", kind: "property", summary: "All tag names." },
@@ -16,11 +18,11 @@ const NOTEBOOK_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "removeNoteTag", kind: "method", signature: "removeNoteTag(id: string, tagIndex: number): void", summary: "Remove a tag from a note by index." },
 ];
 
-const NOTEBOOK_EDITOR_HELP = `Obtain via pages[i].asNotebook() on a notebook page (\`notebook-view\`); pass true — \`asNotebook(true)\` — to switch a compatible page to this editor first.
+const NOTEBOOK_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "notebook-view".
 Notebook notes, categories, and tags management.`;
 
 export class NotebookEditorFacade implements IAiVisible {
-    constructor(private readonly vm: NotebookEditor) {}
+    constructor(private readonly vm: NotebookEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -29,7 +31,7 @@ export class NotebookEditorFacade implements IAiVisible {
             members: NOTEBOOK_EDITOR_MEMBERS,
             help: NOTEBOOK_EDITOR_HELP,
             summarize: () => ({
-                kind: "NotebookEditor",
+                kind: "NotebookEditor", id: this.id, name: this.name,
                 notesCount: this.notesCount,
                 categories: this.categories,
                 tags: this.tags,

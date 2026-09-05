@@ -1,10 +1,12 @@
 /**
  * Drawing editor facade — provides scripting access to the Excalidraw canvas.
  *
- * Obtain via `page.asDraw()` on a text page with `.excalidraw` content.
+ * Obtain via `page.editor` on a text page with `.excalidraw` content.
  * To create a new drawing page with an image, use `app.pages.addDrawPage(dataUrl)`.
  */
 export interface IDrawEditor {
+    readonly id: "draw-view";
+    readonly name: string;
     /**
      * Insert an image onto the live canvas.
      * Requires the drawing editor to be mounted (`editorIsMounted === true`).

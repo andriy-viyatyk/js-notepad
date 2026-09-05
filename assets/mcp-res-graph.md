@@ -61,12 +61,12 @@ Links from a group node to another node indicate **group membership** (the targe
 | `collide` | number | 0.7 | D3 collision force strength (0–1) |
 | `legend` | object | — | Level/shape descriptions for the legend panel |
 
-## `page.asGraph()` API Reference
+## `page.editor` API Reference
 
 Access via `execute_script`:
 
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 ```
 
 ### Data Access
@@ -146,7 +146,7 @@ const components = graph.getComponents();
 
 ## Editing Graph Data
 
-The `page.asGraph()` API is **read-only** (query and analysis). To edit graph data, modify `page.content` JSON directly:
+The `page.editor` API is **read-only** (query and analysis). To edit graph data, modify `page.content` JSON directly:
 
 ```javascript
 // Read → parse → modify → write back
@@ -166,38 +166,38 @@ page.content = JSON.stringify(data, null, 2);
 
 **Find all nodes connected to X:**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const neighbors = graph.getNeighborIds("my-module");
 ```
 
 **What is selected?**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const selected = graph.selectedNodes;
 ```
 
 **Search for modules containing "auth":**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const results = graph.search("auth");
 ```
 
 **Select nodes that match criteria:**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const authNodes = graph.search("auth").map(r => r.nodeId);
 graph.select(authNodes);
 ```
 
 **Walk the graph from root (3 levels deep):**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const tree = graph.bfs(graph.rootNodeId, 3);
 ```
 
 **Find disconnected parts of the graph:**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const components = graph.getComponents();
 // components[0] is the largest subgraph
 // Small components (nodeCount < 3) may be orphans worth investigating
@@ -205,7 +205,7 @@ const components = graph.getComponents();
 
 **Get group structure:**
 ```javascript
-const graph = await page.asGraph();
+const graph = page.editor;
 const members = graph.getGroupMembers("my-group");
 const allMembers = graph.getGroupMembersDeep("my-group");
 const chain = graph.getGroupChain("some-node"); // [parent-group, grandparent-group, ...]
@@ -221,7 +221,7 @@ const chain = graph.getGroupChain("some-node"); // [parent-group, grandparent-gr
   and make sure every link's `source`/`target` matches a node `id`. To confirm the render,
   activate the page and `browser_snapshot({ pageId: "app" })` — a crashed editor shows
   `Editor crashed` plus the exception text.
-- **`page.asGraph()` on a non-graph page** rejects — check `list_pages` for
+- **`page.editor` on a non-graph page** rejects — check `list_pages` for
   `editor: "graph-view"` first.
 - **Writing `page.content` from stale parsed data**: if you `JSON.parse(page.content)` on a
   live graph, nodes may carry D3 runtime fields (`x`, `y`, `vx`, `vy`, `index`). Writing them

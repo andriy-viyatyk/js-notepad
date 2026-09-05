@@ -326,17 +326,17 @@ A trusted board declaring `editorPriority` in its `board-manifest.json` competes
 
 Two unions live in the shared/public type surface; update both as applicable when adding a new editor:
 
-- **`EditorView`** (the editor ID union — required for any new editor with a new ID). Canonical site: `/src/renderer/api/types/common.d.ts`. Add the new ID to the union there. `/src/shared/types.ts` re-exports `EditorView` from this file, so internal code keeps working transparently. The Vite `editorTypesPlugin` (configured in `/vite.renderer.config.ts`) auto-copies `.d.ts` files from `src/renderer/api/types/` to `assets/editor-types/` on `npm start` / `npm run dist` — never hand-edit `assets/editor-types/`. Adding the ID gives TypeScript-typed scripts autocomplete + typo detection for the new editor on `page.editor =`, `app.editors.getById()`, `app.pages.addEditorPage()`, and `ISwitchOptions.options`.
+- **`EditorView`** (the editor ID union — required for any new editor with a new ID). Canonical site: `/src/renderer/api/types/common.d.ts`. Add the new ID to the union there. `/src/shared/types.ts` re-exports `EditorView` from this file, so internal code keeps working transparently. The Vite `editorTypesPlugin` (configured in `/vite.renderer.config.ts`) auto-copies `.d.ts` files from `src/renderer/api/types/` to `assets/editor-types/` on `npm start` / `npm run dist` — never hand-edit `assets/editor-types/`. Adding the ID gives TypeScript-typed scripts autocomplete + typo detection for the new editor on `page.editor.id`, `app.editors.getById()`, `app.pages.addEditorPage()`, and `ISwitchOptions.options`.
 
 - **`EditorType`** (the page-kind union — rare; only when a brand-new page type is added, e.g. a "Settings" page). Defined in `/src/shared/types.ts`.
 
 ## Step 7: Optional — Add a Scripting Facade
 
-If users should script your editor via `page.asMyEditor()`:
+If users should script your editor through `page.editor`:
 
 1. Add the facade class to `/src/renderer/scripting/api-wrapper/MyEditorFacade.ts` — wraps the `EditorModel` subclass directly.
 2. Add the type declaration to `/src/renderer/api/types/my-editor.d.ts`.
-3. Wire the facade in `PageWrapper.ts` (add `asMyEditor()` method).
+3. Add the editor id to the single factory map in `PageWrapper.ts`.
 4. Re-export the type from `/src/renderer/api/types/index.d.ts`.
 
 See `/src/renderer/scripting/api-wrapper/GridEditorFacade.ts` for a complete example.

@@ -9,7 +9,7 @@ Each editor:
 - Has its own state, lifecycle hooks, and reactive `state: TOneState<TState>`
 - Renders a specific UI for the file type
 - Is loaded asynchronously for code splitting
-- Can expose a scripting facade via `page.asX()` methods
+- Can expose a scripting facade through the current-page `page.editor` node
 
 All editor code lives in `/src/renderer/editors/`.
 
@@ -398,27 +398,35 @@ All construction is registry-driven; there are three paths:
 
 ## Scripting Facades
 
-Editor facades provide safe, typed script access to editors via `page.asX()` methods. Each facade wraps the page's `mainEditor` (an `EditorModel` subclass) directly — there is no separate view-model layer.
+Editor facades provide safe, typed script access through the current-page `page.editor` node. Each
+operation facade wraps the page's `mainEditor` (an `EditorModel` subclass) directly — there is no
+separate view-model layer. The union is discriminated by `id`; registered editors without an
+operation facade use `GenericEditorFacade`, which exposes only identity metadata.
 
-| Method | Facade | Wraps |
+| Facade access | Facade | Wraps |
 |--------|--------|-------|
-| `page.asText()` | `TextEditorFacade` | `MonacoEditor` |
-| `page.asGrid()` | `GridEditorFacade` | `GridEditor` |
-| `page.asNotebook()` | `NotebookEditorFacade` | `NotebookEditor` |
-| `page.asLink()` | `LinkEditorFacade` | `LinkEditor` |
-| `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownEditor` |
-| `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` |
-| `page.asHtml()` | `HtmlEditorFacade` | `HtmlEditor` |
-| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidEditor` |
-| `page.asGraph()` | `GraphEditorFacade` | `GraphEditor` |
-| `page.asDraw()` | `DrawEditorFacade` | `DrawEditor` |
-| `page.asBrowser()` | `BrowserEditorFacade` | `BrowserEditorModel` |
-| `page.asMcpInspector()` | `McpInspectorFacade` | `McpInspectorEditorModel` |
-| `page.asImage()` | `ImageEditorFacade` | `ImageEditor` |
+| `page.editor` | `TextEditorFacade` | `MonacoEditor` |
+| `page.editor` | `GridEditorFacade` | `GridEditor` |
+| `page.editor` | `NotebookEditorFacade` | `NotebookEditor` |
+| `page.editor` | `LinkEditorFacade` | `LinkEditor` |
+| `page.editor` | `MarkdownEditorFacade` | `MarkdownEditor` |
+| `page.editor` | `SvgEditorFacade` | `SvgEditor` |
+| `page.editor` | `HtmlEditorFacade` | `HtmlEditor` |
+| `page.editor` | `MermaidEditorFacade` | `MermaidEditor` |
+| `page.editor` | `GraphEditorFacade` | `GraphEditor` |
+| `page.editor` | `DrawEditorFacade` | `DrawEditor` |
+| `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` |
+| `page.editor` | `McpInspectorFacade` | `McpInspectorEditorModel` |
+| `page.editor` | `ImageEditorFacade` | `ImageEditor` |
+| `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade |
 
 Facades live in `/src/renderer/scripting/api-wrapper/`. Interfaces in `/src/renderer/api/types/*.d.ts`.
 
-The `page.asX(force?: boolean)` methods optionally accept `force: true` to bypass the type check and return a facade for the current editor regardless of type — useful for scripts that target editors via traits rather than declared editor IDs.
+`page.editor` is a read-only discriminated facade union. Use `page.editorSwitches.switchTo(id)` to
+change editors; the operation uses the same merged option projection as the toolbar and verifies
+that the awaited switch completed. The switch projection is shared by
+`PageToolbarView` and `PageEditorSwitchesNode` through
+`/src/renderer/editors/base/editor-switch-options.ts`.
 
 ## Editor Resolution
 

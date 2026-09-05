@@ -15,6 +15,8 @@ interface WaitOption extends TabOption {
 }
 
 const BROWSER_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "url", kind: "property", summary: "Current URL of the active tab." },
     { name: "title", kind: "property", summary: "Current page title of the active tab." },
     { name: "navigate", kind: "method", signature: "navigate(url: string): void", summary: "Navigate the active tab to a URL. Supports URLs and search queries." },
@@ -45,7 +47,7 @@ const BROWSER_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "pressKey", kind: "method", signature: "pressKey(key: string, options?: { tabId?: string }): Promise<void>", summary: "Press a key or key combination via CDP. Supports compound keys: Control+a, Shift+Enter, Control+Shift+Delete." },
 ];
 
-const BROWSER_EDITOR_HELP = `Obtain via pages[i].asBrowser() on a browser page (\`browser-view\`); this facade has no force argument and cannot switch a page to this editor.
+const BROWSER_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to \"browser-view\".
 Browser navigation, tab management, page inspection, and interaction facade.`;
 
 /**
@@ -57,7 +59,7 @@ Browser navigation, tab management, page inspection, and interaction facade.`;
  * - All automation methods accept optional { tabId } to target specific tabs
  */
 export class BrowserEditorFacade implements IAiVisible {
-    constructor(private readonly model: BrowserEditorModel) {}
+    constructor(private readonly model: BrowserEditorModel, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -69,6 +71,8 @@ export class BrowserEditorFacade implements IAiVisible {
                 const tabs = this.tabs;
                 return {
                     kind: "BrowserEditor",
+                    id: this.id,
+                    name: this.name,
                     url: this.url,
                     title: this.title,
                     tabCount: tabs.length,

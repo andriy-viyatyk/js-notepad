@@ -1,44 +1,67 @@
-import { EditorOrHost } from "../../editors/base";
-import { isTextFileModel } from "../../editors/text/TextEditorModel";
 import { pagesModel } from "../../api/pages";
-import { app } from "../../api/app";
-import { EditorView } from "../../../shared/types";
-import type { EditorModel } from "../../editors/base/EditorModel";
 import { editorRegistry } from "../../editors/base/editorRegistry";
+import type { EditorModel } from "../../editors/base/EditorModel";
+import { isTextFileModel, type TextFileModel } from "../../editors/text/TextEditorModel";
+import { customEditorRegistry } from "../../editors/board/custom-editor-registry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
-import { NotebookEditor } from "../../editors/notebook";
-import { LinkEditor } from "../../editors/link-editor";
-import { MarkdownEditor } from "../../editors/markdown";
-import { SvgEditor } from "../../editors/svg";
-import { HtmlEditor } from "../../editors/html";
-import { MermaidEditor } from "../../editors/mermaid";
-import { GraphEditor } from "../../editors/graph";
-import { DrawEditor } from "../../editors/draw";
+import { NotebookEditor } from "../../editors/notebook/NotebookEditor";
+import { LinkEditor } from "../../editors/link-editor/LinkEditor";
+import { MarkdownEditor } from "../../editors/markdown/MarkdownEditor";
+import { SvgEditor } from "../../editors/svg/SvgEditor";
+import { HtmlEditor } from "../../editors/html/HtmlEditor";
+import { MermaidEditor } from "../../editors/mermaid/MermaidEditor";
+import { GraphEditor } from "../../editors/graph/GraphEditor";
+import { DrawEditor } from "../../editors/draw/DrawEditor";
 import type { ImageEditor } from "../../editors/image/ImageEditor";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
-import { TextEditorFacade } from "./TextEditorFacade";
-import { GridEditorFacade } from "./GridEditorFacade";
-import { NotebookEditorFacade } from "./NotebookEditorFacade";
-import { LinkEditorFacade } from "./LinkEditorFacade";
-import { MarkdownEditorFacade } from "./MarkdownEditorFacade";
-import { SvgEditorFacade } from "./SvgEditorFacade";
-import { HtmlEditorFacade } from "./HtmlEditorFacade";
-import { MermaidEditorFacade } from "./MermaidEditorFacade";
-import { GraphEditorFacade } from "./GraphEditorFacade";
-import { DrawEditorFacade } from "./DrawEditorFacade";
-import { ImageEditorFacade } from "./ImageEditorFacade";
-import { BrowserEditorFacade } from "./BrowserEditorFacade";
-import { McpInspectorFacade } from "./McpInspectorFacade";
 import type { ScriptOutputFlags } from "../ScriptContext";
-import { errMessage } from "../../../shared/utils";
 import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 import { agentMayAccessBrowserPage, privateBrowserRefusal } from "../../editors/browser/agent-access";
+import { BrowserEditorFacade } from "./BrowserEditorFacade";
+import { DrawEditorFacade } from "./DrawEditorFacade";
+import { GenericEditorFacade } from "./GenericEditorFacade";
+import { GraphEditorFacade } from "./GraphEditorFacade";
+import { GridEditorFacade } from "./GridEditorFacade";
+import { HtmlEditorFacade } from "./HtmlEditorFacade";
+import { ImageEditorFacade } from "./ImageEditorFacade";
+import { LinkEditorFacade } from "./LinkEditorFacade";
+import { MarkdownEditorFacade } from "./MarkdownEditorFacade";
+import { McpInspectorFacade } from "./McpInspectorFacade";
+import { MermaidEditorFacade } from "./MermaidEditorFacade";
+import { NotebookEditorFacade } from "./NotebookEditorFacade";
+import { PageEditorSwitchesNode } from "../ai-vision/page-editor-switches";
 import { PagePanelsNode } from "../ai-vision/page-panels";
+import { SvgEditorFacade } from "./SvgEditorFacade";
+import { TextEditorFacade } from "./TextEditorFacade";
 
-// AiVision (EPIC-083): kind-level description of a page. `grouped` carries a caution because reading
-// it creates the grouped page; children() lists it only when it already exists.
+type EditorOrHost = EditorModel | TextFileModel;
+type EditorFacade =
+    | TextEditorFacade | GridEditorFacade | NotebookEditorFacade | LinkEditorFacade
+    | MarkdownEditorFacade | SvgEditorFacade | HtmlEditorFacade | MermaidEditorFacade
+    | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
+    | ImageEditorFacade | GenericEditorFacade;
+type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
+
+const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
+    "monaco": (editor, id, name) => new TextEditorFacade(editor as MonacoEditor, id, name),
+    "grid-json": (editor, id, name) => new GridEditorFacade(editor as GridEditor, id, name),
+    "grid-csv": (editor, id, name) => new GridEditorFacade(editor as GridEditor, id, name),
+    "grid-jsonl": (editor, id, name) => new GridEditorFacade(editor as GridEditor, id, name),
+    "notebook-view": (editor, id, name) => new NotebookEditorFacade(editor as NotebookEditor, id, name),
+    "link-view": (editor, id, name) => new LinkEditorFacade(editor as LinkEditor, id, name),
+    "md-view": (editor, id, name) => new MarkdownEditorFacade(editor as MarkdownEditor, id, name),
+    "svg-view": (editor, id, name) => new SvgEditorFacade(editor as SvgEditor, id, name),
+    "html-view": (editor, id, name) => new HtmlEditorFacade(editor as HtmlEditor, id, name),
+    "mermaid-view": (editor, id, name) => new MermaidEditorFacade(editor as MermaidEditor, id, name),
+    "graph-view": (editor, id, name) => new GraphEditorFacade(editor as GraphEditor, id, name),
+    "draw-view": (editor, id, name) => new DrawEditorFacade(editor as DrawEditor, id, name),
+    "browser-view": (editor, id, name) => new BrowserEditorFacade(editor as unknown as BrowserEditorModel, id, name),
+    "mcp-view": (editor, id, name) => new McpInspectorFacade(editor as unknown as McpInspectorEditorModel, id, name),
+    "image-view": (editor, id, name) => new ImageEditorFacade(editor as unknown as ImageEditor, id, name),
+};
+
 const PAGE_MEMBERS: readonly IAiMember[] = [
     { name: "id", kind: "property", summary: "Stable page id (use in pages[\"<id>\"])." },
     { name: "title", kind: "property", summary: "Tab title." },
@@ -46,60 +69,23 @@ const PAGE_MEMBERS: readonly IAiMember[] = [
     { name: "modified", kind: "property", summary: "Whether there are unsaved changes." },
     { name: "pinned", kind: "property", summary: "Whether the tab is pinned." },
     { name: "content", kind: "property", writable: true, summary: "The page's text (text-based editors only; empty for browser/image pages). Assign with \"value\"." },
-    // The cross-reference is here, not only at the root: a QA run (Haiku, call-only) asked to
-    // *show* where the language is changed landed on this property every time and answered with
-    // assignment syntax. Setting it is a fine answer to "change it"; "where is it?" wants the
-    // button on the tab.
-    { name: "language", kind: "property", writable: true, summary: "Language id (json, markdown, typescript, …). Assigning changes it; if the user asked WHERE it is changed, the control is the button on the tab — show them with ui.highlight(\"tab-language\")." },
-    { name: "editor", kind: "property", writable: true, summary: "Current editor id (monaco, grid-json, md-view, …). Assign to switch editors." },
+    { name: "language", kind: "property", writable: true, summary: "Language id. Assigning changes it; use ui.highlight(\"tab-language\") when the user asks where it is changed." },
+    { name: "editor", kind: "property", node: true, summary: "Current editor facade; inspect its id to discover the available operations." },
+    { name: "editorSwitches", kind: "property", node: true, summary: "The current editor, toolbar-identical switch options, and unrestricted editor switching." },
     { name: "data", kind: "property", summary: "Free-form per-page data bag shared between scripts." },
-    { name: "panels", kind: "property", node: true, summary: "Live sidebar panels, read-only open/width state, bare-id expansion, and whole-sidebar toggle; close individual panels through their own header controls." },
+    { name: "panels", kind: "property", node: true, summary: "Live sidebar panels, read-only open/width state, bare-id expansion, and whole-sidebar toggle." },
     { name: "grouped", kind: "property", summary: "The page shown beside this one.", caution: "reading it CREATES a grouped page if none exists" },
-    { name: "asText", kind: "method", signature: "asText(force = false)", summary: "Text (Monaco) facade: selection, cursor, insert, reveal line." },
-    { name: "asGrid", kind: "method", signature: "asGrid(force = false)", summary: "Grid facade for JSON/CSV/JSONL pages: rows, columns, edit cells, add/delete rows." },
-    { name: "asNotebook", kind: "method", signature: "asNotebook(force = false)", summary: "Notebook facade: notes, categories." },
-    { name: "asLink", kind: "method", signature: "asLink(force = false)", summary: "Links-page facade: items, categories, tags." },
-    { name: "asMarkdown", kind: "method", signature: "asMarkdown(force = false)", summary: "Markdown preview facade." },
-    { name: "asSvg", kind: "method", signature: "asSvg(force = false)", summary: "SVG preview facade." },
-    { name: "asHtml", kind: "method", signature: "asHtml(force = false)", summary: "HTML preview facade." },
-    { name: "asMermaid", kind: "method", signature: "asMermaid(force = false)", summary: "Mermaid diagram facade." },
-    { name: "asGraph", kind: "method", signature: "asGraph(force = false)", summary: "Force-graph facade: nodes, links, groups." },
-    { name: "asDraw", kind: "method", signature: "asDraw(force = false)", summary: "Drawing (Excalidraw) facade." },
-    { name: "asBrowser", kind: "method", signature: "asBrowser()", summary: "Browser page facade: tabs, navigation, evaluate." },
-    { name: "asImage", kind: "method", signature: "asImage()", summary: "Image page facade: export PNG." },
-    { name: "asMcpInspector", kind: "method", signature: "asMcpInspector()", summary: "MCP inspector page facade." },
     { name: "runScript", kind: "method", signature: "runScript()", summary: "Run this page's JavaScript/TypeScript content as a script; returns the output text." },
 ];
 
 const PAGE_HELP = `
-One open page (tab). Plain properties describe it; "content" holds the text for text-based editors
-and can be assigned (pass "value"). The as*() methods return an editor facade with editor-specific
-operations — pass true to switch the page to that editor first. Only the facade matching the current
-editor is listed under children; the others need the switch.
-The panels node is a live view of the page's sidebar: use its bare panel ids and editorId values to
-inspect or expand panels, read its observation-only isOpen/width state, and flip the whole sidebar
-with toggleSidebar(). Close an individual panel through its own header control, whose owner defines
-the correct lifecycle.
+One open page (tab). Plain properties describe it; content holds text for text-based editors and can
+be assigned with value. editor is the current editor facade; inspect editor.id to narrow its operation
+union (for example, if page.editor.id is "grid-json", page.editor.addRows(5) is valid). editorSwitches
+exposes the toolbar's merged options and switchTo(id), which accepts any registered editor id.
+The panels node is a live view of the page's sidebar. Grouped is a side-by-side page and creates one
+when none exists.
 `;
-
-/** Editor id → the facade segment and kind an agent should use on a page showing that editor. */
-const FACADE_FOR_EDITOR: Record<string, { segment: string; kind: string }> = {
-    "monaco": { segment: ".asText()", kind: "TextEditor" },
-    "grid-json": { segment: ".asGrid()", kind: "GridEditor" },
-    "grid-csv": { segment: ".asGrid()", kind: "GridEditor" },
-    "grid-jsonl": { segment: ".asGrid()", kind: "GridEditor" },
-    "notebook-view": { segment: ".asNotebook()", kind: "NotebookEditor" },
-    "link-view": { segment: ".asLink()", kind: "LinkEditor" },
-    "md-view": { segment: ".asMarkdown()", kind: "MarkdownEditor" },
-    "svg-view": { segment: ".asSvg()", kind: "SvgEditor" },
-    "html-view": { segment: ".asHtml()", kind: "HtmlEditor" },
-    "mermaid-view": { segment: ".asMermaid()", kind: "MermaidEditor" },
-    "graph-view": { segment: ".asGraph()", kind: "GraphEditor" },
-    "draw-view": { segment: ".asDraw()", kind: "DrawEditor" },
-    "browser-view": { segment: ".asBrowser()", kind: "BrowserEditor" },
-    "mcp-view": { segment: ".asMcpInspector()", kind: "McpInspector" },
-    "image-view": { segment: ".asImage()", kind: "ImageEditor" },
-};
 
 interface IBrowserPrivacyState {
     profileName?: string;
@@ -116,8 +102,6 @@ export class PageWrapper implements IAiVisible {
         private readonly outputFlags?: ScriptOutputFlags,
     ) {}
 
-    /** Resolve the main editor instance for the page that owns `this.model`.
-     *  Returns null when the page can't be resolved (detached editor). */
     private get mainEditor(): EditorModel | null {
         const pageId = this.model.page?.id;
         if (!pageId) return null;
@@ -125,98 +109,59 @@ export class PageWrapper implements IAiVisible {
     }
 
     private currentEditorId(): string {
-        return (
-            this.mainEditor?.editorId
+        return this.mainEditor?.editorId
             ?? (this.model.state.get() as { editor?: string }).editor
-            ?? "monaco"
-        );
+            ?? "monaco";
     }
 
-    // ── IPageInfo readonly properties ─────────────────────────────────
-
-    get id() {
-        return this.model.page?.id ?? this.model.id;
-    }
-
-    get title() {
-        return this.model.title;
-    }
-
-    get modified() {
-        return this.model.modified;
-    }
-
-    get pinned() {
-        return this.model.page?.pinned ?? false;
-    }
-
-    get filePath() {
-        return this.model.filePath;
-    }
-
-    // ── IPage read/write properties ───────────────────────────────────
+    get id(): string { return this.model.page?.id ?? this.model.id; }
+    get title(): string { return this.model.title; }
+    get modified(): boolean { return this.model.modified; }
+    get pinned(): boolean { return this.model.page?.pinned ?? false; }
+    get filePath(): string | undefined { return this.model.filePath; }
 
     get content(): string {
-        if (isTextFileModel(this.model)) {
-            return this.model.state.get().content;
-        }
-        return "";
+        return isTextFileModel(this.model) ? this.model.state.get().content : "";
     }
 
     set content(value: string) {
-        if (isTextFileModel(this.model)) {
-            this.model.changeContent(value);
-        }
+        if (isTextFileModel(this.model)) this.model.changeContent(value);
     }
 
-    get language(): string {
-        return this.model.state.get().language ?? "";
-    }
+    get language(): string { return this.model.state.get().language ?? ""; }
 
     set language(value: string) {
-        if (!this.model.noLanguage) {
-            this.model.changeLanguage(value);
-        }
+        if (!this.model.noLanguage) this.model.changeLanguage(value);
     }
 
-    get editor(): EditorView {
-        return (this.currentEditorId() as EditorView) ?? "monaco";
+    get editor(): EditorFacade {
+        const id = this.currentEditorId();
+        const name = editorRegistry.getById(id)?.name
+            ?? customEditorRegistry.entries.find((entry) => entry.editorId === id)?.name
+            ?? id;
+        const editor = this.mainEditor;
+        const factory = editor ? FACADE_FOR_EDITOR[id] : undefined;
+        return factory ? factory(editor, id, name) : new GenericEditorFacade(id, name);
     }
 
-    set editor(value: EditorView) {
-        const page = this.model.page;
-        if (!page) return;
-        // SF4: fire-and-forget switch with `.catch(ui.notify)`. PageModel.switchMainEditor
-                // path on the wrapped TextFileModel). Once per-editor migrations land, the catch
-        // surfaces real `switchFrom` rejections.
-        page.switchMainEditor(value).catch((err: unknown) => {
-            const message = errMessage(err);
-            app.ui?.notify?.(message, "error");
-        });
+    get editorSwitches(): PageEditorSwitchesNode {
+        return new PageEditorSwitchesNode(() => this.model.page ?? null);
     }
 
-    get data(): Record<string, unknown> {
-        return this.model.scriptData;
-    }
-
-    get panels(): PagePanelsNode {
-        return new PagePanelsNode(() => this.model.page);
-    }
+    get data(): Record<string, unknown> { return this.model.scriptData; }
+    get panels(): PagePanelsNode { return new PagePanelsNode(() => this.model.page); }
 
     get grouped(): PageWrapper {
         const pageId = this.model.page?.id ?? this.model.id;
         const groupedPage = pagesModel.getGroupedPage(pageId);
-        const editor = groupedPage?.mainEditor
-            ?? pagesModel.requireGroupedText(pageId);
+        const editor = groupedPage?.mainEditor ?? pagesModel.requireGroupedText(pageId);
         return new GroupedPageWrapper(editor, this.releaseList, this.outputFlags);
     }
-
-    // ── AiVision ──────────────────────────────────────────────────────
 
     get aiVision(): IAiVisionDescriptor {
         return {
             kind: "Page",
-            summary: "One open page (tab): its text, language, editor, live sidebar panels, and editor-specific facades.",
+            summary: "One open page (tab): its text, language, editor facade, editor switches, live sidebar panels, and grouped page.",
             members: PAGE_MEMBERS,
             help: PAGE_HELP,
             children: () => this.aiChildren(),
@@ -225,47 +170,35 @@ export class PageWrapper implements IAiVisible {
         };
     }
 
-    /** Browser editor state, only when this page shows a browser. */
     private browserState(): IBrowserPrivacyState | undefined {
-        if (this.currentEditorId() !== "browser-view") return undefined;
-        return this.model.state.get() as IBrowserPrivacyState;
+        return this.currentEditorId() === "browser-view"
+            ? this.model.state.get() as IBrowserPrivacyState
+            : undefined;
     }
 
-    /** Same rule the browser_* tools apply: the user's private pages are off limits; the agent's own are not. */
     private aiRestricted(): string | undefined {
         const state = this.browserState();
-        if (!state || agentMayAccessBrowserPage(state)) return undefined;
-        return privateBrowserRefusal(state, "call");
+        return !state || agentMayAccessBrowserPage(state) ? undefined : privateBrowserRefusal(state, "call");
     }
 
     private aiChildren(): IAiChild[] {
-        const children: IAiChild[] = [];
-        const editorId = this.currentEditorId();
-        const facade = FACADE_FOR_EDITOR[editorId];
-        if (facade) {
-            children.push({ segment: facade.segment, kind: facade.kind, summary: `facade for the current editor (${editorId})` });
-        }
+        const editor = this.editor;
+        const children: IAiChild[] = [
+            { segment: ".editor", kind: editor.aiVision.kind, summary: `facade for the current editor (${editor.id})` },
+        ];
         const pageId = this.model.page?.id ?? this.model.id;
         if (pagesModel.isGrouped(pageId)) {
             const grouped = pagesModel.getGroupedPage(pageId);
-            if (grouped) {
-                children.push({ segment: ".grouped", kind: "Page", summary: `grouped beside this page: "${grouped.title}"` });
-            }
+            if (grouped) children.push({ segment: ".grouped", kind: "Page", summary: `grouped beside this page: "${grouped.title}"` });
         }
         return children;
     }
 
     private aiSummary(): Record<string, unknown> {
         const summary: Record<string, unknown> = {
-            kind: "Page",
-            id: this.id,
-            title: this.title,
-            editor: this.editor,
-            language: this.language,
-            filePath: this.filePath,
-            modified: this.modified,
-            pinned: this.pinned,
-            active: pagesModel.activePage?.id === this.id,
+            kind: "Page", id: this.id, title: this.title, editor: this.editor.id,
+            language: this.language, filePath: this.filePath, modified: this.modified,
+            pinned: this.pinned, active: pagesModel.activePage?.id === this.id,
         };
         const state = this.browserState();
         if (state) {
@@ -278,195 +211,24 @@ export class PageWrapper implements IAiVisible {
         return summary;
     }
 
-    // ── Editor facades ────────────────────────────────────────────────
-
-    async asText(force = false): Promise<TextEditorFacade> {
-        await this.ensureEditor("monaco", "Monaco", "asText", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof MonacoEditor)) {
-            throw new Error("asText(): page is not a MonacoEditor after switch");
-        }
-        return new TextEditorFacade(editor);
-    }
-
-    async asGrid(force = false): Promise<GridEditorFacade> {
-        const targetId = this.resolveGridEditorId();
-        await this.ensureEditor(targetId, "Grid", "asGrid", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof GridEditor)) {
-            throw new Error("asGrid(): page is not a GridEditor after switch");
-        }
-        return new GridEditorFacade(editor);
-    }
-
-    private resolveGridEditorId(): EditorView {
-        const id = this.currentEditorId();
-        if (id === "grid-json" || id === "grid-csv" || id === "grid-jsonl") {
-            return id as EditorView;
-        }
-        const language = this.mainEditor?.contentHost?.state.get().language
-            ?? (this.model.state.get() as { language?: string }).language;
-        if (language === "json") return "grid-json";
-        if (language === "csv") return "grid-csv";
-        if (language === "jsonl") return "grid-jsonl";
-        throw new Error("asGrid(): content is not JSON, CSV, or JSONL");
-    }
-
-    async asNotebook(force = false): Promise<NotebookEditorFacade> {
-        await this.ensureEditor("notebook-view", "Notebook", "asNotebook", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof NotebookEditor)) {
-            throw new Error("asNotebook(): page is not a NotebookEditor after switch");
-        }
-        return new NotebookEditorFacade(editor);
-    }
-
-    async asLink(force = false): Promise<LinkEditorFacade> {
-        await this.ensureEditor("link-view", "Link", "asLink", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof LinkEditor)) {
-            throw new Error("asLink(): page is not a LinkEditor after switch");
-        }
-        return new LinkEditorFacade(editor);
-    }
-
-    async asMarkdown(force = false): Promise<MarkdownEditorFacade> {
-        await this.ensureEditor("md-view", "Markdown", "asMarkdown", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof MarkdownEditor)) {
-            throw new Error("asMarkdown(): page is not a MarkdownEditor after switch");
-        }
-        return new MarkdownEditorFacade(editor);
-    }
-
-    async asSvg(force = false): Promise<SvgEditorFacade> {
-        await this.ensureEditor("svg-view", "SVG", "asSvg", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof SvgEditor)) {
-            throw new Error("asSvg(): page is not a SvgEditor after switch");
-        }
-        return new SvgEditorFacade(editor);
-    }
-
-    async asHtml(force = false): Promise<HtmlEditorFacade> {
-        await this.ensureEditor("html-view", "HTML", "asHtml", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof HtmlEditor)) {
-            throw new Error("asHtml(): page is not an HtmlEditor after switch");
-        }
-        return new HtmlEditorFacade(editor);
-    }
-
-    async asMermaid(force = false): Promise<MermaidEditorFacade> {
-        await this.ensureEditor("mermaid-view", "Mermaid", "asMermaid", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof MermaidEditor)) {
-            throw new Error("asMermaid(): page is not a MermaidEditor after switch");
-        }
-        return new MermaidEditorFacade(editor);
-    }
-
-    async asGraph(force = false): Promise<GraphEditorFacade> {
-        await this.ensureEditor("graph-view", "Graph", "asGraph", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof GraphEditor)) {
-            throw new Error("asGraph(): page is not a GraphEditor after switch");
-        }
-        return new GraphEditorFacade(editor);
-    }
-
-    async asDraw(force = false): Promise<DrawEditorFacade> {
-        await this.ensureEditor("draw-view", "Draw", "asDraw", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof DrawEditor)) {
-            throw new Error("asDraw(): page is not a DrawEditor after switch");
-        }
-        return new DrawEditorFacade(editor);
-    }
-
-    async asBrowser(): Promise<BrowserEditorFacade> {
-        if (this.currentEditorId() !== "browser-view") {
-            throw new Error("asBrowser() is only available for browser pages");
-        }
-        return new BrowserEditorFacade(this.model as unknown as BrowserEditorModel);
-    }
-
-    async asMcpInspector(): Promise<McpInspectorFacade> {
-        if (this.currentEditorId() !== "mcp-view") {
-            throw new Error("asMcpInspector() is only available for MCP Inspector pages");
-        }
-        return new McpInspectorFacade(this.model as unknown as McpInspectorEditorModel);
-    }
-
-    async asImage(): Promise<ImageEditorFacade> {
-        if (this.currentEditorId() !== "image-view") {
-            throw new Error("asImage() is only available for image pages");
-        }
-        return new ImageEditorFacade(this.mainEditor as unknown as ImageEditor);
-    }
-
-    private async ensureEditor(
-        targetId: string,
-        expectedClassName: string,
-        methodName: string,
-        force: boolean,
-    ): Promise<void> {
-        if (this.currentEditorId() === targetId) return;
-        if (!force) {
-            throw new Error(
-                `${methodName}() requires the page to already be a ${expectedClassName} editor. `
-                + `Pass true to attempt a switch.`,
-            );
-        }
-        const page = this.model.page;
-        if (!page) {
-            throw new Error(`${methodName}(true): editor is not attached to a page`);
-        }
-        const compatible = this.compatibleEditorIds();
-        if (!compatible.includes(targetId)) {
-            throw new Error(
-                `${methodName}(true): cannot switch to '${targetId}' — `
-                + `not in the page's compatible editors list`,
-            );
-        }
-        await page.switchMainEditor(targetId);
-    }
-
-    private compatibleEditorIds(): string[] {
-        const editor = this.mainEditor;
-        if (editor) return editor.findCompatibleEditors();
-        const s = this.model.state.get() as { language?: string; filePath?: string };
-        return editorRegistry.getSwitchOptions(s.language ?? "", s.filePath).options;
-    }
-
     async runScript(): Promise<string> {
         const language = this.model.state.get().language ?? "";
         const { isScriptLanguage } = await import("../transpile");
-        if (!isScriptLanguage(language)) {
-            throw new Error("runScript() is only available for javascript/typescript pages");
-        }
+        if (!isScriptLanguage(language)) throw new Error("runScript() is only available for javascript/typescript pages");
         const { scriptRunner } = await import("../ScriptRunner");
         return scriptRunner.runWithResult(this.model.id, this.content, this.model, language);
     }
 }
 
 class GroupedPageWrapper extends PageWrapper {
-    constructor(
-        model: EditorOrHost,
-        releaseList: Array<() => void>,
-        private readonly flags?: ScriptOutputFlags,
-    ) {
+    constructor(model: EditorOrHost, releaseList: Array<() => void>, private readonly flags?: ScriptOutputFlags) {
         super(model, releaseList);
     }
 
     set content(value: string) {
         super.content = value;
-        if (this.flags) {
-            this.flags.groupedContentWritten = true;
-        }
+        if (this.flags) this.flags.groupedContentWritten = true;
     }
 
-    get content(): string {
-        return super.content;
-    }
+    get content(): string { return super.content; }
 }

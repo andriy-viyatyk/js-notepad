@@ -11,27 +11,18 @@ graph TD
 
     PCW --> |"returns"| PW2["PageWrapper<br/><i>for each page</i>"]
 
-    PW --> |"page.asText()"| TF["TextEditorFacade"]
-    PW --> |"page.asGrid()"| GF["GridEditorFacade"]
-    PW --> |"page.asNotebook()"| NF["NotebookEditorFacade"]
-    PW --> |"page.asLink()"| LF["LinkEditorFacade"]
-    PW --> |"page.asBrowser()"| BF["BrowserEditorFacade"]
-    PW --> |"page.asMarkdown()"| MF["MarkdownEditorFacade"]
-    PW --> |"page.asSvg()"| SF["SvgEditorFacade"]
-    PW --> |"page.asHtml()"| HF["HtmlEditorFacade"]
-    PW --> |"page.asMermaid()"| MMF["MermaidEditorFacade"]
+    PW --> |"page.editor"| EF["current editor's facade<br/><i>TextEditorFacade, GridEditorFacade, …<br/>GenericEditorFacade when none</i>"]
+    PW --> |"page.editorSwitches"| ES["PageEditorSwitchesNode<br/><i>current, options, switchTo</i>"]
+    PW --> |"page.panels"| PP["PagePanelsNode"]
 
     PW --> |"page.grouped"| PW3["PageWrapper<br/><i>auto-created</i>"]
 
     subgraph RL["Shared releaseList"]
-        R1["() => release grid-json"]
-        R2["() => release notebook"]
-        R3["..."]
+        R1["() => unsubscribe event handler"]
+        R2["..."]
     end
 
-    TF -.-> RL
-    GF -.-> RL
-    NF -.-> RL
+    AW -.-> RL
 
     style CTX fill:#fff3e0
     style AW fill:#e8f5e9

@@ -11,7 +11,7 @@ none, and `list_pages` reports theirs as empty or absent.
 `get_page_content` (and `get_active_page`) adapt to the page type:
 
 - **Text-based pages** (monaco, markdown, grid, notebook, mermaid, svg, …) return `{ id, title, content }` — the source text.
-- **Image pages** (`image-view`, e.g. screen snips or opened image files) return the rendered PNG **as an image block in the tool result** — you see the picture directly. Works for background (non-active) pages too. Very large images degrade to a hint pointing at `page.asImage().savePngToFile(path)`.
+- **Image pages** (`image-view`, e.g. screen snips or opened image files) return the rendered PNG **as an image block in the tool result** — you see the picture directly. Works for background (non-active) pages too. Very large images degrade to a hint pointing at `page.editor.savePngToFile(path)`.
 - **Other non-text pages** (browser, board, video, PDF, …) return `{ id, title, hint }` — a one-line pointer to the right tool (`browser_*`, `execute_script` facades, or the file path from `list_pages`).
 
 ## Automating Persephone's Own UI
@@ -196,7 +196,7 @@ required `language` and title suffix):
 ### Graph Editor Format (`graph-view`)
 
 The graph editor renders an interactive force-directed graph. The full data format (node/link
-properties, options and their defaults, group nodes, legend) and the `page.asGraph()` scripting
+properties, options and their defaults, group nodes, legend) and the `page.editor` scripting
 API live in **`read_guide("graph")`** — read it before creating or editing graph pages. The
 minimum you need here: content is JSON with `"type": "force-graph"`, `nodes`, `links`, and
 `options`; the empty page is `{"type":"force-graph","nodes":[],"links":[],"options":{}}`; the
@@ -275,11 +275,11 @@ When a script runs, the **return value** is written to a grouped (side-by-side) 
 // Return value becomes the output content
 const data = JSON.parse(page.content);
 page.grouped.language = "json";
-page.grouped.editor = "grid-json";
+page.grouped.editorSwitches.switchTo("grid-json");
 return data.filter(item => item.active);
 ```
 
-Access `page.grouped` to auto-create a grouped page. Set `page.grouped.language` and `page.grouped.editor` before returning.
+Access `page.grouped` to auto-create a grouped page. Set `page.grouped.language` and call `page.grouped.editorSwitches.switchTo(id)` before returning.
 
 ## Errors & verification
 

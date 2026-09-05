@@ -4,6 +4,8 @@ import type { McpRequestEntry } from "../../editors/log-view/logTypes";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const MCP_INSPECTOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "connectionStatus", kind: "property", summary: "Connection state: \"disconnected\", \"connecting\", \"connected\", \"error\"." },
     { name: "serverName", kind: "property", summary: "Connected server name (empty when disconnected)." },
     { name: "serverTitle", kind: "property", summary: "Display-friendly server title (empty if not provided)." },
@@ -25,7 +27,7 @@ const MCP_INSPECTOR_MEMBERS: readonly IAiMember[] = [
     { name: "showHistory", kind: "method", signature: "showHistory(): Promise<void>", summary: "Open history in a new Log View page." },
 ];
 
-const MCP_INSPECTOR_HELP = `Obtain via pages[i].asMcpInspector() on an MCP Inspector page (\`mcp-view\`); this facade has no force argument and cannot switch a page to this editor.
+const MCP_INSPECTOR_HELP = `Access via pages[i].editor after narrowing editor.id to "mcp-view".
 MCP Inspector connection management and troubleshooting history facade.`;
 
 /**
@@ -36,7 +38,7 @@ MCP Inspector connection management and troubleshooting history facade.`;
  * - Exposes connection management and troubleshooting methods
  */
 export class McpInspectorFacade implements IAiVisible {
-    constructor(private readonly model: McpInspectorEditorModel) {}
+    constructor(private readonly model: McpInspectorEditorModel, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -45,7 +47,7 @@ export class McpInspectorFacade implements IAiVisible {
             members: MCP_INSPECTOR_MEMBERS,
             help: MCP_INSPECTOR_HELP,
             summarize: () => ({
-                kind: "McpInspector",
+                kind: "McpInspector", id: this.id, name: this.name,
                 connectionStatus: this.connectionStatus,
                 serverName: this.serverName,
                 historyCount: this.historyCount,

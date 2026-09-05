@@ -24,7 +24,7 @@ guide to read for which task. It is intentionally short — read it once per ses
   click Persephone's own UI (tabs, sidebar, dialogs).
 - **`call` is the one tool you can use without reading anything.** It addresses Persephone's live
   object model by path — `""` lists the top level, `pages` the open tabs, `page.content` the active
-  text, `pages[0].asGrid().rowCount` a grid, `windows[1].pages` another window — and every answer
+  text, `pages[0].editor.rowCount` a grid, `windows[1].pages` another window — and every answer
   carries a hint listing what is under it. Unknown members return the valid list. Paths use the
   same names as `app.*` in scripts, so what you learn there transfers to `execute_script`.
 - **`execute_script` is the power tool.** JavaScript/TypeScript with the `app` object (pages,

@@ -1,17 +1,19 @@
 /**
  * IMcpInspectorEditor — script interface for MCP Inspector pages.
  *
- * Obtained via `page.asMcpInspector()`. Only available for MCP Inspector pages.
+ * Obtained via `page.editor`. Only available for MCP Inspector pages.
  * Provides connection management and troubleshooting access.
  *
  * @example
- * const inspector = await page.asMcpInspector();
+ * const inspector = page.editor;
  * inspector.url = "http://127.0.0.1:7865/mcp";
  * await inspector.connect();
  * console.log(inspector.connectionStatus); // "connected"
  * console.log(inspector.serverName);       // "persephone"
  */
 export interface IMcpInspectorEditor {
+    readonly id: "mcp-view";
+    readonly name: string;
     // -- Connection status (read-only) --
 
     /** Connection state: "disconnected", "connecting", "connected", "error". */

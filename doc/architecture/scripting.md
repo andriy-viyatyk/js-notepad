@@ -23,7 +23,7 @@ ScriptRunner.run(script, page?, language?)
     │       │     ├── PageCollectionWrapper  ← wraps `app.pages`
     │       │     └── Events proxy ← wraps `app.events` (auto-tracks subscriptions)
     │       ├── page = PageWrapper      ← wraps `page` global
-    │       │     └── EditorFacades (14)  ← page.asText(), page.asGrid(), ...
+    │       │     └── Editor facades (13 operation + generic)  ← page.editor
     │       ├── io = IoNamespace        ← wraps `io` global (providers, pipes, events)
     │       ├── ai = AiNamespace        ← wraps `ai` global (ClaudeSession)
     │       ├── ui getter (lazy, stack-based on globalThis)
@@ -75,7 +75,6 @@ Scripts execute with access to these globals:
 interface IPage {
     // Identity (read-only)
     readonly id: string;
-    readonly type: EditorType;
     readonly title: string;
     readonly modified: boolean;
     readonly pinned: boolean;
@@ -84,28 +83,19 @@ interface IPage {
     // Mutable properties
     content: string;
     language: string;
-    editor: string;  // editor ID (e.g. "monaco", "grid-json")
+    // Current editor facade; narrow by editor.id before using operations
+    readonly editor: IEditorFacade;
+    // Toolbar switch projection and editor-switch operation
+    readonly editorSwitches: IPageEditorSwitches;
 
     // Script-local data storage (persists across runs within same session)
     data: Record<string, any>;
 
+    // Live page sidebar
+    readonly panels: IPagePanels;
+
     // Grouped page (auto-creates if none exists)
     readonly grouped: IPage;
-
-    // Editor facades (async — acquire ViewModel)
-    asText(): Promise<ITextEditor>;
-    asGrid(): Promise<IGridEditor>;
-    asNotebook(): Promise<INotebookEditor>;
-    asLink(): Promise<ILinkEditor>;
-    asMarkdown(): Promise<IMarkdownEditor>;
-    asSvg(): Promise<ISvgEditor>;
-    asHtml(): Promise<IHtmlEditor>;
-    asMermaid(): Promise<IMermaidEditor>;
-    asGraph(): Promise<IGraphEditor>;
-    asDraw(): Promise<IDrawEditor>;
-    asBrowser(): Promise<IBrowserEditor>;
-    asMcpInspector(): Promise<IMcpInspectorEditor>;
-    asImage(): Promise<IImageEditor>;
 
     // Run this page as a script (same as F5)
     runScript(): Promise<string>;
@@ -465,25 +455,36 @@ When no library is linked, actions that need the library (sidebar "Select Folder
 
 ## Editor Facades
 
-Facades provide safe, typed access to editor-specific features. Each facade wraps an `EditorModel` subclass (the page's `mainEditor`) and is returned by `page.asX()` methods.
+Facades provide safe, typed access to editor-specific features. Each facade wraps the page's current
+`mainEditor` (`EditorModel` subclass) and is exposed synchronously as `page.editor`. The value is a
+discriminated union: narrow on `editor.id` before calling editor-specific operations. Editors without
+an operation facade still return a `GenericEditorFacade` with their `id` and display `name`.
 
-| Method | Facade | Wraps | Key Operations |
+| Facade access | Facade | Wraps | Key Operations |
 |--------|--------|-------|----------------|
-| `page.asText()` | `TextEditorFacade` | `MonacoEditor` | `getSelectedText()`, `insertText()`, `replaceSelection()`, `revealLine()`, cursor position |
-| `page.asGrid()` | `GridEditorFacade` | `GridEditor` | `rows`, `columns`, `editCell()`, `addRows()`, `deleteRows()`, `addColumns()`, `deleteColumns()` |
-| `page.asNotebook()` | `NotebookEditorFacade` | `NotebookEditor` | `notes`, `categories`, `tags`, `addNote()`, `deleteNote()`, `updateNoteTitle()` |
-| `page.asLink()` | `LinkEditorFacade` | `LinkEditor` | `links`, `categories`, `tags`, `addLink()`, `deleteLink()`, `updateLink()` |
-| `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownEditor` | `viewMounted`, `html` (read-only) |
-| `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` | `svg` (read-only), `savePngToFile()` |
-| `page.asHtml()` | `HtmlEditorFacade` | `HtmlEditor` | `html` (read-only) |
-| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidEditor` | `svgUrl`, `loading`, `error` (read-only), `savePngToFile()` |
-| `page.asGraph()` | `GraphEditorFacade` | `GraphEditor` | `nodes`, `links`, `search()`, `bfs()`, `getComponents()`, `select()`, selection, groups, neighbors |
-| `page.asDraw()` | `DrawEditorFacade` | `DrawEditor` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
-| `page.asBrowser()` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
-| `page.asMcpInspector()` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
-| `page.asImage()` | `ImageEditorFacade` | `ImageEditor` | `savePngToFile()` |
+| `page.editor` | `TextEditorFacade` | `MonacoEditor` | `getSelectedText()`, `insertText()`, `replaceSelection()`, `revealLine()`, cursor position |
+| `page.editor` | `GridEditorFacade` | `GridEditor` | `rows`, `columns`, `editCell()`, `addRows()`, `deleteRows()`, `addColumns()`, `deleteColumns()` |
+| `page.editor` | `NotebookEditorFacade` | `NotebookEditor` | `notes`, `categories`, `tags`, `addNote()`, `deleteNote()`, `updateNoteTitle()` |
+| `page.editor` | `LinkEditorFacade` | `LinkEditor` | `links`, `categories`, `tags`, `addLink()`, `deleteLink()`, `updateLink()` |
+| `page.editor` | `MarkdownEditorFacade` | `MarkdownEditor` | `viewMounted`, `html` (read-only) |
+| `page.editor` | `SvgEditorFacade` | `SvgEditor` | `svg` (read-only), `savePngToFile()` |
+| `page.editor` | `HtmlEditorFacade` | `HtmlEditor` | `html` (read-only) |
+| `page.editor` | `MermaidEditorFacade` | `MermaidEditor` | `svgUrl`, `loading`, `error` (read-only), `savePngToFile()` |
+| `page.editor` | `GraphEditorFacade` | `GraphEditor` | `nodes`, `links`, `search()`, `bfs()`, `getComponents()`, `select()`, selection, groups, neighbors |
+| `page.editor` | `DrawEditorFacade` | `DrawEditor` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
+| `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
+| `page.editor` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
+| `page.editor` | `ImageEditorFacade` | `ImageEditor` | `savePngToFile()` |
+| `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade | `id`, `name` only |
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
+
+`page.editorSwitches` is the script-facing projection of the page toolbar's editor-switch widget. It
+exposes `current`, the merged toolbar `options` (`{ id, label }`), and `switchTo(id)`. The options
+list is what the toolbar offers, including compatible editors and board/install entries; `switchTo`
+accepts any registered editor id and verifies that the awaited switch actually changed the main
+editor. Its implementation is `/src/renderer/scripting/ai-vision/page-editor-switches.ts`, using the
+shared projection in `/src/renderer/editors/base/editor-switch-options.ts`.
 
 The Mermaid, SVG, and Image editors expose `savePngToFile(filePath)` — they rasterise their
 rendered output to PNG and write it to disk. This is the same capability used by each editor's
@@ -500,7 +501,7 @@ Editor facades are stateless wrappers — there is nothing to release when a scr
 
 ```
 1. Script starts → new ScriptContext() creates releaseList = []
-2. Script calls page.asGrid()
+2. Script reads page.editor
    → returns a stateless GridEditorFacade wrapping page.mainEditor (GridEditor)
    → no entry added to releaseList
 3. Script calls app.events.fileExplorer.itemContextMenu.subscribe(handler)
@@ -541,8 +542,11 @@ class PageWrapper {
         return new GroupedPageWrapper(grouped, this.releaseList, this.outputFlags);
     }
 
-    // Facade acquisition with auto-release
-    async asGrid(): Promise<GridEditorFacade> { ... }
+    // Current facade (synchronous, read-only)
+    get editor(): IEditorFacade { ... }
+
+    // Toolbar switch node
+    get editorSwitches(): IPageEditorSwitches { ... }
 
     // Run this page's content as a script (same as F5)
     async runScript(): Promise<string> { ... }
@@ -749,7 +753,7 @@ When a script accesses `page.grouped`:
 // This automatically creates and groups a new page
 page.grouped.content = 'Output here';
 page.grouped.language = 'json';
-page.grouped.editor = 'grid-json';
+await page.grouped.editorSwitches.switchTo('grid-json');
 ```
 
 ### Output Suppression

@@ -1,4 +1,6 @@
 export interface ITextEditor {
+    readonly id: "monaco";
+    readonly name: string;
     /** True when the Monaco editor is visible and mounted. The
      *  queue layer defers commands until mount, so this is informational —
      *  consumers no longer need to gate calls on it. */

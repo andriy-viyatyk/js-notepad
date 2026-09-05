@@ -790,10 +790,10 @@ The bypass uses a one-shot `bypassUnloadGuard` flag on the per-webContents `Regi
 
 ## Scripting Facade
 
-Scripts access browser pages via `page.asBrowser()`, which returns a `BrowserEditorFacade`. Like all editor facades, this wraps the underlying `EditorModel` subclass (`BrowserEditor`) directly; the editor then composes focused sub-models — there is no separate view-model layer.
+Scripts access browser pages via `page.editor`, which returns a `BrowserEditorFacade`. Like all editor facades, this wraps the underlying `EditorModel` subclass (`BrowserEditor`) directly; the editor then composes focused sub-models — there is no separate view-model layer.
 
 ```javascript
-const browser = await page.asBrowser();
+const browser = page.editor;
 browser.navigate("https://example.com");
 await browser.waitForNavigation();
 const snapshot = await browser.snapshot();  // accessibility tree (YAML)

@@ -302,7 +302,8 @@ await app.events.openRawLink.sendAsync(
 Converts an `ILink` object (e.g., from a `.link.json` collection) to an `ILinkData`, preserving all fields (title, category, tags, imgSrc, target). Use this when opening a link from a collection through the pipeline.
 
 ```javascript
-const linkEditor = await page.asLink();
+const linkEditor = page.editor;
+if (linkEditor.id !== "link-view") throw new Error("Open a Link Editor page first");
 for (const link of linkEditor.links) {
     const data = io.linkToLinkData(link);
     await app.events.openRawLink.sendAsync(data);

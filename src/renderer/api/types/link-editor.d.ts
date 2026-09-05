@@ -1,13 +1,15 @@
 /**
  * ILinkEditor — scripting interface for the Link editor.
  *
- * Access via `await page.asLink()` on `.link.json` pages.
+ * Access via `page.editor` on `.link.json` pages.
  *
  * @example
- * const le = await page.asLink();
+ * const le = page.editor;
  * le.addLink("https://example.com", "Example", "bookmarks");
  */
 export interface ILinkEditor {
+    readonly id: "link-view";
+    readonly name: string;
     /** All links (complete data, not filtered by UI). */
     readonly links: ILink[];
 

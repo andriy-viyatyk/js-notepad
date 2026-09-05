@@ -2,12 +2,10 @@ flowchart TB
     START["Script starts"] --> CREATE["releaseList = []"]
     CREATE --> RUN["Execute script code"]
 
-    RUN --> |"page.asGrid()"| FAC1["return stateless<br/>GridEditorFacade<br/><i>no release fn</i>"]
-    RUN --> |"page.asText()"| FAC2["return stateless<br/>TextEditorFacade<br/><i>no release fn</i>"]
+    RUN --> |"page.editor"| FAC["return stateless facade<br/>for the current editor<br/><i>no release fn</i>"]
     RUN --> |"app.events.X.subscribe(h)"| SUB["push unsubscribe()<br/>onto releaseList"]
 
-    FAC1 --> RUN
-    FAC2 --> RUN
+    FAC --> RUN
     SUB --> RUN
 
     RUN --> |"success or error"| FINALLY["finally block"]

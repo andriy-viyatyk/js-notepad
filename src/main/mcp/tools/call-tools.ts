@@ -68,7 +68,7 @@ function isWindowOpen(index: number): boolean {
 }
 
 /**
- * A forwarded response talks in renderer-relative paths (`pages[2]`, `page.asGrid()`,
+ * A forwarded response talks in renderer-relative paths (`pages[2]`, `page.editor`,
  * `Details: call with path "pages.$help"`). Re-add the `windows[i].` prefix wherever a line or a
  * quoted path starts with the renderer's resolved path, so the agent sees the paths it typed.
  */
@@ -109,7 +109,7 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                 "  path: \"page.content\"                    → text of the active page",
                 "  path: \"pages[0].content\", value: \"...\" → replace a page's text",
                 "  path: \"pages.showPage\", args: [\"<id>\"]  → activate a page",
-                "  path: \"pages[0].asGrid().rowCount\"      → rows in a grid page",
+                "  path: \"pages[0].editor.rowCount\"      → rows in a grid page",
                 "  path: \"helpSearch\", args: [\"add rows\"]  → find where something lives",
                 "  path: \"pages[0].$help\"                  → long-form help for a node",
                 "  path: \"windows\"                         → all windows; prefix any path with windows[i]. to target one (default: the main window)",
@@ -121,7 +121,7 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                 "Paths use the same names as the scripting API (execute_script). Put method arguments in `args` and assignments in `value`; the path itself takes only short JSON literals like pages[2] or pages[\"id\"]. An unknown member returns the valid member list instead of failing.",
             ].join("\n"),
             schema: {
-                path: z.string().describe("Path into the object model, e.g. \"\", \"pages\", \"pages[0].content\", \"pages[\\\"<id>\\\"].asGrid().rows\", \"page.$help\"."),
+                path: z.string().describe("Path into the object model, e.g. \"\", \"pages\", \"pages[0].content\", \"pages[\\\"<id>\\\"].editor.rows\", \"page.$help\"."),
                 args: z.array(z.unknown()).optional().describe("Arguments for the last segment when it is a method (JSON array). Use this for strings with quotes/newlines or any non-trivial value."),
                 value: z.unknown().optional().describe("Assign this value to the property named by the last segment (e.g. page.content). Mutually exclusive with args."),
                 hints: z.enum(["auto", "always", "never"]).optional().describe("auto (default): the member list for each kind of object is sent once per session, live children always; always: repeat member lists; never: no hints."),

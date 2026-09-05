@@ -171,7 +171,12 @@
             header("persephone.call → hosting page");
             const title = await P.call("page.title");
             const editor = await P.call("page.editor");
-            print(JSON.stringify({ title, editor }, null, 2));
+            print(JSON.stringify({
+                title,
+                editor: editor && typeof editor === "object"
+                    ? { id: editor.id ?? null, name: editor.name ?? null }
+                    : null,
+            }, null, 2));
             print("main.* and windows[i].* are MCP-only paths.");
         },
 

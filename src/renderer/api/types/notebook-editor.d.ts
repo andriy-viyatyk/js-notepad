@@ -1,15 +1,17 @@
 /**
  * INotebookEditor — scripting interface for the Notebook editor.
  *
- * Access via `await page.asNotebook()` on `.note.json` pages.
+ * Access via `page.editor` on `.note.json` pages.
  *
  * @example
- * const nb = await page.asNotebook();
+ * const nb = page.editor;
  * const note = nb.addNote();
  * nb.updateNoteTitle(note.id, "My Note");
  * nb.updateNoteContent(note.id, "Hello world");
  */
 export interface INotebookEditor {
+    readonly id: "notebook-view";
+    readonly name: string;
     /** All notes (complete data, not filtered by UI). */
     readonly notes: INote[];
 

@@ -41,11 +41,11 @@ sequenceDiagram
         SR->>PW: page.content (getter)
         PW-->>SR: model.state.get().content
 
-        Note over PW,EM: Script calls page.asGrid()
-        SR->>PW: await page.asGrid()
-        PW->>F: new GridEditorFacade(gridEditor)
+        Note over PW,EM: Script reads page.editor
+        SR->>PW: page.editor (getter)
+        PW->>F: facade for mainEditorInstance<br/>(GridEditorFacade here)
         Note right of F: Stateless wrapper —<br/>no acquire/release
-        F-->>SR: IGridEditor
+        F-->>SR: IEditorFacade (id: "grid-json")
 
         Note over F: Script uses facade
         SR->>F: facade.addRows(5)

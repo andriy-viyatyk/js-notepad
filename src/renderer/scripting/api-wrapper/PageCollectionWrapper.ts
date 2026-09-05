@@ -43,8 +43,9 @@ const PAGES_HELP = `
 The open pages (tabs) of this window. Index by position — pages[0] — or by id — pages["<id>"].
 Ids are stable while the page is open; positions change when tabs move.
 Read a page's text with pages[i].content, replace it by assigning "value" to the same path, switch
-editors with pages[i].editor, and use pages[i].asGrid() / asText() / asNotebook() … for
-editor-specific operations. Create pages with addEmptyPage(), addEditorPage(...) or openFile(path).
+editors with pages[i].editor; narrow its id for editor-specific operations, then use
+pages[i].editorSwitches.switchTo(id) to switch. Create pages with addEmptyPage(), addEditorPage(...)
+or openFile(path).
 `;
 
 /**
@@ -81,7 +82,7 @@ export class PageCollectionWrapper implements IAiVisible {
             return {
                 segment: `[${i}]`,
                 kind: "Page",
-                summary: `"${page.title}" id=${page.id} (${page.editor}${page.modified ? ", modified" : ""})${active}`,
+                summary: `"${page.title}" id=${page.id} (${page.editor.id}${page.modified ? ", modified" : ""})${active}`,
                 ...(restricted ? { restricted } : {}),
             };
         });

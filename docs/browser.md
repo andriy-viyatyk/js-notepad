@@ -360,10 +360,10 @@ The browser saves and restores the following across app restarts:
 
 ## Scripting & Automation
 
-Browser pages can be controlled from scripts using the `page.asBrowser()` facade. This gives you programmatic control over navigation and lets you query and interact with the loaded page via CSS selectors.
+Browser pages can be controlled from scripts using the `page.editor` facade. This gives you programmatic control over navigation and lets you query and interact with the loaded page via CSS selectors.
 
 ```javascript
-const browser = await page.asBrowser();
+const browser = page.editor;
 
 // Navigate and wait for the page to finish loading
 browser.navigate("https://example.com");
@@ -416,7 +416,7 @@ browser.switchTab(tabId);
 browser.closeTab(tabId);
 ```
 
-See the [`page.asBrowser()` API reference](./api/page.md#asbrowserpromiseibrowsereditor) for the full method list.
+See the [`page.editor` API reference](./api/page.md#editor-facades) for the full method list.
 
 ### MCP browser automation
 

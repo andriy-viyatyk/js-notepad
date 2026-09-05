@@ -58,7 +58,7 @@ const csv = rows.map(r => r.map(csvEscape).join(",")).join("\n");
 
 page.grouped.content = csv;
 page.grouped.language = "csv";
-page.grouped.editor = "grid-csv";
+page.grouped.editorSwitches.switchTo("grid-csv");
 page.grouped.title = page.title.replace(/\.xml$/, ".csv");
 
 preventOutput();

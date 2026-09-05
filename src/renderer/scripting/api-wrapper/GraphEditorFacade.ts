@@ -5,6 +5,8 @@ import { matchNodeSearch } from "../../editors/graph/GraphSearchModel";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const GRAPH_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "nodes", kind: "property", summary: "All nodes (cleaned, no D3 runtime fields)." },
     { name: "links", kind: "property", summary: "All links as {source, target} ID pairs." },
     { name: "nodeCount", kind: "property", summary: "Total node count." },
@@ -29,7 +31,7 @@ const GRAPH_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "groupingEnabled", kind: "property", summary: "Whether grouping is currently enabled." },
 ];
 
-const GRAPH_EDITOR_HELP = `Obtain via pages[i].asGraph() on a graph page (\`graph-view\`); pass true — \`asGraph(true)\` — to switch a compatible page to this editor first.
+const GRAPH_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "graph-view".
 Graph query and analysis facade for nodes, links, groups, selection, search, and traversal.`;
 
 /**
@@ -40,7 +42,7 @@ Graph query and analysis facade for nodes, links, groups, selection, search, and
  * Focuses on read/query operations — editing is done via page.content JSON.
  */
 export class GraphEditorFacade implements IAiVisible {
-    constructor(private readonly editor: GraphEditor) {}
+    constructor(private readonly editor: GraphEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -49,7 +51,7 @@ export class GraphEditorFacade implements IAiVisible {
             members: GRAPH_EDITOR_MEMBERS,
             help: GRAPH_EDITOR_HELP,
             summarize: () => ({
-                kind: "GraphEditor",
+                kind: "GraphEditor", id: this.id, name: this.name,
                 nodeCount: this.nodeCount,
                 linkCount: this.linkCount,
                 selectedCount: this.selectedIds.length,

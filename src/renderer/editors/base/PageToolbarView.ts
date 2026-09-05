@@ -1,13 +1,11 @@
 import { boardInstallRegistry } from "../../api/board-install-registry";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { publishedBoards } from "../../api/published-boards";
-import { fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
 import type { EditorModel, EditorStateBase } from "./EditorModel";
+import { getEditorSwitchFileName, getEditorSwitchOptions } from "./editor-switch-options";
 import { EditorToolbarView } from "./EditorToolbarView";
 import { TextHostEditorModel } from "./TextHostEditorModel";
 import { customEditorRegistry } from "../board/custom-editor-registry";
-import { editorRegistry } from "./editorRegistry";
-import { BOARD_INFO_EDITOR_ID } from "../board-info/board-info-id";
 import { isTextFileModel, type TextFileEditorModelState, type TextFileModel } from "../text/TextEditorModel";
 import { IconButtonView, type IconButtonViewProps } from "../../uikit/IconButton/IconButtonView";
 import {
@@ -290,61 +288,19 @@ export class SwitchWidgetView extends VanillaView<SwitchWidgetViewProps> {
 
     private syncSegments(): void {
         this.ensureHostSubscription();
-        const editorState = selectEditorSwitchProjection(this.model.state.get());
-        const hostState = this.host
-            ? selectHostSwitchProjection(this.host.state.get())
-            : { gitRepo: undefined, filePath: undefined, title: undefined };
-        const filePath = hostState.filePath ?? this.model.filePath;
-        const local = Boolean(filePath) && isPlainLocalPath(filePath);
-        const fileName = filePath ?? hostState.title ?? editorState.title ?? "";
+        const fileName = getEditorSwitchFileName(this.model);
         this.ensureCatalogSubscription(fileName);
 
-        const options = this.model.findCompatibleEditors();
-        const boardMatchesAll = customEditorRegistry.getBoardsForFile(fileName);
-        const boardMatches = local
-            ? boardMatchesAll
-            : boardMatchesAll.filter((board) => board.editorKind === "content-host");
-        const catalogAll = publishedBoards.catalogBoardsForFile(fileName);
-        const installed = boardInstallRegistry.listInstalled();
-        const trustedRoots = new Set(
-            boardMatches.map((board) => fpNormalizeForCompare(board.boardRoot)),
-        );
-        const catalogMatches = catalogAll.filter((catalogBoard) => {
-            if (!local && catalogBoard.editorKind !== "content-host") return false;
-            const installedEntry = installed.find((entry) => entry.id === catalogBoard.id);
-            if (
-                installedEntry
-                && trustedRoots.has(fpNormalizeForCompare(installedEntry.root))
-            ) return false;
-            return true;
-        });
-
-        const merged = [...options];
-        for (const board of boardMatches) {
-            if (!merged.includes(board.editorId)) merged.push(board.editorId);
-        }
-        if (catalogMatches.length > 0 && !merged.includes(BOARD_INFO_EDITOR_ID)) {
-            merged.push(BOARD_INFO_EDITOR_ID);
-        }
-        const plusIndex = merged.indexOf(BOARD_INFO_EDITOR_ID);
-        if (plusIndex !== -1 && plusIndex !== merged.length - 1) {
-            merged.splice(plusIndex, 1);
-            merged.push(BOARD_INFO_EDITOR_ID);
-        }
-        if (merged.length < 2 || !merged.includes(this.model.editorId)) {
+        const options = getEditorSwitchOptions(this.model);
+        if (options.length < 2 || !options.some((option) => option.id === this.model.editorId)) {
             this.removeSegmented();
             return;
         }
 
-        const boardNameById = new Map(boardMatches.map((board) => [board.editorId, board.name]));
-        const items: ISegment[] = merged.map((id) => ({
-            value: id,
-            label: id === BOARD_INFO_EDITOR_ID
-                ? "Â Â +Â Â "
-                : boardNameById.get(id) ?? editorRegistry.getById(id)?.name ?? id,
-            title: id === BOARD_INFO_EDITOR_ID
-                ? "Install an editor for this file typeâ€¦"
-                : undefined,
+        const items: ISegment[] = options.map((option) => ({
+            value: option.id,
+            label: option.label,
+            title: option.title,
         }));
         const props: SegmentedControlViewProps = {
             name: "page-editor-switch",

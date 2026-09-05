@@ -13,7 +13,7 @@ import { agentMayAccessBrowserPage } from "../../editors/browser/agent-access";
 const MAX_INLINE_IMAGE_BASE64 = 5 * 1024 * 1024;
 const OVERSIZE_IMAGE_HINT =
     "This image is too large to inline. Use execute_script with " +
-    '`(await page.asImage()).savePngToFile(path)` to write it to disk, then read the file.';
+    '`(page.editor).savePngToFile(path)` to write it to disk, then read the file.';
 
 type PageContentPayload =
     | { content: string }
@@ -166,7 +166,7 @@ export function handleSetPageContent(params: McpParams): McpResponse {
     if (!page) return { error: { code: -32602, message: `Page not found: ${pageId}` } };
     const textHost = pagesModel.getTextFileHost(page.id);
     if (!textHost) {
-        return { error: { code: -32602, message: "Page is not a text-based page. Use execute_script with page facades (asGrid, asNotebook, etc.) for structured editors." } };
+        return { error: { code: -32602, message: "Page is not a text-based page. Use execute_script with page.editor for structured editors." } };
     }
     textHost.changeContent(content);
     return { result: { id: page.id, title: page.title, contentLength: content.length } };

@@ -6,6 +6,8 @@ import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/dist/type
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const DRAW_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "addImage", kind: "method", signature: "addImage(dataUrl: string, options?: { x?: number; y?: number; maxDimension?: number }): Promise<void>", summary: "Insert an image onto the live canvas. Requires the drawing editor to be mounted (editorIsMounted === true)." },
     { name: "exportAsSvg", kind: "method", signature: "exportAsSvg(): Promise<string>", summary: "Export the drawing as SVG markup string." },
     { name: "exportAsPng", kind: "method", signature: "exportAsPng(options?: { scale?: number }): Promise<string>", summary: "Export the drawing as PNG data URL." },
@@ -13,7 +15,7 @@ const DRAW_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "editorIsMounted", kind: "property", summary: "Whether the Excalidraw editor is currently mounted. When true, addImage() works. When false, addImage() throws. Use app.pages.addDrawPage() to create a new page with an image instead." },
 ];
 
-const DRAW_EDITOR_HELP = `Obtain via pages[i].asDraw() on a drawing page (\`draw-view\`); pass true — \`asDraw(true)\` — to switch a compatible page to this editor first.
+const DRAW_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "draw-view".
 Drawing (Excalidraw) facade for adding images and exporting the canvas.`;
 
 /**
@@ -24,7 +26,7 @@ Drawing (Excalidraw) facade for adding images and exporting the canvas.`;
  * scripting bundle small — Excalidraw is only loaded when actually needed.
  */
 export class DrawEditorFacade implements IAiVisible {
-    constructor(private readonly editor: DrawEditor) {}
+    constructor(private readonly editor: DrawEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -33,7 +35,7 @@ export class DrawEditorFacade implements IAiVisible {
             members: DRAW_EDITOR_MEMBERS,
             help: DRAW_EDITOR_HELP,
             summarize: () => ({
-                kind: "DrawEditor",
+                kind: "DrawEditor", id: this.id, name: this.name,
                 elementCount: this.elementCount,
                 editorIsMounted: this.editorIsMounted,
             }),

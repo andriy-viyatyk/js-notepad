@@ -31,7 +31,7 @@ export const SERVER_INSTRUCTIONS = [
     "## Common scenarios",
     "",
     "**Look around, read or change what is open, without reading a guide:**",
-    "Use `call` with path \"\" first. It addresses the live object model by path (pages, page.content, pages[0].asGrid().rowCount, windows[1].pages) and every answer carries a hint listing what is under it.",
+    "Use `call` with path \"\" first. It addresses the live object model by path (pages, page.content, pages[0].editor.rowCount, windows[1].pages) and every answer carries a hint listing what is under it.",
     "",
     "**Show logs, results, or analysis to the user:**",
     "Use `ui_push` — it manages a Log View page automatically. Supports log messages, rich output (markdown, mermaid diagrams, grids, code blocks), and interactive dialogs.",
@@ -113,7 +113,7 @@ export const resourceFiles: IGuideResource[] = [
         name: "graph-guide",
         uri: "persephone://guides/graph",
         file: "mcp-res-graph.md",
-        description: "Force-graph editor guide — JSON data format, page.asGraph() API, editing graph data, group nodes. Read BEFORE working with graph pages.",
+        description: "Force-graph editor guide — JSON data format, page.editor API, editing graph data, group nodes. Read BEFORE working with graph pages.",
     },
     {
         name: "notebook-guide",

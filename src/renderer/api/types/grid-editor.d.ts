@@ -1,15 +1,17 @@
 /**
  * IGridEditor — grid data manipulation interface.
  *
- * Obtained via `await page.asGrid()`. Only available for text pages
+ * Obtained via `page.editor`. Only available for text pages
  * with JSON or CSV content.
  *
  * @example
- * const grid = await page.asGrid();
+ * const grid = page.editor;
  * grid.addRows(5);
  * grid.editCell("name", "0", "Alice");
  */
 export interface IGridEditor {
+    readonly id: "grid-json" | "grid-csv" | "grid-jsonl";
+    readonly name: string;
     /** All rows as plain objects. */
     readonly rows: any[];
 

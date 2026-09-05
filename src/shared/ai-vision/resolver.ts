@@ -56,7 +56,7 @@ export async function resolveCall(root: unknown, request: ICallRequest, seenKind
     try {
         segments = parsePath(path);
     } catch (error) {
-        const message = error instanceof PathSyntaxError ? error.message : String(error);
+        const message = error instanceof PathSyntaxError ? error.message : errMessage(error);
         return { path, error: `Invalid path: ${message}`, resolvedUpTo: "", hint: nodeHint("", root, seenKinds, "always") };
     }
 
@@ -171,7 +171,7 @@ function indexInto(current: unknown, descriptor: IAiVisionDescriptor | undefined
     return undefined;
 }
 
-/** `children()` may list `.grouped` or `.asGrid()` — those names are valid even if not in `members`. */
+/** `children()` may list `.grouped` or `.editor` — those names are valid even if not in `members`. */
 function isLiveChildMember(descriptor: IAiVisionDescriptor, name: string): boolean {
     const children = descriptor.children?.() ?? [];
     return children.some(child => child.segment === `.${name}` || child.segment.startsWith(`.${name}(`));

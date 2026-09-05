@@ -2,6 +2,8 @@ import type { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const TEXT_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "editorMounted", kind: "property", summary: "True when the Monaco editor is visible and mounted. The queue layer defers commands until mount, so this is informational - consumers no longer need to gate calls on it." },
     { name: "getSelectedText", kind: "method", signature: "getSelectedText(): Promise<string>", summary: "Get currently selected text, or empty string if no selection." },
     { name: "revealLine", kind: "method", signature: "revealLine(lineNumber: number): void", summary: "Scroll to reveal a specific line in the center of the editor." },
@@ -11,11 +13,11 @@ const TEXT_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "replaceSelection", kind: "method", signature: "replaceSelection(text: string): Promise<void>", summary: "Replace current selection with text." },
 ];
 
-const TEXT_EDITOR_HELP = `Obtain via pages[i].asText() on a Monaco text page (\`monaco\`); pass true — \`asText(true)\` — to switch a compatible page to this editor first.
+const TEXT_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "monaco".
 Monaco text editor operations for selection, cursor, insertion, replacement, and line navigation.`;
 
 export class TextEditorFacade implements IAiVisible {
-    constructor(private readonly editor: MonacoEditor) {}
+    constructor(private readonly editor: MonacoEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -23,7 +25,7 @@ export class TextEditorFacade implements IAiVisible {
             summary: "Monaco text editor facade.",
             members: TEXT_EDITOR_MEMBERS,
             help: TEXT_EDITOR_HELP,
-            summarize: () => ({ kind: "TextEditor", editorMounted: this.editorMounted }),
+            summarize: () => ({ kind: "TextEditor", id: this.id, name: this.name, editorMounted: this.editorMounted }),
         };
     }
 

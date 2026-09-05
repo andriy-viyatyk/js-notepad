@@ -6,7 +6,17 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.24 (Upcoming)
+## Version 5.0.0 (Upcoming)
+
+### Breaking Changes
+
+- **The old `as*()` editor methods are removed** from the scripting API and the MCP `call` tree. A
+  page has exactly one editor at a time, so the editor's operations now live directly on
+  `page.editor` — narrow on `page.editor.id` before calling `page.editor.addRows(5)`. Check which
+  editor you have with `page.editor.id`.
+- **`page.editor` is no longer a string and is no longer assignable.** Switching editors is done
+  through `page.editorSwitches.switchTo("grid-json")`, which also lists the editors compatible with
+  the page (`page.editorSwitches.options`) — the same list the toolbar's switch widget shows.
 
 ### Bug Fixes
 

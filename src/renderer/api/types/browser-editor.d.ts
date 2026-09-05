@@ -1,13 +1,13 @@
 /**
  * IBrowserEditor — script interface for browser pages.
  *
- * Obtained via `page.asBrowser()`. Only available for browser pages.
+ * Obtained via `page.editor`. Only available for browser pages.
  *
  * All automation methods accept an optional `{ tabId }` option to target
  * a specific tab. Defaults to the active tab.
  *
  * @example
- * const browser = await page.asBrowser();
+ * const browser = page.editor;
  * browser.navigate("https://example.com");
  *
  * // Query and interact
@@ -22,6 +22,8 @@
  * const title = await browser.getText("h1", { tabId: newTab });
  */
 export interface IBrowserEditor {
+    readonly id: "browser-view";
+    readonly name: string;
     /** Current URL of the active tab. */
     readonly url: string;
 

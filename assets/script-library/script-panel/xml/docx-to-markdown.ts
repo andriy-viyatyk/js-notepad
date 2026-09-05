@@ -140,7 +140,7 @@ const result = md.join("\n\n");
 
 page.grouped.content = result;
 page.grouped.language = "markdown";
-page.grouped.editor = "md-view";
+page.grouped.editorSwitches.switchTo("md-view");
 page.grouped.title = page.title.replace(/\.xml$/, ".md");
 
 preventOutput();

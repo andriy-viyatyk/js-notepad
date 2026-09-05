@@ -3,21 +3,23 @@ import { writePngToFile } from "../../editors/shared/image-export";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const IMAGE_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "savePngToFile", kind: "method", signature: "savePngToFile(filePath: string): Promise<string>", summary: "Re-encode the displayed image to PNG (1x scale) and write it to filePath. Parent directories are created as needed. Returns the written path.", caution: "writes a PNG and may overwrite the target" },
 ];
 
-const IMAGE_EDITOR_HELP = `Obtain via pages[i].asImage() on an image page (\`image-view\`); this facade has no force argument and cannot switch a page to this editor.
+const IMAGE_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to \"image-view\".
 Image viewer facade with PNG export.`;
 
 /**
  * Safe facade around ImageEditor for script access.
  * Implements the IImageEditor interface from api/types/image-editor.d.ts.
  *
- * Obtained via `page.asImage()` for image pages. Lets a script (and, through
+ * Accessed via `page.editor` after narrowing `page.editor.id` to `image-view`. Lets a script (and, through
  * `execute_script`, an agent) write the displayed image to a file as PNG.
  */
 export class ImageEditorFacade implements IAiVisible {
-    constructor(private readonly editor: ImageEditor) {}
+    constructor(private readonly editor: ImageEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -25,7 +27,7 @@ export class ImageEditorFacade implements IAiVisible {
             summary: "Image viewer facade.",
             members: IMAGE_EDITOR_MEMBERS,
             help: IMAGE_EDITOR_HELP,
-            summarize: () => ({ kind: "ImageEditor" }),
+            summarize: () => ({ kind: "ImageEditor", id: this.id, name: this.name }),
         };
     }
 

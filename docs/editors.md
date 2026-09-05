@@ -156,7 +156,7 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
   - A plain-text clipboard is never intercepted.
 - **Screen Snip** — the **…** (three-dot) button in the Persephone window header opens a snip menu with two options: **Snip Screen** (hides Persephone, then capture the desktop) and **Snip Persephone** (keeps Persephone visible so you can capture its own content). After selecting a region, the screenshot opens in a new Image Viewer tab. See [Screen Snip](#screen-snip) for details.
 
-**Scripting:** `const img = await page.asImage()` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`asImage()` API reference](./api/page.md#asimage--promiseimageeditor).
+**Scripting:** `const img = page.editor` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`editor` API reference](./api/page.md#editor-facades).
 
 ## Screen Snip
 
@@ -190,7 +190,7 @@ For `.svg` files — opens in text editor by default, click **Preview** in the t
 - **Open in Drawing Editor** — toolbar button embeds the SVG into a new Excalidraw drawing tab for annotation
 - Switch between text editor and preview anytime
 
-**Scripting:** `const svg = await page.asSvg()` — exposes `savePngToFile(filePath)` to rasterise and write the SVG as PNG to disk. See [`asSvg()` API reference](./api/page.md#assvg--promiseisvgeditor).
+**Scripting:** `const svg = page.editor` — exposes `savePngToFile(filePath)` to rasterise and write the SVG as PNG to disk. See [`editor` API reference](./api/page.md#editor-facades).
 
 ## Mermaid Diagram Viewer
 
@@ -217,7 +217,7 @@ For `.mmd` and `.mermaid` files — click **Mermaid** in the toolbar:
 | When to use | You want to rearrange nodes, change colors, or annotate individual elements | You want to add callouts or highlights on top of a diagram without breaking it apart |
 | Supported types | Flowchart, sequence, class | All types |
 
-**Scripting:** `const m = await page.asMermaid()` — exposes `savePngToFile(filePath)` to render the diagram and write it as PNG to disk. The method renders on demand even when the diagram page is not the active tab. See [`asMermaid()` API reference](./api/page.md#asmermaid--promiseimermaideditor).
+**Scripting:** `const m = page.editor` — exposes `savePngToFile(filePath)` to render the diagram and write it as PNG to disk. The method renders on demand even when the diagram page is not the active tab. See [`editor` API reference](./api/page.md#editor-facades).
 
 ## HTML Preview
 
@@ -388,7 +388,7 @@ Changes to Expand Depth and Max Visible are deferred — they take effect when t
 
 **Legend Panel:** A collapsible panel at the bottom-left corner for documenting what node levels and shapes mean. Click to expand (the chevron turns green when expanded); the panel has three tabs — **Selection**, **Level**, and **Shape** (Selection is the default tab). The Level and Shape tabs list levels or shapes present in the graph, with a checkbox to highlight matching nodes and a text input for a free-form description. Descriptions are persisted to the JSON `options.legend` object. The root node (if set) appears in both tabs with a shared description. The **Selection** tab provides radio filters — **Selected**, **Selected with children** (includes visual and real neighbors), and **Not selected** — enabling quick visual isolation of multi-selected subsets. Hold **Shift** as a shortcut to temporarily apply the "selected with children" highlighting without opening the legend panel. When checkboxes or radio filters are active, matching nodes are highlighted and non-matching nodes are dimmed. When search highlighting is active and the Legend panel is expanded, the Legend shows a "Search highlighting is active" message with a "Clear search" button instead of the normal tabs/content. Collapsing the panel clears the highlighting but preserves checkbox state.
 
-**Scripting API:** Scripts and MCP agents can query and analyze graph data via `const graph = await page.asGraph()`. The facade provides read-only access to nodes, links, selection, neighbor/group relationships, search, BFS traversal, and connected component analysis. See the [asGraph() API reference](./api/page.md#asgraphpromiseigrapheditor) for details.
+**Scripting API:** Scripts and MCP agents can query and analyze graph data via `const graph = page.editor`. The facade provides read-only access to nodes, links, selection, neighbor/group relationships, search, BFS traversal, and connected component analysis. See the [editor API reference](./api/page.md#editor-facades) for details.
 
 **Theme support:** Graph colors (node fill, edge color, selected/hover highlights) adapt to whichever of the 9 app themes is active.
 
@@ -424,7 +424,7 @@ For `.excalidraw` files — an Excalidraw-based drawing canvas. Click **Drawing*
 - **Offline ready** — no external dependencies; all assets are bundled
 - Can switch to Monaco for raw JSON editing
 
-**Scripting API:** Scripts and MCP agents can interact with drawings via `const draw = await page.asDraw()`. The facade supports inserting images (`addImage`), exporting as SVG or PNG, and querying element count. Use `app.pages.addDrawPage(dataUrl)` to create a new drawing page with an embedded image. See the [asDraw() API reference](./api/page.md#asdrawpromiseidraweditor) for details.
+**Scripting API:** Scripts and MCP agents can interact with drawings via `const draw = page.editor`. The facade supports inserting images (`addImage`), exporting as SVG or PNG, and querying element count. Use `app.pages.addDrawPage(dataUrl)` to create a new drawing page with an embedded image. See the [editor API reference](./api/page.md#editor-facades) for details.
 
 ## Link Editor
 
@@ -830,7 +830,7 @@ A tool for connecting to and testing MCP (Model Context Protocol) servers. Open 
 - **Resources tab** — Lists resources and resource templates provided by the server. Click a static resource to read and display its content. Click a resource template to open a parameter input form — fill in the URI parameters and click **Read Resource** to construct the URI and read the resource. Results render adaptively (Markdown, JSON, images, binary).
 - **Prompts tab** — Lists prompt templates. Select a prompt, fill in any arguments, and preview the resulting messages.
 - **Request history** — A collapsible history panel records all requests and responses with timing information, useful for debugging.
-- **Scripting API** — Scripts can interact with MCP Inspector pages via `const mcp = await page.asMcpInspector()`. See the [asMcpInspector() API reference](./api/page.md#asmcpinspectorpromiseimcpinspectoreditor) for details.
+- **Scripting API** — Scripts can interact with MCP Inspector pages via `const mcp = page.editor`. See the [editor API reference](./api/page.md#editor-facades) for details.
 
 Open an MCP Inspector page programmatically:
 ```javascript

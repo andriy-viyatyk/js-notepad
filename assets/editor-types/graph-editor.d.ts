@@ -1,19 +1,21 @@
 /**
  * IGraphEditor — graph query and analysis interface.
  *
- * Obtained via `await page.asGraph()`. Only available for text pages
+ * Obtained via `page.editor`. Only available for text pages
  * with force-graph JSON content.
  *
  * Primarily designed for AI agent usage via MCP (execute_script).
  * Focuses on read/query operations — editing is done via `page.content` JSON.
  *
  * @example
- * const graph = await page.asGraph();
+ * const graph = page.editor;
  * const neighbors = graph.getNeighborIds("my-node");
  * const results = graph.search("auth");
  * graph.select(results.map(r => r.nodeId));
  */
 export interface IGraphEditor {
+    readonly id: "graph-view";
+    readonly name: string;
     // ── Data Access ──────────────────────────────────────────────────
 
     /** All nodes (cleaned, no D3 runtime fields). */

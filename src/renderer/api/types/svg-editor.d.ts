@@ -1,13 +1,15 @@
 /**
  * ISvgEditor — script interface for the SVG preview.
  *
- * Obtained via `page.asSvg()`. Only for text pages with SVG content.
+ * Obtained via `page.editor`. Only for text pages with SVG content.
  *
  * @example
- * const svg = await page.asSvg();
+ * const svg = page.editor;
  * console.log(svg.svg); // the SVG source
  */
 export interface ISvgEditor {
+    readonly id: "svg-view";
+    readonly name: string;
     /** The SVG source content. */
     readonly svg: string;
 
@@ -16,7 +18,7 @@ export interface ISvgEditor {
      * directories are created as needed. Returns the written path.
      *
      * @example
-     * const svg = await page.asSvg();
+     * const svg = page.editor;
      * await svg.savePngToFile("D:/tmp/image.png");
      */
     savePngToFile(filePath: string): Promise<string>;

@@ -226,7 +226,7 @@ MCP resources are read-only documents that AI clients can discover and read to g
 | **ui_push Guide** | `persephone://guides/ui-push` | Log View output channel — entry types, dialogs, examples. Read when showing output to the user. |
 | **Pages Guide** | `persephone://guides/pages` | Pages & windows — page properties, editor types, creating pages, multi-window support. Read when working with tabs or documents. |
 | **Scripting Guide** | `persephone://guides/scripting` | Full scripting API — `app` object, editor facades, TypeScript, Node.js access. Read when using `execute_script`. |
-| **Graph Guide** | `persephone://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.asGraph()` facade, query and traversal methods. Read when working with force-graph pages. |
+| **Graph Guide** | `persephone://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.editor` facade, query and traversal methods. Read when working with force-graph pages. |
 | **Notebook Guide** | `persephone://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
 | **Links Guide** | `persephone://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
 | **Boards Guide** | `persephone://guides/boards` | Board authoring/automation reference — bridge API, theme contract, local vendoring, `browser_*` testing. Read before building or opening a board. |

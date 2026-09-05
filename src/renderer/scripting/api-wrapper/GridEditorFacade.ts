@@ -2,6 +2,8 @@ import type { GridEditor } from "../../editors/grid/GridEditor";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 const GRID_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "id", kind: "property", summary: "The concrete current editor id." },
+    { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "rows", kind: "property", summary: "All rows as plain objects." },
     { name: "columns", kind: "property", summary: "Column definitions (key and display name)." },
     { name: "rowCount", kind: "property", summary: "Number of rows." },
@@ -14,11 +16,11 @@ const GRID_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "clearSearch", kind: "method", signature: "clearSearch(): void", summary: "Clear search filter." },
 ];
 
-const GRID_EDITOR_HELP = `Obtain via pages[i].asGrid() on a grid page (\`grid-json\`/\`grid-csv\`/\`grid-jsonl\`); pass true — \`asGrid(true)\` — to switch a compatible page to this editor first.
+const GRID_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "grid-json".
 Grid data manipulation for JSON, CSV, and JSONL pages. Use rows/columns for reads and editCell/addRows/addColumns for changes; delete operations are destructive.`;
 
 export class GridEditorFacade implements IAiVisible {
-    constructor(private readonly editor: GridEditor) {}
+    constructor(private readonly editor: GridEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -27,7 +29,7 @@ export class GridEditorFacade implements IAiVisible {
             members: GRID_EDITOR_MEMBERS,
             help: GRID_EDITOR_HELP,
             summarize: () => ({
-                kind: "GridEditor",
+                kind: "GridEditor", id: this.id, name: this.name,
                 rowCount: this.rowCount,
                 columns: this.columns.map(({ key, name }) => ({ key, name })),
             }),

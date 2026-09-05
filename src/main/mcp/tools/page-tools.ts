@@ -9,7 +9,7 @@ export function pageTools(ctx: IToolContext): IMcpToolDef[] {
     return [
         {
             name: "execute_script",
-            description: "Execute JavaScript or TypeScript in Persephone. Returns { text, language, isError, consoleLogs }. IMPORTANT: use read_guide(\"scripting\") (or read resource persephone://guides/scripting) BEFORE using this tool — it documents the full API for `page` (active page), `app` (pages, fs, settings, ui, shell, window), and editor facades (asGrid, asNotebook, etc.). Do NOT guess API method names or signatures — the scripting API has specific conventions that differ from typical Node.js patterns.",
+            description: "Execute JavaScript or TypeScript in Persephone. Returns { text, language, isError, consoleLogs }. IMPORTANT: use read_guide(\"scripting\") (or read resource persephone://guides/scripting) BEFORE using this tool — it documents the full API for `page` (active page), `app` (pages, fs, settings, ui, shell, window), and the `page.editor` / `page.editorSwitches` nodes. Do NOT guess API method names or signatures — the scripting API has specific conventions that differ from typical Node.js patterns.",
             schema: {
                 script: z.string().describe("JavaScript or TypeScript code to execute. Supports async/await. Last expression is returned as result. Use read_guide(\"scripting\") for the API reference before writing scripts."),
                 pageId: z.string().optional().describe("Target page ID. If omitted, uses the active page."),

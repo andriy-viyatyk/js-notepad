@@ -46,7 +46,7 @@ export interface IAiElement {
 }
 
 export interface IAiChild {
-    /** The segment to append to the parent's path: `[2]`, `["<id>"]`, `.grouped`, `.asGrid()`. */
+    /** The segment to append to the parent's path: `[2]`, `["<id>"]`, `.grouped`, `.editor`. */
     readonly segment: string;
     readonly kind: string;
     readonly summary: string;

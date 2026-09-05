@@ -34,7 +34,7 @@ Tests for script execution via MCP.
 ## Test 3.6: Grid facade
 **Preparation:** Create a grid-json page with some data
 **Request:** "Add a new column 'status' with value 'active' to all rows in the current grid"
-**Expected:** execute_script using page.asGrid() facade, addColumn or manipulate data
+**Expected:** execute_script using page.editor facade, addColumn or manipulate data
 **Verify:** Grid has new column with correct values
 
 ## Test 3.7: Settings access

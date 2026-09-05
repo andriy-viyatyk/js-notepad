@@ -20,7 +20,7 @@ export function guideTools(ctx: IToolContext): IMcpToolDef[] {
                 "- scripting — app API (pages, fs, settings, ui, shell, window), editor facades (grid, notebook, browser), Node.js access. For execute_script tool.",
                 "- notebook — NoteItem JSON format, content types. For notebook-view editor.",
                 "- links — LinkItem JSON format, categories, tags. For link-view editor.",
-                "- graph — graph JSON format, node/link data, page.asGraph() API. For graph-view editor.",
+                "- graph — graph JSON format, node/link data, page.editor API. For graph-view editor.",
                 "- boards — what a board is, the app.boards create/open lifecycle (via execute_script), develop & test a board.",
                 "- tools — reusable Agent Tools registry: search_tools/execute_tool, stdin-JSON + result-marker contract, .env secrets, self-repair. For search_tools/execute_tool tools.",
                 "- browser — browser_* automation in depth: page targeting resolution, snapshot format, ref lifecycle, waiting, profiles, boards, the app window.",
