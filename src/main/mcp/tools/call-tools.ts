@@ -81,6 +81,11 @@ function prefixHintPaths(text: string, relativeRoot: string, prefix: string): st
     }).join("\n");
 }
 
+/** Attention paths use the renderer's dialogs root, so restore the path spelling the agent sent. */
+function prefixAttentionPaths(text: string, prefix: string): string {
+    return text.replaceAll("dialogs[", `${prefix}dialogs[`);
+}
+
 export function callTools(ctx: IToolContext): IMcpToolDef[] {
     const { z, windowIndex } = ctx;
     const seenKinds = new Set<string>();
@@ -146,6 +151,7 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                         envelope.path = path;
                         if (envelope.resolvedUpTo !== undefined) envelope.resolvedUpTo = prefix + envelope.resolvedUpTo;
                         if (envelope.hint) envelope.hint.text = prefixHintPaths(envelope.hint.text, relativeRoot, prefix);
+                        if (envelope.attention) envelope.attention.text = prefixAttentionPaths(envelope.attention.text, prefix);
                     }
                 }
                 const hint = (response.result as { hint?: { kind?: string } } | undefined)?.hint;
@@ -159,6 +165,8 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
 interface ICallEnvelope {
     path: string;
     result?: unknown;
+    pending?: boolean;
+    attention?: { text: string };
     truncated?: boolean;
     totalLength?: number;
     error?: string;
@@ -175,17 +183,21 @@ function toCallResult(response: McpResponse): IMcpToolResult {
     if (response.error) return toToolResult(response);
     const envelope = response.result as ICallEnvelope | undefined;
     if (!envelope) return toToolResult(response);
-    const { hint, ...rest } = envelope;
+    const { hint, attention, ...rest } = envelope;
     const content: IMcpToolResult["content"] = [];
-    if (rest.error !== undefined) {
+    if (rest.pending) {
+        content.push({ type: "text", text: "Pending: the action is waiting on a dialog. Answer it, then re-read state." });
+    }
+    if (attention) content.push({ type: "text", text: attention.text });
+    if (!rest.pending && rest.error !== undefined) {
         const where = rest.resolvedUpTo ? ` (resolved up to "${rest.resolvedUpTo}")` : "";
         content.push({ type: "text", text: `Error: ${rest.error}${where}` });
         if (rest.result !== undefined) content.push({ type: "text", text: JSON.stringify(rest.result, null, 2) });
-    } else {
+    } else if (!rest.pending) {
         const body = typeof rest.result === "string" ? rest.result : JSON.stringify(rest.result ?? null, null, 2);
         content.push({ type: "text", text: body });
         if (rest.truncated) content.push({ type: "text", text: `[truncated: showing ${(rest.result as string).length} of ${rest.totalLength} chars — raise maxLength or read a narrower path]` });
     }
     if (hint) content.push({ type: "text", text: `--- hint (${hint.kind}) ---\n${hint.text}` });
-    return { content, isError: rest.error !== undefined };
+    return { content, isError: !rest.pending && rest.error !== undefined };
 }

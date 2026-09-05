@@ -1,6 +1,7 @@
 import type { VirtualElement } from "@floating-ui/dom";
 import { TPopperModel } from "./types";
 import { closePopper, showPopper } from "./Poppers";
+import { visiblePoppers } from "./PoppersView";
 import { MenuView } from "../../../uikit/Menu/MenuView";
 import type { MenuProps } from "../../../uikit/Menu/MenuModel";
 import type { MenuItem } from "../../../uikit/Menu";
@@ -11,6 +12,7 @@ import { overlayRegistry } from "../../../uikit/shared/overlayRegistry";
 import { restoreFocus } from "../../../uikit/shared/focus-restore";
 import { api } from "../../../../ipc/renderer/api";
 import type { DialogViewProps } from "../dialog-view-registry";
+import type { IPopperViewData } from "./types";
 import { registerDialogView } from "../dialog-view-registry";
 
 const defaultAppPopupMenuState = {
@@ -209,6 +211,11 @@ export interface ShowAppPopupMenuOptions {
 export const closeAppPopupMenu = () => {
     closePopper(showAppPopupMenuId);
 };
+
+/** Return the live application popup without invoking or serializing any menu callbacks. */
+export function getVisibleAppPopupMenu(): IPopperViewData | undefined {
+    return visiblePoppers().find(({ viewId }) => viewId === showAppPopupMenuId);
+}
 
 export const showAppPopupMenu = async (
     x: number,

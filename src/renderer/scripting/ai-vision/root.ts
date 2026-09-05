@@ -1,4 +1,5 @@
 import "./namespaces";
+import { DialogsNode } from "./dialogs";
 
 import type { AppWrapper } from "../api-wrapper/AppWrapper";
 import type { PageCollectionWrapper } from "../api-wrapper/PageCollectionWrapper";
@@ -37,6 +38,7 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "settings", kind: "property", node: true, summary: "Application settings (read/write)." },
     { name: "fs", kind: "property", node: true, summary: "File system access (read/write files, list folders).", caution: "writes touch the user's disk" },
     { name: "ui", kind: "property", node: true, summary: "Dialogs, notifications, progress overlays, screen locks, and app-window highlights." },
+    { name: "dialogs", kind: "property", node: true, summary: "Open renderer dialogs in live display order; use dialogs[i] to inspect and answer one." },
     { name: "shell", kind: "property", node: true, summary: "Open URLs, capture screen snippets, encrypt/decrypt text, and inspect runtime/update versions.", caution: "runs processes with the user's privileges" },
     { name: "window", kind: "property", node: true, summary: "This window: state, sidebar, zoom, and multi-window actions." },
     { name: "proc", kind: "property", node: true, summary: "Spawn and manage child processes.", caution: "runs processes with the user's privileges" },
@@ -61,6 +63,7 @@ Common paths:
   page.content                text of the active page (assign with "value")
   pages["<id>"].content       text of a specific page
   pages[0].asGrid().rowCount  rows in a grid page (facades: asText, asGrid, asNotebook, …)
+  dialogs[0].click("OK")   answer the first open renderer dialog (or use dialogs[0].cancel())
   pages.showPage("<id>")      activate a page
   helpSearch("add rows")      find where something lives
   main                        main-process diagnostics and gated scripting
@@ -75,6 +78,8 @@ export class AiRoot implements IAiVisible {
         private readonly app: AppWrapper,
         private readonly options: AiRootOptions = {},
     ) {}
+
+    private readonly dialogsNode = new DialogsNode();
 
     get pages(): PageCollectionWrapper {
         return this.app.pages;
@@ -92,6 +97,7 @@ export class AiRoot implements IAiVisible {
     get settings() { return this.app.settings; }
     get fs() { return this.app.fs; }
     get ui() { return this.app.ui; }
+    get dialogs(): DialogsNode { return this.dialogsNode; }
     get shell() { return this.app.shell; }
     get window() { return this.app.window; }
     get proc() { return this.app.proc; }

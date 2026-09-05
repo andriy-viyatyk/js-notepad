@@ -130,9 +130,33 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 4. Dialogs and popup menus the surface raises: covered by the `dialogs`/`menus` nodes, but the
    surface's `$help` names them so the agent expects them.
 5. `restricted()` where privacy or trust applies (private browser pages, untrusted boards).
-6. A scenario for `mcp-test-agent-call`, run on Haiku, logged in `qa/runs/`. The scenario must
-   include one thing the user sees and one thing the user can do on that screen.
+6. Scenarios added to the surface's file under `qa/surfaces/`, run on Haiku via
+   `mcp-test-agent-call`, logged in `qa/runs/`. Each scenario covers one thing the user sees and
+   one thing the user can do on that screen, and ends by verifying the on-screen result — so the
+   file doubles as a UI regression test (see *QA suite* below).
 7. Only then: the tool(s) the surface replaces are marked *retirable* in this document.
+
+## QA suite: reorganised per surface, reusable as UI regression tests
+
+User direction, 2026-09-05. The QA files in `qa/` are grouped by *tool* today
+(`mcp-test-create-page.md`, `mcp-test-browser.md`, …), which is the axis being retired. As each
+surface epic lands, its scenarios go into a per-surface file instead — `qa/surfaces/shell.md`,
+`qa/surfaces/dialogs.md`, `qa/surfaces/editors/grid.md`, and so on — one file per screen or
+editor, each scenario naming the paths it expects the agent to reach and the on-screen outcome.
+
+That grouping makes the suite two things at once:
+
+- **The acceptance gate** for the surface (principle 3): a Haiku agent with `call` alone must pass
+  the file before the surface's old tools are marked retirable.
+- **A UI regression suite** independent of the MCP question: because every scenario ends by
+  verifying what is on screen (through the app-window snapshot, `elements`, or the page's own
+  facade), re-running a surface's file after an unrelated change is a functional test of that
+  screen. Discrepancies found this way are ordinary bugs, filed as tasks, not roadmap work.
+
+EPIC-084 (US-1302) starts the layout with `qa/surfaces/dialogs.md` and moves the "Reproducing"
+notes from the EPIC-083 run into it. EPIC-090 retires the per-tool files once every surface file
+exists. The runner instructions in `qa/README.md` gain a "run one surface" and "run all surfaces"
+procedure; the model stays Haiku for the gate, with Codex as the second model family at EPIC-090.
 
 ## The final gate (EPIC-090)
 

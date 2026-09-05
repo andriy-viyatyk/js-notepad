@@ -35,6 +35,10 @@ export interface ICallRequest {
 export interface ICallResult {
     path: string;
     result?: unknown;
+    /** The requested action is still running because a newly opened dialog needs an answer. */
+    pending?: boolean;
+    /** Visible renderer UI that needs the agent's attention before it can continue. */
+    attention?: { text: string };
     truncated?: boolean;
     totalLength?: number;
     hint?: IHint;

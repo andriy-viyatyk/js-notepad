@@ -8,20 +8,18 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(Nothing active. EPIC-083 closed 2026-09-05 — the `call` tool over the app object model; see
-  [epics/completed.md](epics/completed.md).)*
-
-## Planned
-
 - **EPIC-084** — [Agent transparency infrastructure — attention, `dialogs`, `menus`, elements/highlight](epics/EPIC-084.md)
   — epic 1 of 7 in the [agent transparency roadmap](agent-transparency-roadmap.md), which ends
-  with `call` as the only MCP tool. Task documents are written when each task starts.
-  - [ ] US-1297: `attention` on every `call` result — blocking dialogs and popup menus
-  - [ ] US-1298: `dialogs` root node — base descriptor, `click`/`cancel`, per-class descriptors
+  with `call` as the only MCP tool. Started 2026-09-05. Task documents are written when each task starts.
+  - [ ] [US-1297: attention on every call result](tasks/US-1297-call-attention/README.md)
+  - [ ] [US-1298: dialogs root node](tasks/US-1298-dialogs-node/README.md)
   - [ ] US-1299: `menus` root node — open popup menu items, `click(label)`, `close()`
   - [ ] US-1300: elements/highlight protocol in the shared AiVision layer; header strip as first consumer
   - [ ] US-1301: native OS dialog tracking in main and its attention report
   - [ ] US-1302: acceptance run on Haiku via `mcp-test-agent-call`
+
+## Planned
+
 - *(no epic)*
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
     — an enhancement, deferred by user decision (2026-08-29); nothing blocks it now.

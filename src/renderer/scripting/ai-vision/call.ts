@@ -2,6 +2,7 @@ import { ScriptContext } from "../ScriptContext";
 import { ICallRequest, ICallResult, resolveCall, SeenKinds } from "../../../shared/ai-vision/resolver";
 import { AiRoot } from "./root";
 import type { AiRootOptions } from "./root";
+import { resolveWithAttention } from "./attention";
 
 /**
  * Renderer entry point for the `call` MCP tool: build the tree root inside a fresh script context
@@ -11,10 +12,14 @@ import type { AiRootOptions } from "./root";
  * `seenKinds` is the per-MCP-session dedupe set; the main process owns it and passes the kinds it
  * has already shown, so the renderer stays stateless across calls.
  */
+// app.call() and persephone.call() intentionally remain plain-value APIs without this envelope.
 export async function aiCall(request: ICallRequest, seenKinds?: SeenKinds): Promise<ICallResult> {
     const context = new ScriptContext(undefined, []);
     try {
-        return await resolveAiCall(context, request, seenKinds);
+        return await resolveWithAttention(
+            request,
+            () => resolveAiCall(context, request, seenKinds),
+        );
     } finally {
         context.dispose();
     }

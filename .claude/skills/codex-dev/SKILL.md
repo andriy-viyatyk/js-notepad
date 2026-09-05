@@ -148,6 +148,19 @@ mcp__codex__codex
 - Model and effort are already pinned to `gpt-5.6-luna` / `high` in the MCP server
   registration. Do not pass `model` unless the user asks for a different one.
 
+**Immediately after the call returns or is backgrounded, open the thread's rollout in Persephone**
+(user request, 2026-09-05 — the user wants to watch Codex work). Codex writes
+`~/.codex/sessions/<yyyy>/<mm>/<dd>/rollout-<timestamp>-<threadId>.jsonl` live from the first
+turn. The thread id is unknown until completion, so take the newest file in today's folder:
+
+```
+ls -t ~/.codex/sessions/$(date +%Y/%m/%d)/ | head -1
+mcp__persephone__call  path: "pages.openFile"  args: ["C:/Users/<user>/.codex/sessions/<yyyy>/<mm>/<dd>/<file>"]
+```
+
+Persephone activates the page if the file is already open and its file watcher refreshes the
+content, so this is idempotent. Not needed for `codex-reply` — the thread's page is already open.
+
 The `threadId` comes back in the result's `structuredContent.threadId`. Record thread A's
 and keep it through step 3. If you lose it, `codex exec resume --last` is the fallback, but
 a lost thread means Codex re-reads the codebase — wasteful, though only of the cheap budget.
