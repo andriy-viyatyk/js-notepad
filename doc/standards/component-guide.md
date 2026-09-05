@@ -90,9 +90,13 @@ native elements rather than as React-node icon values. Native callers use the ic
 `components/icons/icon-elements.ts` or `theme/icons.ts`; there is no generic UIKit `Icon` face.
 
 DOM icon nodes are single-use resources: appending one to a second host moves it and leaves the
-first host without an icon. Build the node at the point of use; do not cache, memoise, hoist, or
-share one node between rows, menus, buttons, or views. If a statically supplied registry name is
-wrong, TypeScript rejects it and the runtime resolver throws if the type boundary has been bypassed.
+first host without an icon. Build the node at the point of use; ordinarily do not cache, memoise,
+hoist, or share one node between rows, menus, buttons, or views. A narrow exception is a cache that
+owns one node per logical item and never has two simultaneous consumers. Such a cache still
+represents movable ownership: a direct-node consumer may skip refilling only when both the node
+identity and `node.parentNode === host` match. Identity alone is not proof that virtualization has
+left the node in the current host. If a statically supplied registry name is wrong, TypeScript
+rejects it and the runtime resolver throws if the type boundary has been bypassed.
 Runtime-sourced names must be validated at their boundary and use the visible icon placeholder; an
 empty `<svg>` is never a valid fallback.
 
@@ -105,8 +109,10 @@ Excalidraw vendor boundary under `editors/draw/`.
 
 For a `Tree` row's right-side content, use `renderTrailing` for a slot value that may be rebuilt,
 and `trailingElement` for a stable, caller-owned DOM node. The direct-node form is identity-aware:
-the row can short-circuit when the same node remains assigned, avoiding needless slot teardown and
-reattachment. Keep the node owned by the caller and do not share one node between rows.
+the row can short-circuit when the same node remains assigned **and still has the row's host as its
+parent**, avoiding needless slot teardown and reattachment. Pooled rows can move a cached node to a
+different cell, so a matching node identity with a different parent must refill the host. Keep the
+node owned by the caller and do not share one node between rows simultaneously.
 
 For text slots, prefer `string` whenever callers supply data text. `SlotText` documents an
 intentional rich-content exception; it is not a way to make every public prop React-shaped. An

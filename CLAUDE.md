@@ -19,16 +19,6 @@ planning, implementation, and the completion skills. Spend your own budget on:
 - reviewing Codex's task documents (verify claims against the source)
 - fixing bugs and visual defects the user reports — these are yours, do not delegate them
 
-### Show the user what Codex is doing (IMPORTANT)
-
-Codex writes every thread — MCP threads included — as a live JSONL rollout under
-`~/.codex/sessions/<yyyy>/<mm>/<dd>/rollout-<timestamp>-<threadId>.jsonl`. **Right after every
-`mcp__codex__codex` call returns or goes to the background**, open that thread's rollout in
-Persephone with `mcp__persephone__call` — `path: "pages.openFile"`, `args: [<absolute path>]`. Pick
-the newest file in today's folder (the thread id is not known until the call completes). Persephone
-activates the existing page if the file is already open and its watcher refreshes it live, so calling
-it every time is safe. `codex-reply` continues an existing thread — its page is already open.
-
 ### Running the completion skills
 
 The canonical `/review`, `/document`, and `/userdoc` skill definitions live in

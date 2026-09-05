@@ -587,6 +587,14 @@ slot ownership safe:
   Build it at the point of use — never cache, memoise, hoist to module scope, or share one node.
   `tsc`, lint and the build are all blind to this, and the symptom is an icon disappearing somewhere
   *other* than the code being changed (this has occurred four times, once per caching mechanism).
+  The fifth was different and is worth naming, because "never cache" alone did not prevent it.
+  `TreeProviderViewImpl.iconCache` legitimately memoises one node per **href**, so no two rows ever
+  want the same node at the same time — yet pooling still moved it: a cell that takes over a row
+  steals the node out of the previous cell's host, and if that cell is later re-pointed at the same
+  row it sees `directIconElement === iconElement` and skips the refill forever. **A cached node is
+  only safe behind a guard that checks the host, not identity** — `node.parentNode === host` — because
+  the host is the source of truth and identity is only a hint about it. `TreeItemView.setIcon` and
+  `setTrailing` both check it.
 - Roots are retained **per pooled element**, never per row. Pass `keepCellsAttached: true` when a
   cell owns state such as a nested scroller, iframe, or editor; ordinary eviction then hides the
   pooled element in place and preserves its subtree. The option is off by default because it trades

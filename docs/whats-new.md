@@ -14,6 +14,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Link Editor highlights follow auto-advanced tracks again** — When a media player advances to the next link automatically, the selected item in the Collections and Tags panels now follows the new track and remains highlighted.
 
+- **The page sidebar opens on the correct side** — Opening a page sidebar after the page has already loaded now places it to the left of the editor, matching pages that opened with a sidebar.
+
+- **File Explorer icons stay visible while scrolling** — File icons no longer disappear when Explorer rows are scrolled out of view and then shown again.
+
 ### Improvements
 
 - **AI agents and scripts can navigate Persephone's live object model** — The MCP `call` tool and

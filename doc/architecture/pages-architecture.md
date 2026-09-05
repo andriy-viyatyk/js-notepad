@@ -154,6 +154,12 @@ disposes and recreates the editor view; updates for the same model are forwarded
 `AsyncEditorView`, which loads and mounts the editor module's required native `View`. This keeps
 Monaco and other stateful editor bodies from being reused with the wrong model.
 
+`PageContentView` uses `display: contents`, so its `SecondaryViewsView` root and `contentRoot`
+are direct flex siblings in the page slot. `Pages.css` does not reorder those children; DOM order
+is therefore layout order, with the sidebar before the editor. When a sidebar is created after the
+content is already mounted, `PageContentView.sync()` inserts it before `contentRoot`; when there
+is no content root yet, the null insertion target retains normal append semantics.
+
 When a state notification retires an editor view, the host root is detached immediately and the
 captured view is disposed through `afterDispatch()` after the outermost notification and any nested
 updates settle. `PageModel` separately tracks promises for asynchronous editor disposal and awaits

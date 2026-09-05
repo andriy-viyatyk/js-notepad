@@ -321,7 +321,14 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
         if (iconElement !== undefined) {
             // A pooled row may receive the same direct node repeatedly. Do not move it again: a
             // real DOM move can disturb focus or cancel an in-flight transition.
-            if (this.directIconElement === iconElement) return;
+            //
+            // The parent check is load-bearing, not belt-and-braces. Callers cache one icon node
+            // per item (TreeProviderViewImpl.iconCache is keyed by href), and pooling can hand the
+            // same item to a different cell mid-scroll: that cell's fillSlot *moves* the node into
+            // its own host, emptying ours while `directIconElement` still names it. Identity alone
+            // would then skip the refill forever and the row would render with a blank icon box —
+            // which is what made Explorer icons come and go as rows scrolled out and back.
+            if (this.directIconElement === iconElement && iconElement.parentNode === this.iconHost) return;
             this.directIconElement = iconElement;
             this.iconCleanup = fillSlot(this.iconHost, iconElement);
             return;
@@ -363,7 +370,9 @@ export class TreeItemView extends VanillaView<TreeItemViewProps> {
                 this.root.append(this.trailingHost);
                 this.trailingAttached = true;
             }
-            if (this.appliedTrailingElement === trailingElement) return;
+            // Same pooling hazard as setIcon: identity alone is not proof the node is still ours.
+            if (this.appliedTrailingElement === trailingElement
+                && trailingElement.parentNode === this.trailingHost) return;
             this.appliedTrailingElement = trailingElement;
             this.trailingCleanup = fillSlot(this.trailingHost, trailingElement);
             return;

@@ -121,7 +121,12 @@ export class PageContentView extends VanillaView<PageContentProps> {
         const navChanged = this.lastSecondaryNav !== nav;
         if (!this.secondaryView) {
             this.secondaryView = this.child(new SecondaryViewsView(props));
-            this.root.append(this.secondaryView.root);
+            // The sidebar is a left-hand column, and its position here is pure DOM order —
+            // nothing in Pages.css reorders these children. Appending would put it AFTER an
+            // editor that is already mounted, which is exactly what happens when the sidebar
+            // is opened on a page that started without one: it would render on the right and
+            // only jump left on the next navigation, when the content is rebuilt after it.
+            this.root.insertBefore(this.secondaryView.root, this.contentRoot ?? null);
             this.secondaryView.mount();
         } else if (viewsChanged || navChanged) this.secondaryView.update(props);
         this.lastViews = views;

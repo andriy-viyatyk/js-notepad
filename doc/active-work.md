@@ -8,8 +8,8 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(none — EPIC-085 completed 2026-09-05; next up is epic 3 of the
-  [agent transparency roadmap](agent-transparency-roadmap.md), the text editor family)*
+*(EPIC-085 completed 2026-09-05; next up is epic 3 of the
+[agent transparency roadmap](agent-transparency-roadmap.md), the text editor family)*
 
 ## Planned
 
