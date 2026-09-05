@@ -2,7 +2,7 @@
 
 # app.ui
 
-Dialogs, toast notifications, and progress indicators.
+Dialogs, toast notifications, progress indicators, and app-window highlights.
 
 ```javascript
 const answer = await app.ui.confirm("Save changes?");
@@ -169,6 +169,30 @@ try {
     lock.release();
 }
 ```
+
+### highlightElement(selector, text?, options?) → `Promise<IHighlightResult>`
+
+Draw an explanatory highlight over an element in Persephone's own window. The promise resolves
+once the overlay has been drawn; it does not wait for the user to dismiss the highlight. The user
+can close it with the card's **Close** button or `Esc`, or a script can remove it with
+`clearHighlights()`.
+
+```javascript
+const result = await app.ui.highlightElement(
+    '[data-name="mcp-indicator"]',
+    "This shows the MCP server status and opens its request log.",
+    { title: "MCP server" },
+);
+if (!result.found) console.log("The control is not currently visible.");
+```
+
+The result includes `id`, `found`, `count`, `highlighted`, and `selector`. A selector that matches
+nothing returns `found: false` rather than throwing. Options include `title`, `all`, `scroll`, and
+`id`; see the TypeScript definitions for their exact behavior.
+
+### clearHighlights(id?) → `Promise<number>`
+
+Remove one highlight by its `id`, or all highlights when omitted. Returns the number removed.
 
 ### notify(message, type?) → `Promise<string | undefined>`
 

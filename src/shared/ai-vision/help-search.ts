@@ -75,6 +75,19 @@ function collectKindHits(path: string, descriptor: IAiVisionDescriptor, tokens: 
             hits.push({ path: memberPath, kind: descriptor.kind, matchedLine: line });
         }
     }
+    // A request like "where do I change the language" is about a control on screen, not about the
+    // property that sets it. Without this, `helpSearch` answers only `page.language` and the agent
+    // never finds the button it was asked to point at.
+    for (const element of descriptor.elements ?? []) {
+        const line = `element "${element.name}" — ${element.purpose}`;
+        if (matches(`${element.name} ${element.purpose}`, tokens)) {
+            hits.push({
+                path: joinChildPath(path, "elements"),
+                kind: descriptor.kind,
+                matchedLine: `${line} Show it to the user with ${joinChildPath(path, `highlight("${element.name}")`)}.`,
+            });
+        }
+    }
     const help = typeof descriptor.help === "function" ? descriptor.help() : descriptor.help;
     if (help) {
         for (const line of help.split("\n")) {

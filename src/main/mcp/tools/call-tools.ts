@@ -1,4 +1,4 @@
-import { sendToRenderer } from "../renderer-bridge";
+import { RENDERER_REQUEST_TIMEOUT_MESSAGE, sendToRenderer } from "../renderer-bridge";
 import { toToolResult } from "../tool-results";
 import { IMcpToolDef, IMcpToolResult, McpResponse, ToolArgs } from "../types";
 import { IToolContext } from "./params";
@@ -6,6 +6,7 @@ import { openWindows } from "../../open-windows";
 import { MainAiRoot, WINDOW_MEMBER_NAMES } from "../ai-vision/main-root";
 import { formatPath, parsePath, PathSegment } from "../../../shared/ai-vision/path-parser";
 import { HintMode, ICallResult, resolveCall } from "../../../shared/ai-vision/resolver";
+import { getNativeDialogAttention } from "../../native-dialog-tracker";
 
 /**
  * `call` — one path into Persephone's live object model (EPIC-083).
@@ -81,9 +82,14 @@ function prefixHintPaths(text: string, relativeRoot: string, prefix: string): st
     }).join("\n");
 }
 
-/** Attention paths use the renderer's dialogs root, so restore the path spelling the agent sent. */
+const ATTENTION_PATH_ROOTS = ["dialogs", "menus"] as const;
+
+/** Attention paths use renderer roots, so restore the path spelling the agent sent. */
 function prefixAttentionPaths(text: string, prefix: string): string {
-    return text.replaceAll("dialogs[", `${prefix}dialogs[`);
+    for (const root of ATTENTION_PATH_ROOTS) {
+        text = text.replaceAll(`${root}[`, `${prefix}${root}[`);
+    }
+    return text;
 }
 
 export function callTools(ctx: IToolContext): IMcpToolDef[] {
@@ -143,6 +149,28 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                 } else {
                     const forward = route.forward!;
                     response = await sendToRenderer("call", { ...params, path: forward.path, seenKinds: [...seenKinds] }, forward.windowIndex);
+                    const targetWindowData = forward.windowIndex !== undefined
+                        ? openWindows.windows.find(windowData => windowData.index === forward.windowIndex)
+                        : openWindows.windows.find(windowData => windowData.window);
+                    const targetBrowserWindow = targetWindowData?.window?.window;
+                    const nativeAttention = getNativeDialogAttention(
+                        targetBrowserWindow,
+                        targetWindowData?.index,
+                        openWindows.windows.filter(windowData => windowData.window).length > 1,
+                    );
+                    if (response.error?.message === RENDERER_REQUEST_TIMEOUT_MESSAGE && nativeAttention) {
+                        response = { result: { path, pending: true, attention: nativeAttention } };
+                    } else {
+                        const result = response.result as ICallResult | undefined;
+                        if (result && nativeAttention) {
+                            const existingAttention = result.attention;
+                            result.attention = existingAttention
+                                ? existingAttention.text.includes(nativeAttention.text)
+                                    ? existingAttention
+                                    : { text: `${existingAttention.text}\n${nativeAttention.text}` }
+                                : nativeAttention;
+                        }
+                    }
                     // Report paths in the agent's own terms — with the windows[i]. prefix it typed.
                     const envelope = response.result as ICallResult | undefined;
                     if (envelope && forward.path !== path) {

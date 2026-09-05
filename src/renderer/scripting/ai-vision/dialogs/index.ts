@@ -17,6 +17,8 @@ import { CommitDialogAdapter } from "./commit";
 import { ConfirmationDialogAdapter } from "./confirmation";
 import { CreateBoardDialogAdapter } from "./create-board";
 import { CreateBoardVarsStorageDialogAdapter } from "./create-board-vars-storage";
+import { EditLinkDialogAdapter } from "./edit-link";
+import { editLinkDialogId } from "../../../editors/link-editor/EditLinkDialog";
 import { InputDialogAdapter } from "./input";
 import { LibrarySetupDialogAdapter } from "./library-setup";
 import { NamespaceCollisionDialogAdapter } from "./namespace-collision";
@@ -26,6 +28,7 @@ import { RegisterToolsetDialogAdapter } from "./register-toolset";
 import { TextDialogAdapter } from "./text";
 import { TorInfoDialogAdapter } from "./tor-info";
 import { TrustBoardDialogAdapter } from "./trust-board";
+import { UnknownDialogAdapter } from "./unknown";
 import type { DialogAdapter, DialogEntry } from "./shared";
 
 type AdapterFactory = (entry: DialogEntry) => DialogAdapter;
@@ -38,6 +41,7 @@ const adapterFactories = new Map<symbol, AdapterFactory>([
     [commitDialogId as unknown as symbol, (entry) => new CommitDialogAdapter(entry)],
     [createBoardDialogId as unknown as symbol, (entry) => new CreateBoardDialogAdapter(entry)],
     [createBoardVarsStorageDialogId as unknown as symbol, (entry) => new CreateBoardVarsStorageDialogAdapter(entry)],
+    [editLinkDialogId as unknown as symbol, (entry) => new EditLinkDialogAdapter(entry)],
     [librarySetupDialogId as unknown as symbol, (entry) => new LibrarySetupDialogAdapter(entry)],
     [namespaceCollisionDialogId as unknown as symbol, (entry) => new NamespaceCollisionDialogAdapter(entry)],
     [openUrlDialogId as unknown as symbol, (entry) => new OpenUrlDialogAdapter(entry)],
@@ -56,8 +60,8 @@ export class DialogsNode {
         const cached = this.adapters.get(entry);
         if (cached) return cached;
         const factory = adapterFactories.get(entry.viewId as unknown as symbol);
-        if (!factory) throw new Error(`No dialog adapter for ${entry.viewId.toString()}.`);
-        const adapter = factory(entry);
+        // Degrade, never throw: an unadapted dialog must not blind the agent to the whole stack.
+        const adapter = factory ? factory(entry) : new UnknownDialogAdapter(entry);
         this.adapters.set(entry, adapter);
         return adapter;
     }

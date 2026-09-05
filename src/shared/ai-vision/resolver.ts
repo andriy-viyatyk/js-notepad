@@ -122,7 +122,8 @@ export async function resolveCall(root: unknown, request: ICallRequest, seenKind
                 }
 
                 const target = current;
-                let value: unknown = (target as Record<string, unknown>)[name];
+                const provided = descriptor?.provide?.(name);
+                let value: unknown = provided ? provided.value : (target as Record<string, unknown>)[name];
                 if (segment.type === "call") {
                     if (typeof value !== "function") {
                         return errorAt(path, walked, current, seenKinds, hintMode, `"${name}" is a property, not a method — drop the "()".`, true);

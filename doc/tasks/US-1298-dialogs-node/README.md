@@ -16,7 +16,7 @@ authoritative. Password prompts expose only buttons and cancellation, never thei
 
 ## Implementation progress
 
-- [x] Add the viewId-keyed adapter map and all 13 per-dialog adapters.
+- [x] Add the viewId-keyed adapter map and all 14 per-dialog adapters.
 - [x] Add the live indexed `DialogsNode` with per-resolve adapter identity.
 - [x] Register `dialogs` on the AiVision root and document its paths.
 - [x] Connect resolved dialog paths to US-1297 attention output.
@@ -85,7 +85,7 @@ open, or close a dialog.
 | 3. dialogs is a live indexed root; children are viewId-keyed adapters; shared title/message/buttons/click/cancel | Live entries and their identity are verified by DialogsView.ts:10, :132-147 and dialog-view-registry.ts:16-25. A Map keyed by entry.viewId selects an adapter factory; each adapter implements aiVision directly and holds the live entry. The resolver therefore reads real adapter members (resolver.ts:88-141), with no model or view changes and no registerAiVision/registerAiVisionFor call. |
 | 4. Password/encryption dialogs expose buttons and cancel only | PasswordDialog.ts:15-19 contains password, confirm, and error; :41-52 validates and closes with the password. Its view has Encrypt/Decrypt and Cancel at PasswordDialogView.ts:83-112. The adapter must omit title/message/mode/error/secret fields and never serialize the result. |
 | 5. Menus mirror dialogs later | Popup state uses items at showPopupMenu.ts:16-24, MenuItem supports labels, flags, and nested items at context-menu.ts:3-25, and poppers are exposed through visiblePoppers() at PoppersView.ts:121-141. No menus node exists; US-1299 owns it. This task only needs its coupling contract through US-1297’s fallback. |
-| 8. Native OS dialogs are reported, not driven | Native calls exist in src/ipc/main/dialog-handlers.ts:15-72, src/main/browser-service.ts:254-255, and src/main/download-service.ts:102-105, but no native-open tracker was found in the scoped sources. dialogs covers renderer TDialogModel entries only; US-1301 owns native reporting and no adapter action may drive an OS dialog. |
+| 8. Native OS dialogs are reported, not driven | Native calls exist in src/ipc/main/dialog-handlers.ts:15-72, src/main/browser-service.ts:254-255, and src/main/download-service.ts:102-105; their per-window tracker is owned by src/main/native-dialog-tracker.ts. dialogs covers renderer TDialogModel entries only; US-1301 owns native reporting and no adapter action may drive an OS dialog. |
 
 There is no doc/architecture/ai-vision.md in the repository. The matching architecture references
 are [doc/architecture/scripting.md](../../architecture/scripting.md):573-588 and
@@ -94,12 +94,12 @@ descriptors, live children, renderer routing, and plain-value script/Board call 
 
 ### Complete on-disk dialog inventory
 
-The task statement says “14 classes”, but the specified folder contains 13 *Dialog.ts model
-files/classes and no separate encryption-dialog class. The password/encryption prompt is
-PasswordDialogModel. This discrepancy is recorded rather than inventing a fourteenth model. The
-table records state/result/click behavior verified from each model and native view. Buttons means
-visible controls relevant to click; non-closing controls are marked so the descriptor cannot
-pretend they return a dialog result.
+The inventory contains 14 dialog classes: 13 `Dialog.ts` model/view pairs under
+`src/renderer/ui/dialogs/`, plus the editor-owned `EditLinkDialogModel`/`EditLinkDialogView` in
+`src/renderer/editors/link-editor/`. There is no separate encryption-dialog class; the
+password/encryption prompt is `PasswordDialogModel`. The table records state/result/click behavior
+verified from each model and native view. Buttons means visible controls relevant to click;
+non-closing controls are marked so the descriptor cannot pretend they return a dialog result.
 
 The implementation convention is narrower and uniform: each adapter's buttons member lists
 result-bearing controls, plus Password's Encrypt/Decrypt submit labels whose secret result is
@@ -113,6 +113,7 @@ and rejected by click().
 | TextDialogModel in [TextDialog.ts](../../../src/renderer/ui/dialogs/TextDialog.ts):16-24, :26-39: title, text, buttons, readOnly, options, width, height; live editorText at :38-44 | Dynamic buttons; result { text, button } or undefined | TextDialogView.ts:109-122 calls close({ text: editorText, button }); X closes undefined at :40-43; Escape is undefined at TextDialog.ts:46-50 | title, text/live editorText, buttons, readOnly, safe editor options/dimensions. |
 | PasswordDialogModel in [PasswordDialog.ts](../../../src/renderer/ui/dialogs/PasswordDialog.ts):15-19, :21-28: mode, message, password, confirm, error | Decrypt or Encrypt, plus Cancel; result string or undefined | Submit calls model.submit() at PasswordDialogView.ts:83-92; submit validates and internally calls close(password) at PasswordDialog.ts:41-52. Cancel/X/Esc calls close(undefined) at the view :91-112. The adapter may invoke Encrypt/Decrypt but must await and discard the result; it must not accept/return/serialize password. | Only visible button labels and cancel(); no title, message, mode, error, password, confirm, or result value, per the privacy decision. |
 | CommitDialogModel in [CommitDialog.ts](../../../src/renderer/ui/dialogs/CommitDialog.ts):9-18, :22-37: title, branch, originalBranch, message, name, email, buttons, committing; private viewDisposed and callback onAction | Dynamic action buttons plus Cancel; CommitResult { message, name, email, branch, button } or undefined | CommitDialogView.ts:186-195 maps Cancel to close(undefined) and other buttons to submit(button); submit builds the result and calls close(result) at CommitDialog.ts:63-75, allowing async canClose/onAction at :57-61. Visible label transforms are actionButtonLabel() :83-88, so visible “Create Branch & Commit” maps to underlying “Commit” when applicable. | Visible form fields, title, buttons, committing; never onAction or lifecycle internals. |
+| EditLinkDialogModel in [EditLinkDialog.ts](../../../src/renderer/editors/link-editor/EditLinkDialog.ts):13-31, :36-94: dialogTitle, linkTitle, href, category, tags, imgSrc, target; private catalog/image state | Cancel, Save; `EditLinkResult` or undefined | Cancel uses close(undefined); Save calls the model's `save()` method, which trims the editable fields and closes with the link result | title, link fields, tags, target, buttons; omit category/tag catalogs, discovered images, and proxy state. |
 | CreateBoardDialogModel in [CreateBoardDialog.ts](../../../src/renderer/ui/dialogs/CreateBoardDialog.ts):31-40: title, template, folder, name, creating; private viewDisposed | Browse (non-closing), Cancel, Create; result absolute board-root string or undefined | Cancel calls close(undefined) at CreateBoardDialogView.ts:87-90; Create calls submit() at :92-97, which scaffolds and calls close(root) at CreateBoardDialog.ts:66-80; Browse only opens an OS folder dialog at :54-62 | title, template, folder, name, creating; omit lifecycle flag. |
 | CreateBoardVarsStorageDialogModel in [CreateBoardVarsStorageDialog.ts](../../../src/renderer/ui/dialogs/CreateBoardVarsStorageDialog.ts):16-25: path, creating; private viewDisposed | Browse (non-closing), Cancel, Create; result true or undefined/false | Cancel is close(undefined) at CreateBoardVarsStorageDialogView.ts:72-75; Create calls submit() at :77-82 and closes true at CreateBoardVarsStorageDialog.ts:52-68; Browse invokes native save dialog at :37-49 | path, creating; no lifecycle flag. |
 | LibrarySetupDialogModel in [LibrarySetupDialog.ts](../../../src/renderer/ui/dialogs/LibrarySetupDialog.ts):19-23, :25-32: title, folderPath, copyExamples, linking; private viewDisposed | Browse (non-closing), Link, Cancel; result linked folder string or undefined | Link calls link() at LibrarySetupDialogView.ts:80-84; it performs work and calls close(trimmed) at LibrarySetupDialog.ts:51-73. Cancel/X/Esc calls close(undefined) at the view :86-110; Browse opens native folder selection at model :43-49 | title, folderPath, copyExamples, linking; omit lifecycle flag. |
@@ -159,14 +160,15 @@ not create menus.
 1. Add a renderer AiVision dialogs module, proposed as
    src/renderer/scripting/ai-vision/dialogs/index.ts plus direct per-view adapter modules
    under src/renderer/scripting/ai-vision/dialogs/ (confirmation.ts, input.ts, text.ts,
-   password.ts, commit.ts, create-board.ts, create-board-vars-storage.ts, library-setup.ts,
-   namespace-collision.ts, open-url.ts, register-toolset.ts, tor-info.ts, and trust-board.ts).
+   password.ts, commit.ts, create-board.ts, create-board-vars-storage.ts, edit-link.ts,
+   library-setup.ts, namespace-collision.ts, open-url.ts, register-toolset.ts, tor-info.ts,
+   and trust-board.ts).
    Keep index.ts a side-effect registration entry point and import it directly from
    src/renderer/scripting/ai-vision/root.ts alongside import "./namespaces". Use direct imports;
    do not create an unrelated barrel.
 2. Build the adapter map in
    src/renderer/scripting/ai-vision/dialogs/index.ts: `Map<symbol, (entry: IDialogViewData) =>
-   DialogAdapter>`. Register one factory for each of the 13 exported dialog view IDs (including
+   DialogAdapter>`. Register one factory for each of the 14 exported dialog view IDs (including
    `trustBoardDialogId`). Select by `entry.viewId`, not by model constructor, and do not call either
    shared AiVision registry. Keep a per-DialogsNode WeakMap keyed by the live entry so the same entry
    returns the same adapter within one resolve; build from the current array and do not retain stale
@@ -185,7 +187,7 @@ not create menus.
    [index], and index(key) returning the current entry's adapter. Do not retain stale entries or use
    internalId in the public path. Reading state must be get()/map only and must not mount, focus,
    open, close, or invoke a dialog.
-5. Keep all 13 dialog models and all 13 dialog views unchanged. The adapters are the only per-dialog
+5. Keep all 14 dialog models and all 14 dialog views unchanged. The adapters are the only per-dialog
    implementation layer: their hard-coded TrustBoard/RegisterToolset/NamespaceCollision/TorInfo
    title/message constants mirror the verified view strings and carry comments naming the source
    view/line. The adapter map and live DialogsNode are the complete AiVision integration.
@@ -290,9 +292,10 @@ error and returns the normal error result at resolver.ts:126-141.
 
 ## Concerns / Resolved decisions
 
-- **The “14 classes” claim is corrected and accepted.** There are 13 *Dialog.ts files/models in
-  src/renderer/ui/dialogs, exactly the 13 named in the task. There is no separate encryption
-  model; PasswordDialogModel is the encryption/decryption prompt. EPIC-084 now records 13.
+- **The 14-class inventory is confirmed.** Thirteen dialog model/view pairs live in
+  src/renderer/ui/dialogs; EditLinkDialogModel/EditLinkDialogView is the fourteenth pair and is
+  editor-owned in src/renderer/editors/link-editor. There is no separate encryption model;
+  PasswordDialogModel is the encryption/decryption prompt.
 - **ViewId adapters resolve the constructor ambiguity.** The four bare model instances for
   Confirmation, NamespaceCollision, RegisterToolset, and TrustBoard all have runtime constructor
   TDialogModel, so constructor registration cannot distinguish them. The adapter map selects by
@@ -333,7 +336,7 @@ error and returns the normal error result at resolver.ts:126-141.
    viewId-keyed adapter for the live IDialogViewData entry; stale/closed indexes fail cleanly. The
    same entry returns the same adapter within one resolve, while separate MCP calls need not preserve
    adapter identity.
-3. Every one of the 13 on-disk dialog models has a viewId-keyed adapter and the documented
+3. Every one of the 14 on-disk dialog models has a viewId-keyed adapter and the documented
    state/button/result mapping; no model or view is changed.
 4. Every adapter supplies real resolver members for the shared safe surface. click(label) uses exact
    visible labels, rejects unknown/omitted/disabled labels with a normal thrown Error, maps each
@@ -354,13 +357,13 @@ error and returns the normal error result at resolver.ts:126-141.
 
 | File | Planned change |
 |---|---|
-| doc/tasks/US-1298-dialogs-node/README.md | This investigation, 13-model inventory, and implementation plan. |
+| doc/tasks/US-1298-dialogs-node/README.md | This investigation, 14-class inventory, and implementation plan. |
 | doc/tasks/US-1297-call-attention/README.md | Coupled attention contract and fallback referenced by this task. |
 | doc/active-work.md | Link US-1297 and US-1298 under EPIC-084. |
 | doc/epics/EPIC-084.md | Mark US-1297 and US-1298 In Progress. |
 | src/renderer/scripting/ai-vision/root.ts | Lazy-load dialogs registration and add the root member/help. |
 | src/renderer/scripting/ai-vision/dialogs/index.ts | New lazy registration entry point and DialogsNode. |
-| src/renderer/scripting/ai-vision/dialogs/confirmation.ts, input.ts, text.ts, password.ts, commit.ts, create-board.ts, create-board-vars-storage.ts, library-setup.ts, namespace-collision.ts, open-url.ts, register-toolset.ts, tor-info.ts, trust-board.ts | ViewId-keyed adapter classes, safe live fields, and exact button mappings. |
+| src/renderer/scripting/ai-vision/dialogs/confirmation.ts, input.ts, text.ts, password.ts, commit.ts, create-board.ts, create-board-vars-storage.ts, edit-link.ts, library-setup.ts, namespace-collision.ts, open-url.ts, register-toolset.ts, tor-info.ts, trust-board.ts | ViewId-keyed adapter classes, safe live fields, and exact button mappings. |
 
 Files intentionally needing NO changes for US-1298:
 
@@ -369,8 +372,8 @@ Files intentionally needing NO changes for US-1298:
 | src/shared/ai-vision/types.ts, resolver.ts, hint.ts, result-shaper.ts, help-search.ts | Existing registry, resolver, hint, shaping, and safe-node traversal contracts are reused; no new shared protocol is required. |
 | src/renderer/ui/dialogs/DialogsView.ts, Dialogs.ts, dialog-view-registry.ts | Live state, IDialogViewData shape, and close lifecycle are the source contract; do not move or duplicate dialog ownership. |
 | src/renderer/core/state/model.ts | TDialogModel.close, canClose, and onClose already provide the required lifecycle gate at :63-92. |
-| src/renderer/ui/dialogs/ConfirmationDialog.ts, InputDialog.ts, TextDialog.ts, PasswordDialog.ts, CommitDialog.ts, CreateBoardDialog.ts, CreateBoardVarsStorageDialog.ts, LibrarySetupDialog.ts, NamespaceCollisionDialog.ts, OpenUrlDialog.ts, RegisterToolsetDialog.ts, TorInfoDialog.ts, TrustBoardDialog.ts | Existing live models and state/button behavior are consumed by adapters; no model changes. |
-| src/renderer/ui/dialogs/ConfirmationDialogView.ts, InputDialogView.ts, TextDialogView.ts, PasswordDialogView.ts, CommitDialogView.ts, CreateBoardDialogView.ts, CreateBoardVarsStorageDialogView.ts, LibrarySetupDialogView.ts, NamespaceCollisionDialogView.ts, OpenUrlDialogView.ts, RegisterToolsetDialogView.ts, TorInfoDialogView.ts, TrustBoardDialogView.ts | Existing user-facing strings and button behavior are the mapping source; no view changes. |
+| src/renderer/ui/dialogs/ConfirmationDialog.ts, InputDialog.ts, TextDialog.ts, PasswordDialog.ts, CommitDialog.ts, CreateBoardDialog.ts, CreateBoardVarsStorageDialog.ts, LibrarySetupDialog.ts, NamespaceCollisionDialog.ts, OpenUrlDialog.ts, RegisterToolsetDialog.ts, TorInfoDialog.ts, TrustBoardDialog.ts; src/renderer/editors/link-editor/EditLinkDialog.ts | Existing live models and state/button behavior are consumed by adapters; no model changes. |
+| src/renderer/ui/dialogs/ConfirmationDialogView.ts, InputDialogView.ts, TextDialogView.ts, PasswordDialogView.ts, CommitDialogView.ts, CreateBoardDialogView.ts, CreateBoardVarsStorageDialogView.ts, LibrarySetupDialogView.ts, NamespaceCollisionDialogView.ts, OpenUrlDialogView.ts, RegisterToolsetDialogView.ts, TorInfoDialogView.ts, TrustBoardDialogView.ts; src/renderer/editors/link-editor/EditLinkDialogView.ts | Existing user-facing strings and button behavior are the mapping source; no view changes. |
 | src/renderer/ui/dialogs/poppers/showPopupMenu.ts, PoppersView.ts | Popup reporting/fallback and US-1299’s menus node belong to US-1297/US-1299, not this node. |
 | src/main/mcp/tools/call-tools.ts, src/main/mcp/ai-vision/* | Main pass-through/rendering is US-1297; dialog adapters are renderer-only. |
 | src/renderer/api/mcp/command-registry.ts, call-command.ts, board-call-command.ts, src/board-shim.ts, src/main/board-bridge.ts | Existing dispatch and plain script/Board contracts do not need dialog-node-specific changes. |

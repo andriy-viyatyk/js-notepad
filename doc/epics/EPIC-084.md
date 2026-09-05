@@ -67,13 +67,15 @@ tool pair this roadmap retires.
    object built from `IDialogViewData` (`dialog-view-registry.ts:16-25`), selected by `viewId` —
    the key the view registry already uses — that *implements* `aiVision` directly (no registry
    lookup) and exposes the normalised surface `title`, `message`, `buttons`, `click(button)`,
-   `cancel()` plus that dialog's safe fields. No dialog model or view changes; the 13 model files
-   stay as they are. `click(button)` maps the visible label to the same `close(result)` the view's
+   `cancel()` plus that dialog's safe fields. No dialog model or view changes; the 14 model/view
+   pairs stay as they are. `click(button)` maps the visible label to the same `close(result)` the view's
    button calls (Confirmation closes with the label itself; boolean dialogs with `true`/`false`;
    Input/Text/Commit through their existing submit paths), so `canClose` validation is honoured
    exactly as a user click is. `cancel()` is always `close(undefined)`. Non-closing controls
-   (Browse, Tor Reconnect) are not buttons and `click` rejects them. There are **13** dialog
-   classes, not 14; the password prompt is the encryption dialog.
+   (Browse, Tor Reconnect) are not buttons and `click` rejects them. There are **14** dialog
+   classes: 13 under `src/renderer/ui/dialogs/` and the editor-owned `EditLinkDialog` at
+   `src/renderer/editors/link-editor/EditLinkDialog.ts`; the password prompt is the encryption
+   dialog.
 4. **Password and encryption dialogs expose buttons and `cancel()` only.** No `value`. Restating
    the privacy stance of EPIC-083: the agent may dismiss, never read, a credential prompt.
 5. **`menus` mirrors `dialogs` for popup menus**: `items` (label, enabled, checked, submenu),
@@ -103,12 +105,12 @@ tool pair this roadmap retires.
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-1297 | `attention` on every `call` result: blocking dialogs and popup menus, renderer + main pass-through | In Progress |
-| US-1298 | `dialogs` root node — base descriptor, `click`/`cancel`, per-class descriptors for the 14 dialogs, password rule | In Progress |
-| US-1299 | `menus` root node — open popup menu items, `click(label)`, `close()` | Planned |
-| US-1300 | Elements/highlight protocol in the shared AiVision layer, with the header strip as first consumer | Planned |
-| US-1301 | Native OS dialog tracking in main and its attention report | Planned |
-| US-1302 | Acceptance run on Haiku via `mcp-test-agent-call`: close a modified page and recover; find and highlight a control from its purpose. Starts the per-surface QA layout with `qa/surfaces/dialogs.md` and `qa/surfaces/shell.md` | Planned |
+| US-1297 | `attention` on every `call` result: blocking dialogs and popup menus, renderer + main pass-through | Implemented |
+| US-1298 | [`dialogs` root node — `click`/`cancel`, 14 viewId-keyed adapters, password rule](../tasks/US-1298-dialogs-node/README.md) | Implemented |
+| US-1299 | [`menus` root node — open popup menu items, `click(label)`, `close()`](../tasks/US-1299-menus-node/README.md) | Implemented |
+| US-1300 | [Elements/highlight protocol in the shared AiVision layer, with the header strip as first consumer](../tasks/US-1300-elements-highlight/README.md) | Implemented |
+| US-1301 | [Native OS dialog tracking in main and its attention report](../tasks/US-1301-native-dialog-attention/README.md) | Implemented |
+| US-1302 | Acceptance run on Haiku via `mcp-test-agent-call`: close a modified page and recover; find and highlight a control from its purpose. Starts the per-surface QA layout in [`qa/surfaces/`](../../qa/surfaces/README.md) | Implemented |
 
 US-1297 and US-1298 are the ones that fix the reported stall and should go first, in that order.
 US-1299–US-1301 are independent of each other. US-1302 closes the epic.
@@ -126,12 +128,65 @@ US-1299–US-1301 are independent of each other. US-1302 closes the epic.
 
 ## Notes
 
+### 2026-09-05 — implementation and acceptance
+- US-1299, US-1300 and US-1301 implemented (Codex, from reviewed plans). Plan review caught three
+  design errors worth recording: US-1300's original mechanism threaded a renderer *runtime* through
+  `resolveCall`, which every present and future caller would have had to pass — replaced with a
+  descriptor-owned `provide(name)` hook, one line in the resolver, and four files dropped from the
+  change list. US-1301 assumed a native modal stops the renderer answering; it does not (async
+  pickers are window-modal, so the renderer still replies), so attention now rides on an ordinary
+  result and `pending` is reserved for the bridge-timeout branch. The two *synchronous* native
+  dialogs block main's event loop and are unreportable by design — documented, not worked around.
+- **Verified live, in the running app:** `dialogs` recovery from a pending close; `menus[0].items`
+  on a 15-item tab menu with disabled entries excluded from the suggested actions, and
+  `menus[0].click("Copy File Path")` running the real callback (clipboard checked) and closing the
+  popup; `ui.elements` with correct live visibility for every conditional control; `ui.highlight`
+  and its self-correcting unknown-name error; native-dialog attention appearing on an unrelated
+  call and clearing on dismissal (the user dismissed the OS dialog — an agent cannot).
+- The header list gained the four active-tab controls (`page-tab`, `tab-language`, `tab-close`,
+  `tab-sound`), which also exercises the explicit-selector branch. 20 declarations in total.
+
+### 2026-09-05 — what the QA runs changed
+Both acceptance criteria pass, but the runs were worth more than the passes:
+
+- **Answering a dialog is a decision.** Told only "close the active page", Haiku answered Unsaved
+  Changes with "Don't Save" and discarded the user's work. Adding a caution *below* the
+  `Resolve it with …` line changed nothing — the model acts on the first actionable line it reads.
+  Moving the same text *above* it made the next run stop and ask the user. Attention blocks now put
+  the constraint before the call to action.
+- **Cross-reference beats redirection.** "Show me where to change the tab language" was answered
+  with `page.language` three runs running. Indexing element purposes in `helpSearch`, rewriting the
+  root `ui` summary, and adding a root `$help` common path all failed — the agent never called
+  `helpSearch` and never re-read the root. Putting the pointer on `page.language` itself, the node
+  it lands on every time, fixed it in one run. `page.language` was never a wrong answer; three
+  attempts went into steering a model away from a correct one.
+- Findings are recorded per test in [`qa/surfaces/`](../../qa/surfaces/README.md), which this epic
+  starts: `dialogs.md`, `shell.md`, `menus.md`, plus a README explaining the per-surface layout.
+
+### 2026-09-05 — epic close
+- `/review` found a real gap US-1298's investigation missed: `EditLinkDialog`
+  (`src/renderer/editors/link-editor/EditLinkDialog.ts`) also enters `dialogsState` via
+  `showDialog`, so the inventory is **14** dialog classes, not 13. Codex added the adapter; the
+  claim was verified against the source before accepting it (`dialogTitle` at :14, `save()` at :79,
+  view buttons Cancel/Save at :314/:320).
+- That instance exposed a worse class of failure, fixed separately in
+  `dialogs/unknown.ts`: `getAdapter` **threw** on an unregistered `viewId`, so a single missed
+  registration broke `dialogs[i]`, `children()` and every attention block for *all* open dialogs at
+  once. It now degrades to an `UnknownDialog` adapter that can still be dismissed. Deliberately, it
+  reflects over nothing — an unknown dialog may be holding a credential, and guessing at its
+  members is what decision 4 forbids. Verified live: the dialog reports as `UnknownDialog`, still
+  raises attention, and `cancel()` dismisses it.
+- Remaining known limitation, documented not worked around: the two **synchronous** native dialogs
+  (download save picker, browser unload message box) block main's event loop, so no `call` can run
+  or be annotated while one is open.
+
 ### 2026-09-05
 - Codex's US-1297/US-1298 investigation found two design decisions wrong against the source, both
   amended above: (1) attention "after the path resolves" cannot fire while the action itself awaits
   the dialog — resolved with a *pending* result; (3) constructor-keyed dialog descriptors cannot
   distinguish the four bare `TDialogModel` dialogs and cannot add members the model lacks —
-  resolved with `viewId`-keyed adapter children. Also: 13 dialog classes, not 14.
+  resolved with `viewId`-keyed adapter children. The inventory is 14 dialog classes: 13 shared
+  dialog classes plus the editor-owned `EditLinkDialog`.
 - Created from the roadmap discussion. User direction: the end state is `call` alone, browser
   tools folded into the browser/board editors, highlighting reached from `call`; final proof is a
   call-only flag plus a QA re-run on Haiku and Codex before anything is deleted.

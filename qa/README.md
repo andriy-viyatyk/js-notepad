@@ -20,6 +20,17 @@ The **test runner** (you, in the main conversation) sends test prompts to the ag
 | `mcp-test-page-operations.md` | Page CRUD | List, read, update pages, multi-window, browser, app info, pageId targeting, overview guide |
 | `mcp-test-browser.md` | Browser automation | Targeting, snapshots, refs, click, evaluate, wait_for, screenshots, app window |
 | `mcp-test-ui-guidance.md` | Explaining the app itself | UI guide lookups, highlight overlay, editor catalog, settings, features that don't exist |
+| [`surfaces/README.md`](surfaces/README.md) | Per-surface `call` QA | Dialogs, popup menus, curated shell elements, attention, and highlights |
+
+## Surface QA
+
+The surface-oriented suite lives under [`qa/surfaces/`](surfaces/README.md). These tests follow
+the part of Persephone an agent is trying to understand or drive, so they cover the `call`
+protocol's live attention, dialog/menu actions, curated element descriptions, and highlights.
+The two layouts are complementary: the older `mcp-test-*.md` files group coverage by MCP tool,
+while `qa/surfaces/` groups coverage by screen, dialog family, or editor as the single `call`
+surface replaces tool-specific workflows. Use the surface index for its common rules and the
+per-surface preparation, request, expected result, and verification steps.
 
 ## Running Tests
 

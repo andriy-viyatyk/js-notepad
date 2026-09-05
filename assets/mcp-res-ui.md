@@ -10,6 +10,14 @@ For the editors that fill the page area, read `read_guide("ui-editors")`.
 For creating/reading pages as an agent, `read_guide("pages")`.
 For driving the UI (clicking, typing, snapshots), `read_guide("browser")`.
 
+When the MCP `call` tool is available, prefer its app-window protocol for explaining the shell:
+`ui.elements` returns the curated controls with their purpose, resolved selector, and current
+visibility, and `ui.highlight(name, message?)` points at one of those controls. The named
+highlight returns when the overlay has been drawn; the user dismisses it afterwards. This list
+is curated, not an exhaustive DOM inventory. The raw `app.ui.highlightElement(selector, ...)`
+script API below remains available when a selector-based operation or its additional options are
+needed.
+
 ## What Persephone is
 
 A Windows notepad replacement built for developers. It keeps the fast, tabbed, open-anything

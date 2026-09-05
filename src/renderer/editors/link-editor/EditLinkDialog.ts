@@ -31,7 +31,7 @@ export type EditLinkResult = Omit<LinkItem, "id"> | undefined;
 // Model
 // =============================================================================
 
-const editLinkDialogId = Symbol("editLinkDialog");
+export const editLinkDialogId = Symbol("editLinkDialog");
 
 export class EditLinkDialogModel extends TDialogModel<EditLinkDialogState, EditLinkResult> {
     handleKeyDown = (e: KeyboardEvent) => {

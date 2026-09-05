@@ -80,6 +80,10 @@ persephone/
 │                           #   markdown, mermaid-theme, split, sortablejs, tippy, dialog
 │                           #   (av-grid, the default grid, is in the catalog with NO skin —
 │                           #    it reads the --p-* contract itself)
+├── qa/                     # MCP QA suites, split between tool-oriented and surface-oriented tests
+│   ├── mcp-test-*.md       # Tests grouped by MCP tool
+│   ├── surfaces/           # Tests grouped by the application surface under test
+│   └── runs/               # Recorded test-agent runs
 ├── patches/                # Dependency patches (patch-package)
 ├── .mcp.json               # MCP server config for Claude Code (points to MCP HTTP server)
 ├── doc/                    # Developer documentation
@@ -710,7 +714,10 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── Markdown.ts            # Markdown helper class (returned by ui.show.markdown)
 │       ├── Mermaid.ts             # Mermaid helper class (returned by ui.show.mermaid)
 │       └── StyledTextBuilder.ts    # Fluent styled text builder + styledText() factory
-│   └── ai-vision/           # Renderer AiVision root, call entry point, and namespace descriptors
+│   └── ai-vision/           # Renderer AiVision root, call/attention entry points, and descriptors
+│       ├── dialogs/         # ViewId-keyed adapters for renderer dialogs
+│       ├── menus/           # Popup-menu adapter and indexed menus node
+│       └── elements.ts      # Curated element visibility and highlight protocol
 │
 ├── automation/             # Browser Automation (Playwright-compatible MCP tools)
 │   ├── types.ts            # IBrowserTarget interface
@@ -886,13 +893,14 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── types.ts            # IMcpToolDef and friends
 │   ├── tools/              # The tools themselves, as data — one module per group (window, page, board, agent, browser, guide)
 │   └── ai-vision/          # Main-process AiVision roots, service descriptors, and gated main scripting
-├── browser-service.ts      # Browser page support (webview management)
+├── browser-service.ts      # Browser page support (webview management and tracked native message boxes)
 ├── browser-registration.ts # Default browser registration
 ├── sidecar-process.ts      # Shared sidecar lifecycle (spawn → stdout-readiness sentinel → stop) used by tor-service and mneme-service: start dedupe, readiness timeout, stale-child guard, unexpected-death callback, stop-and-wait before respawn
 ├── tor-service.ts          # Tor concerns on top of sidecar-process: per-partition SOCKS5 proxy (fail-closed arming), torrc generation, restart-based reconnect, exit-IP/geo lookup through the partition's session
 ├── tor-src-protocol.ts     # tor-src:// scheme handler — fetches an http(s) URL through a Tor partition's session (the app renderer itself is unproxied); guarded by partition shape, live-partition check, and http(s)-only target
 ├── git-service.ts          # Git access via simple-git — status, stage/unstage/commit, branch/switch, fetch/push/pull, ahead-behind, log/show, --version probe — main-process only
-├── download-service.ts     # Download management
+├── download-service.ts     # Download management and tracked synchronous save dialogs
+├── native-dialog-tracker.ts # Per-window tracking and non-actionable attention for native dialogs
 ├── search-service.ts       # File search host — owns one search-worker thread per sender window, relays its batches to the renderer; cancel/window-close is worker.terminate()
 ├── search-worker.ts        # File search walk — runs in a worker_thread (bundled separately to .vite/build/search-worker.js); never imports electron
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
@@ -938,7 +946,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── core-handlers.ts    # Desktop, app, local-service, and utility Endpoint registrations
 │   ├── git-handlers.ts     # Lazy Git service Endpoint registrations
 │   ├── board-handlers.ts   # Lazy Board lifecycle, bridge, automation, and catalog Endpoint registrations
-│   ├── dialog-handlers.ts  # File dialog handlers — the single place all three native dialogs are opened (renderer app.fs and the board bridge both route here); resolves the starting folder through dialog-folder-memory and records the pick
+│   ├── dialog-handlers.ts  # File dialog handlers — the single place all three native dialogs are opened (renderer app.fs and the board bridge both route here); wraps them in native-dialog tracking, resolves the starting folder, and records the pick
 │   ├── renderer-events.ts  # Events sent TO renderer
 │   └── window-handlers.ts  # Window management handlers
 └── renderer/               # Renderer process API

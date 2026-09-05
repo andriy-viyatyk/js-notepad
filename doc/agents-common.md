@@ -140,7 +140,7 @@ epic closes.
 | Find the file that owns a behavior | [architecture/key-files.md](architecture/key-files.md) |
 | See future ideas              | [tasks/backlog.md](tasks/backlog.md) |
 | Publish a new build           | [standards/release-process.md](standards/release-process.md) |
-| Test MCP documentation        | [qa/README.md](../qa/README.md) |
+| Test MCP documentation        | [qa/README.md](../qa/README.md) (including [surface QA](../qa/surfaces/README.md)) |
 | User documentation            | [docs/index.md](../docs/index.md) |
 
 ## Project Overview

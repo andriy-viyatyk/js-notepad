@@ -7,6 +7,7 @@ import { McpResponse } from "./types";
 // Reuses the same MCP_EXECUTE/MCP_RESULT channels as the old pipe server.
 
 const REQUEST_TIMEOUT_MS = 30_000;
+export const RENDERER_REQUEST_TIMEOUT_MESSAGE = "Request timeout";
 
 let ipcInitialized = false;
 let requestIdGen = 0;
@@ -56,7 +57,7 @@ export async function sendToRenderer(method: string, params: unknown, windowInde
         if (effectiveTimeout > 0) {
             timer = setTimeout(() => {
                 pendingRequests.delete(requestId);
-                resolve({ error: { code: -32603, message: "Request timeout" } });
+                resolve({ error: { code: -32603, message: RENDERER_REQUEST_TIMEOUT_MESSAGE } });
             }, effectiveTimeout);
         }
 

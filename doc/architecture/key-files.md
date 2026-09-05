@@ -89,6 +89,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Script execution         | `/src/renderer/scripting/ScriptRunner.ts`         |
 | Shared AiVision contracts, registry, path parser/resolver, hints, help search, and result shaping | `/src/shared/ai-vision/` |
 | Renderer AiVision root and namespace descriptors (the renderer side of path calls) | `/src/renderer/scripting/ai-vision/` |
+| AiVision descriptor extensions (descriptor-owned `provide` for computed members and curated UI-element declarations) | `/src/shared/ai-vision/types.ts`, `/src/shared/ai-vision/resolver.ts`, `/src/shared/ai-vision/help-search.ts` |
+| Renderer dialog AiVision adapters (safe fields, button actions, cancellation, password privacy) | `/src/renderer/scripting/ai-vision/dialogs/` |
+| Renderer popup-menu AiVision adapter (`menus[0]`, nested item paths, click/close) | `/src/renderer/scripting/ai-vision/menus/` |
+| Curated element visibility and named highlight protocol | `/src/renderer/scripting/ai-vision/elements.ts`, `/src/renderer/scripting/ai-vision/namespaces/ui.ts` |
 | TypeScript transpilation | `/src/renderer/scripting/transpile.ts`            |
 | Async worker (renderer)  | `/src/renderer/scripting/worker/WorkerRunner.ts`  |
 | Async worker (main)      | `/src/main/worker-host.ts`                        |
@@ -107,6 +111,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Page-tab shared contract (tab props, sizing constants, and menu/drag support helpers) | `/src/renderer/ui/tabs/PageTab.ts` |
 | Dialog/popper view registry | `/src/renderer/ui/dialogs/dialog-view-registry.ts` |
 | Native dialog/popper hosts | `/src/renderer/ui/dialogs/DialogsView.ts`, `/src/renderer/ui/dialogs/poppers/PoppersView.ts` |
+| Application popup-menu state and callback activation | `/src/renderer/ui/dialogs/poppers/showPopupMenu.ts` |
 | Native editor error view (message + optional stack for failures in the native editor path) | `/src/renderer/ui/app/NativeEditorErrorView.ts`, `/src/renderer/ui/app/NativeEditorErrorView.css` |
 | UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
 | Secondary view registry (single native `VanillaView` panel loader; exact and prefix resolution) | `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
@@ -239,6 +244,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | MCP server definition — instructions, guides, tools | `/src/main/mcp/`             |
 | Main-process AiVision roots and service descriptors, including the settings-gated main script node | `/src/main/mcp/ai-vision/` |
 | MCP tool definitions (one module per group, tools as data) | `/src/main/mcp/tools/` |
+| MCP `call` routing and attention/pending result formatting (renderer forwarding, timeout conversion, and path prefixing) | `/src/main/mcp/tools/call-tools.ts`, `/src/main/mcp/renderer-bridge.ts` |
+| Per-window native dialog tracking and attention snapshots | `/src/main/native-dialog-tracker.ts` |
 | Audio/Video player editor view | `/src/renderer/editors/video/VideoView.ts` |
 | Video playback view (video.js + hls.js and stable media nodes) | `/src/renderer/editors/video/VPlayer.ts` |
 | Audio player view | `/src/renderer/editors/video/AudioPlayer.ts` |

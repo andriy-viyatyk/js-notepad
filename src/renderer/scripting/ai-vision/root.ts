@@ -1,5 +1,6 @@
 import "./namespaces";
 import { DialogsNode } from "./dialogs";
+import { MenusNode } from "./menus";
 
 import type { AppWrapper } from "../api-wrapper/AppWrapper";
 import type { PageCollectionWrapper } from "../api-wrapper/PageCollectionWrapper";
@@ -37,8 +38,9 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "version", kind: "property", summary: "Persephone version string." },
     { name: "settings", kind: "property", node: true, summary: "Application settings (read/write)." },
     { name: "fs", kind: "property", node: true, summary: "File system access (read/write files, list folders).", caution: "writes touch the user's disk" },
-    { name: "ui", kind: "property", node: true, summary: "Dialogs, notifications, progress overlays, screen locks, and app-window highlights." },
+    { name: "ui", kind: "property", node: true, summary: "Dialogs, notifications, progress overlays, screen locks — and ui.elements, which names the on-screen shell controls and what each is for. Asked WHERE something is, or to SHOW the user something, start there and point at it with ui.highlight; a writable property that changes the same thing is a different question." },
     { name: "dialogs", kind: "property", node: true, summary: "Open renderer dialogs in live display order; use dialogs[i] to inspect and answer one." },
+    { name: "menus", kind: "property", node: true, summary: "The open application popup menu; use menus[0] to inspect items, click an action, or close it." },
     { name: "shell", kind: "property", node: true, summary: "Open URLs, capture screen snippets, encrypt/decrypt text, and inspect runtime/update versions.", caution: "runs processes with the user's privileges" },
     { name: "window", kind: "property", node: true, summary: "This window: state, sidebar, zoom, and multi-window actions." },
     { name: "proc", kind: "property", node: true, summary: "Spawn and manage child processes.", caution: "runs processes with the user's privileges" },
@@ -64,9 +66,14 @@ Common paths:
   pages["<id>"].content       text of a specific page
   pages[0].asGrid().rowCount  rows in a grid page (facades: asText, asGrid, asNotebook, …)
   dialogs[0].click("OK")   answer the first open renderer dialog (or use dialogs[0].cancel())
+  menus[0].items           inspect the open popup menu, including nested items
+  menus[0].click("Parent > Child")
+  menus[0].close()          dismiss the open popup menu
   pages.showPage("<id>")      activate a page
   helpSearch("add rows")      find where something lives
   main                        main-process diagnostics and gated scripting
+  ui.elements                 curated shell controls with live visibility, purpose, and selectors
+  ui.highlight("tab-language")  point the user at a control on screen ("where is …?", "show me …")
   <path>.$help                long-form help for any node
 
 Rules: arguments for the last segment go in "args" (a JSON array); assignments go in "value";
@@ -80,6 +87,7 @@ export class AiRoot implements IAiVisible {
     ) {}
 
     private readonly dialogsNode = new DialogsNode();
+    private readonly menusNode = new MenusNode();
 
     get pages(): PageCollectionWrapper {
         return this.app.pages;
@@ -98,6 +106,7 @@ export class AiRoot implements IAiVisible {
     get fs() { return this.app.fs; }
     get ui() { return this.app.ui; }
     get dialogs(): DialogsNode { return this.dialogsNode; }
+    get menus(): MenusNode { return this.menusNode; }
     get shell() { return this.app.shell; }
     get window() { return this.app.window; }
     get proc() { return this.app.proc; }

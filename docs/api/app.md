@@ -20,7 +20,7 @@ app.pages.activePage.content;
 | [settings](./settings.md) | `ISettings` | Application configuration. |
 | [pages](./pages.md) | `IPageCollection` | Open pages (tabs) in the current window. |
 | [fs](./fs.md) | `IFileSystem` | File system operations and dialogs. |
-| [ui](./ui.md) | `IUserInterface` | Dialogs and notifications. |
+| [ui](./ui.md) | `IUserInterface` | Dialogs, notifications, progress, and app-window highlights. |
 | [shell](./shell.md) | `IShell` | OS integration: open URLs, encryption, version info. |
 | [window](./window.md) | `IWindow` | Window management: minimize, maximize, zoom, multi-window. |
 | [editors](./editors.md) | `IEditorRegistry` | Read-only registry of all editors. |

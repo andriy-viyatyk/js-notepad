@@ -45,7 +45,11 @@ const PAGE_MEMBERS: readonly IAiMember[] = [
     { name: "modified", kind: "property", summary: "Whether there are unsaved changes." },
     { name: "pinned", kind: "property", summary: "Whether the tab is pinned." },
     { name: "content", kind: "property", writable: true, summary: "The page's text (text-based editors only; empty for browser/image pages). Assign with \"value\"." },
-    { name: "language", kind: "property", writable: true, summary: "Language id (json, markdown, typescript, …)." },
+    // The cross-reference is here, not only at the root: a QA run (Haiku, call-only) asked to
+    // *show* where the language is changed landed on this property every time and answered with
+    // assignment syntax. Setting it is a fine answer to "change it"; "where is it?" wants the
+    // button on the tab.
+    { name: "language", kind: "property", writable: true, summary: "Language id (json, markdown, typescript, …). Assigning changes it; if the user asked WHERE it is changed, the control is the button on the tab — show them with ui.highlight(\"tab-language\")." },
     { name: "editor", kind: "property", writable: true, summary: "Current editor id (monaco, grid-json, md-view, …). Assign to switch editors." },
     { name: "data", kind: "property", summary: "Free-form per-page data bag shared between scripts." },
     { name: "grouped", kind: "property", summary: "The page shown beside this one.", caution: "reading it CREATES a grouped page if none exists" },

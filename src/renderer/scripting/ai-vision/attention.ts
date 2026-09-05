@@ -2,8 +2,8 @@ import { errMessage } from "../../../shared/utils";
 import type { ICallRequest, ICallResult } from "../../../shared/ai-vision/resolver";
 import { dialogsState } from "../../ui/dialogs/DialogsView";
 import { getVisibleAppPopupMenu } from "../../ui/dialogs/poppers/showPopupMenu";
-import type { MenuItem } from "../../core/events/context-menu";
 import { DialogsNode, type DialogAdapter } from "./dialogs";
+import { MenusNode, type MenuItemInfo } from "./menus";
 
 export const PENDING_DIALOG_GRACE_MS = 250;
 
@@ -104,9 +104,10 @@ function withAttention(result: ICallResult): ICallResult {
 export function collectAttention(): { text: string } | undefined {
     try {
         const dialogsNode = new DialogsNode();
+        const menusNode = new MenusNode();
         const sections = dialogsState.get().map((_, index) => formatDialog(dialogsNode, index));
         const popup = getVisibleAppPopupMenu();
-        if (popup) sections.push(formatPopup(popup.model.state.get().items));
+        if (popup) sections.push(formatPopup(menusNode));
         return sections.length ? { text: sections.join("\n\n") } : undefined;
     } catch (error) {
         return { text: `Attention is required, but the visible UI could not be inspected: ${errMessage(error, "unknown inspection error")}.` };
@@ -133,22 +134,34 @@ function formatResolvedDialog(adapter: DialogAdapter, index: number): string {
     return [
         `Attention: dialog${title} is open${message}`,
         `Buttons: ${adapter.buttons.join(", ") || "(none)"}`,
+        // Ordering is deliberate: this line sits ABOVE "Resolve it with", because a QA run
+        // (Haiku, call-only) acted on the first actionable line it read and answered an Unsaved
+        // Changes prompt with "Don't Save" on a bare "close the page" instruction — discarding
+        // the user's work. The dialog layer cannot know which button is destructive, so the
+        // caution has to be unconditional and has to come first.
+        "This is the app asking the USER a question, and only one of these buttons may be what"
+        + " they want. If they did not say which, do NOT choose one that discards work or data —"
+        + " report the question and its options and let them decide.",
         `Resolve it with ${actions.join(" or ")}.`,
     ].join("\n");
 }
 
-function formatPopup(items: readonly MenuItem[]): string {
-    const labels = flattenVisibleLabels(items);
-    return `A popup menu is open with items: ${labels.length ? labels.join(", ") : "(none)"}. The menus node coming in US-1299; use browser_snapshot/browser_click on pageId "app" to inspect or choose an item.`;
-}
-
-function flattenVisibleLabels(items: readonly MenuItem[], prefix = ""): string[] {
-    const labels: string[] = [];
-    for (const item of items) {
-        if (item.invisible) continue;
-        const label = prefix ? `${prefix} > ${item.label}` : item.label;
-        labels.push(label);
-        if (item.items) labels.push(...flattenVisibleLabels(item.items, label));
+function formatPopup(menusNode: MenusNode): string {
+    try {
+        const adapter = menusNode.index(0);
+        if (!adapter) return "Attention: a popup menu is open, but its menu node is no longer available.";
+        const items = adapter.items;
+        const labels = items.map((item) => `${item.label}${item.enabled ? "" : " (disabled)"}`);
+        const actions = items
+            .filter((item): item is MenuItemInfo & { hasSubmenu: false } => !item.hasSubmenu && item.enabled)
+            .map((item) => `menus[0].click(${JSON.stringify(item.label)})`);
+        actions.push("menus[0].close()");
+        return [
+            "Attention: a popup menu is open.",
+            `Items: ${labels.length ? labels.join(", ") : "(none)"}`,
+            `Resolve it with ${actions.join(" or ")}.`,
+        ].join("\n");
+    } catch (error) {
+        return `Attention: a popup menu is open, but its items could not be inspected: ${errMessage(error, "unknown menu inspection error")}.`;
     }
-    return labels;
 }

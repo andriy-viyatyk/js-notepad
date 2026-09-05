@@ -20,6 +20,7 @@ import {
 import { globalPopupRateLimiter } from "../ipc/popup-rate-limiter";
 import { initNetworkLogger, setWebContentsResolver, clearNetworkLog } from "./network-logger";
 import { initCdpHandlers } from "./cdp-service";
+import { withNativeDialogSync } from "./native-dialog-tracker";
 
 const BLOCKED_PROTOCOLS = ["file:", "app-asset:"];
 
@@ -250,9 +251,9 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
             title: "Unsaved changes",
             message: "You have unsaved changes. Leave the page and discard them?",
         };
-        const choice = parentWindow
+        const choice = withNativeDialogSync(parentWindow, "messageBox", () => parentWindow
             ? dialog.showMessageBoxSync(parentWindow, options)
-            : dialog.showMessageBoxSync(options);
+            : dialog.showMessageBoxSync(options));
         if (choice === 0) {
             event.preventDefault(); // user chose Leave — allow the unload/reload
         }

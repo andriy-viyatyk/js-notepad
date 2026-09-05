@@ -578,6 +578,30 @@ facades implement `IAiVisible` with descriptors beside their public members; dyn
 facades enumerate their own children so discovery does not probe side-effecting getters. Namespace
 objects that cannot carry a descriptor use the shared instance registry.
 
+Descriptors may provide computed members through `provide(name)` when the advertised value is not
+a property on the target object. They may also declare curated screen controls separately from
+the live value: `elements` is indexed by help search, while the shared element helper supplies
+live `visible` state and the `highlight(name, message?)` action. `provide` is descriptor-owned:
+the resolver asks it for the named member before reading `target[name]`, so a descriptor can expose
+these computed controls without threading renderer runtime state through every `resolveCall`
+caller. Visibility is measured from the renderer DOM; declarations do not attempt to infer an
+exhaustive element inventory. `highlight` delegates to the existing overlay and resolves once the
+overlay is drawn; the user dismisses it afterward.
+
+The renderer root includes live transient-surface nodes: `dialogs` adapts the registered dialog
+view entries by `viewId`, exposing safe fields plus `click(button)` and `cancel()`, while
+`menus[0]` adapts the currently open application popup and its nested items with `click(label)`
+and `close()`. The password dialog adapter deliberately exposes no value. The renderer `call`
+entry collects these surfaces before returning and races a newly opened blocking dialog, returning
+an `ICallResult` with `pending: true` and `attention` while the underlying action remains in
+progress; a subsequent call answers the live `dialogs[i]` node. Main merges tracked native-dialog
+attention into forwarded renderer results and turns only the renderer-bridge timeout sentinel
+into a pending result while a native dialog is still active. Native dialogs are never driven by
+AiVision: asynchronous file/folder/message-box calls are reported per window, while synchronous
+native calls block main's event loop and cannot be reported in real time. `app.call()` and the
+Board `persephone.call()` bridge keep their plain-value contracts and do not carry this MCP result
+envelope.
+
 For renderer routes, the MCP `call` tool builds a fresh `ScriptContext` and resolves paths through
 `AiRoot`; the main process separately resolves process-owned `windows` and `main` paths before
 forwarding renderer paths. `AppWrapper.call(path, options?)` uses the same resolver and renderer

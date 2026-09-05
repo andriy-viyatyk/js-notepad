@@ -22,6 +22,11 @@ Release notes and changelog for Persephone (formerly js-notepad).
   main-process script execution is separately gated by **Settings → MCP Server → Allow main-process
   scripts**. Private browser pages opened by the user remain protected from object-model access.
 
+- **AI agents can recover from prompts and explain the app window** — The MCP `call` tool reports
+  open renderer dialogs and popup menus, exposes paths to answer or dismiss them, and can describe
+  curated shell controls through `ui.elements` and point at one with `ui.highlight(...)`. Native OS
+  dialogs are reported as requiring the user's response.
+
 ---
 
 ## Version 4.0.23

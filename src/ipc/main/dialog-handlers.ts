@@ -5,6 +5,7 @@ import {
     SaveFileDialogParams,
 } from "../api-param-types";
 import { rememberDirFromPick, resolveDefaultPath } from "../../main/dialog-folder-memory";
+import { withNativeDialog } from "../../main/native-dialog-tracker";
 
 export async function showOpenFileDialog(
     browserWindow: Electron.BrowserWindow | undefined,
@@ -12,7 +13,7 @@ export async function showOpenFileDialog(
 ): Promise<string[] | undefined> {
     if (!browserWindow) return Promise.resolve(undefined);
 
-    const result = await dialog.showOpenDialog(browserWindow, {
+    const result = await withNativeDialog(browserWindow, "file", () => dialog.showOpenDialog(browserWindow, {
         title: params.title,
         defaultPath: resolveDefaultPath({
             kind: "open",
@@ -26,7 +27,7 @@ export async function showOpenFileDialog(
                 ? ["multiSelections"]
                 : []) as Electron.OpenDialogOptions["properties"]),
         ],
-    });
+    }));
 
     if (result.canceled) {
         return undefined;
@@ -40,7 +41,7 @@ export async function showSaveFileDialog(
     params: SaveFileDialogParams
 ): Promise<string | undefined> {
     if (!browserWindow) return Promise.resolve(undefined);
-    const result = await dialog.showSaveDialog(browserWindow, {
+    const result = await withNativeDialog(browserWindow, "file", () => dialog.showSaveDialog(browserWindow, {
         title: params.title,
         defaultPath: resolveDefaultPath({
             kind: "save",
@@ -48,7 +49,7 @@ export async function showSaveFileDialog(
             location: params.location,
         }),
         filters: params.filters,
-    });
+    }));
     if (result.canceled) {
         return undefined;
     }
@@ -61,7 +62,7 @@ export async function showOpenFolderDialog(
     params: OpenFolderDialogParams
 ): Promise<string[] | undefined> {
     if (!mainWindow) return Promise.resolve(undefined);
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await withNativeDialog(mainWindow, "folder", () => dialog.showOpenDialog(mainWindow, {
         title: params.title,
         defaultPath: resolveDefaultPath({
             kind: "folder",
@@ -74,7 +75,7 @@ export async function showOpenFolderDialog(
                 ? ["multiSelections"]
                 : []) as Electron.OpenDialogOptions["properties"]),
         ],
-    });
+    }));
     if (result.canceled) {
         return undefined;
     }

@@ -8,15 +8,8 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-084** — [Agent transparency infrastructure — attention, `dialogs`, `menus`, elements/highlight](epics/EPIC-084.md)
-  — epic 1 of 7 in the [agent transparency roadmap](agent-transparency-roadmap.md), which ends
-  with `call` as the only MCP tool. Started 2026-09-05. Task documents are written when each task starts.
-  - [ ] [US-1297: attention on every call result](tasks/US-1297-call-attention/README.md)
-  - [ ] [US-1298: dialogs root node](tasks/US-1298-dialogs-node/README.md)
-  - [ ] US-1299: `menus` root node — open popup menu items, `click(label)`, `close()`
-  - [ ] US-1300: elements/highlight protocol in the shared AiVision layer; header strip as first consumer
-  - [ ] US-1301: native OS dialog tracking in main and its attention report
-  - [ ] US-1302: acceptance run on Haiku via `mcp-test-agent-call`
+- *(none — EPIC-084 completed 2026-09-05; next up is epic 2 of the
+  [agent transparency roadmap](agent-transparency-roadmap.md), the application shell)*
 
 ## Planned
 

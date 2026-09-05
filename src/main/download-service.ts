@@ -6,6 +6,7 @@ import { EventEndpoint } from "../ipc/api-types";
 import { openWindows } from "./open-windows";
 import { getDataFolder, preparePath } from "./utils";
 import { rememberDirFromPick, resolveDefaultPath } from "./dialog-folder-memory";
+import { withNativeDialogSync } from "./native-dialog-tracker";
 
 const PERSIST_FILE = "recentDownloads.json";
 const MAX_PERSISTED = 5;
@@ -99,10 +100,10 @@ class DownloadService {
             location: "downloads",
         });
 
-        const savePath = dialog.showSaveDialogSync(
+        const savePath = withNativeDialogSync(parentWindow, "file", () => dialog.showSaveDialogSync(
             parentWindow,
             { defaultPath },
-        );
+        ));
 
         if (!savePath) {
             item.cancel();

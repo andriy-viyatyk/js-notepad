@@ -209,8 +209,36 @@ export interface ShowAppPopupMenuOptions {
 
 /** Close any currently open app popup menu. */
 export const closeAppPopupMenu = () => {
-    closePopper(showAppPopupMenuId);
+    const popup = getVisibleAppPopupMenu();
+    return popup?.model.close(undefined);
 };
+
+/** Activate a current popup item using the same callback-then-close sequence as a user click. */
+export async function activateAppPopupMenuItem(
+    popup: IPopperViewData,
+    item: MenuItem,
+    indexPath: readonly number[],
+    label: string,
+): Promise<void> {
+    if (getVisibleAppPopupMenu() !== popup) {
+        throw new Error(`Popup menu item ${JSON.stringify(label)} is no longer available.`);
+    }
+    const items = popup.model.state.get().items as MenuItem[];
+    let currentItems = items;
+    let currentItem: MenuItem | undefined;
+    for (const index of indexPath) {
+        currentItem = currentItems[index];
+        if (!currentItem) {
+            throw new Error(`Popup menu item ${JSON.stringify(label)} is no longer available.`);
+        }
+        currentItems = currentItem.items ?? [];
+    }
+    if (currentItem !== item || currentItem.invisible || currentItem.disabled || currentItem.items?.length) {
+        throw new Error(`Popup menu item ${JSON.stringify(label)} is no longer available.`);
+    }
+    item.onClick?.();
+    await popup.model.close(undefined);
+}
 
 /** Return the live application popup without invoking or serializing any menu callbacks. */
 export function getVisibleAppPopupMenu(): IPopperViewData | undefined {

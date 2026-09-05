@@ -25,6 +25,7 @@ always answers no.
 | `/review`, `/document`, `/userdoc` at epic close | Codex |
 | Confirming the app still renders | **You**, shallowly — see step 6 |
 | A bug or visual defect the user reports | **You**, directly — see below |
+| Running the QA tests and acting on what they show | **You**, directly — see below |
 
 Two boundaries matter more than the rest.
 
@@ -38,6 +39,17 @@ broke", investigate and fix it yourself. Do not delegate it. Debugging is the on
 where the expensive model earns its cost outright: the symptom is known, the cause is not,
 and a wrong guess costs a round trip plus a rebuild. This is the exception to delegate-by-default,
 and it is why the budget is being conserved everywhere else.
+
+**QA test runs are yours.** *(User decision, 2026-09-05.)* Never delegate a `qa/` run to
+Codex. The point of a QA run is not to get a pass/fail — it is to watch a weak model try to
+use the app from the documentation alone, and then decide what to change. The deliverable is
+almost never code: it is a reworded tool description, a clearer hint, a fixed `$help`, a
+guide sentence that was misleading. That judgement is the same faculty you spend on plan
+review, and it does not survive being summarised by another agent — the diagnostic value is
+in the transcript, not in the verdict. So run the test agent yourself (`Skill(skill:
+"mcp-test-agent", ...)` or `mcp-test-agent-call`), read what it actually did call by call,
+and fix the documentation, instructions, or hints that misled it. You may delegate the
+resulting code change to Codex once you know what the change is.
 
 **The core economic rule: every token Codex returns lands in your context.** So every
 delegation prompt must end with an output contract that keeps the reply tiny and puts the
@@ -331,10 +343,12 @@ it violates most often in the prompt itself, and hold yourself accountable for a
 
 ## When not to use this
 
-Three cases, and only three:
+Four cases, and only four:
 
 - **A user-reported bug or visual defect.** Yours to investigate and fix. See the boundary
   above — this is the work the saved budget is being saved *for*.
+- **A QA run under `qa/`.** Yours to run and yours to interpret. See the boundary above —
+  the output that matters is the documentation fix, not the pass/fail.
 - **Epic-level planning and epic documents.** Yours. An epic doc is a judgement about
   sequencing, risk, and what the abort criteria are; that is the same faculty you bring to
   reviewing a task plan, and it does not survive delegation.

@@ -1,3 +1,53 @@
+## EPIC-084 — Agent transparency infrastructure: attention, `dialogs`, `menus`, elements/highlight
+
+Completed 2026-09-05. [Epic document](EPIC-084.md). Epic 1 of 7 in the
+[agent transparency roadmap](../agent-transparency-roadmap.md). Additive throughout — no tool was
+retired; the roadmap's final epic does that.
+
+**The defect that motivated it is gone.** An agent that called `pages.closePage` on a modified page
+used to stall until the renderer bridge timed out, and recovered only through
+`browser_snapshot` + `browser_click` on `pageId: "app"`. Now the call returns
+`{ pending: true, attention }` naming the dialog and the path to each button, the action stays
+alive, and `dialogs[0].click("Don't Save")` finishes it. Attention rides on *every* result — errors
+and unrelated reads included — and is deliberately not gated by `hints: "never"`, because it is
+state the agent cannot otherwise know.
+
+**Two plan errors caught in review, both structural.** US-1300's first design threaded a renderer
+*runtime* through `resolveCall`, which every present and future caller would have had to pass;
+replaced by a descriptor-owned `provide(name)` hook — one line in the resolver, four files off the
+change list, and `app.call()` gets the protocol for free. US-1301 assumed a native modal stops the
+renderer replying; it does not (async pickers are window-modal), so native attention rides an
+ordinary result and `pending` is reserved for the bridge-timeout branch. The two *synchronous*
+native dialogs block main's event loop and are unreportable by construction — documented, not
+worked around.
+
+**Both acceptance criteria passed on Haiku with `call` as its only tool, and the runs were worth
+more than the passes.** Two product changes came out of watching them:
+
+- *Put the constraint before the call to action.* Told only "close the active page", the agent
+  answered Unsaved Changes with "Don't Save" and discarded the user's work. The same caution placed
+  *below* the `Resolve it with …` line changed nothing on a re-run — the model acts on the first
+  actionable line it reads. Moved *above* it, the next run stopped and asked the user.
+- *Cross-reference beats redirection.* "Show me where to change the tab language" returned
+  `page.language` three runs running. Indexing element purposes in `helpSearch`, rewriting the root
+  `ui` summary, and adding a root `$help` path all failed — the agent never called `helpSearch` and
+  never re-read the root. A pointer on `page.language` itself, the node it lands on every time,
+  fixed it in one run. `page.language` was never a wrong answer.
+
+**`/review` found a fourteenth dialog.** `EditLinkDialog` also enters `dialogsState`, so US-1298's
+inventory of 13 was incomplete. The instance was one adapter; the *class* of failure was worse and
+was fixed separately — `getAdapter` threw on an unregistered `viewId`, so one missed registration
+broke `dialogs[i]`, `children()` and attention for every open dialog at once. It now degrades to an
+`UnknownDialog` that can still be dismissed and reflects over nothing, since an unknown dialog may
+be holding a credential.
+
+**The privacy rule holds.** `PasswordDialog` exposes only `buttons`, `click`, `cancel`; `value` and
+`password` are rejected as non-members and `$help` discloses nothing further.
+
+Also started here: [`qa/surfaces/`](../../qa/surfaces/README.md), QA grouped by screen/editor rather
+than by tool, doubling as UI regression — `dialogs.md`, `shell.md`, `menus.md`, each carrying its
+run findings.
+
 ## EPIC-083 — AiVision: one self-discoverable MCP tool over the app object model
 
 Completed 2026-09-05. [Epic document](EPIC-083.md). One MCP tool, `call`, takes a **path** into the

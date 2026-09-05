@@ -32,6 +32,19 @@ export interface IAiMember {
     readonly node?: boolean;
 }
 
+export interface IAiElementDeclaration {
+    readonly name: string;
+    readonly purpose: string;
+    readonly selector?: string;
+}
+
+export interface IAiElement {
+    readonly name: string;
+    readonly purpose: string;
+    readonly selector: string;
+    readonly visible: boolean;
+}
+
 export interface IAiChild {
     /** The segment to append to the parent's path: `[2]`, `["<id>"]`, `.grouped`, `.asGrid()`. */
     readonly segment: string;
@@ -60,6 +73,14 @@ export interface IAiVisionDescriptor {
     restricted?(): string | undefined;
     /** Makes the node indexable: `pages[2]`, `pages["<id>"]`. Return `undefined` for "no item". */
     index?(key: string | number): unknown;
+    /** Values for advertised members the target object does not itself implement. */
+    provide?(name: string): { value: unknown } | undefined;
+    /**
+     * Curated on-screen controls this node owns, for `helpSearch` to index by purpose — so
+     * "where do I change the language" finds the control and not only the API that sets it.
+     * Search metadata only: the live `elements` value and `highlight` come from `provide`.
+     */
+    readonly elements?: readonly IAiElementDeclaration[];
     /** JSON-able summary of the instance for result shaping. Default: `{ kind }`. */
     summarize?(): unknown;
 }
