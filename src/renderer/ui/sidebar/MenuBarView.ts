@@ -1,6 +1,14 @@
 import { api } from "../../../ipc/renderer/api";
 import { pagesModel } from "../../api/pages";
 import { menuFolders, type MenuFolder } from "../../api/menu-folders";
+import {
+    getMenuBarSourceFolders,
+    isBuiltinFolder,
+    openTabsId,
+    recentFilesId,
+    scriptLibraryId,
+    toolsEditorsId,
+} from "../../api/menu-bar";
 import { recent } from "../../api/recent";
 import { app } from "../../api/app";
 import { settings } from "../../api/settings";
@@ -43,19 +51,8 @@ export interface MenuBarProps {
     onClose?: () => void;
 }
 
-const openTabsId = "open-tabs";
-const recentFilesId = "recent-files";
-const toolsEditorsId = "tools-editors";
-const scriptLibraryId = "script-library";
-const staticFolders: MenuFolder[] = [
-    { id: openTabsId, name: "Open Tabs" },
-    { id: recentFilesId, name: "Recent Files" },
-    { id: toolsEditorsId, name: "Tools & Editors" },
-    { id: scriptLibraryId, name: "Script Library" },
-];
-
 const isStaticFolder = (folder: MenuFolder): boolean =>
-    staticFolders.some((candidate) => candidate.id === folder.id);
+    isBuiltinFolder(folder);
 
 const canOpenInTab = (folder: MenuFolder): boolean =>
     !isStaticFolder(folder) || folder.id === scriptLibraryId;
@@ -144,10 +141,8 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
     private treeViewModel: TreeProviderViewModel | null = null;
     private readonly expandStateMap = new Map<string, TreeProviderViewSavedState>();
     private readonly providerMap = new Map<string, FileTreeProvider>();
-    private leftItemId = openTabsId;
     private contentWidth = 600;
     private previousOpen: boolean | undefined;
-    private live = true;
 
     public constructor(props: MenuBarProps) {
         const holder: { view?: MenuBarView } = {};
@@ -157,7 +152,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             selectionStyle: "focus",
             variant: "browse",
             rowHeight: 22,
-            isSelected: (folder) => folder.folder.id === holder.view?.leftItemId,
+            isSelected: (folder) => folder.folder.id === holder.view?.selectedFolderId,
             onChange: (record) => holder.view?.setLeftItem(record.folder),
             onItemDoubleClick: (record) => holder.view?.openFolderOnDoubleClick(record.folder),
             getContextMenu: (record) => {
@@ -200,18 +195,14 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         this.child(this.folderList).mount();
         this.child(this.splitter).mount();
 
-        this.listen(this.root, "click", () => this.props.onClose?.());
+        this.listen(this.root, "click", () => app.window.menuBar.close());
         this.listen(this.content, "click", (event) => event.stopPropagation());
         this.listen(this.content, "keydown", (event) => this.onContentKeyDown(event));
         this.bind(menuFolders.state, (state) => state.folders, () => this.refreshFolders());
-        this.bind(app.window.state, (state) => state.menuBarPanelId, (panelId) => {
-            this.consumePanelId(panelId);
+        this.bind(app.window.menuBar.state, (state) => state.selectedId, () => {
+            this.refreshFolders();
+            this.updateRightView();
         });
-        this.own(() => {
-            this.live = false;
-        });
-        this.refreshFolders();
-        this.updateRightView();
         this.updateOpenState();
     }
 
@@ -245,23 +236,16 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
     }
 
     private refreshFolders(): void {
-        const folders = [...staticFolders, ...menuFolders.state.get().folders];
+        const folders = getMenuBarSourceFolders();
         const presentIds = new Set(folders.map((folder) => folder.id));
         for (const id of this.folderDragStates.keys()) {
             if (!presentIds.has(id)) this.folderDragStates.delete(id);
         }
         const records = folders.map((folder) => this.folderRecord(folder));
         this.folderList.update(this.folderListProps(records));
-        if (!presentIds.has(this.leftItemId)) {
-            queueMicrotask(() => {
-                if (!this.live) return;
-                const current = [...staticFolders, ...menuFolders.state.get().folders];
-                if (!current.some((folder) => folder.id === this.leftItemId)) {
-                    this.setLeftItem(staticFolders[0]);
-                }
-            });
-        }
     }
+
+    private get selectedFolderId(): string { return app.window.menuBar.selected.id; }
 
     private folderListProps(items: FolderItemRecord[]): ListBoxProps<FolderItemRecord> {
         return {
@@ -270,7 +254,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
             selectionStyle: "focus",
             variant: "browse",
             rowHeight: 22,
-            isSelected: (folder) => folder.folder.id === this.leftItemId,
+            isSelected: (folder) => folder.folder.id === this.selectedFolderId,
             onChange: (record) => this.setLeftItem(record.folder),
             onItemDoubleClick: (record) => this.openFolderOnDoubleClick(record.folder),
             getTooltip: (record) => record.tooltip,
@@ -292,7 +276,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         }
         const props = {
             folder,
-            selected: folder.id === this.leftItemId,
+            selected: folder.id === this.selectedFolderId,
             icon: this.getFolderIcon(folder),
             label: this.getFolderLabel(folder),
             tooltip: this.getFolderTooltip(folder),
@@ -307,10 +291,8 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
 
     private setLeftItem(folder: MenuFolder): void {
         const nextId = folder.id ?? "";
-        if (nextId === this.leftItemId) return;
-        this.leftItemId = nextId;
-        this.refreshFolders();
-        this.updateRightView();
+        if (nextId === this.selectedFolderId) return;
+        app.window.menuBar.open(nextId);
     }
 
     private getFolderLabel(folder: MenuFolder): string { return folder.name; }
@@ -461,14 +443,6 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
         });
     }
 
-    private consumePanelId(panelId: string): void {
-        if (!panelId) return;
-        const folder = [...staticFolders, ...menuFolders.state.get().folders]
-            .find((candidate) => candidate.id === panelId);
-        if (folder) this.setLeftItem(folder);
-        app.window.consumeMenuBarPanelId();
-    }
-
     private setContentWidth(width: number): void {
         this.contentWidth = width;
         this.content.style.width = `${width}px`;
@@ -485,7 +459,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
     }
 
     private updateRightView(): void {
-        const key = this.leftItemId;
+        const key = this.selectedFolderId;
         if (this.rightView && this.rightViewKey === key) {
             this.rightView.update(this.rightViewProps(this.rightViewKey));
             return;
@@ -603,7 +577,7 @@ export class MenuBarView extends VanillaView<MenuBarProps> {
     private onContentKeyDown(event: KeyboardEvent): void {
         if (event.key === "Escape") {
             this.props.onClose?.();
-        } else if (event.ctrlKey && event.code === "KeyF" && this.leftItemId !== openTabsId) {
+        } else if (event.ctrlKey && event.code === "KeyF" && this.selectedFolderId !== openTabsId) {
             event.preventDefault();
             this.treeViewModel?.showSearch();
             this.recentFileListView?.showSearch();

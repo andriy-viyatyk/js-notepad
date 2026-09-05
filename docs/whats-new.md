@@ -22,6 +22,11 @@ Release notes and changelog for Persephone (formerly js-notepad).
   main-process script execution is separately gated by **Settings → MCP Server → Allow main-process
   scripts**. Private browser pages opened by the user remain protected from object-model access.
 
+- **The application shell is now discoverable through `call`** — Agents can inspect all open or
+  persisted windows, discover the live Menu Bar folders, see a page's sidebar panels, and find a
+  setting's row in Settings before highlighting it. Menu Bar folder IDs and sidebar panel IDs are
+  returned by the object model so agents can act on the current UI without guessing labels.
+
 - **AI agents can recover from prompts and explain the app window** — The MCP `call` tool reports
   open renderer dialogs and popup menus, exposes paths to answer or dismiss them, and can describe
   curated shell controls through `ui.elements` and point at one with `ui.highlight(...)`. Native OS

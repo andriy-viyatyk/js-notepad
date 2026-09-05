@@ -28,7 +28,25 @@ page.data.counter = (page.data.counter || 0) + 1;
 | `language` | `string` | Language ID (e.g., `"json"`, `"typescript"`). **Read/write.** |
 | `editor` | `string` | Active editor ID (e.g., `"monaco"`, `"grid-json"`). **Read/write.** See [Editor IDs](#editor-ids) for the full list. |
 | `data` | `Record<string, any>` | In-memory data storage. Persists across script runs but not app restarts. |
+| `panels` | `IPagePanels` | Live sidebar panels and whole-sidebar controls for this page. |
 | `grouped` | `IPage` | Grouped (side-by-side) partner page. Auto-creates if none exists. |
+
+### Sidebar panels
+
+`page.panels` reports the panels currently contributed by the page and controls the whole page
+sidebar. The `items` list is live and follows the sidebar order.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `items` | `IPagePanel[]` | Panel records with `id`, `label`, `editorId`, `editorKind`, and `expanded`. |
+| `isOpen` | `boolean` | Whether the page sidebar is open. |
+| `width` | `number \| null` | Current sidebar width, or `null` before the sidebar model exists. |
+| `expand(panelId)` | `void` | Expand a panel using its bare registered ID. If several editors use the same ID, the first rendered one is selected. |
+| `toggleSidebar()` | `void` | Show or hide the whole sidebar. Throws when the page has no panels or its panels require the sidebar to remain open. |
+
+Panel IDs passed to `expand()` are the bare IDs shown in `items`; do not construct the rendered
+`editorId::panelId` form. There is no general `close(panelId)` method: close an individual panel with
+its own header control, because the panel's editor determines what closing means.
 
 ### Editor IDs
 

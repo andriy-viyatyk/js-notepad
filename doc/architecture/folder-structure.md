@@ -112,6 +112,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── fs.ts               # IFileSystem implementation
 │   ├── archive-service.ts  # ArchiveService — archive I/O (libarchive-wasm for reads, jszip for writes), used by fs.ts for archive paths
 │   ├── window.ts           # IWindow implementation
+│   ├── menu-bar.ts         # MenuBarModel — reactive Menu Bar openness, folder selection, and legacy opener bridge
 │   ├── ui.ts               # IUserInterface implementation
 │   ├── downloads.ts        # IDownloads implementation
 │   ├── menu-folders.ts     # IMenuFolders implementation
@@ -208,6 +209,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── common.d.ts     # IDisposable, IEvent, Language
 │       ├── pages.d.ts      # IPageCollection interface
 │       ├── page.d.ts       # IPage interface (with asX() methods)
+│       ├── page-panels.d.ts # IPagePanels — live page sidebar panel surface
 │       ├── settings.d.ts   # ISettings
 │       ├── editors.d.ts    # IEditorRegistry
 │       ├── boards.d.ts     # IBoards (app.boards) — board lifecycle API

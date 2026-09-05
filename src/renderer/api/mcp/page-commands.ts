@@ -3,15 +3,13 @@ import { editorRegistry } from "../../editors/base/editorRegistry";
 import { isBoardEditorId } from "../../editors/board/custom-editor-registry";
 import { fpJoin } from "../../core/utils/file-path";
 import { app } from "../app";
+import { BOARDS_ASSETS_BASE_URL, BOARDS_MANIFEST_URL } from "../boards";
 import { pagesModel } from "../pages";
 import { settings } from "../settings";
 import type { EditorView } from "../types/common";
 import { api } from "../../../ipc/renderer/api";
 import type { McpActivePage, McpAppInfo, McpPageInfo, McpParams, McpResponse } from "./types";
 import { agentMayAccessBrowserPage } from "../../editors/browser/agent-access";
-
-const BOARDS_ASSETS_BASE_URL =
-    "https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/";
 const MAX_INLINE_IMAGE_BASE64 = 5 * 1024 * 1024;
 const OVERSIZE_IMAGE_HINT =
     "This image is too large to inline. Use execute_script with " +
@@ -186,7 +184,7 @@ export async function handleAppInfo(): Promise<McpResponse> {
         resourcesDir,
         demoBoardDir: fpJoin(resourcesDir, "assets", "demo-board"),
         boardsAssetsBaseUrl: BOARDS_ASSETS_BASE_URL,
-        boardsManifestUrl: BOARDS_ASSETS_BASE_URL + "manifest.json",
+        boardsManifestUrl: BOARDS_MANIFEST_URL,
     };
     return { result };
 }

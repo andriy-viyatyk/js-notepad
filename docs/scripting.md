@@ -435,12 +435,25 @@ const rows = await app.call("page.asGrid().rowCount");
 await app.call("page.grouped.content", {
     value: JSON.stringify({ rows }, null, 2),
 });
+
+// Find a setting and point at its row without changing it
+await app.call("settings.highlight", { args: ["mcp.enabled"] });
+
+// Use live IDs when working with shell surfaces
+const folders = await app.call("window.menuBar.folders");
+await app.call("window.menuBar.open", { args: [folders[0].id] });
+const panels = await app.call("page.panels.items");
+if (panels.length) await app.call("page.panels.expand", { args: [panels[0].id] });
 ```
 
 The path is rooted in the current script's window, so `app.call()` does not resolve the
 MCP-only `main.*` or `windows[i].*` paths. See the [app API reference](./api/app.md#callpath-options)
 for options and examples. For the equivalent API inside a trusted Board, see
 [`persephone.call()`](./boards.md#persephonecallpath-options).
+
+`settings.highlight(key)` opens or activates the Settings page and highlights a supported row.
+`window.menuBar.open(folderId)` requires a current folder ID from `window.menuBar.folders`, and
+`page.panels.expand(panelId)` requires the bare ID from `page.panels.items`.
 
 ### Available services
 

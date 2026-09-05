@@ -314,6 +314,25 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 
 ---
 
+### Page script surface
+
+`page.panels` is the scripting/AiVision projection of the live sidebar. It reads
+`PageModel.panelEditors` in renderer order and each editor's current `secondaryView` list,
+filtering ids through the secondary-view registry on every read. Items retain bare panel ids and
+report the owning editor instance id (`editorId`), editor kind (`editorKind`), current label, and
+expanded state. Composite accordion keys are used only internally by the renderer; the node's
+`expand(panelId)` accepts bare ids and resolves duplicates to the first rendered owner, matching
+`PageModel.expandPanel`. The limitation is visible through each item's distinct `editorId`.
+
+The node's `isOpen` and `width` values are read-only observations of `SecondaryViewsModel`. They
+report `false` and `null` while that model is still lazy and absent. `toggleSidebar()` requires a
+current panel, then flips only the model's `open` state; it never calls `toggleNavigator()` and
+therefore cannot create an Explorer as a side effect. This node deliberately has no `close` action:
+individual panel header controls remain with their owning editors because Pattern A and Pattern B
+editors have different hide/dispose lifecycles. The node owns only the three curated sidebar shell
+elements (`secondary-views-container`, `secondary-views-stack`, and `secondary-views-splitter`) and
+their `highlight(name, message?)` surface; editor-specific panel roots remain editor-owned.
+
 ## 10. Existing Secondary Editors
 
 | Model | Panel IDs | Pattern | Survival | Created by |

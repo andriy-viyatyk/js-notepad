@@ -60,6 +60,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | JSON parsing helpers (`tryParseJson<T>` parse-or-fall-back; `parseObject` / `parseJSON5`) | `/src/renderer/core/utils/parse-utils.ts` |
 | Toast-on-failure wrapper (`guard(label, fn, level?)` — the "try, notify, carry on" handler shape) | `/src/renderer/core/utils/guard.ts` |
 | App settings             | `/src/renderer/api/settings.ts`                   |
+| Menu Bar model (reactive openness, folder discovery/selection, strict model opener, and legacy opener bridge) | `/src/renderer/api/menu-bar.ts` |
 | Event channel system (FIFO `send`, LIFO async pipeline, disposable subscriptions/channels) | `/src/renderer/api/events/EventChannel.ts` |
 | App events namespace     | `/src/renderer/api/events/AppEvents.ts`           |
 | Trait system core        | `/src/renderer/core/traits/traits.ts`             |
@@ -92,6 +93,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | AiVision descriptor extensions (descriptor-owned `provide` for computed members and curated UI-element declarations) | `/src/shared/ai-vision/types.ts`, `/src/shared/ai-vision/resolver.ts`, `/src/shared/ai-vision/help-search.ts` |
 | Renderer dialog AiVision adapters (safe fields, button actions, cancellation, password privacy) | `/src/renderer/scripting/ai-vision/dialogs/` |
 | Renderer popup-menu AiVision adapter (`menus[0]`, nested item paths, click/close) | `/src/renderer/scripting/ai-vision/menus/` |
+| Menu Bar AiVision descriptor (live folders/selection, strict ID-based open, and curated Menu Bar elements) | `/src/renderer/scripting/ai-vision/namespaces/menu-bar.ts` |
+| Settings AiVision descriptor (catalog sections/keys, lifecycle-aware highlighting, browser-profile projections, and call-only self-severing guards) | `/src/renderer/scripting/ai-vision/namespaces/settings.ts` |
+| Page sidebar-panels AiVision node (live panel projection, bare-ID expansion, sidebar state/actions, and curated elements) | `/src/renderer/scripting/ai-vision/page-panels.ts` |
 | Curated element visibility and named highlight protocol | `/src/renderer/scripting/ai-vision/elements.ts`, `/src/renderer/scripting/ai-vision/namespaces/ui.ts` |
 | TypeScript transpilation | `/src/renderer/scripting/transpile.ts`            |
 | Async worker (renderer)  | `/src/renderer/scripting/worker/WorkerRunner.ts`  |

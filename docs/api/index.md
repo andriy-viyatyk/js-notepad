@@ -16,7 +16,6 @@ ui.log("Hello");
 
 - **[page](./page.md)** — Current page (tab)
   - `.id` — Unique page identifier
-  - `.type` — Page type (e.g. `"textFile"`)
   - `.title` — Display title
   - `.modified` — Has unsaved changes?
   - `.pinned` — Is tab pinned?
@@ -25,6 +24,7 @@ ui.log("Hello");
   - `.language` — Language ID *(read/write)*
   - `.editor` — Active editor ID *(read/write)*
   - `.data` — In-memory storage across script runs
+  - `.panels` — Live sidebar panels and whole-sidebar controls
   - `.grouped` — Grouped partner page (auto-creates) → `IPage`
   - [`.runScript()`](./page.md#runscriptpromisestring) — Run page content as script (F5)
   - **[.asText()](./page.md#astextpromiseitexteditor)** — Monaco text editor facade
@@ -130,6 +130,7 @@ ui.log("Hello");
     - `.theme` — Current theme name
     - `.get(key)` / `.set(key, value)` — Read/write settings
     - `.onChanged` — Setting change event
+    - `settings.sections` / `settings.highlight(key)` — Find and point at Settings rows through `app.call()` (not `app.settings`)
   - **[.ui](./ui.md)** — Dialogs and notifications
     - `.confirm(message, options?)` — Confirmation dialog
     - `.input(message, options?)` — Text input dialog
@@ -149,6 +150,7 @@ ui.log("Hello");
   - **[.window](./window.md)** — Window management
     - `.minimize()` / `.maximize()` / `.restore()` / `.close()` / `.toggleWindow()`
     - `.isMaximized` / `.windowIndex`
+    - `.menuBar` — Menu Bar folders, selection, and controls
     - `.menuBarOpen` / `.toggleMenuBar()` / `.openMenuBar(panelId?)`
     - `.zoom(delta)` / `.resetZoom()` / `.zoomLevel`
     - `.openNew(filePath?)` — Open new window

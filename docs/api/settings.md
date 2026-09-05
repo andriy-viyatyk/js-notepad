@@ -23,8 +23,8 @@ app.settings.set("theme", "monokai");
 Get a setting value by key. Returns `undefined` for unknown keys.
 
 ```javascript
-const fontSize = app.settings.get("editor.fontSize");
-const wordWrap = app.settings.get("editor.wordWrap");
+const searchExtensions = app.settings.get("search-extensions");
+const searchExclusions = app.settings.get("search-exclude");
 const mcpEnabled = app.settings.get("mcp.enabled");
 ```
 
@@ -34,18 +34,54 @@ Set a setting value. Changes are persisted automatically (debounced).
 
 ```javascript
 app.settings.set("theme", "monokai");
-app.settings.set("editor.fontSize", 16);
-app.settings.set("editor.wordWrap", "on");
+app.settings.set("search-exclude", ["node_modules", ".git", "dist"]);
 app.settings.set("mcp.enabled", true);
 ```
+
+`app.settings.set()` is the regular script API and can change the MCP settings. When the same
+operation is reached through `app.call("settings.set", ...)`, attempts to disable the MCP server
+or change its port are refused because they would disconnect the current caller. Make those
+changes from the Settings page or from the direct `app.settings.set()` script API when that is
+what you intend.
+
+## Finding a setting in the Settings page
+
+The live object model exposes a catalog of the Settings page through `app.call()`. Read the
+sections to discover the rows, then highlight a supported key; highlighting opens or activates
+the Settings page and points at that section without changing the setting.
+
+```javascript
+const sections = await app.call("settings.sections");
+await app.call("settings.highlight", { args: ["mcp.enabled"] });
+```
+
+The catalog has 13 sections and 25 Settings-page rows:
+
+| Section | Rows |
+|---------|------|
+| Theme | `theme` |
+| Window Behavior | `window.close-to-tray` |
+| Browser Profiles | `browser-profiles`, `browser-default-profile`, `browser-default-bookmarks-file`, `browser-incognito-bookmarks-file`, `tor.exe-path`, `tor.socks-port`, `tor.bookmarks-file` |
+| Links | `link-open-behavior` |
+| Default Browser | *(no setting row)* |
+| File Search | `search-extensions`, `search-exclude` |
+| MCP Server / Mneme | `mcp.enabled`, `mcp.port`, `mcp.browser-tools.enabled`, `main.scripting.enabled`, `mneme.enabled`, `mneme.port` |
+| Git Integration | `git.enabled` |
+| Board Environment Variables | `board-vars.file` |
+| Script Library | `script-library.path` |
+| Drawing Library | `drawing.library-path` |
+| Video Player | `vlc-path`, `video-stream.port` |
+| Terminal | `terminal.command` |
+
+Five real settings have no Settings-page row because their controls live elsewhere:
+`tab-recent-languages`, `search-max-file-size`, `pinned-editors`, `visualizer-effect`, and
+`audio-shuffle`. They remain available through `app.settings.get()` and `app.settings.set()`.
 
 ## Common Settings
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `theme` | `string` | `"default-dark"` | Color theme name |
-| `editor.fontSize` | `number` | `14` | Editor font size |
-| `editor.wordWrap` | `string` | `"off"` | Word wrap mode (`"off"`, `"on"`, `"wordWrapColumn"`, `"bounded"`) |
 | `mcp.enabled` | `boolean` | `false` | Enable the MCP HTTP server for AI agent integration. When `true`, external tools (e.g., Claude Desktop, Claude Code, ChatGPT) can connect to persephone and run scripts, read content, and list open tabs. The server listens on `http://127.0.0.1:{mcp.port}/mcp`. See [What's New](../whats-new.md) for details. |
 | `mcp.port` | `number` | `7865` | Port for the MCP HTTP server. The server URL will be `http://127.0.0.1:{port}/mcp`. Changing this setting requires toggling `mcp.enabled` off and on to take effect. |
 | `mcp.browser-tools.enabled` | `boolean` | `false` | Allow connected AI agents to use browser automation and interact with Persephone's own window. This is an opt-in setting under Settings → MCP Server. |

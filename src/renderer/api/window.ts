@@ -1,6 +1,7 @@
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import { TOneState } from "../core/state/state";
+import { MenuBarModel } from "./menu-bar";
 import { settings } from "./settings";
 import type { IWindow } from "./types/window";
 
@@ -25,19 +26,16 @@ export function signalReadyToQuit(): void {
 interface WindowState {
     isMaximized: boolean;
     zoomLevel: number;
-    menuBarOpen: boolean;
-    menuBarPanelId: string;
     mcpRunning: boolean;
     mcpClientCount: number;
 }
 
 export class Window implements IWindow {
+    readonly menuBar = new MenuBarModel();
     private _windowIndex: number | null = null;
     private _state = new TOneState<WindowState>({
         isMaximized: false,
         zoomLevel: 0,
-        menuBarOpen: false,
-        menuBarPanelId: "",
         mcpRunning: false,
         mcpClientCount: 0,
     });
@@ -115,27 +113,15 @@ export class Window implements IWindow {
     // ── Menu bar ───────────────────────────────────────────────────
 
     get menuBarOpen(): boolean {
-        return this._state.get().menuBarOpen;
+        return this.menuBar.isOpen;
     }
 
     toggleMenuBar(): void {
-        this._state.update(s => { s.menuBarOpen = !s.menuBarOpen; });
+        this.menuBar.toggle();
     }
 
     openMenuBar(panelId?: string): void {
-        this._state.update(s => {
-            s.menuBarOpen = true;
-            if (panelId) s.menuBarPanelId = panelId;
-        });
-    }
-
-    /** Consume the pending menuBarPanelId (returns it and clears). */
-    consumeMenuBarPanelId(): string {
-        const id = this._state.get().menuBarPanelId;
-        if (id) {
-            this._state.update(s => { s.menuBarPanelId = ""; });
-        }
-        return id;
+        this.menuBar.openLegacy(panelId);
     }
 
     /** Subscribe to state changes (for sidebar reactivity). */

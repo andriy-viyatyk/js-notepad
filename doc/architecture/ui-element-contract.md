@@ -123,6 +123,32 @@ Two tab shapes do not match the common case, and both occur in ordinary use:
 | Add Folder button | `[data-name="menubar-add-folder-button"]` |
 | Width splitter | `[data-name="menubar-splitter"]` |
 
+### Settings page
+
+The Settings page is a fixed-order editor with stable named containers for each section. The
+section names are containers for highlighting, not individual controls; the catalog rows and their
+setting-key purposes are supplied by `settings.sections`. The existing `data-type` values remain
+unchanged, including `data-type="settings-section"` on each section root.
+
+| Element | Selector |
+|---|---|
+| Settings root | `[data-name="settings-root"]` |
+| Settings content | `[data-name="settings-content"]` |
+| View Settings File button | `[data-name="settings-view-file"]` |
+| Theme section | `[data-name="settings-section-theme"]` |
+| Window Behavior section | `[data-name="settings-section-window-behavior"]` |
+| Browser Profiles section | `[data-name="settings-section-browser-profiles"]` |
+| Links section | `[data-name="settings-section-link-behavior"]` |
+| Default Browser section | `[data-name="settings-section-default-browser"]` |
+| File Search section | `[data-name="settings-section-file-search"]` |
+| MCP Server / Mneme section | `[data-name="settings-section-mcp"]` |
+| Git Integration section | `[data-name="settings-section-git-integration"]` |
+| Board Environment Variables section | `[data-name="settings-section-board-vars"]` |
+| Script Library section | `[data-name="settings-section-script-library"]` |
+| Drawing Library section | `[data-name="settings-section-drawing-library"]` |
+| Video Player section | `[data-name="settings-section-video-player"]` |
+| Terminal section | `[data-name="settings-section-terminal"]` |
+
 ### Page area
 
 | Element | Selector |

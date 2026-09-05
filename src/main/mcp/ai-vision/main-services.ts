@@ -6,6 +6,7 @@ import { downloadService } from "../../download-service";
 import { getNetworkLogMetadata, getNetworkLogSnapshot, clearNetworkLog } from "../../network-logger";
 import { getRuntimeVersions, getAppVersion } from "../../version-service";
 import { torService } from "../../tor-service";
+import { getAppRootPath, getAssetPath } from "../../utils";
 import { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 import { MAIN_SCRIPT_DISABLED_MESSAGE, isMainScriptsEnabled } from "./main-script-gate";
 import { executeMainScript, MAIN_SCRIPT_TIMEOUT_MS } from "./main-script";
@@ -68,6 +69,8 @@ const RUNTIME_MEMBERS: readonly IAiMember[] = [
     { name: "node", kind: "property", summary: "Node.js runtime version." },
     { name: "isPackaged", kind: "property", summary: "Whether this is a packaged application build." },
     { name: "appPath", kind: "property", summary: "Electron application root path." },
+    { name: "resourcesDir", kind: "property", summary: "Main-owned application resources root path." },
+    { name: "demoBoardDir", kind: "property", summary: "Bundled Demo board template directory; use it when creating a Demo board." },
     { name: "paths", kind: "property", summary: "Selected Electron application paths." },
     { name: "uptimeSeconds", kind: "property", summary: "Main-process uptime in seconds." },
     { name: "memoryUsage", kind: "property", summary: "Main-process memory usage scalars." },
@@ -197,6 +200,8 @@ export class MainRuntimeNode implements IAiVisible {
             ...versions,
             isPackaged: app.isPackaged,
             appPath: app.getAppPath(),
+            resourcesDir: getAppRootPath(),
+            demoBoardDir: getAssetPath("demo-board"),
             paths: {
                 userData: app.getPath("userData"),
                 appData: app.getPath("appData"),
@@ -216,6 +221,8 @@ export class MainRuntimeNode implements IAiVisible {
     get node() { return this.snapshot.node; }
     get isPackaged() { return this.snapshot.isPackaged; }
     get appPath() { return this.snapshot.appPath; }
+    get resourcesDir() { return this.snapshot.resourcesDir; }
+    get demoBoardDir() { return this.snapshot.demoBoardDir; }
     get paths() { return this.snapshot.paths; }
     get uptimeSeconds() { return this.snapshot.uptimeSeconds; }
     get memoryUsage() { return this.snapshot.memoryUsage; }

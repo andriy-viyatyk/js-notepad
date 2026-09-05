@@ -10,6 +10,42 @@
  * app.window.zoom(1);  // zoom in
  * await app.window.openNew("C:/file.txt");
  */
+export interface IMenuBarFolder {
+    /** Current folder identifier; use this value with `window.menuBar.open()`. */
+    readonly id: string;
+    /** Display name shown in the Menu Bar. */
+    readonly label: string;
+    /** Whether this is a built-in category or a configured user folder. */
+    readonly kind: "builtin" | "user";
+    /** Disk path for a path-backed user folder; absent for built-ins and virtual folders. */
+    readonly path?: string;
+}
+
+/**
+ * The live Menu Bar sidebar model.
+ *
+ * Built-in folder IDs are `open-tabs`, `recent-files`, `tools-editors`, and `script-library`.
+ * Configured user-folder IDs are live and are listed by `folders`.
+ */
+export interface IMenuBar {
+    /**
+     * Whether the Menu Bar is open. The backdrop remains in the DOM while closed and is CSS-hidden,
+     * so use this property rather than element presence to determine openness.
+     */
+    readonly isOpen: boolean;
+    /** Current built-in and configured user-folder records. */
+    readonly folders: readonly IMenuBarFolder[];
+    /** The currently selected live folder record. */
+    readonly selected: IMenuBarFolder;
+    /**
+     * Open the Menu Bar, optionally selecting a folder by its ID (not its display label or path).
+     * Omit the argument to open without changing selection.
+     */
+    open(folderId?: string): void;
+    /** Close the Menu Bar; calling this when already closed is safe. */
+    close(): void;
+}
+
 export interface IWindow {
     // ── Window actions ───────────────────────────────────────────────
 
@@ -38,10 +74,13 @@ export interface IWindow {
     /** Whether the menu bar (sidebar) is currently open. */
     readonly menuBarOpen: boolean;
 
+    /** The live Menu Bar model, including folder discovery, selection, and controls. */
+    readonly menuBar: IMenuBar;
+
     /** Toggle the menu bar (sidebar) open/closed. */
     toggleMenuBar(): void;
 
-    /** Open the sidebar, optionally selecting a panel by ID. */
+    /** Open the sidebar, optionally selecting a panel by ID; unknown strings remain lenient. */
     openMenuBar(panelId?: string): void;
 
     // ── Zoom ─────────────────────────────────────────────────────────

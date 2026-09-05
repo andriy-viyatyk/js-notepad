@@ -64,7 +64,38 @@ gemini --mcp-server http://127.0.0.1:7865/mcp
 | **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuse is profile-matched: with `profileName` it adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — never attaches to a different-profile page. Focuses the target page and returns `{ opened, pageId, title }` — pass `pageId` to `browser_*` tools to target this exact page (recommended, since the active page can change between calls). |
 | **ui_push** | Push log entries, interactive dialogs, and output widgets to a Log View page — the recommended output channel for AI agents. Strings are shorthand for `log.info`. Dialog entries (`input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select`) block until the user responds. Output entries (`output.progress`, `output.grid`) support rich display — progress bars with upsert-by-id for real-time updates, and inline data grids from JSON or CSV strings. The Log View page is created automatically on first call and reused on subsequent calls. |
 | **read_guide** | Read a documentation guide by name (`overview`, `ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`, `browser`, `ui`, `ui-editors`). Returns the guide content as text. An alternative to fetching `persephone://guides/*` resources — works with AI clients that don't support MCP resources. New to Persephone? Start with `read_guide("overview")` for the mental model and a task → tool → guide routing table. |
-| **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), and the default profile name (`defaultBrowserProfile`). Use this to discover valid profile names before calling browser tools. |
+| **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), the default profile name (`defaultBrowserProfile`), application resource paths, and the published-board catalog URLs. Use this to discover valid profile names before calling browser tools. |
+
+### Discovering the application shell with `call`
+
+The `call` tool is the discoverable route for the live application shell. Start with an empty path
+or `windows` to inspect the top-level object model. A window's persisted page summaries are
+available even while it is closed; call `windows[i].open()` before asking for its live pages.
+
+Useful paths include:
+
+- `windows.count` and `windows[i].pages` for multi-window state. Persisted page summaries include
+  `id`, `title`, `type`, `editor`, `language`, `filePath`, `modified`, and `pinned`; browser page
+  summaries also include profile and private-session identity fields, but never the URL.
+- `window.menuBar.folders`, `window.menuBar.selected`, and `window.menuBar.isOpen` for the current
+  Menu Bar. Pass a folder's current `id` to `window.menuBar.open`.
+- `page.panels.items`, `page.panels.isOpen`, and `page.panels.width` for the active page's live
+  sidebar panels. Pass the bare `id` from an item to `page.panels.expand`; individual panels are
+  closed with their own header controls.
+- `settings.sections` to find a Settings row and `settings.highlight` to open Settings and point
+  at it. Use `settings.set` to change a value, not `highlight`.
+- `main.runtime.resourcesDir` and `main.runtime.demoBoardDir` for application and Demo-board
+  resource paths, and `boards.assetsBaseUrl` / `boards.manifestUrl` for the published-board catalog.
+
+For example:
+
+```json
+{"path":"settings.highlight","args":["mcp.enabled"]}
+```
+
+The `call` route refuses attempts to disable the MCP server or change its port through
+`settings.set`, because either action would disconnect the current caller. The Settings page (or
+the direct script API `app.settings.set()`) remains available for an intentional change.
 
 ### Browser Automation Tools
 

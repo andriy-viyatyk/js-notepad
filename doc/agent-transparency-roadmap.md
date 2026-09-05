@@ -60,7 +60,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 | # | Epic | Surface | Retires (when its paths pass the gate) |
 |---|---|---|---|
 | 1 | **EPIC-084** — Attention, `dialogs`, `menus`, elements/highlight protocol | Cross-cutting infrastructure; the shell header strip as the protocol's first consumer | — (adds only) |
-| 2 | EPIC-085 — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions |
+| 2 | **EPIC-085** ✅ — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions — **all marked retirable 2026-09-05** |
 | 3 | EPIC-086 — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content`, `open_url` for non-browser targets |
 | 4 | EPIC-087 — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer, git tree | `ui_push` (becomes the Log View page's node) |
 | 5 | EPIC-088 — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` |
@@ -108,7 +108,7 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 
 | Tool today | Path under `call` | Epic |
 |---|---|---|
-| `get_app_info`, `list_windows`, `open_window` | `""`, `windows`, `windows.open()` | 085 |
+| `get_app_info`, `list_windows`, `open_window` | **retirable** — `version`/root summary, `windows`, `windows[i].open()`; `get_app_info`'s other fields redistributed to `settings.browserProfiles`, `settings.defaultBrowserProfile`, `main.runtime.resourcesDir`, `main.runtime.demoBoardDir`, `boards.assetsBaseUrl`, `boards.manifestUrl` | 085 ✅ |
 | `list_pages`, `get_active_page` | `pages`, `page` | already |
 | `create_page` | `pages.addEditorPage(...)` | already; 086 for the remaining editors |
 | `get_page_content`, `set_page_content` | `pages[i].content` | already |
@@ -120,6 +120,15 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `execute_script` | `script.execute(code)` — the renderer analogue of `main.script.execute` | 090 |
 | `read_guide` | MCP resources stay (`persephone://guides/*`); prose moves into `$help` | 090 |
 | `app.ui.highlightElement` via script | `<node>.highlight(name, message)` | 084, then every surface |
+
+**EPIC-085 marked the first three retirable (2026-09-05).** Retirable means every field and action
+has a verified path and a Haiku agent reached them with `call` alone — not that anything is deleted.
+Deletion stays EPIC-090's, behind the call-only flag. The `ui` guide's script-based highlight
+instructions in `assets/mcp-res-ui.md` are likewise retirable but not cut.
+
+Epic 2 also **added** three surfaces the roadmap listed as shell work: `window.menuBar`,
+`page.panels`, and the `settings` catalog with `settings.highlight(key)`. None of them replaces a
+tool — they were simply invisible to an agent before.
 
 ## Per-surface checklist (the template every task in epics 2–6 follows)
 

@@ -1,3 +1,70 @@
+## EPIC-085 — The application shell through `call`: windows, Menu Bar, sidebar panels, Settings
+
+Completed 2026-09-05. [Epic document](EPIC-085.md). Epic 2 of 7 in the
+[agent transparency roadmap](../agent-transparency-roadmap.md). `get_app_info`, `list_windows` and
+`open_window` are now **retirable** — every field and action has a verified path — but nothing was
+deleted; EPIC-090 does that behind the call-only flag.
+
+**Smaller than the roadmap made it look, and the scope check is why.** Before writing the epic,
+`pages` turned out to already carry every tab-strip action a user has, and `WindowNode` already
+covered most of `list_windows`. So the tab strip got QA coverage rather than new API, US-1303
+became largely a parity *audit*, and the epic's real work was the three surfaces that were
+genuinely invisible to an agent: the Menu Bar (`window.menuBar`), the per-page sidebar
+(`page.panels`), and the Settings page (the `settings` catalog plus `settings.highlight(key)`).
+
+**`get_app_info`'s nine fields were redistributed, not rehomed.** Each now lives beside the thing
+it describes — `settings.browserProfiles`, `main.runtime.resourcesDir`/`demoBoardDir`,
+`boards.assetsBaseUrl`/`manifestUrl` — with cross-references from where an agent actually meets the
+question (profile names from `showBrowserPage`, the demo template from `createDemoBoard`). No
+`appInfo` bag node exists, deliberately.
+
+**Three of the epic's own design decisions were overturned by evidence, and amended in place.**
+Decision 6 specified a `pages[i].asSettings()` facade — wrong, because an agent asked "where do I
+change X" does not have the Settings page open, so the catalog moved to the always-reachable
+`settings` node. Decision 5 specified `close(panelId)` — cut, because the user's own close differs
+by registration pattern (`ArchiveSecondaryView.onCloseClick` disposes via `removeSecondaryView`),
+so one uniform close would produce a state no user gesture produces. Decision 7 assigned the
+page-area selectors to `window.elements`; the sidebar ones went to `page.panels`, whose state is
+what explains their presence — which is what the decision itself says to do.
+
+**The epic's theme was silent success, found five different ways.** A `menuBar.open("Recent Files")`
+that would have accepted a label and changed nothing (plan review). A `toggleNavigator()` whose
+second branch constructs an `ExplorerEditor` and whose third silently no-ops (caught by verifying a
+citation instead of accepting it). A `page.panels.toggleSidebar()` that returned success while
+`PageModel`'s mandatory-open clamp rewrote `open: false` back to `true` (live testing). A
+`settings.highlight(key)` that would have reported `found: true` and drawn nothing, because
+`settings.css` gives section roots `display: contents` and the overlay only rings an element with a
+client rectangle (caught by reading the overlay's hit-testing — the only one nobody had to hit at
+runtime).
+
+And the fifth, which took the app down. Asked only **where** the MCP server is turned off, the
+Haiku acceptance agent found the control the intended way in three calls, highlighted it correctly,
+then called `settings.set("mcp.enabled", false)` — disabling the server it was talking through.
+Recovery needed a hand-edit of `appSettings.json`, because once MCP is off there is no route back
+in through MCP. `settings.set` now **refuses** the self-severing keys when reached through `call`
+(`app.settings.set` is untouched, so the user's scripts and the Settings page still work), and its
+summary states the constraint in situational words. The generic `caution` had been there all along
+and did not stop it.
+
+Two rules for the four surface epics that follow, both recorded in
+[`qa/surfaces/shell.md`](../../qa/surfaces/shell.md): **a `found: true` is not proof a highlight was
+visible**, and **a `caution` is not a guard** — where an action is irreversible from the agent's
+side, refuse it and say what to do instead.
+
+**Acceptance, all on Haiku with `call` as its only tool.** "What panels does this page have, and how
+many windows?" — four calls, no wrong turns. "Open the Menu Bar and tell me what's in it" — all 19
+folders actually present, not a hardcoded four. "Where do I turn off the MCP server?" — correct
+answer in three calls, and the restraint failure above. QA lives in
+[`qa/surfaces/shell.md`](../../qa/surfaces/shell.md) (tests S.7-S.19) and the new
+[`qa/surfaces/windows.md`](../../qa/surfaces/windows.md); W.2-W.6 there are written but unrun, as
+they need a second and a closed window.
+
+`/review` found one real defect after implementation: prototype-chain key lookup in the two settings
+record maps, so `settings.set("constructor", …)` would have tripped the self-severing refusal.
+Fixed with own-property checks and verified live.
+
+---
+
 ## EPIC-084 — Agent transparency infrastructure: attention, `dialogs`, `menus`, elements/highlight
 
 Completed 2026-09-05. [Epic document](EPIC-084.md). Epic 1 of 7 in the

@@ -7,6 +7,12 @@ interface IProvidedValue {
 
 type HighlightElement = (selector: string, message?: string) => Promise<IHighlightResult>;
 
+interface CreateElementsOptions {
+    readonly itemLabel?: string;
+    readonly validNamesLabel?: string;
+    readonly unknownNameError?: (name: string, declarations: readonly IAiElementDeclaration[]) => string | undefined;
+}
+
 function resolvedSelector(declaration: IAiElementDeclaration): string {
     return declaration.selector ?? `[data-name="${declaration.name}"]`;
 }
@@ -36,6 +42,7 @@ function isVisible(selector: string): boolean {
 export function createElements(
     declarations: readonly IAiElementDeclaration[],
     highlightElement: HighlightElement,
+    options: CreateElementsOptions = {},
 ): {
     readonly members: readonly IAiMember[];
     provide(name: string): IProvidedValue | undefined;
@@ -67,8 +74,12 @@ export function createElements(
                 value: (elementName: string, message?: string): Promise<IHighlightResult> => {
                     const declaration = declarationsByName.get(elementName);
                     if (!declaration) {
+                        const customError = options.unknownNameError?.(elementName, declarations);
+                        if (customError) throw new Error(customError);
                         const validNames = declarations.map(item => item.name).join(", ") || "(none)";
-                        throw new Error(`Unknown AiVision element ${JSON.stringify(elementName)}. Valid element names: ${validNames}.`);
+                        const itemLabel = options.itemLabel ?? "AiVision element";
+                        const validNamesLabel = options.validNamesLabel ?? "Valid element names";
+                        throw new Error(`Unknown ${itemLabel} ${JSON.stringify(elementName)}. ${validNamesLabel}: ${validNames}.`);
                     }
                     return highlightElement(resolvedSelector(declaration), message);
                 },

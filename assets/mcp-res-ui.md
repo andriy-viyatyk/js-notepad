@@ -136,6 +136,12 @@ The four built-in categories:
 
 `Esc` closes the Menu Bar. `Ctrl+F` searches inside a folder category.
 
+When the MCP `call` tool is available, `window.menuBar` is the stateful companion to these
+controls: read `folders` to discover the current built-in and user-folder IDs, inspect `selected`,
+then call `open(folderId)` or `close()`. The argument is a folder ID, not its label or disk path;
+an unknown ID is rejected with the valid folder list. The older `window.openMenuBar()` remains as
+a lenient compatibility operation.
+
 ### Page area and sidebar
 
 | Element | What it is for | Selector |
@@ -148,11 +154,26 @@ The four built-in categories:
 | Sidebar panel stack | | `[data-name="secondary-views-stack"]` |
 | Sidebar width splitter | | `[data-name="secondary-views-splitter"]` |
 
+For a page's live panel model, use `call("page.panels.items")`. Each item reports its bare panel
+ID, label, owning editor instance, editor kind, and expanded state. `page.panels.expand(id)` takes
+that bare ID; `page.panels.toggleSidebar()` flips the existing sidebar, throws when there are no
+panels or a non-Explorer panel keeps it open, and does not create an Explorer. There is deliberately
+no uniform `page.panels.close(id)`: close behavior belongs to the owning panel's header because
+panel types have different hide/dispose lifecycles. The node's
+`elements` covers the three sidebar shell targets above; editor-specific panel roots are not part
+of this shell guide.
+
 ## Settings
 
 The user reaches Settings from the Menu Bar's gear icon (`[data-name="menubar-settings"]`); it
 opens as an ordinary page in a tab. You have two ways to change a setting, and they are not
 interchangeable.
+
+With `call`, read `settings.sections` for the fixed-order catalog of 13 sections and 25 setting
+rows. `settings.highlight(key)` opens or activates Settings and points at the containing section;
+the key is the catalog key, not a DOM selector. Five real settings have no Settings-page row and
+remain get/set-only: `tab-recent-languages`, `search-max-file-size`, `pinned-editors`,
+`visualizer-effect`, and `audio-shuffle`.
 
 **When you are connected over MCP, use the API.** It is the supported path — it applies the
 change, persists it, and triggers whatever the setting actuates:
@@ -162,6 +183,10 @@ change, persists it, and triggers whatever the setting actuates:
 app.settings.set("theme", "monokai");
 return { theme: app.settings.get("theme"), path: app.settings.settingsFilePath };
 ```
+
+The `call` surface refuses `settings.set("mcp.enabled", false)` and changes to `mcp.port`, since
+either action disconnects the caller. Direct `app.settings.set` is unchanged and remains the
+normal script/UI path.
 
 **When you are not connected, edit the file.** This is how you turn the MCP server *on* in the
 first place — the chicken-and-egg case, where you need Persephone before you have it:

@@ -25,9 +25,13 @@ Two things these files are for:
 | [dialogs.md](dialogs.md) | Blocking dialogs, the `dialogs` node, attention and pending results | EPIC-084 (US-1297, US-1298, US-1301) |
 | [shell.md](shell.md) | The application shell: header strip, tabs, curated elements and highlight | EPIC-084 (US-1300) |
 | [menus.md](menus.md) | Popup and context menus, the `menus` node | EPIC-084 (US-1299) |
+| [windows.md](windows.md) | Multiple windows, open and closed, and the redistributed application facts | EPIC-085 (US-1303) |
 
-More files arrive with each surface epic (EPIC-085 onward): the sidebar, the text editor family,
-the data editors, boards, the browser.
+`shell.md` grew with EPIC-085 too: the Menu Bar (US-1304), the page sidebar (US-1305) and the
+Settings catalog (US-1306) are tests S.7 onward in that file, because they are all the same screen.
+
+More files arrive with each surface epic: the text editor family, the data editors, boards, the
+browser.
 
 ## Running them
 

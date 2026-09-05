@@ -1,8 +1,9 @@
+import { BOARDS_ASSETS_BASE_URL, BOARDS_MANIFEST_URL } from "../../../api/boards";
 import type { IAiMember, IAiVisionDescriptor } from "../../../../shared/ai-vision/types";
 
 const BOARDS_MEMBERS: readonly IAiMember[] = [
     { name: "createBoard", kind: "method", signature: "createBoard(name: string, dir: string)", summary: "Scaffold and auto-trust a blank board.", caution: "writes a board to disk and grants its creation trust" },
-    { name: "createDemoBoard", kind: "method", signature: "createDemoBoard(name: string, dir: string)", summary: "Scaffold and auto-trust the bundled Demo board.", caution: "writes a board to disk and grants its creation trust" },
+    { name: "createDemoBoard", kind: "method", signature: "createDemoBoard(name: string, dir: string)", summary: "Scaffold and auto-trust the bundled Demo board; use main.runtime.demoBoardDir as the bundled template directory reference.", caution: "writes a board to disk and grants its creation trust" },
     { name: "openBoard", kind: "method", signature: "openBoard(boardRoot: string)", summary: "Open an existing board in a new or reused tab.", caution: "opens a visible page and may invoke board trust flow" },
     { name: "registerBoard", kind: "method", signature: "registerBoard(boardRoot: string)", summary: "Request trust for a board through the user's trust dialog.", caution: "blocks on user consent and grants execution trust only after approval" },
     { name: "unregisterBoard", kind: "method", signature: "unregisterBoard(boardRoot: string)", summary: "Remove board trust and its pin.", caution: "changes board availability and sidebar state" },
@@ -13,6 +14,8 @@ const BOARDS_MEMBERS: readonly IAiMember[] = [
     { name: "installPublished", kind: "method", signature: "installPublished(id: string, opts?: { dir?: string; version?: string })", summary: "Start interactive installation or change an installed version.", caution: "writes board files and may block on board, trust, or close dialogs" },
     { name: "uninstallBoard", kind: "method", signature: "uninstallBoard(id: string)", summary: "Delete an installed catalog board after confirmation.", caution: "removes board files and trust/pin state" },
     { name: "checkPublishedUpdates", kind: "method", signature: "checkPublishedUpdates(force?: boolean)", summary: "Refresh the catalog and report compatible updates." },
+    { name: "assetsBaseUrl", kind: "property", summary: "Recommended-components catalog base URL; readonly." },
+    { name: "manifestUrl", kind: "property", summary: "Recommended-components catalog manifest URL; readonly." },
 ];
 
 export function describeBoards(_instance: unknown): IAiVisionDescriptor {
@@ -20,6 +23,11 @@ export function describeBoards(_instance: unknown): IAiVisionDescriptor {
         kind: "Boards",
         summary: "Sandboxed mini web-apps: create, open, trust, install, update, and remove.",
         members: BOARDS_MEMBERS,
+        provide: (name) => {
+            if (name === "assetsBaseUrl") return { value: BOARDS_ASSETS_BASE_URL };
+            if (name === "manifestUrl") return { value: BOARDS_MANIFEST_URL };
+            return undefined;
+        },
         help: "Use the board lifecycle deliberately: review downloaded code before registering trust, and expect open/install/uninstall actions to affect pages or disk.",
         summarize: () => ({ kind: "Boards" }),
     };

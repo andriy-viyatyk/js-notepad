@@ -60,38 +60,38 @@ export class SettingsView extends VanillaView<SettingsEditorProps> {
         title.textContent = "Settings";
         content.append(title);
 
-        this.appendSection(new ThemeSectionView({}), content);
+        this.appendSection(new ThemeSectionView({}), content, "settings-section-theme");
         this.appendDivider(content);
-        this.appendSection(new WindowBehaviorSectionView({}), content);
+        this.appendSection(new WindowBehaviorSectionView({}), content, "settings-section-window-behavior");
         this.appendDivider(content);
-        this.appendSection(new BrowserProfilesSectionView({}), content);
+        this.appendSection(new BrowserProfilesSectionView({}), content, "settings-section-browser-profiles");
         this.appendDivider(content);
 
         content.append(
             panel({ paddingBottom: "lg" }, text("Links", { bold: true, size: "sm" })),
             panel({ paddingBottom: "md" }, text("How external links open from editors (Monaco, Markdown)", { color: "light", size: "xs" })),
         );
-        this.appendSection(new LinkBehaviorSectionView({}), content);
+        this.appendSection(new LinkBehaviorSectionView({}), content, "settings-section-link-behavior");
         this.appendDivider(content);
 
         content.append(panel({ paddingBottom: "lg" }, text("Default Browser", { bold: true, size: "sm" })));
-        this.appendSection(new DefaultBrowserSectionView({}), content);
+        this.appendSection(new DefaultBrowserSectionView({}), content, "settings-section-default-browser");
         this.appendDivider(content);
-        this.appendSection(new FileSearchSectionView({}), content);
+        this.appendSection(new FileSearchSectionView({}), content, "settings-section-file-search");
         this.appendDivider(content);
-        this.appendSection(new McpSectionView({}), content);
+        this.appendSection(new McpSectionView({}), content, "settings-section-mcp");
         this.appendDivider(content);
-        this.appendSection(new GitIntegrationSectionView({}), content);
+        this.appendSection(new GitIntegrationSectionView({}), content, "settings-section-git-integration");
         this.appendDivider(content);
-        this.appendSection(new BoardVarsSectionView({}), content);
+        this.appendSection(new BoardVarsSectionView({}), content, "settings-section-board-vars");
         this.appendDivider(content);
-        this.appendSection(new ScriptLibrarySectionView({}), content);
+        this.appendSection(new ScriptLibrarySectionView({}), content, "settings-section-script-library");
         this.appendDivider(content);
-        this.appendSection(new DrawingLibrarySectionView({}), content);
+        this.appendSection(new DrawingLibrarySectionView({}), content, "settings-section-drawing-library");
         this.appendDivider(content);
-        this.appendSection(new VideoPlayerSectionView({}), content);
+        this.appendSection(new VideoPlayerSectionView({}), content, "settings-section-video-player");
         this.appendDivider(content);
-        this.appendSection(new TerminalSectionView({}), content);
+        this.appendSection(new TerminalSectionView({}), content, "settings-section-terminal");
         this.appendDivider(content);
 
         const viewFileButton = this.child(new ButtonView({
@@ -111,9 +111,13 @@ export class SettingsView extends VanillaView<SettingsEditorProps> {
         this.content = undefined;
     }
 
-    private appendSection(view: SettingsChildView, parent: HTMLDivElement): void {
+    private appendSection(view: SettingsChildView, parent: HTMLDivElement, name: string): void {
         this.child(view);
-        parent.append(view.root);
+        const wrapper = document.createElement("div");
+        wrapper.dataset.name = name;
+        wrapper.className = "settings-section-wrapper";
+        wrapper.append(view.root);
+        parent.append(wrapper);
         view.mount();
     }
 

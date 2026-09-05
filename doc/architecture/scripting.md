@@ -240,6 +240,8 @@ interface IApp {
     readonly pages: IPageCollection;
     readonly events: IAppEvents;
 
+    call(path: string, options?: IAppCallOptions): Promise<unknown>;
+
     fetch(url: string, options?: IFetchOptions): Promise<Response>;
     openRawLink(href: string, options?: { editor?: string }): Promise<void>;
 
@@ -555,6 +557,39 @@ class GroupedPageWrapper extends PageWrapper {
 }
 ```
 
+`PageWrapper.panels` is a live `PagePanelsNode` for the page's secondary-view sidebar. Its
+`items` projection follows the current `panelEditors` order and reads each owner's current
+`secondaryView` list, so navigation and editor state changes are visible without recreating a
+page wrapper. Each item reports the bare registered panel id, its current label, the owning
+editor instance `editorId`, the owning editor kind `editorKind`, and whether that rendered
+instance is expanded. Board-prefix labels are resolved from the owning board's current
+declarations (`title`, then view id, then `"View"`).
+
+`panels.expand(panelId)` accepts bare ids only. If duplicate owners contribute the same bare id,
+the first rendered owner is selected, while each item's `editorId` identifies the distinct owner;
+composite sidebar keys are not part of this script surface. `isOpen` and `width` are read-only
+observations of the sidebar model. Before its lazy model exists they report `false` and `null`,
+respectively. `toggleSidebar()` flips only the existing whole-sidebar open state and throws when
+the page has no panels; it does not invoke the navigator's Explorer-creation path. There is no
+page-level close action: individual panel header controls remain responsible for the owning
+editor's hide-versus-dispose lifecycle. The node also exposes the curated sidebar `elements`
+and `highlight(name, message?)` surface.
+
+The Menu Bar is a nested model at `app.window.menuBar`. It owns live folder discovery and
+selection: `folders` contains the four built-in folders and configured user folders, and
+`open(folderId?)` accepts a folder ID and rejects unknown IDs. The older `openMenuBar(panelId?)`
+remains a lenient compatibility operation; it does not replace the strict model surface.
+
+The Settings descriptor adds a computed `sections` catalog with 13 fixed-order sections and 25
+rows, plus key-named `elements` and `highlight(key)`. Highlighting opens or activates the Settings
+page, waits for its named box-bearing section wrapper, and then delegates to the shared overlay;
+the section roots themselves retain `display: contents`. Five real settings have no Settings-page
+row (`tab-recent-languages`, `search-max-file-size`, `pinned-editors`, `visualizer-effect`, and
+`audio-shuffle`) and remain available through `get`/`set`. The AiVision descriptor's `set` seam
+refuses only the self-severing `mcp.enabled` and `mcp.port` changes; direct `app.settings.set`
+is unchanged. Computed catalog lookups use own-property checks so prototype names are not treated
+as setting keys.
+
 ### AppWrapper
 
 Wraps the `app` singleton and mirrors `IApp`. Delegates most properties directly. Wraps `pages` in `PageCollectionWrapper`. `fetch` delegates directly to `app.fetch` (Node.js HTTP client with full header control — see `src/renderer/api/node-fetch.ts`).
@@ -797,6 +832,8 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `app.d.ts` | `IApp` — root application interface |
 | `page.d.ts` | `IPage`, `IPageInfo` — page/tab interface |
 | `pages.d.ts` | `IPageCollection` — pages management |
+| `page-panels.d.ts` | `IPagePanel`, `IPagePanels` — live page sidebar panel surface |
+| `window.d.ts` | `IWindow`, `IMenuBar` — window and Menu Bar controls |
 | `common.d.ts` | `IDisposable`, `IEvent`, `Language`, `EditorView` |
 | `boards.d.ts` | `IBoards` — `app.boards` board lifecycle + published-catalog operations |
 | `board-vars.d.ts` | `IBoardVars` — `app.boardVars` admin access to the board secrets store (get/set/list per namespace, unrestricted — unlike a board's own sandboxed `persephone.var.*`) |

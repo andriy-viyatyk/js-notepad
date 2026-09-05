@@ -48,7 +48,7 @@ logic, loops, or Node.js.
 | `app.version` | Application version string |
 | `app.pages` | Open tabs — create, open, close, navigate, group |
 | `app.fs` | File system — read, write, dialogs, paths |
-| `app.settings` | Application configuration — get/set settings |
+| `app.settings` | Application configuration — get/set settings; `call` also exposes the section/key catalog and highlighting |
 | `app.ui` | Dialogs — confirm, input, password, notifications |
 | `app.shell` | OS integration — open URLs, encryption |
 | `app.window` | Window management — minimize, maximize, zoom |
@@ -83,6 +83,20 @@ const result = await app.call("page.asGrid().getCell", { args: [0, "name"] });
 The method does not return hints or resolver metadata. Invalid paths, restricted descriptors,
 invocation failures, and invalid assignments reject as `Error`, so use ordinary `try`/`catch` when
 a script wants to report or recover from a failed call.
+
+The shell nodes are available through the MCP `call` path as well. Use `window.menuBar.folders`
+to discover the live built-in and user-folder IDs, then `window.menuBar.open(id)` to open one;
+the legacy `window.openMenuBar()` remains available. `page.panels.items` is a live projection of
+the current sidebar panels; `page.panels.expand(id)` takes a bare panel ID and
+`page.panels.toggleSidebar()` changes only an existing sidebar's open state, throwing when there
+are no panels or a non-Explorer panel keeps it open. There is no uniform `page.panels.close(id)`
+because individual panel owners have different hide/dispose lifecycles.
+
+Use `settings.sections` to find the fixed-order Settings catalog (13 sections, 25 rows), then
+`settings.highlight(key)` to open or activate Settings and point at the containing section.
+`settings.set` remains the mutation operation. Through the AiVision `call` seam only,
+`mcp.enabled` and `mcp.port` are refused because changing them disconnects the caller;
+`app.settings.set` is unchanged.
 
 ### app.pages
 
@@ -207,6 +221,10 @@ app.window.zoom(1)                    // Zoom in (positive) or out (negative)
 app.window.resetZoom()
 app.window.zoomLevel                  // Current zoom level
 app.window.toggleMenuBar()            // Toggle sidebar
+app.window.menuBar.folders             // Live built-in and configured user folders
+app.window.menuBar.selected            // Current folder
+app.window.menuBar.open(folderId?)     // Open; a supplied ID must be valid
+app.window.menuBar.close()
 await app.window.openNew(filePath?)   // Open new window
 ```
 

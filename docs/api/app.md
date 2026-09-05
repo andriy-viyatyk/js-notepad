@@ -50,6 +50,20 @@ await app.call("pages.showPage", { args: [pageId] });
 await app.call("page.grouped.content", {
     value: JSON.stringify({ done: true }, null, 2),
 });
+
+// Discover and point at an application setting without changing it
+const sections = await app.call("settings.sections");
+await app.call("settings.highlight", { args: ["mcp.enabled"] });
+
+// Inspect and control the current window's Menu Bar
+const folders = await app.call("window.menuBar.folders");
+await app.call("window.menuBar.open", { args: ["tools-editors"] });
+
+// Inspect and expand a page sidebar panel
+const panels = await app.call("page.panels.items");
+if (panels.length) {
+    await app.call("page.panels.expand", { args: [panels[0].id] });
+}
 ```
 
 | Parameter | Type | Description |
@@ -62,6 +76,12 @@ await app.call("page.grouped.content", {
 `app.call()` is rooted in the current script's window. It can address pages, editor
 facades, and application services exposed to scripts, but it cannot resolve the MCP-only
 `main.*` or `windows[i].*` paths. Failures reject the returned promise with an `Error`.
+
+`window.menuBar.open()` takes a current folder ID from `window.menuBar.folders`, not a display
+label or disk path. `page.panels.expand()` takes the bare panel ID returned in `items`; use the
+panel's own header control to close an individual panel. The settings catalog is available as
+`settings.sections` and `settings.highlight(key)` through this object-model API; the regular
+`app.settings.get()` and `app.settings.set()` methods remain the configuration API.
 
 ---
 

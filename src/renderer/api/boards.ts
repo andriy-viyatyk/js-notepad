@@ -8,6 +8,10 @@ import type {
 } from "./types/boards";
 import type { EditorModel } from "../editors/base/EditorModel";
 
+export const BOARDS_ASSETS_BASE_URL =
+    "https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/";
+export const BOARDS_MANIFEST_URL = BOARDS_ASSETS_BASE_URL + "manifest.json";
+
 /**
  * `app.boards` — board lifecycle for scripts / agents (EPIC-035 / US-750).
  *

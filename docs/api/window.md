@@ -31,8 +31,25 @@ app.window.zoom(1);  // zoom in one step
 | Member | Type | Description |
 |--------|------|-------------|
 | `menuBarOpen` | `boolean` | Whether the sidebar is open. Read-only. |
+| `menuBar` | `IMenuBar` | Live Menu Bar model with folders, selection, and controls. |
 | `toggleMenuBar()` | `void` | Toggle sidebar open/closed. |
-| `openMenuBar(panelId?)` | `void` | Open the sidebar. Pass an optional panel ID to navigate to a specific panel (e.g., `"tools-and-editors"`). |
+| `openMenuBar(panelId?)` | `void` | Legacy sidebar opener. An unknown string still opens the sidebar without changing selection. |
+
+### `menuBar`
+
+The Menu Bar is the sidebar opened from the Persephone icon. Its folder list is live and includes
+the built-in folders plus any configured user folders.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `isOpen` | `boolean` | Whether the Menu Bar is open. |
+| `folders` | `IMenuBarFolder[]` | Folder records with `id`, `label`, `kind`, and an optional `path`. |
+| `selected` | `IMenuBarFolder` | Currently selected folder. |
+| `open(folderId?)` | `void` | Open the Menu Bar, optionally selecting a folder by its ID. IDs are strict; labels, paths, and stale IDs are rejected. |
+| `close()` | `void` | Close the Menu Bar. Repeating the call is safe. |
+
+The built-in folder IDs are `open-tabs`, `recent-files`, `tools-editors`, and `script-library`.
+Read `folders` before opening a configured user folder so you use its current ID.
 
 ## Zoom
 

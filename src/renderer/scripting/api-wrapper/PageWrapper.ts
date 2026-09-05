@@ -35,6 +35,7 @@ import type { ScriptOutputFlags } from "../ScriptContext";
 import { errMessage } from "../../../shared/utils";
 import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 import { agentMayAccessBrowserPage, privateBrowserRefusal } from "../../editors/browser/agent-access";
+import { PagePanelsNode } from "../ai-vision/page-panels";
 
 // AiVision (EPIC-083): kind-level description of a page. `grouped` carries a caution because reading
 // it creates the grouped page; children() lists it only when it already exists.
@@ -52,6 +53,7 @@ const PAGE_MEMBERS: readonly IAiMember[] = [
     { name: "language", kind: "property", writable: true, summary: "Language id (json, markdown, typescript, …). Assigning changes it; if the user asked WHERE it is changed, the control is the button on the tab — show them with ui.highlight(\"tab-language\")." },
     { name: "editor", kind: "property", writable: true, summary: "Current editor id (monaco, grid-json, md-view, …). Assign to switch editors." },
     { name: "data", kind: "property", summary: "Free-form per-page data bag shared between scripts." },
+    { name: "panels", kind: "property", node: true, summary: "Live sidebar panels, read-only open/width state, bare-id expansion, and whole-sidebar toggle; close individual panels through their own header controls." },
     { name: "grouped", kind: "property", summary: "The page shown beside this one.", caution: "reading it CREATES a grouped page if none exists" },
     { name: "asText", kind: "method", signature: "asText(force = false)", summary: "Text (Monaco) facade: selection, cursor, insert, reveal line." },
     { name: "asGrid", kind: "method", signature: "asGrid(force = false)", summary: "Grid facade for JSON/CSV/JSONL pages: rows, columns, edit cells, add/delete rows." },
@@ -74,6 +76,10 @@ One open page (tab). Plain properties describe it; "content" holds the text for 
 and can be assigned (pass "value"). The as*() methods return an editor facade with editor-specific
 operations — pass true to switch the page to that editor first. Only the facade matching the current
 editor is listed under children; the others need the switch.
+The panels node is a live view of the page's sidebar: use its bare panel ids and editorId values to
+inspect or expand panels, read its observation-only isOpen/width state, and flip the whole sidebar
+with toggleSidebar(). Close an individual panel through its own header control, whose owner defines
+the correct lifecycle.
 `;
 
 /** Editor id → the facade segment and kind an agent should use on a page showing that editor. */
@@ -193,6 +199,10 @@ export class PageWrapper implements IAiVisible {
         return this.model.scriptData;
     }
 
+    get panels(): PagePanelsNode {
+        return new PagePanelsNode(() => this.model.page);
+    }
+
     get grouped(): PageWrapper {
         const pageId = this.model.page?.id ?? this.model.id;
         const groupedPage = pagesModel.getGroupedPage(pageId);
@@ -206,7 +216,7 @@ export class PageWrapper implements IAiVisible {
     get aiVision(): IAiVisionDescriptor {
         return {
             kind: "Page",
-            summary: "One open page (tab): its text, language, editor, and editor-specific facades.",
+            summary: "One open page (tab): its text, language, editor, live sidebar panels, and editor-specific facades.",
             members: PAGE_MEMBERS,
             help: PAGE_HELP,
             children: () => this.aiChildren(),

@@ -11,6 +11,7 @@ import type { IMermaidEditor } from "./mermaid-editor";
 import type { IGraphEditor } from "./graph-editor";
 import type { IMcpInspectorEditor } from "./mcp-inspector-editor";
 import type { IImageEditor } from "./image-editor";
+import type { IPagePanels } from "./page-panels";
 
 /**
  * IPage — represents a page (tab) in the current window.
@@ -57,6 +58,9 @@ export interface IPage {
      * Persists across script runs for this page, but does not survive app restart.
      */
     readonly data: Record<string, any>;
+
+    /** Live sidebar panels, state observations, and whole-sidebar controls. */
+    readonly panels: IPagePanels;
 
     /**
      * Grouped (side-by-side) partner page.
