@@ -242,6 +242,12 @@ export class MonacoBodyView extends VanillaView<{ model: MonacoEditor }> {
             case "focus":
                 editor.focus();
                 break;
+            case "openFind":
+                editor.trigger("api", "actions.find", undefined);
+                break;
+            case "openReplace":
+                editor.trigger("api", "editor.action.startFindReplaceAction", undefined);
+                break;
         }
     };
 

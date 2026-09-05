@@ -44,18 +44,25 @@ rule wanted; it no longer needs the exception `AiRoot` had to carve out.
 
 ### The editor family this epic then covers
 
-| Surface | Editor id | Facade today | Named controls today |
-|---|---|---|---|
-| Monaco / text | `monaco` | `TextEditorFacade` | 1 |
-| Markdown preview | `md-view` | `MarkdownEditorFacade` | 6 |
-| HTML preview | `html-view` | `HtmlEditorFacade` | 3 |
-| SVG preview | `svg-view` | `SvgEditorFacade` | 4 |
-| Mermaid diagram | `mermaid-view` | `MermaidEditorFacade` | 6 |
-| Graph | `graph-view` | `GraphEditorFacade` | 26 |
-| Image | `image-view` | `ImageEditorFacade` | 9 |
-| Video | `video-view` | **none** | 14 |
-| File diff | `file-diff` | **none** | 5 |
-| Compare | *not an editor* — a page **mode** | **none** | 2 |
+| Surface | Editor id | Facade today | Named controls today | Curated `elements` (verified) |
+|---|---|---|---|---|
+| Monaco / text | `monaco` | `TextEditorFacade` | 1 | 12 |
+| Markdown preview | `md-view` | `MarkdownEditorFacade` | 6 | 7 |
+| HTML preview | `html-view` | `HtmlEditorFacade` | 3 | 4 |
+| SVG preview | `svg-view` | `SvgEditorFacade` | 4 | 4 |
+| Mermaid diagram | `mermaid-view` | `MermaidEditorFacade` | 6 | 6 |
+| Graph | `graph-view` | `GraphEditorFacade` | 26 | 26 (19 existing + 7 added) |
+| Image | `image-view` | `ImageEditorFacade` | 9 | 3 |
+| Video | `video-view` | **none** | 14 | 10 |
+| File diff | `file-diff` | **none** | 5 | 4 (the 5th is the git-revisions panel, which stays on `page.panels`) |
+| Compare | *not an editor* — a page **mode** | **none** | 2 | 2 |
+
+**The last column was added 2026-09-06**, after each task's investigation counted the source. The
+"named controls today" column was a first-pass estimate; the verified counts differ because
+structural roots, transient menu roots, status labels, viewport gestures and generated native media
+controls are evidence of the render tree but are **not** curated controls. Image (9 → 3) and video
+(14 → 10) shrank for that reason; markdown, HTML and Monaco grew because shared `TextChromeView`
+contributions and the script panel belong to the editor facade under decision 8.
 
 Two facts the table understates. **Three surfaces have no facade** — video and file diff are real
 editors `PageWrapper` never mapped, and compare is a *mode* the page enters
@@ -179,11 +186,11 @@ both with `found: true` — EPIC-085's *silent success* finding, waiting in a ne
 |------|-------|--------|
 | US-1310 | The page node redesign — `page.editor` as the current facade, `editorSwitches`, removal of `as*()` from wrapper, typings, guides and docs | Reviewed |
 | [US-1311](../tasks/US-1311-page-scoped-elements/README.md) | Page-scoped selectors (`data-page-id`), activate-then-highlight, `page.tab`, proven on the Monaco editor's toolbar | Implemented |
-| US-1312 | The Monaco/text surface — toolbar, script panel, encryption and find/replace controls | Planned |
-| US-1313 | The preview family — markdown, HTML, SVG and mermaid | Planned |
-| US-1314 | Media — the image surface, and a new video facade | Planned |
-| US-1315 | Diff — the file-diff facade, and compare mode on `pages` | Planned |
-| US-1316 | The graph surface — toolbar, detail and legend panels, expansion settings | Planned |
+| [US-1312](../tasks/US-1312-monaco-text-surface/README.md) | The Monaco/text surface — toolbar, script panel, encryption and find/replace controls | Planned |
+| [US-1313](../tasks/US-1313-preview-family/README.md) | The preview family — markdown, HTML, SVG and mermaid | Planned |
+| [US-1314](../tasks/US-1314-media-surfaces/README.md) | Media — the image surface, and a new video facade | Planned |
+| [US-1315](../tasks/US-1315-diff-and-compare/README.md) | Diff — the file-diff facade, and compare mode on `pages` | Planned |
+| [US-1316](../tasks/US-1316-graph-surface/README.md) | The graph surface — toolbar, detail and legend panels, expansion settings | Planned |
 | US-1317 | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/*.md`; the four tools marked retirable | Planned |
 
 US-1310 comes first and is the largest: it touches every facade's help text, the `.d.ts` typings in

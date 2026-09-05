@@ -6,7 +6,9 @@ import { ComponentQueue, type ComponentQueueEvent } from "../../core/state/Compo
 export type MonacoQueueEvent =
     | { type: "revealLine"; line: number }
     | { type: "highlightText"; text: string | undefined }
-    | { type: "focus" };
+    | { type: "focus" }
+    | { type: "openFind" }
+    | { type: "openReplace" };
 
 export type MonacoQueueRequest =
     | { type: "getSelectedText" }
@@ -83,6 +85,14 @@ export class MonacoEditor extends TextHostEditorModel<
 
     focusEditor(): void {
         this.typedQueue.send({ type: "focus" });
+    }
+
+    openFind(): void {
+        this.typedQueue.send({ type: "openFind" });
+    }
+
+    openReplace(): void {
+        this.typedQueue.send({ type: "openReplace" });
     }
 
     async getSelectedText(): Promise<string> {
