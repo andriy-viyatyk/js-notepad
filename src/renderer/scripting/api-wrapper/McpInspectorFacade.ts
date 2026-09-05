@@ -1,6 +1,32 @@
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
 import type { McpTransportType } from "../../editors/mcp-inspector/McpConnectionManager";
 import type { McpRequestEntry } from "../../editors/log-view/logTypes";
+import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+
+const MCP_INSPECTOR_MEMBERS: readonly IAiMember[] = [
+    { name: "connectionStatus", kind: "property", summary: "Connection state: \"disconnected\", \"connecting\", \"connected\", \"error\"." },
+    { name: "serverName", kind: "property", summary: "Connected server name (empty when disconnected)." },
+    { name: "serverTitle", kind: "property", summary: "Display-friendly server title (empty if not provided)." },
+    { name: "serverVersion", kind: "property", summary: "Connected server version (empty when disconnected)." },
+    { name: "serverDescription", kind: "property", summary: "Short server description (empty if not provided)." },
+    { name: "serverWebsiteUrl", kind: "property", summary: "Server website URL (empty if not provided)." },
+    { name: "instructions", kind: "property", summary: "Server instructions received during initialization (empty when disconnected)." },
+    { name: "errorMessage", kind: "property", summary: "Last error message (empty when no error)." },
+    { name: "transportType", kind: "property", writable: true, summary: "Transport type: \"http\" or \"stdio\"." },
+    { name: "url", kind: "property", writable: true, summary: "Server URL (for HTTP transport)." },
+    { name: "command", kind: "property", writable: true, summary: "Command to spawn (for stdio transport)." },
+    { name: "args", kind: "property", writable: true, summary: "Space-separated arguments (for stdio transport)." },
+    { name: "connectionName", kind: "property", writable: true, summary: "Display name for the connection." },
+    { name: "connect", kind: "method", signature: "connect(): Promise<void>", summary: "Connect using current parameters." },
+    { name: "disconnect", kind: "method", signature: "disconnect(): Promise<void>", summary: "Disconnect from the current server.", caution: "ends the active server connection" },
+    { name: "historyCount", kind: "property", summary: "Number of recorded request entries." },
+    { name: "history", kind: "property", summary: "Array of recorded MCP request/response entries. Each entry has: direction, method, params, result, error, durationMs, timestamp." },
+    { name: "clearHistory", kind: "method", signature: "clearHistory(): void", summary: "Clear all recorded history.", caution: "deletes recorded troubleshooting history" },
+    { name: "showHistory", kind: "method", signature: "showHistory(): Promise<void>", summary: "Open history in a new Log View page." },
+];
+
+const MCP_INSPECTOR_HELP = `Obtain via pages[i].asMcpInspector() on an MCP Inspector page (\`mcp-view\`); this facade has no force argument and cannot switch a page to this editor.
+MCP Inspector connection management and troubleshooting history facade.`;
 
 /**
  * Safe facade around McpInspectorEditorModel for script access.
@@ -9,8 +35,23 @@ import type { McpRequestEntry } from "../../editors/log-view/logTypes";
  * - Direct model wrap (no ViewModel acquisition, no ref-counting)
  * - Exposes connection management and troubleshooting methods
  */
-export class McpInspectorFacade {
+export class McpInspectorFacade implements IAiVisible {
     constructor(private readonly model: McpInspectorEditorModel) {}
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "McpInspector",
+            summary: "MCP Inspector connection and troubleshooting facade.",
+            members: MCP_INSPECTOR_MEMBERS,
+            help: MCP_INSPECTOR_HELP,
+            summarize: () => ({
+                kind: "McpInspector",
+                connectionStatus: this.connectionStatus,
+                serverName: this.serverName,
+                historyCount: this.historyCount,
+            }),
+        };
+    }
 
     // -- Connection status (read-only) --
 

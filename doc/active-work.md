@@ -14,9 +14,9 @@ Overview of all active and planned epics and tasks.
   not a second tree. Long-term direction: every MCP tool becomes a path under this one, but
   nothing is removed in this epic. Created 2026-09-05; task documents are written per task as
   each starts.
-  - [ ] [US-1289: AiVision core — types, path parser, resolver, root + pages descriptors, helpSearch](tasks/US-1289-ai-vision-core/README.md) — implemented 2026-09-05, awaiting user test; leads the epic
-  - [ ] [US-1290: `call` MCP tool — `windows[i]` prefix, main-process `windows` node, guides](tasks/US-1290-call-tool-windows/README.md) — implemented 2026-09-05, awaiting user test
-  - [ ] US-1291: Descriptors for `PageWrapper` and every editor facade *(no task document yet; parallel with US-1292)*
+  - [ ] [US-1289: AiVision core — types, path parser, resolver, root + pages descriptors, helpSearch](tasks/US-1289-ai-vision-core/README.md) — implemented and committed 2026-09-05; leads the epic
+  - [ ] [US-1290: `call` MCP tool — `windows[i]` prefix, main-process `windows` node, guides](tasks/US-1290-call-tool-windows/README.md) — implemented and committed 2026-09-05
+  - [ ] [US-1291: AiVision descriptors for every editor facade](tasks/US-1291-facade-descriptors/README.md) — implemented by Codex 2026-09-05 (Claude-reviewed plan, live-verified), awaiting user test; parallel with US-1292
   - [ ] US-1292: Descriptors for the `app` namespaces with `caution` on destructive members *(no task document yet; parallel with US-1291)*
   - [ ] US-1293: Evaluation with `mcp-test-agent`, full tool set vs `call` alone; go/no-go for the consolidation epic *(no task document yet; closes the epic)*
   - [ ] US-1294: *(optional)* generate descriptors from `api/types/*.d.ts` JSDoc *(no task document yet)*

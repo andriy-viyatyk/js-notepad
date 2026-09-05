@@ -338,9 +338,9 @@ adding a method to a facade and forgetting its descriptor is visible in the same
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1289](../tasks/US-1289-ai-vision-core/README.md) | AiVision core: interface, path parser, resolver, result shaping, root + `pages` + `page` descriptors, `helpSearch(query)` over the descriptor graph | Implemented (awaiting test) |
-| [US-1290](../tasks/US-1290-call-tool-windows/README.md) | `call` MCP tool: main-side definition incl. the optional `windows[i]` prefix and the `windows` node, renderer command, per-session hint dedupe, overview/scripting guide updates | Implemented (awaiting test) |
-| US-1291 | Descriptors for `PageWrapper` and every editor facade (`as*` methods, text, grid, notebook, link, markdown, svg, html, mermaid, graph, draw, image, browser, mcp-inspector) | Planned |
+| [US-1289](../tasks/US-1289-ai-vision-core/README.md) | AiVision core: interface, path parser, resolver, result shaping, root + `pages` + `page` descriptors, `helpSearch(query)` over the descriptor graph | Implemented |
+| [US-1290](../tasks/US-1290-call-tool-windows/README.md) | `call` MCP tool: main-side definition incl. the optional `windows[i]` prefix and the `windows` node, renderer command, per-session hint dedupe, overview/scripting guide updates | Implemented |
+| [US-1291](../tasks/US-1291-facade-descriptors/README.md) | Descriptors for every editor facade (`as*` methods, text, grid, notebook, link, markdown, svg, html, mermaid, graph, draw, image, browser, mcp-inspector) | Implemented (awaiting test) |
 | US-1292 | Descriptors for the `app` namespaces: `fs`, `settings`, `ui`, `shell`, `window`, `proc`, `boards`, `recent`, `downloads`, with `caution` on destructive members | Planned |
 | US-1293 | Evaluation with the `mcp-test-agent` skill (haiku): scenario set run twice — once with the full tool set, once with `call` alone — add the tool to the skill's allow-list, and write the go/no-go recommendation for the consolidation epic | Planned |
 | US-1294 | *(optional)* Generate `members`/`help` from `src/renderer/api/types/*.d.ts` JSDoc at build time | Planned |
@@ -445,6 +445,12 @@ epic has not met its goal regardless of code landed.
   testing; then the better design — mark who opened the page, and let agents access private pages
   they opened themselves, in release too. The constant was replaced before commit; see Design
   decision 7, *Provenance rule*. Landed alongside US-1290.
+- US-1291 delegated to Codex (task document reviewed by Claude: inventories verified against all 13
+  facades; one must-fix — a "regression test" fallback removed). Live-verified through `call`:
+  `asGrid(true)` switches and summarises, `addRows` via `args`, `helpSearch("add rows")` returns
+  `pages[3].asGrid().addRows()`, non-grid `asGrid()` returns the facade's own error. Found and fixed
+  in passing: MCP clients JSON-parse `value`, so an array landed in `content`'s setter — the resolver
+  now reports the value type and tells the agent to pass text as a string.
 - User, same day: the path API should also become a programmatic Persephone API — `app.call` in
   scripts and `persephone.call` inside boards, so a board can use any app feature. No change to the
   implemented code (the resolver is root-agnostic and JSON-in/JSON-out by design); added as US-1296

@@ -1,7 +1,38 @@
 import type { GridEditor } from "../../editors/grid/GridEditor";
+import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
-export class GridEditorFacade {
+const GRID_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "rows", kind: "property", summary: "All rows as plain objects." },
+    { name: "columns", kind: "property", summary: "Column definitions (key and display name)." },
+    { name: "rowCount", kind: "property", summary: "Number of rows." },
+    { name: "editCell", kind: "method", signature: "editCell(columnKey: string, rowKey: string, value: unknown): void", summary: "Edit a single cell value." },
+    { name: "addRows", kind: "method", signature: "addRows(count = 1, insertIndex?: number): unknown[]", summary: "Add new empty rows. Returns the new rows." },
+    { name: "deleteRows", kind: "method", signature: "deleteRows(rowKeys: string[]): void", summary: "Delete rows by their keys.", caution: "deletes grid data" },
+    { name: "addColumns", kind: "method", signature: "addColumns(count = 1, insertBeforeKey?: string): Array<{ readonly key: string; readonly name: string }>", summary: "Add new columns. Returns the new column definitions." },
+    { name: "deleteColumns", kind: "method", signature: "deleteColumns(columnKeys: string[]): void", summary: "Delete columns by their keys.", caution: "deletes grid data" },
+    { name: "setSearch", kind: "method", signature: "setSearch(text: string): void", summary: "Set search filter text." },
+    { name: "clearSearch", kind: "method", signature: "clearSearch(): void", summary: "Clear search filter." },
+];
+
+const GRID_EDITOR_HELP = `Obtain via pages[i].asGrid() on a grid page (\`grid-json\`/\`grid-csv\`/\`grid-jsonl\`); pass true — \`asGrid(true)\` — to switch a compatible page to this editor first.
+Grid data manipulation for JSON, CSV, and JSONL pages. Use rows/columns for reads and editCell/addRows/addColumns for changes; delete operations are destructive.`;
+
+export class GridEditorFacade implements IAiVisible {
     constructor(private readonly editor: GridEditor) {}
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "GridEditor",
+            summary: "Grid data manipulation facade.",
+            members: GRID_EDITOR_MEMBERS,
+            help: GRID_EDITOR_HELP,
+            summarize: () => ({
+                kind: "GridEditor",
+                rowCount: this.rowCount,
+                columns: this.columns.map(({ key, name }) => ({ key, name })),
+            }),
+        };
+    }
 
     /**
      * A **copy** of the rows.

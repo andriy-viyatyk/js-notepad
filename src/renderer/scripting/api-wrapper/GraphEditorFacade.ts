@@ -2,6 +2,35 @@ import type { GraphEditor } from "../../editors/graph";
 import type { GraphNode } from "../../editors/graph/types";
 import { linkIds } from "../../editors/graph/types";
 import { matchNodeSearch } from "../../editors/graph/GraphSearchModel";
+import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+
+const GRAPH_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "nodes", kind: "property", summary: "All nodes (cleaned, no D3 runtime fields)." },
+    { name: "links", kind: "property", summary: "All links as {source, target} ID pairs." },
+    { name: "nodeCount", kind: "property", summary: "Total node count." },
+    { name: "linkCount", kind: "property", summary: "Total link count." },
+    { name: "getNode", kind: "method", signature: "getNode(id: string): GraphNode | undefined", summary: "Get a single node by ID, or undefined if not found." },
+    { name: "selectedIds", kind: "property", summary: "Currently selected node IDs." },
+    { name: "selectedNodes", kind: "property", summary: "Currently selected nodes (cleaned)." },
+    { name: "select", kind: "method", signature: "select(ids: string[]): void", summary: "Select nodes by IDs (replaces current selection). Updates the UI." },
+    { name: "addToSelection", kind: "method", signature: "addToSelection(ids: string[]): void", summary: "Add nodes to current selection. Updates the UI." },
+    { name: "clearSelection", kind: "method", signature: "clearSelection(): void", summary: "Clear selection. Updates the UI." },
+    { name: "getNeighborIds", kind: "method", signature: "getNeighborIds(nodeId: string): string[]", summary: "Get direct neighbor IDs from real data links (excludes group membership). Shows the \"logical\" graph structure regardless of grouping state." },
+    { name: "getVisualNeighborIds", kind: "method", signature: "getVisualNeighborIds(nodeId: string): string[]", summary: "Get visual neighbor IDs (what user sees in the rendered graph). When grouping is enabled, links may route through group nodes. When grouping is disabled, same as getNeighborIds()." },
+    { name: "getGroupOf", kind: "method", signature: "getGroupOf(nodeId: string): string | undefined", summary: "Get group ID that a node belongs to, or undefined." },
+    { name: "getGroupMembers", kind: "method", signature: "getGroupMembers(groupId: string): string[]", summary: "Get direct member IDs of a group node." },
+    { name: "getGroupMembersDeep", kind: "method", signature: "getGroupMembersDeep(groupId: string): string[]", summary: "Get all member IDs recursively (includes sub-group members)." },
+    { name: "getGroupChain", kind: "method", signature: "getGroupChain(nodeId: string): string[]", summary: "Get the group chain from a node to the top-level group: [immediateGroup, parentGroup, ...]." },
+    { name: "isGroup", kind: "method", signature: "isGroup(nodeId: string): boolean", summary: "Whether a node is a group node." },
+    { name: "search", kind: "method", signature: "search(query: string, includeHidden = true): IGraphSearchResult[]", summary: "Search nodes by query string (same multi-word AND logic as UI search). Does NOT affect the UI - purely returns results. Searches node labels and all custom properties." },
+    { name: "bfs", kind: "method", signature: "bfs(startId: string, maxDepth?: number, visual = false): Array<{ id: string; depth: number }>", summary: "BFS traversal from a starting node. Returns nodes in BFS order with their depth from the start." },
+    { name: "getComponents", kind: "method", signature: "getComponents(): IGraphComponent[]", summary: "Find connected components (disconnected subgraphs). Returns components sorted by size (largest first). Each component includes rootId if the graph's root node belongs to it." },
+    { name: "rootNodeId", kind: "property", summary: "Current root node ID, or empty string." },
+    { name: "groupingEnabled", kind: "property", summary: "Whether grouping is currently enabled." },
+];
+
+const GRAPH_EDITOR_HELP = `Obtain via pages[i].asGraph() on a graph page (\`graph-view\`); pass true — \`asGraph(true)\` — to switch a compatible page to this editor first.
+Graph query and analysis facade for nodes, links, groups, selection, search, and traversal.`;
 
 /**
  * Safe facade around GraphEditor for script access.
@@ -10,8 +39,25 @@ import { matchNodeSearch } from "../../editors/graph/GraphSearchModel";
  * Primarily designed for AI agent usage via MCP (execute_script).
  * Focuses on read/query operations — editing is done via page.content JSON.
  */
-export class GraphEditorFacade {
+export class GraphEditorFacade implements IAiVisible {
     constructor(private readonly editor: GraphEditor) {}
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "GraphEditor",
+            summary: "Graph query and analysis facade.",
+            members: GRAPH_EDITOR_MEMBERS,
+            help: GRAPH_EDITOR_HELP,
+            summarize: () => ({
+                kind: "GraphEditor",
+                nodeCount: this.nodeCount,
+                linkCount: this.linkCount,
+                selectedCount: this.selectedIds.length,
+                rootNodeId: this.rootNodeId,
+                groupingEnabled: this.groupingEnabled,
+            }),
+        };
+    }
 
     // ── Data Access ──────────────────────────────────────────────────
 

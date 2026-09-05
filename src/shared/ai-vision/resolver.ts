@@ -104,7 +104,15 @@ export async function resolveCall(root: unknown, request: ICallRequest, seenKind
                     if (descriptor && !member?.writable) {
                         return errorAt(path, walked, current, seenKinds, hintMode, `"${name}" is not writable on ${descriptor.kind}.`, true);
                     }
-                    (current as Record<string, unknown>)[name] = request.value;
+                    try {
+                        (current as Record<string, unknown>)[name] = request.value;
+                    } catch (error) {
+                        // MCP clients parse `value` as JSON, so an agent that meant to write text often
+                        // sends an object or array. Say so — the setter's own error rarely does.
+                        const valueType = Array.isArray(request.value) ? "array" : typeof request.value;
+                        return errorAt(path, walked, current, seenKinds, hintMode,
+                            `Assigning ${valueType} to "${name}" failed: ${errMessage(error)}. If the property holds text, pass "value" as a string (JSON.stringify structured data first).`);
+                    }
                     walked.push(segment);
                     return { path, result: { ok: true } };
                 }

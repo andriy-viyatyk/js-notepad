@@ -1,7 +1,31 @@
 import type { MonacoEditor } from "../../editors/monaco/MonacoEditor";
+import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
-export class TextEditorFacade {
+const TEXT_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "editorMounted", kind: "property", summary: "True when the Monaco editor is visible and mounted. The queue layer defers commands until mount, so this is informational - consumers no longer need to gate calls on it." },
+    { name: "getSelectedText", kind: "method", signature: "getSelectedText(): Promise<string>", summary: "Get currently selected text, or empty string if no selection." },
+    { name: "revealLine", kind: "method", signature: "revealLine(lineNumber: number): void", summary: "Scroll to reveal a specific line in the center of the editor." },
+    { name: "setHighlightText", kind: "method", signature: "setHighlightText(text?: string): void", summary: "Highlight all occurrences of text with find-match decorations." },
+    { name: "getCursorPosition", kind: "method", signature: "getCursorPosition(): Promise<{ lineNumber: number; column: number }>", summary: "Get current cursor position. Returns {lineNumber: 1, column: 1} if editor is not mounted." },
+    { name: "insertText", kind: "method", signature: "insertText(text: string): Promise<void>", summary: "Insert text at current cursor position." },
+    { name: "replaceSelection", kind: "method", signature: "replaceSelection(text: string): Promise<void>", summary: "Replace current selection with text." },
+];
+
+const TEXT_EDITOR_HELP = `Obtain via pages[i].asText() on a Monaco text page (\`monaco\`); pass true — \`asText(true)\` — to switch a compatible page to this editor first.
+Monaco text editor operations for selection, cursor, insertion, replacement, and line navigation.`;
+
+export class TextEditorFacade implements IAiVisible {
     constructor(private readonly editor: MonacoEditor) {}
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "TextEditor",
+            summary: "Monaco text editor facade.",
+            members: TEXT_EDITOR_MEMBERS,
+            help: TEXT_EDITOR_HELP,
+            summarize: () => ({ kind: "TextEditor", editorMounted: this.editorMounted }),
+        };
+    }
 
     /** True once the editor model exists. Queue-backed commands no longer
      *  require gating on this — the queue defers commands until mount. */

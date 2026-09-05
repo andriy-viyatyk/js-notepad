@@ -3,6 +3,18 @@ import type { MIME_TYPES } from "@excalidraw/excalidraw";
 import type { DataURL } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
 import type { FileId } from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/dist/types/excalidraw/data/transform";
+import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+
+const DRAW_EDITOR_MEMBERS: readonly IAiMember[] = [
+    { name: "addImage", kind: "method", signature: "addImage(dataUrl: string, options?: { x?: number; y?: number; maxDimension?: number }): Promise<void>", summary: "Insert an image onto the live canvas. Requires the drawing editor to be mounted (editorIsMounted === true)." },
+    { name: "exportAsSvg", kind: "method", signature: "exportAsSvg(): Promise<string>", summary: "Export the drawing as SVG markup string." },
+    { name: "exportAsPng", kind: "method", signature: "exportAsPng(options?: { scale?: number }): Promise<string>", summary: "Export the drawing as PNG data URL." },
+    { name: "elementCount", kind: "property", summary: "Number of elements on the canvas." },
+    { name: "editorIsMounted", kind: "property", summary: "Whether the Excalidraw editor is currently mounted. When true, addImage() works. When false, addImage() throws. Use app.pages.addDrawPage() to create a new page with an image instead." },
+];
+
+const DRAW_EDITOR_HELP = `Obtain via pages[i].asDraw() on a drawing page (\`draw-view\`); pass true — \`asDraw(true)\` — to switch a compatible page to this editor first.
+Drawing (Excalidraw) facade for adding images and exporting the canvas.`;
 
 /**
  * Safe facade around DrawEditor for script access.
@@ -11,8 +23,22 @@ import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/dist/type
  * All heavy imports (Excalidraw, drawExport) are dynamic to keep the
  * scripting bundle small — Excalidraw is only loaded when actually needed.
  */
-export class DrawEditorFacade {
+export class DrawEditorFacade implements IAiVisible {
     constructor(private readonly editor: DrawEditor) {}
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "DrawEditor",
+            summary: "Drawing (Excalidraw) facade.",
+            members: DRAW_EDITOR_MEMBERS,
+            help: DRAW_EDITOR_HELP,
+            summarize: () => ({
+                kind: "DrawEditor",
+                elementCount: this.elementCount,
+                editorIsMounted: this.editorIsMounted,
+            }),
+        };
+    }
 
     get elementCount(): number {
         return this.editor.elements.length;
