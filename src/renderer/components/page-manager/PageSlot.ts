@@ -16,6 +16,7 @@ export class PageSlot {
     ) {
         this.element = document.createElement("div");
         this.element.dataset.name = "page-slot";
+        this.element.dataset.pageId = id;
         applyStyle(this.element);
     }
 

@@ -1,5 +1,15 @@
 import type { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+import { ui } from "../../api/ui";
+import { createElements } from "../ai-vision/elements";
+import { activatePageAndWaitForLayout, pageScopeSelector } from "../ai-vision/page-elements";
+
+const TEXT_ELEMENTS = [
+    { name: "text-compare-left", purpose: "Compare this text page with the left grouped page when the compare action is available." },
+    { name: "text-run-script", purpose: "Run the current script, when this text page uses a script language." },
+    { name: "text-run-all-script", purpose: "Run all script content when a selection is present." },
+    { name: "text-show-resources", purpose: "Show extracted HTML resources when this text page uses the html language." },
+] as const;
 
 const TEXT_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "id", kind: "property", summary: "The concrete current editor id." },
@@ -14,17 +24,27 @@ const TEXT_EDITOR_MEMBERS: readonly IAiMember[] = [
 ];
 
 const TEXT_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "monaco".
-Monaco text editor operations for selection, cursor, insertion, replacement, and line navigation.`;
+Monaco text editor operations for selection, cursor, insertion, replacement, and line navigation.
+elements is the curated proof surface for four existing text-toolbar controls. Its visible values
+describe the current page layout; reading them does not activate a page, while highlight activates
+the owning page and waits for its slot layout before drawing.`;
 
 export class TextEditorFacade implements IAiVisible {
     constructor(private readonly editor: MonacoEditor, readonly id: string, readonly name: string) {}
 
     get aiVision(): IAiVisionDescriptor {
+        const pageId = this.editor.page?.id;
+        const elements = createElements(TEXT_ELEMENTS, ui.highlightElement.bind(ui), {
+            scopeSelector: pageId ? pageScopeSelector(pageId) : undefined,
+            beforeHighlight: pageId ? () => activatePageAndWaitForLayout(pageId) : undefined,
+        });
         return {
             kind: "TextEditor",
             summary: "Monaco text editor facade.",
-            members: TEXT_EDITOR_MEMBERS,
+            members: [...TEXT_EDITOR_MEMBERS, ...elements.members],
             help: TEXT_EDITOR_HELP,
+            elements: TEXT_ELEMENTS,
+            provide: elements.provide,
             summarize: () => ({ kind: "TextEditor", id: this.id, name: this.name, editorMounted: this.editorMounted }),
         };
     }

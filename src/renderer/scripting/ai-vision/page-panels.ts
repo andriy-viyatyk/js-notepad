@@ -2,6 +2,7 @@ import type { IPageHost } from "../../api/pages/IPageHost";
 import type { EditorModel } from "../../editors/base/EditorModel";
 import { parseBoardSecondaryPanelId } from "../../editors/board/board-secondary";
 import { createElements } from "./elements";
+import { activatePageAndWaitForLayout, pageScopeSelector } from "./page-elements";
 import { ui } from "../../api/ui";
 import { isCompositePanelKey, panelKey } from "../../ui/secondary-views/panel-key";
 import { secondaryViewRegistry } from "../../ui/secondary-views/secondary-view-registry";
@@ -31,6 +32,7 @@ const PAGE_PANELS_MEMBERS: readonly IAiMember[] = [
 ];
 
 const SIDEBAR_ELEMENTS: readonly IAiElementDeclaration[] = [
+    { name: "page-nav-panel", purpose: "The page toolbar control that opens the file Explorer sidebar." },
     { name: "secondary-views-container", purpose: "The page's sidebar panel container; present while the sidebar is open." },
     { name: "secondary-views-stack", purpose: "The collapsible stack of the page's sidebar panels." },
     { name: "secondary-views-splitter", purpose: "Resizes the page's sidebar." },
@@ -121,7 +123,11 @@ export class PagePanelsNode implements IAiVisible {
     }
 
     get aiVision(): IAiVisionDescriptor {
-        const elements = createElements(SIDEBAR_ELEMENTS, ui.highlightElement.bind(ui));
+        const host = this.hostProvider();
+        const elements = createElements(SIDEBAR_ELEMENTS, ui.highlightElement.bind(ui), {
+            scopeSelector: host ? pageScopeSelector(host.id) : undefined,
+            beforeHighlight: host ? () => activatePageAndWaitForLayout(host.id) : undefined,
+        });
         return {
             kind: "PagePanels",
             summary: "The page's live sidebar panels, whole-sidebar state, and sidebar controls.",

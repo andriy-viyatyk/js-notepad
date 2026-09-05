@@ -29,6 +29,7 @@ Four distinct roles, and the tab strip uses all of them:
 | `data-type` | Structural marker used by component logic and Emotion selectors | `data-type="page-tab"` |
 | `data-part` | A named part *inside* a component | `data-part="title-label"` |
 | `data-component` | Stable kind marker for an inspectable native component root | `data-component="panel"` |
+| `data-page-id` | Which `PageModel` owns this repeated root; identity, not element kind or state | `data-page-id="<page id>"` on `page-slot` and `page-tab` |
 | `data-*` state | Which instance / what state | `data-active`, `data-pinned`, `data-modified` |
 
 `data-name` is not unique when an element repeats. Every open tab carries
@@ -48,6 +49,13 @@ remove or rename them in the course of adding a `data-name`.
 `data-component="panel"` and `data-type="panel"`; the component marker remains stable when an
 app-specific caller must override `data-type` for its own styling. It is not a replacement for
 `data-type`, `data-part`, or state attributes.
+
+`data-page-id` is the identity attribute for repeated page roots. It is combined with `data-name`
+and carries the same stable `PageModel.id` returned by `PageWrapper.id`; it is distinct from
+`data-type` and state attributes such as `data-active`. Page-owned selectors use the identity as
+their scope: `[data-page-id="<page id>"][data-name="page-tab"]` addresses a tab root, while
+`[data-page-id="<page id>"] [data-name="tab-language"]` addresses a control inside that page's
+slot or tab. The page slot itself is `[data-page-id="<page id>"][data-name="page-slot"]`.
 
 ## The public-contract rule
 
@@ -100,6 +108,10 @@ The always-visible chrome, top to bottom.
 
 State attributes available on a tab: `data-active`, `data-modified`, `data-pinned`, `data-temp`,
 `data-deleted`, `data-grouped`, `data-has-encryption`.
+
+`page.tab` supplies page-scoped selectors for the tab root and its controls. Its `title` property
+is the real page title even when a pinned tab hides title text on screen; do not infer it from the
+tab's DOM. Reading or highlighting `page.tab` does not activate the page.
 
 Two tab shapes do not match the common case, and both occur in ordinary use:
 

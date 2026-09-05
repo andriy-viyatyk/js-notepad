@@ -178,7 +178,7 @@ both with `found: true` — EPIC-085's *silent success* finding, waiting in a ne
 | Task | Title | Status |
 |------|-------|--------|
 | US-1310 | The page node redesign — `page.editor` as the current facade, `editorSwitches`, removal of `as*()` from wrapper, typings, guides and docs | Reviewed |
-| US-1311 | Page-scoped selectors (`data-page-id`), activate-then-highlight, `page.tab`, proven on the Monaco editor's toolbar | Planned |
+| [US-1311](../tasks/US-1311-page-scoped-elements/README.md) | Page-scoped selectors (`data-page-id`), activate-then-highlight, `page.tab`, proven on the Monaco editor's toolbar | Implemented |
 | US-1312 | The Monaco/text surface — toolbar, script panel, encryption and find/replace controls | Planned |
 | US-1313 | The preview family — markdown, HTML, SVG and mermaid | Planned |
 | US-1314 | Media — the image surface, and a new video facade | Planned |
@@ -207,6 +207,26 @@ US-1310 comes first and is the largest: it touches every facade's help text, the
 - Typecheck, lint and production build pass; no tool removed and no `data-type` renamed.
 
 ## Notes
+
+### 2026-09-05 — US-1311 implemented and checked live
+
+Page-scoped elements landed (Codex, from the reviewed plan; `apply_patch`-only, no encoding damage
+this time). The three `qa/surfaces/page.md` scenarios were run through `call` against the dev build:
+
+- **Scoping.** Every selector on `tab`, `editorSwitches`, `panels` and the Monaco proof carries
+  `[data-page-id="<id>"]`. An inactive markdown page reported its tab visible and its toolbar
+  switch invisible; the active jsonl page reported all four Monaco controls invisible — correctly,
+  since none of their conditions (script language, compare, html) applied.
+- **Activate-then-highlight.** `pages[2].editorSwitches.highlight("page-editor-switch")` on the
+  inactive page activated it (`page.id` flipped), the switch became `visible: true`, and one ring
+  was drawn on the scoped selector.
+- **Tab highlight does not activate.** `pages[3].tab.highlight("tab-language")` on the now-inactive
+  page rang the tab and left `page.id` unchanged.
+
+The plan review's one round-trip finding was real: the overlay scrolls its target with
+`inline: "nearest"` unconditionally, which would have parked a centred tab back behind the sticky
+pinned tabs; the tab node now passes `{ scroll: false }`. Dashboard: US-1311 stays `[ ]`
+(implemented, review deferred to epic close per the epic model).
 
 ### 2026-09-05 — US-1310 implemented; the encoding incident
 

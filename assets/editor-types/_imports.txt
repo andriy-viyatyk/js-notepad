@@ -28,6 +28,7 @@ mermaid-editor.d.ts
 notebook-editor.d.ts
 page-editor-switches.d.ts
 page-panels.d.ts
+page-tab.d.ts
 page.d.ts
 pages.d.ts
 proc.d.ts

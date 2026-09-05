@@ -11,7 +11,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-086** — [The text-and-preview editor family through `call`](epics/EPIC-086.md)
   — epic 3 of the [agent transparency roadmap](agent-transparency-roadmap.md)
   - [x] [US-1310: The page node redesign](tasks/US-1310-page-node-redesign/README.md) — `page.editor`, `editorSwitches`, removal of `as*()` (breaking; version 5.0.0)
-  - [ ] US-1311: Page-scoped element selectors — `data-page-id`, activate-then-highlight, `page.tab`
+  - [ ] [US-1311: Page-scoped element selectors](tasks/US-1311-page-scoped-elements/README.md) — `data-page-id`, activate-then-highlight, `page.tab`
   - [ ] US-1312: The Monaco/text surface
   - [ ] US-1313: The preview family — markdown, HTML, SVG, mermaid
   - [ ] US-1314: Media — image and a new video facade

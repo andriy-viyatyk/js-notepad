@@ -33,6 +33,7 @@ import { MermaidEditorFacade } from "./MermaidEditorFacade";
 import { NotebookEditorFacade } from "./NotebookEditorFacade";
 import { PageEditorSwitchesNode } from "../ai-vision/page-editor-switches";
 import { PagePanelsNode } from "../ai-vision/page-panels";
+import { PageTabNode } from "../ai-vision/page-tab";
 import { SvgEditorFacade } from "./SvgEditorFacade";
 import { TextEditorFacade } from "./TextEditorFacade";
 
@@ -69,7 +70,8 @@ const PAGE_MEMBERS: readonly IAiMember[] = [
     { name: "modified", kind: "property", summary: "Whether there are unsaved changes." },
     { name: "pinned", kind: "property", summary: "Whether the tab is pinned." },
     { name: "content", kind: "property", writable: true, summary: "The page's text (text-based editors only; empty for browser/image pages). Assign with \"value\"." },
-    { name: "language", kind: "property", writable: true, summary: "Language id. Assigning changes it; use ui.highlight(\"tab-language\") when the user asks where it is changed." },
+    { name: "language", kind: "property", writable: true, summary: "Language id. Assigning changes it; use page.tab.highlight(\"tab-language\") when the user asks where it is changed." },
+    { name: "tab", kind: "property", node: true, summary: "This page's tab-strip entry and its visible controls." },
     { name: "editor", kind: "property", node: true, summary: "Current editor facade; inspect its id to discover the available operations." },
     { name: "editorSwitches", kind: "property", node: true, summary: "The current editor, toolbar-identical switch options, and unrestricted editor switching." },
     { name: "data", kind: "property", summary: "Free-form per-page data bag shared between scripts." },
@@ -83,8 +85,10 @@ One open page (tab). Plain properties describe it; content holds text for text-b
 be assigned with value. editor is the current editor facade; inspect editor.id to narrow its operation
 union (for example, if page.editor.id is "grid-json", page.editor.addRows(5) is valid). editorSwitches
 exposes the toolbar's merged options and switchTo(id), which accepts any registered editor id.
-The panels node is a live view of the page's sidebar. Grouped is a side-by-side page and creates one
-when none exists.
+tab is this page's tab-strip entry and its curated controls; its title remains available even when a
+pinned tab hides title text. Use pages.showPage, closePage, pinTab, unpinTab, and moveTab for tab
+actions. The panels node is a live view of the page's sidebar. Grouped is a side-by-side page and
+creates one when none exists.
 `;
 
 interface IBrowserPrivacyState {
@@ -147,6 +151,8 @@ export class PageWrapper implements IAiVisible {
     get editorSwitches(): PageEditorSwitchesNode {
         return new PageEditorSwitchesNode(() => this.model.page ?? null);
     }
+
+    get tab(): PageTabNode { return new PageTabNode(() => this.model.page ?? null); }
 
     get data(): Record<string, unknown> { return this.model.scriptData; }
     get panels(): PagePanelsNode { return new PagePanelsNode(() => this.model.page); }

@@ -15,45 +15,20 @@ Selector reference: [doc/architecture/ui-element-contract.md](../../doc/architec
 
 ---
 
-## Test S.1: Where is a control
-**Request:** "Where do I change the language of the current tab?"
+## Test S.1: Where is the tab strip
+**Request:** "Where is the tab strip?"
 **Expected:** finds `ui.elements` (via `helpSearch`, root discovery, or `ui.$help`) and answers
-from the `tab-language` purpose — the button sits on the tab itself, next to the title
-**Verify:** the answer names the tab, not Settings and not a menu path; no invented UI
-**Watch for:** the agent reaching for `settings` first. If it does, the root hint or
-`helpSearch("language")` is pointing the wrong way
+from the `page-tabs` purpose — the strip contains the open-page tabs.
+**Verify:** the answer names the shell tab strip and its role, not an individual page control.
+**Watch for:** the agent reaching for `pages[i].tab` for a shell-strip question.
 
 ## Test S.2: Show the user where it is
-**Request:** "Show me where to change the tab language."
-**Expected:** `ui.highlight("tab-language", "<explanation>")`, returning `found: true, count: 1`
-**Verify:** the overlay is actually on the active tab's language button. Then
+**Request:** "Show me where the open-page tabs are."
+**Expected:** `ui.highlight("page-tabs", "<explanation>")`, returning `found: true, count: 1`
+**Verify:** the overlay is actually on the tab strip. Then
 `ui.clearHighlights()` removes it
 **Watch for:** the agent falling back to raw `ui.highlightElement` with a hand-built selector.
-That works, but it means `highlight` was not discoverable enough — a finding
-
-**Run 2026-09-05 (Haiku, `call` only): PASS on the fourth attempt — three failures first, and they
-are the useful part.**
-
-Runs 1-3 all answered `page.language` with assignment syntax and never highlighted anything. The
-agent went `""` → `page` and found `language [writable]` within two calls. Three fixes did *not*
-work:
-
-1. indexing element purposes in `helpSearch` — the agent never called `helpSearch`;
-2. rewriting the root `ui` member summary to name the "where is…?" case;
-3. adding `ui.highlight("tab-language")` to the root `$help` common paths.
-
-What worked was putting the cross-reference on **`page.language` itself** — the node the agent
-actually lands on — saying that assigning changes it, but "where is it?" means the button on the
-tab, shown with `ui.highlight("tab-language")`. The next run gave both answers and drew the
-highlight.
-
-Two lessons, both worth more than the pass:
-
-- **`page.language` was never a wrong answer.** Three of these attempts were spent trying to steer
-  a model away from a correct response by shouting louder at the root. Cross-referencing beats
-  redirecting.
-- **Put the pointer where the agent lands, not where you wish it started.** A root hint competes
-  with everything else on the root; a member summary is read at the moment of decision.
+That works, but it means the shell strip was not discoverable enough — a finding
 
 ## Test S.3: A conditional control that is not currently there
 **Preparation:** Make sure the tabs do **not** overflow and the window is at 100% zoom
@@ -305,13 +280,11 @@ Run these directly through `call` — no test agent — after any shell UI chang
 
 | Check | Expected |
 |---|---|
-| `ui.elements` | 20 entries, in contract order |
+| `ui.elements` | 16 shell entries, in contract order |
 | every `selector` | matches the table in `ui-element-contract.md` |
 | `app-header`, `page-tabs`, `window-close` | `visible: true` in any normal window |
 | `page-tabs-scroll-left/right` | `visible: false` with few tabs, `true` once they overflow |
 | `zoom-indicator` | `visible: false` at 100% zoom, `true` otherwise |
-| `tab-language` | `visible: true` on a text page, `false` on an editor declaring `noLanguage` |
-| `tab-sound` | `visible: false` unless a page is audible or muted |
 | `window.menuBar.folders` | Four built-ins plus every current configured folder, with live IDs, labels, and kinds |
 | `window.menuBar.elements` | Exactly ten entries in `ui-element-contract.md` order; each selector is `[data-name="<name>"]` |
 | `window.menuBar.isOpen` | Tracks model open state; do not use `[data-name="menu-bar"]` presence as the assertion |
@@ -320,7 +293,7 @@ Run these directly through `call` — no test agent — after any shell UI chang
 | `page.panels.items` | One record per rendered panel, in renderer order, with distinct `editorId` owners |
 | `page.panels.width` | `null` before the lazy sidebar model exists, never the 240 default |
 | `page.panels.toggleSidebar()` | Throws on a page with a non-Explorer panel; never reports a close that the clamp refused |
-| `page.panels.elements` | Three entries; all `visible: true` while the sidebar is open |
+| `page.panels.elements` | Four entries; sidebar controls are visible while open and `page-nav-panel` follows its conditional target state |
 | `settings.sections` | 13 sections in page order; Default Browser has an empty `rows` |
 | `settings.highlight(key)` | Opens/activates Settings, rings the owning section; `found: true` AND a visible ring |
 | every section wrapper | `[data-name="settings-section-*"]` has a non-zero rectangle (the `display: contents` trap) |

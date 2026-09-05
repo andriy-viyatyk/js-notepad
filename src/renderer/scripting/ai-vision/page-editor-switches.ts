@@ -1,6 +1,7 @@
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { getEditorSwitchOptions } from "../../editors/base/editor-switch-options";
 import { createElements } from "./elements";
+import { activatePageAndWaitForLayout, pageScopeSelector } from "./page-elements";
 import { ui } from "../../api/ui";
 import type {
     IAiElementDeclaration,
@@ -11,7 +12,6 @@ import type {
 import type { IEditorSwitchOption } from "../../api/types/page-editor-switches";
 
 const SWITCH_ELEMENTS: readonly IAiElementDeclaration[] = [
-    // TODO(US-1311): scope this selector to the owning page and add activation/highlighting.
     { name: "page-editor-switch", purpose: "The page toolbar's editor switch control.", selector: '[data-name="page-editor-switch"]' },
 ];
 
@@ -57,7 +57,11 @@ export class PageEditorSwitchesNode implements IAiVisible {
     }
 
     get aiVision(): IAiVisionDescriptor {
-        const elements = createElements(SWITCH_ELEMENTS, ui.highlightElement.bind(ui));
+        const host = this.host;
+        const elements = createElements(SWITCH_ELEMENTS, ui.highlightElement.bind(ui), {
+            scopeSelector: host ? pageScopeSelector(host.id) : undefined,
+            beforeHighlight: host ? () => activatePageAndWaitForLayout(host.id) : undefined,
+        });
         return {
             kind: "PageEditorSwitches",
             summary: "The current page's editor switch state and toolbar candidates.",

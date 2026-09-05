@@ -24,6 +24,7 @@ Two things these files are for:
 |------|---------|-----------|
 | [dialogs.md](dialogs.md) | Blocking dialogs, the `dialogs` node, attention and pending results | EPIC-084 (US-1297, US-1298, US-1301) |
 | [shell.md](shell.md) | The application shell: header strip, tabs, curated elements and highlight | EPIC-084 (US-1300) |
+| [page.md](page.md) | Page-scoped elements, activation, tab ownership, and page identity | EPIC-086 (US-1311) |
 | [menus.md](menus.md) | Popup and context menus, the `menus` node | EPIC-084 (US-1299) |
 | [windows.md](windows.md) | Multiple windows, open and closed, and the redistributed application facts | EPIC-085 (US-1303) |
 

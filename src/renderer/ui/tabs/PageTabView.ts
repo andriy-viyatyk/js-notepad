@@ -241,6 +241,7 @@ export class PageTabView extends VanillaView<PageTabProps> {
 
     private updateView(): void {
         const page = this.props.model;
+        this.root.dataset.pageId = page.id;
         const pinned = page.pinned;
         const textHost = pagesModel.getTextFileHost(page.id);
         const encrypted = Boolean(textHost?.encrypted);

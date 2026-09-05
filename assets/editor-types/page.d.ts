@@ -15,6 +15,7 @@ import type { IImageEditor } from "./image-editor";
 import type { IGenericEditor } from "./generic-editor";
 import type { IPageEditorSwitches } from "./page-editor-switches";
 import type { IPagePanels } from "./page-panels";
+import type { IPageTab } from "./page-tab";
 
 /** The operation-bearing editor ids represented by the facade union. */
 export type IFacadeEditorId =
@@ -49,6 +50,7 @@ export interface IPage {
     readonly editor: IEditorFacade;
     /** The toolbar's switch projection and editor-switch operation. */
     readonly editorSwitches: IPageEditorSwitches;
+    readonly tab: IPageTab;
     readonly data: Record<string, any>;
     readonly panels: IPagePanels;
     readonly grouped: IPage;

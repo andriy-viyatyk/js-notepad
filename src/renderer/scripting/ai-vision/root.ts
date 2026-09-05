@@ -73,7 +73,7 @@ Common paths:
   helpSearch("add rows")      find where something lives
   main                        main-process diagnostics and gated scripting
   ui.elements                 curated shell controls with live visibility, purpose, and selectors
-  ui.highlight("tab-language")  point the user at a control on screen ("where is …?", "show me …")
+  pages[0].tab.highlight("tab-language")  point the user at one page's tab control ("where is …?", "show me …")
   <path>.$help                long-form help for any node
 
 Rules: arguments for the last segment go in "args" (a JSON array); assignments go in "value";
