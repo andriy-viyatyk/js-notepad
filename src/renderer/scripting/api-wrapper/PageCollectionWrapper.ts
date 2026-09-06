@@ -262,6 +262,16 @@ export class PageCollectionWrapper implements IAiVisible {
     // ── Navigation ────────────────────────────────────────────────────
 
     showPage(pageId: string): void {
+        // `pagesModel.showPage` ignores an id it does not know, so a mistyped or stale page id
+        // used to return quietly and leave a different page active — the caller then acted on
+        // the wrong page believing it had switched. Refuse instead, and name the ids that exist:
+        // a guessed value must never be accepted silently.
+        if (!this.pages.findPage(pageId)) {
+            const known = this.all.map(page => page.id).join(", ");
+            throw new Error(
+                `No page with id ${JSON.stringify(pageId)}. Open page ids are: ${known || "(none)"}.`,
+            );
+        }
         this.pages.showPage(pageId);
     }
 
