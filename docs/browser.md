@@ -360,7 +360,7 @@ The browser saves and restores the following across app restarts:
 
 ## Scripting & Automation
 
-Browser pages can be controlled from scripts using the `page.editor` facade. This gives you programmatic control over navigation and lets you query and interact with the loaded page via CSS selectors.
+Browser pages can be controlled from scripts using the `page.editor` facade. This gives you programmatic control over navigation and lets you query and interact with the loaded page via CSS selectors or refs returned by `snapshot()`.
 
 ```javascript
 const browser = page.editor;
@@ -381,12 +381,18 @@ await browser.click("#submit-btn");
 await browser.select("#country", "US");
 await browser.check("#agree-terms");
 await browser.clear("#comment");
+await browser.hover(".help-icon");
 
 // Press a key (e.g. submit a form with Enter)
 await browser.pressKey("Enter");
 
 // Run arbitrary JavaScript inside the page
 const count = await browser.evaluate("document.querySelectorAll('a').length");
+
+// Wait for one condition, capture the tab, or inspect recorded requests
+await browser.waitFor({ text: "Results" });
+const screenshot = await browser.screenshot();
+const requests = await browser.networkRequests();
 
 // Get an accessibility snapshot (Playwright MCP format)
 const snapshot = await browser.snapshot();
@@ -416,13 +422,17 @@ browser.switchTab(tabId);
 browser.closeTab(tabId);
 ```
 
-See the [`page.editor` API reference](./api/page.md#editor-facades) for the full method list.
+Query methods and `click`, `hover`, `type`, and `select` accept either a CSS selector string or
+`{ ref: "eN" }` from a snapshot; `check`, `uncheck`, and `clear` take CSS selectors. Pass `{ tabId }`
+to target a background tab. See the [`page.editor` API reference](./api/page.md#editor-facades)
+and [app.window](./api/window.md#windowscreen) for the full object-model context.
 
 ### MCP browser automation
 
 AI agents connected via the [MCP server](./mcp-setup.md) should open a web page with
-`pages.openUrlInBrowserTab(url, options)` and drive it through `pages[i].editor`. Use
-`window.screen` for Persephone's own window and `pages[i].editor` for trusted boards; see
+`pages.openUrlInBrowserTab(url, options)` and drive it through `pages[pageId].editor`, using the
+returned page ID rather than guessing a numeric index. Use `window.screen` for Persephone's own
+window and `pages[pageId].editor` for trusted boards; see
 `read_guide("browser")` for the complete path list. The older browser tools remain available
 temporarily for compatible clients.
 

@@ -114,7 +114,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | `ui_push` dialog specs and validation, shared by the tool and the `pages.logView.push` path | `/src/renderer/api/mcp/ui-push-validation.ts` |
 | Folder View editor facade (current root, capped item list) | `/src/renderer/scripting/api-wrapper/FolderViewEditorFacade.ts` |
 | Git Tree editor facade (read-mostly: bounded history, refs, changes; no repository mutation) | `/src/renderer/scripting/api-wrapper/GitTreeEditorFacade.ts` |
-| Board editor facade (board metadata, trust/render state, secondary views, status, busy/frame state, manifest snapshot, and reload; no trust-granting member) | `/src/renderer/scripting/api-wrapper/BoardEditorFacade.ts` |
+| Browser editor facade (browser navigation, inner tabs, shared automation operations, browser chrome elements, and page descriptors) | `/src/renderer/scripting/api-wrapper/BrowserEditorFacade.ts` |
+| Board editor facade (board metadata, trust/render state, secondary views, shared automation operations, status, busy/frame state, manifest snapshot, and reload; no trust-granting member) | `/src/renderer/scripting/api-wrapper/BoardEditorFacade.ts` |
+| App-window screen adapter (shared automation operations over the calling renderer's complete visible window) | `/src/renderer/api/window-screen.ts`, `/src/renderer/scripting/ai-vision/namespaces/window-screen.ts` |
 | Board Info editor facade (install/properties snapshots and safe install-directory/download controls; lifecycle actions remain on `app.boards`) | `/src/renderer/scripting/api-wrapper/BoardInfoEditorFacade.ts` |
 | Toolset editor facade (registered toolset identity/validation state and open/refresh actions) | `/src/renderer/scripting/api-wrapper/ToolsetEditorFacade.ts` |
 | Tools & Editors hub facade (active tab state and tab selection) | `/src/renderer/scripting/api-wrapper/ToolsHubEditorFacade.ts` |
@@ -268,7 +270,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | MCP server definition — instructions, guides, tools | `/src/main/mcp/`             |
 | Main-process AiVision roots and service descriptors, including the settings-gated main script node | `/src/main/mcp/ai-vision/` |
 | MCP tool definitions (one module per group, tools as data) | `/src/main/mcp/tools/` |
-| MCP `call` routing and attention/pending result formatting (renderer forwarding, timeout conversion, and path prefixing) | `/src/main/mcp/tools/call-tools.ts`, `/src/main/mcp/renderer-bridge.ts` |
+| MCP `call` routing and result formatting (renderer forwarding, timeout/attention handling, path prefixing, and native image content blocks) | `/src/main/mcp/tools/call-tools.ts`, `/src/main/mcp/renderer-bridge.ts` |
 | Per-window native dialog tracking and attention snapshots | `/src/main/native-dialog-tracker.ts` |
 | Audio/Video player editor view | `/src/renderer/editors/video/VideoView.ts` |
 | Video playback view (video.js + hls.js and stable media nodes) | `/src/renderer/editors/video/VPlayer.ts` |
@@ -291,8 +293,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Renderer MCP Agent Tools command handlers | `/src/renderer/api/mcp/tool-commands.ts` |
 | Renderer MCP request history and server-log page integration | `/src/renderer/api/mcp/request-log.ts` |
 | Browser automation commands (target resolution, private browser-page refusal, and active-private-page refusal for the explicit app-window target) | `/src/renderer/automation/commands.ts`             |
+| Shared browser-like automation operations (target-neutral snapshot, navigation, locator/input, wait, screenshot, network, and inner-tab behaviors) | `/src/renderer/automation/operations.ts` |
+| Shared browser-like AiVision members (the common ten-operation descriptor for browser, board, and app-window hosts) | `/src/renderer/scripting/ai-vision/browser-automation-members.ts` |
 | Browser input dispatch   | `/src/renderer/automation/input.ts`                |
-| Browser ref resolution (a snapshot ref is a `backendDOMNodeId`, so a `StaticText` ref denotes a **text node** — `callOnRef` coerces to the nearest element before invoking, since text nodes have no `Element` methods and roleless list rows often expose no other ref; its `fn` must be a plain `function(){}` expression, invoked via `.call(element)`) | `/src/renderer/automation/ref.ts` |
+| Browser ref resolution and per-host iframe-session stores (a snapshot ref is a `backendDOMNodeId`; `StaticText` refs are coerced to their nearest element, and frame maps are keyed by the host registration key) | `/src/renderer/automation/ref.ts` |
 | CDP session wrapper      | `/src/renderer/automation/CdpSession.ts`           |
 | Accessibility snapshot   | `/src/renderer/automation/snapshot.ts`              |
 | App-window automation adapter (`IBrowserTarget` for the app's own UI; `browser_*` with `pageId: "app"`; `APP_WINDOW_CDP_KEY` sentinel routed to the calling window's own webContents in `cdp-service`; explicit-only in `getTarget`; snapshot shows only the active page — hidden pages excluded by the AX tree) | `/src/renderer/automation/AppTargetModel.ts` |

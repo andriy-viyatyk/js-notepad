@@ -112,7 +112,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── recent.ts           # IRecentFiles implementation
 │   ├── fs.ts               # IFileSystem implementation
 │   ├── archive-service.ts  # ArchiveService — archive I/O (libarchive-wasm for reads, jszip for writes), used by fs.ts for archive paths
-│   ├── window.ts           # IWindow implementation
+│   ├── window.ts           # IWindow implementation and app.window.screen host
+│   ├── window-screen.ts    # Shared automation adapter for the complete app window
 │   ├── menu-bar.ts         # MenuBarModel — reactive Menu Bar openness, folder selection, and legacy opener bridge
 │   ├── ui.ts               # IUserInterface implementation
 │   ├── downloads.ts        # IDownloads implementation
@@ -217,7 +218,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── board-vars.d.ts # IBoardVars (app.boardVars) — env-vars/secrets admin API
 │       ├── recent.d.ts     # IRecentFiles
 │       ├── fs.d.ts         # IFileSystem
-│       ├── window.d.ts     # IWindow
+│       ├── window.d.ts     # IWindow and IWindowScreen
 │       ├── shell.d.ts      # IShell + sub-services
 │       ├── ui.d.ts         # IUserInterface
 │       ├── downloads.d.ts  # IDownloads
@@ -226,7 +227,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── grid-editor.d.ts    # IGridEditor
 │       ├── notebook-editor.d.ts # INotebookEditor
 │       ├── link-editor.d.ts    # ILinkEditor
-│       ├── browser-editor.d.ts # IBrowserEditor
+│       ├── browser-editor.d.ts # IBrowserEditor and shared automation result types
 │       ├── markdown-editor.d.ts # IMarkdownEditor
 │       ├── svg-editor.d.ts     # ISvgEditor
 │       ├── html-editor.d.ts    # IHtmlEditor
@@ -710,7 +711,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── GridEditorFacade.ts     # IGridEditor facade
 │       ├── NotebookEditorFacade.ts # INotebookEditor facade
 │       ├── LinkEditorFacade.ts     # ILinkEditor facade
-│       ├── BrowserEditorFacade.ts  # IBrowserEditor facade
+│       ├── BrowserEditorFacade.ts  # IBrowserEditor facade + shared automation members
 │       ├── MarkdownEditorFacade.ts # IMarkdownEditor facade
 │       ├── SvgEditorFacade.ts      # ISvgEditor facade
 │       ├── HtmlEditorFacade.ts     # IHtmlEditor facade
@@ -718,7 +719,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── GraphEditorFacade.ts   # IGraphEditor facade (graph query/analysis, designed for MCP)
 │       ├── VideoEditorFacade.ts    # IVideoEditor facade (playback and media state)
 │       ├── FileDiffEditorFacade.ts # IFileDiffEditor facade (revision state)
-│       ├── BoardEditorFacade.ts    # IBoardEditor facade (metadata, trust state, panels, reload)
+│       ├── BoardEditorFacade.ts    # IBoardEditor facade (metadata, trust state, automation, panels, reload)
 │       ├── BoardInfoEditorFacade.ts # IBoardInfoEditor facade (install/properties state)
 │       ├── ToolsetEditorFacade.ts  # IToolsetEditor facade (registered toolset state/actions)
 │       ├── ToolsHubEditorFacade.ts # IToolsHubEditor facade (hub tab state)
@@ -747,7 +748,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── CdpSession.ts       # CDP session wrapper (IPC to main process debugger)
 │   ├── snapshot.ts         # Accessibility snapshot (main frame + iframes, overlay detection)
 │   ├── input.ts            # Keyboard/text input (typeText, pressKey, fill strategies)
-│   ├── ref.ts              # Ref resolution (parseRef, resolveRef, callOnRef → element coercion)
+│   ├── operations.ts       # Shared target-neutral automation operations used by commands and facades
+│   ├── ref.ts              # Per-host ref/frame-session stores and ref resolution
 │   ├── AppTargetModel.ts   # Automation adapter (IBrowserTarget) for the app's own UI (pageId "app")
 │   └── commands.ts         # browser_* MCP command handlers
 │

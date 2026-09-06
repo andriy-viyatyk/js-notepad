@@ -66,10 +66,11 @@ ui.log("Hello");
     - `.addTab(url?)` / `.closeTab(tabId?)` / `.switchTab(tabId)` — Tab management
     - `.evaluate(expression, options?)` — Run JavaScript in the page → `Promise<unknown>`
     - `.snapshot(options?)` — Accessibility snapshot (Playwright MCP format) → `Promise<string>`
-    - `.getText(selector, options?)` / `.getValue(selector, options?)` / `.getAttribute(selector, attr, options?)` / `.getHtml(selector, options?)` / `.exists(selector, options?)` — DOM queries
-    - `.click(selector, options?)` / `.type(selector, text, options?)` / `.select(selector, value, options?)` / `.check(selector, options?)` / `.uncheck(selector, options?)` / `.clear(selector, options?)` — DOM interactions
+    - `.getText(locator, options?)` / `.getValue(locator, options?)` / `.getAttribute(locator, attr, options?)` / `.getHtml(locator, options?)` / `.exists(locator, options?)` — DOM queries
+    - `.click(locator, options?)` / `.hover(locator, options?)` / `.type(locator, text, options?)` / `.select(locator, value, options?)` / `.check(selector, options?)` / `.uncheck(selector, options?)` / `.clear(selector, options?)` — DOM interactions
+    - `.screenshot(options?)` / `.networkRequests(options?)` — PNG capture and recorded requests
     - `.pressKey(key, options?)` — Press a key or key combination (e.g. `"Enter"`, `"Control+a"`)
-    - `.waitForSelector(selector, options?)` / `.waitForNavigation(options?)` / `.wait(ms)` — Wait helpers
+    - `.waitFor({ selector | text | textGone | time, ... })` / `.waitForSelector(selector, options?)` / `.waitForNavigation(options?)` / `.wait(ms)` — Wait helpers
   - **[.editor](./page.md#editor-facades)** when `.editor.id === "md-view"` — Markdown preview facade
     - `.viewMounted` — True if preview is mounted
     - `.html` — Rendered HTML content
@@ -120,7 +121,7 @@ ui.log("Hello");
     - `.openDiff(params)` — Diff view for two files
     - `.showAboutPage()` / `.showSettingsPage()` / `.showBrowserPage(options?)` / `.showMcpInspectorPage(options?)`
     - `.showMnemeConfigPage()` / `.showToolsHubPage(options?)`
-    - `.openUrlInBrowserTab(url, options?)`
+    - `.openUrlInBrowserTab(url, options?)` / `.openUrl(url, options?)`
     - `.showPage(pageId)` / `.showNext()` / `.showPrevious()`
     - `.moveTab(fromId, toId)` / `.pinTab(pageId)` / `.unpinTab(pageId)`
     - `.group(leftId, rightId)` / `.ungroup(pageId)`
@@ -158,6 +159,7 @@ ui.log("Hello");
     - `.minimize()` / `.maximize()` / `.restore()` / `.close()` / `.toggleWindow()`
     - `.isMaximized` / `.windowIndex`
     - `.menuBar` — Menu Bar folders, selection, and controls
+    - `.screen` — Automation host for Persephone's own window and active page
     - `.menuBarOpen` / `.toggleMenuBar()` / `.openMenuBar(panelId?)`
     - `.zoom(delta)` / `.resetZoom()` / `.zoomLevel`
     - `.openNew(filePath?)` — Open new window

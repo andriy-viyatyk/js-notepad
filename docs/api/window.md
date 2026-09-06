@@ -51,6 +51,28 @@ the built-in folders plus any configured user folders.
 The built-in folder IDs are `open-tabs`, `recent-files`, `tools-editors`, and `script-library`.
 Read `folders` before opening a configured user folder so you use its current ID.
 
+## `window.screen`
+
+`window.screen` automates Persephone's own window and the currently active page. It can inspect the
+app chrome, tab strip, sidebar, toolbars, dialogs, and active editor using CSS selectors or refs from
+an accessibility snapshot. It does not open or switch pages; use `app.pages` and
+`app.pages.showPage()` for that.
+
+```javascript
+const snapshot = await app.window.screen.snapshot();
+await app.window.screen.click({ ref: "e12" });
+await app.window.screen.waitFor({ text: "Settings" });
+```
+
+Available methods are `snapshot()`, `click()`, `hover()`, `type()`, `select()`, `pressKey()`,
+`evaluate()`, `waitFor()`, `screenshot()`, and `networkRequests()`. Element methods accept either a
+CSS selector string or `{ ref: "eN" }` from `snapshot()`. `waitFor()` accepts exactly one of
+`selector`, `text`, `textGone`, or `time`, with an optional `timeout` in milliseconds. The
+`screenshot()` result is an image object when the capture is available.
+
+The app-window host follows the browser privacy guard: it cannot automate a user-opened incognito or
+Tor page while that page is active. Agent-opened private pages remain available to that agent.
+
 ## Zoom
 
 | Member | Type | Description |

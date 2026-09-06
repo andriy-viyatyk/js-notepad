@@ -26,8 +26,10 @@ guide to read for which task. It is intentionally short — read it once per ses
 - **`call` is the one tool you can use without reading anything.** It addresses Persephone's live
   object model by path — `""` lists the top level, `pages` the open tabs, `page.content` the active
   text, `pages[0].editor.rowCount` a grid, `windows[1].pages` another window — and every answer
-  carries a hint listing what is under it. Unknown members return the valid list. Paths use the
-  same names as `app.*` in scripts, so what you learn there transfers to `execute_script`.
+  carries a hint listing what is under it. Unknown members return the valid list. If a resolved
+  member returns an image payload, MCP `call` emits its metadata as text plus a native image block;
+  this applies to any object-model member, not just browser screenshots. Paths use the same names
+  as `app.*` in scripts, so what you learn there transfers to `execute_script`.
 - **`execute_script` is the power tool.** JavaScript/TypeScript with the `app` object (pages,
   fs, settings, ui, boards, …) and **full, unsandboxed Node.js** with the user's privileges.
 - **Agent Tools are executable memory.** Registered, parameterized scripts you discover with

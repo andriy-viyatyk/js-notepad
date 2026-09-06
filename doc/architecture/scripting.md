@@ -489,9 +489,9 @@ an operation facade still return a `GenericEditorFacade` with their `id` and dis
 | `page.editor` | `MermaidEditorFacade` | `MermaidEditor` | `svgUrl`, `loading`, `error` (read-only), `savePngToFile()` |
 | `page.editor` | `GraphEditorFacade` | `GraphEditor` | `nodes`, `links`, `search()`, `bfs()`, `getComponents()`, `select()`, selection, groups, neighbors |
 | `page.editor` | `DrawEditorFacade` | `DrawEditor` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
-| `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
+| `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, shared snapshot/click/hover/type/select/key/evaluate/wait/screenshot/network operations, navigation, and inner-tab management |
 | `page.editor` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
-| `page.editor` | `BoardEditorFacade` | `BoardEditorModel` | Board state and reload |
+| `page.editor` | `BoardEditorFacade` | `BoardEditorModel` | Board state, shared frame automation operations, secondary-frame selection, and reload |
 | `page.editor` | `BoardInfoEditorFacade` | `BoardInfoEditorModel` | Install/properties state |
 | `page.editor` | `ToolsetEditorFacade` | `ToolsetEditorModel` | Registered toolset state/actions |
 | `page.editor` | `ToolsHubEditorFacade` | `ToolsHubEditor` | Hub tab state |
@@ -512,6 +512,12 @@ The Board and Board Info facades expose observations and screen-local actions on
 accept secrets or trust decisions, and Board Info leaves lifecycle operations on `app.boards`, where
 trust and registration remain user-mediated. Toolset and Mneme facades expose copied state rather
 than live models; Agent Tool credentials remain outside the scripting surface.
+
+Browser and board automation facades, together with `app.window.screen`, share the target-neutral
+operations in `/src/renderer/automation/operations.ts`. Browser pages add navigation and inner-tab
+management; boards add frame selection and board lifecycle state; `window.screen` is the complete
+current application-window host and has no browser navigation or page-tab operations. Accessibility
+refs are scoped by the host that minted them in `/src/renderer/automation/ref.ts`.
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
 
@@ -903,10 +909,10 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `git-tree-editor.d.ts` | `IGitTreeEditor` — Git history, refs, and changes |
 | `log-view-editor.d.ts` | `ILogViewEditor` — Log View entries and non-blocking output |
 | `rest-client-editor.d.ts` | `IRestClientEditor` — REST request/response surface |
-| `window.d.ts` | `IWindow`, `IMenuBar` — window and Menu Bar controls |
+| `window.d.ts` | `IWindow`, `IWindowScreen`, `IMenuBar` — window, app-window automation, and Menu Bar controls |
 | `common.d.ts` | `IDisposable`, `IEvent`, `Language`, `EditorView` |
 | `boards.d.ts` | `IBoards` — `app.boards` board lifecycle + published-catalog operations |
-| `board-editor.d.ts` | `IBoardEditor` — board metadata, trust/render state, secondary views, and reload |
+| `board-editor.d.ts` | `IBoardEditor` — board metadata, trust/render state, shared automation, secondary views, and reload |
 | `board-info-editor.d.ts` | `IBoardInfoEditor` — Board Info install/properties snapshots and safe screen-local actions |
 | `toolset-editor.d.ts` | `IToolsetEditor` — registered toolset state and open/refresh actions |
 | `tools-hub-editor.d.ts` | `IToolsHubEditor` — Tools & Editors hub tab state |
@@ -925,7 +931,7 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `video-editor.d.ts` | `IVideoEditor` |
 | `file-diff-editor.d.ts` | `IFileDiffEditor` |
 | `compare.d.ts` | `ICompareMode`, `IComparePair` |
-| `browser-editor.d.ts` | `IBrowserEditor` — browser page operations |
+| `browser-editor.d.ts` | `IBrowserEditor` plus browser/board/app-window automation result types |
 | `ui.d.ts` | `IUserInterface`, `ITextDialogOptions`, `ITextDialogResult`, `IHighlightOptions`, `IHighlightResult` — dialogs, notifications, and element highlights |
 | `ui-log.d.ts` | `IUiLog`, `IUiDialog`, `IUiShow`, `IProgress`, `IGrid`, `IGridColumn`, `IDialogResult`, `IStyledTextBuilder`, `IStyledLogBuilder` — Log View UI facade |
 
@@ -978,9 +984,11 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
 
 /src/renderer/scripting/ai-vision/
 ├── root.ts                      # Renderer object-model root and root namespaces
+├── browser-automation-members.ts # Shared automation members for browser-like hosts
 ├── namespaces/                  # App namespace descriptors
 │   ├── boards.ts                # Local board inventory and published-catalog namespace
 │   ├── tools.ts                 # Registered Agent Tools search, execution, and toolsets
+│   ├── window-screen.ts          # Descriptor for the complete app-window automation host
 │   └── index.ts                 # Namespace registration and descriptor wiring
 └── page-compare.ts              # pages.compare pair projection and controls
 

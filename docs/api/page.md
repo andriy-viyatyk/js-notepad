@@ -80,7 +80,9 @@ narrowed:
 - `mermaid-view`: diagram state and PNG export.
 - `graph-view`: graph queries, selection, traversal, and analysis.
 - `draw-view`: drawing image insertion and SVG/PNG export.
-- `browser-view`: browser navigation, tabs, inspection, interaction, and evaluation.
+- `browser-view`: browser navigation, tabs, DOM queries, ref-based interaction, waits, screenshots,
+  network requests, and evaluation. DOM, wait, screenshot, and network methods accept an optional
+  `{ tabId }` for a specific internal browser tab.
 - `mcp-view`: MCP connection status, server metadata, request history, and copied Tools/Resources/
   Prompts panel state. `command` and `args` are read-only; the `url` setter rejects embedded
   credentials, fragments, and credential-like query parameters.

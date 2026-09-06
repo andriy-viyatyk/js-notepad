@@ -302,9 +302,14 @@ the host's `state.version`. It is mounted in both `BlankPageLinksView` and `Book
 | `src/renderer/editors/browser/TorStatusOverlay.ts` | Renderer | Native Tor connection overlay with spinner, log, reconnect button |
 | `src/renderer/editors/browser/network-log-links.ts` | Renderer | Network log → ILink[] conversion for Show Resources |
 | `src/renderer/automation/commands.ts` | Renderer | Playwright-compatible browser_* MCP command handlers |
+| `src/renderer/automation/operations.ts` | Renderer | Shared target-neutral snapshot, navigation, locator/input, waiting, screenshot, network, and inner-tab operations |
+| `src/renderer/automation/ref.ts` | Renderer | Host-scoped accessibility refs and iframe CDP-session maps |
 | `src/renderer/automation/snapshot.ts` | Renderer | Accessibility tree → YAML formatter for browser_snapshot |
 | `src/renderer/automation/CdpSession.ts` | Renderer | CDP session wrapper (IPC to main process debugger) |
 | `src/renderer/automation/AppTargetModel.ts` | Renderer | `IBrowserTarget` adapter for the app's own UI (`pageId: "app"`) |
+| `src/renderer/api/window-screen.ts` | Renderer | Object Model adapter exposing the app-window target as `app.window.screen` |
+| `src/renderer/scripting/ai-vision/browser-automation-members.ts` | Renderer | Shared ten-operation descriptor used by browser, board, and app-window hosts |
+| `src/renderer/scripting/ai-vision/namespaces/window-screen.ts` | Renderer | `window.screen` descriptor, help, summary, and active-private-page restriction |
 | `src/renderer/automation/types.ts` | Renderer | `IBrowserTarget` interface — what automation needs from browser editor |
 | `src/main/browser-service.ts` | Main | Attaches to webContents, relays events via IPC, audio state, hotkeys, cache cleanup, DOM collection (incl. iframes) |
 | `src/main/cdp-service.ts` | Main | CDP session management — debugger attach/detach/send via IPC |
@@ -807,13 +812,32 @@ const tabs = browser.tabs;                  // list of internal tabs
 
 ## Browser Automation (MCP)
 
-Browser automation for AI agents lives in `src/renderer/automation/`. This layer is separate from the browser editor — the editor exposes a lightweight `BrowserTargetModel` adapter, and the automation layer builds Playwright-compatible MCP tools on top. The same tools can drive three kinds of `IBrowserTarget`: a **browser page** (`BrowserTargetModel`), a **board** frame (`BoardTargetModel`), and **Persephone's own app window** (`AppTargetModel`, selected with `pageId: "app"`).
+Browser automation for AI agents lives in `src/renderer/automation/`. The target-neutral operation
+layer in `operations.ts` owns snapshotting, navigation waits, locator resolution, input, evaluation,
+waiting, screenshots, network-log reads, and inner-tab operations. The MCP `browser_*` command
+adapter and the scripting/Object Model facades call these operations rather than maintaining
+separate command bodies.
+
+The same `IBrowserTarget` contract has three hosts: a **browser page** (`BrowserTargetModel`), a
+trusted **board** frame (`BoardTargetModel`), and **Persephone's own app window** (`AppTargetModel`,
+selected by the legacy `pageId: "app"` target). `BrowserEditorFacade`, `BoardEditorFacade`, and
+`window.screen` are the three facade surfaces over those hosts. The shared
+`BROWSER_AUTOMATION_MEMBERS` descriptor keeps the ten common operations consistent across all
+three surfaces; browser pages add navigation and inner-tab members, while boards add board state,
+reload, and secondary-frame selection.
 
 ```
 MCP tool call (browser_click) → mcp-handler.ts → api/mcp/command-registry.ts → automation/commands.ts
     → getTarget(params) → resolved IBrowserTarget (browser page / board / app window)
-    → perform action via CDP → return accessibility snapshot
+    → operations.ts → perform action via CDP → return result
 ```
+
+The path-based `call` surface reaches the same operations through the resolved editor facade or
+`window.screen`; it is not a fourth automation implementation. A successful MCP `call` result is
+normally rendered as JSON or text, but `call-tools.ts` also recognizes a general image payload in
+either `{ type: "image", data, mimeType }` or `{ image: { data, mimeType }, ...metadata }` form.
+It emits the metadata as a text block followed by a native MCP image content block, regardless of
+which object-model member produced the image.
 
 **Target resolution:** every `browser_*` tool accepts optional `pageId` and `profileName` params; `getTarget(params)` in `commands.ts` resolves the target by precedence:
 
@@ -834,6 +858,12 @@ For browser/board targets the resolved page is **activated** (`showPage`) becaus
 
 Tools support both CSS selectors (`selector` param) and accessibility snapshot refs (`ref` param, e.g. `ref=e52`). Ref resolution (`automation/ref.ts`) uses CDP `DOM.resolveNode` + `Runtime.callFunctionOn`. Stale refs produce helpful "re-take the snapshot" error messages.
 
+Refs are scoped to the host that minted them. `ref.ts` keeps the iframe-to-CDP-session map by the
+target's registration key; each new snapshot replaces only that host's map, so an interleaved
+snapshot on another browser tab, board frame, or the app window cannot retarget an existing frame
+ref. A ref still becomes stale when its document or DOM node is replaced, and a ref from another
+host is rejected as belonging to a different document.
+
 **A ref does not always denote an element.** A ref is a `backendDOMNodeId`, and a `StaticText` node's id backs a DOM **text** node — which has none of the `Element` methods the command bodies call (`scrollIntoView`, `click`, `focus`, `value`, …). This is not an edge case: in list-style UI built from roleless `<div>`/`<span>` elements the ancestors resolve to the `generic` role and are dropped by `SKIP_ROLES`, so the `StaticText` ref is frequently the *only* ref on a row. `callOnRef` therefore coerces before invoking — `this.nodeType === 1 ? this : this.parentElement` — so the action lands on the element that displays the text, which is what the snapshot line denotes. Because DOM events bubble, acting on the inner element still reaches a handler bound to the row around it. A ref with no element parent fails with a message naming the ref and the node type instead of a `TypeError`.
 
 Refs are minted from the node's own `backendDOMNodeId` and are deliberately **not** rewritten to the nearest element ancestor in `snapshot.ts`: sibling text nodes under one element (ordinary prose with inline markup — `first text <b>bold</b> second text` — produces two) would collapse onto the same ref, making all but one of those lines unaddressable. Coercing at invocation time keeps every ref unique *and* usable.
@@ -849,7 +879,7 @@ page is hidden from the app snapshot and does not trigger this check. This bound
 `browser_*` automation only; `execute_script` remains a trusted, full-application API and can
 inspect private-session state by design.
 
-`AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own native UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the page-interaction commands (snapshot / click / type / press_key / evaluate / screenshot) are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`).
+`AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own native UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the shared page-interaction operations are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`). The Object Model exposes the same host as `app.window.screen`, whose `WindowScreen` adapter provides the shared snapshot, interaction, wait, screenshot, and network-request members. Use `pages` and `pages.showPage(pageId)` to open or switch Persephone pages; `window.screen` has no browser navigation or page-tab management.
 
 Two design points make it self-contained:
 

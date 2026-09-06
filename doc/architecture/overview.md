@@ -61,7 +61,7 @@ The **Object Model** is the central architectural concept. It provides a single,
 | `app.editors` | `IEditorRegistry` | Available editors, resolution |
 | `app.recent` | `IRecentFiles` | Recently opened files |
 | `app.fs` | `IFileSystem` | File I/O, dialogs, paths |
-| `app.window` | `IWindow` | Window state, Menu Bar, zoom, multi-window |
+| `app.window` | `IWindow` | Window state, Menu Bar, zoom, multi-window, and the `screen` automation host |
 | `app.shell` | `IShell` | OS integration, screen snip, encryption, version |
 | `app.ui` | `IUserInterface` | Dialogs, notifications, element highlights |
 | `app.downloads` | `IDownloads` | Download tracking |
@@ -141,7 +141,7 @@ adjacent adapter uses `react-dom/client` to mount it. Global styles are installe
 | **editors/** | File type handling, content editing | `registry.ts`, `text/`, `grid/`, `browser/`, etc. |
 | **content/** | Content I/O pipeline — providers, transformers, pipes | `ContentPipe.ts`, `parsers.ts`, `resolvers.ts`, `providers/`, `transformers/` |
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
-| **automation/** | Playwright-compatible browser MCP tools, CDP, input, refs | `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
+| **automation/** | Shared browser-like operations and Playwright-compatible MCP tools, CDP, input, host-scoped refs | `operations.ts`, `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
 | **uikit/** | Standalone reusable framework-free component library built from `VanillaView` classes and native DOM builders | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `DataGrid/` (the av-grid boundary), … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
 | **components/** | Persephone-coupled components and native views only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/` |
 | **core/** | State primitives, utilities | `state/` (TOneState, TModel), `utils/` |
@@ -200,6 +200,7 @@ See [scripting.md](./scripting.md).
 - Main process: `mcp-http-server.ts` accepts connections using `@modelcontextprotocol/sdk` and owns sessions and HTTP plumbing only; what the server offers — client instructions, guide resources, and the tools themselves as data plus one generic registrar — lives under `main/mcp/`, so adding a tool is a data entry rather than another registration block. Most tools are pure pass-throughs: the registrar strips `windowIndex`, forwards the remaining arguments to the renderer over IPC, and maps the response
 - Renderer process: the thin `mcp-handler.ts` IPC shell delegates through `api/mcp/command-registry.ts` to focused page/script commands (`call`, `execute_script`, `list_pages`, `get_page_content`, `get_active_page`, `create_page`, `set_page_content`, `get_app_info`, `open_url`), board commands (`create_board`, `open_board`, `board_refresh`), `ui_push`, and Agent Tools registry meta-tools (`search_tools`, `execute_tool`, `refresh_toolset`, `create_toolset` — a constant-size surface over an arbitrary number of registered tools; see [folder-structure.md](folder-structure.md) `api/tools/`)
 - The `call` MCP tool is routed in main: `main` and `windows[i]` are resolved against main-process descriptors, while the remainder is forwarded to the selected renderer and resolved against its AiVision root. Main-process script evaluation is a separately settings-gated branch (`Settings → MCP Server → Allow main-process scripts`); `AppWrapper.call()` does not provide that branch.
+- MCP `call` result shaping is general-purpose: when any resolved member returns `{ type: "image", data, mimeType }` or `{ image: { data, mimeType }, ...metadata }`, the main-process adapter emits metadata as text plus a native MCP image content block. The capability is not specific to browser screenshots.
 - Renderer `call` results can carry a leading attention block for open renderer dialogs and popup menus. If the action itself opens a blocking renderer dialog, the call returns a pending result while the action continues; a subsequent `call` can inspect `dialogs[i]` and use its adapter's `click(button)` or `cancel()` path. Popup menus are exposed as `menus[0]` with read-only item snapshots and `click(label)` / `close()` actions.
 - The renderer AiVision root also exposes curated `ui.elements` declarations with live visibility and resolved selectors, plus `ui.highlight(name, message?)`, which delegates to the app highlight overlay and resolves once the overlay is drawn. The element list is intentionally curated rather than an exhaustive DOM inventory.
 - Native file, folder, and message-box dialogs are tracked per application window in main. An ordinary renderer result may carry non-actionable native attention while an asynchronous native dialog remains open; the native-dialog tracker never exposes a driver, and synchronous native dialogs cannot be reported while they block main's event loop. A bridge timeout is converted to `pending` only when the tracker still reports an active native dialog.

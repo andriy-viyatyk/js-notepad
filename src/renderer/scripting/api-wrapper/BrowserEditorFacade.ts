@@ -54,7 +54,7 @@ const BROWSER_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "uncheck", kind: "method", signature: "uncheck(selector: string, options?: { tabId?: string }): Promise<void>", summary: "Uncheck a checkbox. Throws if not found." },
     { name: "clear", kind: "method", signature: "clear(selector: string, options?: { tabId?: string }): Promise<void>", summary: "Clear the value of an input/textarea. Throws if not found.", caution: "clears page input" },
     { name: "waitForSelector", kind: "method", signature: "waitForSelector(selector: string, options?: { timeout?: number; tabId?: string }): Promise<void>", summary: "Wait for an element matching the selector to appear in the DOM. options.timeout is the max wait time in ms (default 30000); options.tabId targets a tab (default active tab)." },
-    { name: "waitForNavigation", kind: "method", signature: "waitForNavigation(options?: { timeout?: number; tabId?: string }): Promise<void>", summary: "Wait for the page to finish loading (document.readyState === complete). For SPA navigations, use waitForSelector() instead. options.timeout is the max wait time in ms (default 30000); options.tabId targets a tab (default active tab)." },
+    { name: "waitForNavigation", kind: "method", signature: "waitForNavigation(options?: { timeout?: number; tabId?: string }): Promise<void>", summary: "Wait for the document loaded RIGHT NOW to finish loading (document.readyState === complete). It is not a navigation detector: if the old document is still in place and already complete, it returns at once. After pages.openUrlInBrowserTab(...), or for an SPA, prefer waitFor({ selector }) or waitFor({ text }). options.timeout is the max wait in ms (default 30000); options.tabId targets a tab (default active tab)." },
     { name: "wait", kind: "method", signature: "wait(ms: number): Promise<void>", summary: "Wait for a specified number of milliseconds." },
 ];
 
@@ -83,8 +83,9 @@ snapshot() may begin with # <overlay> when a modal covers the page. browser_tabs
 tabs/addTab/closeTab/switchTab, browser_close closes the active browser tab, and screenshot() returns
 metadata plus an inline image block through call. Transient menus, drawers, dialogs, suggestions,
 downloads, and popup actions are not part of the default curated elements list; use the chrome control
-that opens them first. Password-field behavior must be established by the live Chromium check in the
-task verification notes; source inspection alone does not establish whether its value is exposed.`;
+that opens them first. snapshot() reports a field's role, accessible name and ref but never its
+value — verified for password and ordinary text inputs alike — so read a value with getValue() or
+evaluate() when you actually need it.`;
 
 /**
  * Safe facade around BrowserEditorModel for script access.
@@ -265,6 +266,7 @@ export class BrowserEditorFacade implements IAiVisible {
         await typeTextInto(this.model.target, resolveElementLocator(locator), text, {
             slowly: options?.slowly,
             submit: options?.submit,
+            tabId: options?.tabId,
         });
     }
 
@@ -377,6 +379,16 @@ export class BrowserEditorFacade implements IAiVisible {
 
     /**
      * Wait for the page to finish loading (document.readyState === "complete").
+     *
+     * This waits on the document that is loaded RIGHT NOW. It is not a navigation detector: if a
+     * navigation has been requested but the old document is still in place and already complete,
+     * this resolves immediately, before the new page exists. That matters after
+     * `pages.openUrlInBrowserTab(...)`, which returns its page id before the document is ready —
+     * prefer `waitFor({ selector })` or `waitFor({ text })` there, which wait for the content you
+     * actually expect. The `browser_navigate` tool path avoids the same trap with a two-phase wait
+     * (`navigateAndWait` in automation/operations.ts) that first watches for the URL to change or
+     * readyState to leave "complete".
+     *
      * For SPA navigations, use waitForSelector() instead.
      */
     async waitForNavigation(options?: WaitOption): Promise<void> {

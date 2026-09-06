@@ -201,9 +201,12 @@ Options:
 await app.pages.showBrowserPage({ url: "https://github.com" });
 ```
 
-### openUrlInBrowserTab(url, options?) → `Promise<string>`
+### openUrlInBrowserTab(url, options?) → `Promise<string | undefined>`
 
-Open a URL in a browser tab (reuses existing browser page if possible). Resolves to the id of the target page.
+Open a plain web page or search query in a browser tab, reusing an existing browser page when possible.
+Resolves to the Persephone page ID before the document necessarily finishes loading; it returns
+`undefined` if no page could be opened (for example, when Tor cannot be configured). Wait for the
+page to load before querying or interacting with it.
 
 Options:
 - `incognito?: boolean`
@@ -212,6 +215,25 @@ Options:
 
 ```javascript
 const pageId = await app.pages.openUrlInBrowserTab("https://docs.github.com");
+if (pageId) {
+    const page = app.pages.findPage(pageId);
+    await page?.editor.waitForNavigation();
+    console.log(page?.title);
+}
+```
+
+Use `openUrlInBrowserTab` for a web page or search query. For a URL naming a file or other content
+source, use [`openUrl`](./pages.md#openurlurl-options--promisevoid) so the normal content pipeline can choose the editor.
+
+### openUrl(url, options?) → `Promise<void>`
+
+Open a supported URL or file path through Persephone's content-delivery pipeline. The pipeline may
+choose an editor or fall back to a browser; pass `editor` to request a specific editor. The method
+does not return the opened page ID, so inspect `app.pages.all` after awaiting it.
+
+```javascript
+await app.pages.openUrl("file:///C:/notes/readme.md");
+await app.pages.openUrl("https://example.com/data.json", { editor: "monaco" });
 ```
 
 ## Navigation

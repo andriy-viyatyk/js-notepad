@@ -18,7 +18,7 @@ The result contains the page id. Target that page as `pages[pageId]` (or use a s
 appropriate); the browser surface is `pages[i].editor`:
 
 ```js
-await pages[i].editor.waitForNavigation(); // or await pages[i].editor.waitFor({ selector: "main" })
+await pages[i].editor.waitFor({ selector: "main" }); // wait for content you expect
 await pages[i].editor.snapshot();
 await pages[i].editor.click({ ref: "e12" });
 await pages[i].editor.hover({ ref: "e12" });
@@ -43,10 +43,10 @@ pages[i].editor.switchTab(tabId);
 object such as `{ ref: "e12" }`. `type` clears and replaces the value; its options can request
 slow typing or submission. The other methods accept their documented options, including `tabId`
 for an inner browser tab. `waitFor` accepts exactly one of `selector`, `text`, `textGone`, or
-`time`, with an optional `timeout`. `waitForNavigation` remains available for a document load.
+`time`, with an optional `timeout`. `waitForNavigation` waits on the document loaded right now, so it can return immediately when a navigation has been requested but the old document is still in place; prefer a `selector` or `text` wait after opening or navigating.
 
 `pages.openUrlInBrowserTab` accepts URLs and search queries and returns its page id before the
-document is ready. Do not act on the new page immediately: call `waitForNavigation()` or
+document is ready. Do not act on the new page immediately: wait for content with
 `waitFor({ selector })` first. Otherwise an action can land on a document that is about to be
 replaced and still report success.
 
