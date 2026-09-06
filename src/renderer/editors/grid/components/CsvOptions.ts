@@ -74,16 +74,19 @@ class CsvOptionsContentView extends VanillaView<undefined> {
 
         const state = gridModel.state.get();
         const checkboxView = this.child(new CheckboxView({
+            name: "csv-options-header",
             checked: state.csvWithColumns,
             onChange: this.model.toggleWithColumns,
             children: "First row is header",
         }));
         const radioGroupView = this.child(new RadioGroupView({
+            name: "csv-options-delimiter",
             items: delimiterItems,
             value: state.csvDelimiter,
             onChange: this.model.setDelimiter,
         }));
         const inputView = this.child(new InputView({
+            name: "csv-options-other",
             size: "sm",
             value: this.model.other,
             onChange: this.handleOtherChange,
@@ -133,16 +136,19 @@ class CsvOptionsContentView extends VanillaView<undefined> {
     private syncState(state: { csvDelimiter: string; csvWithColumns: boolean }): void {
         this.model.syncOther(state.csvDelimiter);
         this.checkboxView.update({
+            name: "csv-options-header",
             checked: state.csvWithColumns,
             onChange: this.model.toggleWithColumns,
             children: "First row is header",
         });
         this.radioGroupView.update({
+            name: "csv-options-delimiter",
             items: delimiterItems,
             value: state.csvDelimiter,
             onChange: this.model.setDelimiter,
         });
         this.inputView.update({
+            name: "csv-options-other",
             size: "sm",
             value: this.model.other,
             onChange: this.handleOtherChange,
@@ -153,6 +159,7 @@ class CsvOptionsContentView extends VanillaView<undefined> {
     private readonly handleOtherChange = (value: string): void => {
         this.model.setOtherProxy(value);
         this.inputView.update({
+            name: "csv-options-other",
             size: "sm",
             value: this.model.other,
             onChange: this.handleOtherChange,
@@ -171,12 +178,14 @@ class CsvOptionsView extends VanillaView<DialogViewProps> {
     }
 
     protected onMount(): void {
+        const pageId = this.model.gridModel?.page?.id;
         const popoverView = this.child(new PopoverView({
             elementRef: this.model.el,
             offset: defaultOffset,
             open: true,
             onClose: () => { void this.model.close(); },
             placement: "bottom-start",
+            ...(pageId != null ? { "data-page-id": pageId } : {}),
             contentView: (host) => new CsvOptionsContentView(host, this.model),
         }));
         popoverView.mount();

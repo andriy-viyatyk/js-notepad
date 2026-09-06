@@ -87,6 +87,7 @@ type ColumnsOptionsState = typeof defaultColumnsOptionsState;
 
 class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
     el = undefined as Element | undefined;
+    pageId = undefined as string | undefined;
     /** The editor's grid, whose columns this popover edits. */
     gridModel = undefined as DataGridInstance<any> | undefined;
     /** This popover's own grid, which owns the `EditColumnRow` array. */
@@ -442,6 +443,7 @@ class ColumnsOptionsView extends VanillaView<DialogViewProps> {
             open: true,
             placement: "bottom-start",
             resizable: true,
+            ...(this.model.pageId != null ? { "data-page-id": this.model.pageId } : {}),
             onClose: () => {
                 if (visiblePoppers().length === 1 && !this.model.state.get().changed) {
                     this.model.close(undefined);
@@ -459,13 +461,15 @@ export const showColumnsOptions = async (
     el: Element,
     gridModel: DataGridInstance<any>,
     isCsv: boolean,
-    onUpdateRows: (updateFunc: (rows: any[]) => any[]) => void
+    onUpdateRows: (updateFunc: (rows: any[]) => any[]) => void,
+    pageId?: string,
 ) => {
     const model = new ColumnsOptionsModel(
         new TComponentState(defaultColumnsOptionsState)
     );
     model.el = el;
     model.gridModel = gridModel;
+    model.pageId = pageId;
     model.isCsv = isCsv;
     model.onUpdateRows = onUpdateRows;
     model.prepareEditColumns();

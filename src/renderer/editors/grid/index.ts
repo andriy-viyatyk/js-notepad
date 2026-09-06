@@ -105,6 +105,7 @@ class GridToolbarView extends VanillaView<GridToolbarProps> {
             grid,
             this.model.format === "csv",
             this.model.onUpdateRows,
+            this.model.page?.id,
         );
     };
 }
