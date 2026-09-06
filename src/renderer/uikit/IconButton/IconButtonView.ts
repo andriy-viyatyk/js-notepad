@@ -71,6 +71,7 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
             active,
             warning,
             disabled,
+            hidden,
             title: _title,
             onClick: _onClick,
             icon: _icon,
@@ -83,6 +84,11 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
         const button = this.root as HTMLButtonElement;
         button.type = props.type ?? "button";
         button.disabled = Boolean(disabled);
+        // `hidden` is applied here, not left to the construction-time rest props: a caller that
+        // toggles visibility does so on `update()`, and the rest-prop path runs only once. The
+        // matching `[data-type="icon-button"][hidden]` rule in IconButton.css beats the author
+        // display rule that the UA `[hidden]` rule would otherwise lose to.
+        button.hidden = Boolean(hidden);
         this.root.dataset.type = "icon-button";
         if (name === undefined) delete this.root.dataset.name;
         else this.root.dataset.name = name;
