@@ -2,11 +2,18 @@ import { app } from "./app";
 import { fs } from "./fs";
 import type {
     IBoards,
+    BoardListing,
     PublishedBoardResult,
     PublishedVersionResult,
     BoardUpdateInfo,
 } from "./types/boards";
 import type { EditorModel } from "../editors/base/EditorModel";
+import { fpNormalizeForCompare } from "../core/utils/file-path";
+import { readBoardManifest } from "../editors/board/board-manifest";
+import { boardTrust, pathCovers } from "./board-trust";
+import { boardInstallRegistry, InstalledBoardEntry } from "./board-install-registry";
+import { publishedBoards } from "./published-boards";
+import { boardPagesForRoot, getBoardUpdate } from "./board-updates";
 
 export const BOARDS_ASSETS_BASE_URL =
     "https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/";
@@ -54,6 +61,169 @@ async function defaultInstallDir(): Promise<string> {
     const { fpJoin } = await import("../core/utils/file-path");
     const { api } = await import("../../ipc/renderer/api");
     return fpJoin(await api.getCommonFolder("userData"), "data", "boards");
+}
+
+interface BoardListingSource {
+    readonly key: string;
+    readonly root: string;
+    readonly trusted: boolean;
+    readonly installed?: InstalledBoardEntry;
+    readonly installedFromMemory: boolean;
+    readonly openPageIds: string[];
+}
+
+interface BoardSourceSnapshot {
+    readonly trustPaths: string[];
+    readonly installedEntries: InstalledBoardEntry[];
+    readonly installedFromMemory: boolean;
+}
+
+let cachedTrustPaths: string[] | undefined;
+let cachedInstalledEntries: InstalledBoardEntry[] | undefined;
+
+function currentTrustPaths(): string[] {
+    const paths = boardTrust.listPaths();
+    return paths.length ? paths : [...(cachedTrustPaths ?? [])];
+}
+
+function currentInstalledEntries(): { entries: InstalledBoardEntry[]; fromMemory: boolean } {
+    const entries = boardInstallRegistry.listInstalled();
+    return entries.length
+        ? { entries, fromMemory: true }
+        : { entries: [...(cachedInstalledEntries ?? [])], fromMemory: false };
+}
+
+function currentBoardSources(): BoardSourceSnapshot {
+    const installed = currentInstalledEntries();
+    return {
+        trustPaths: currentTrustPaths(),
+        installedEntries: installed.entries,
+        installedFromMemory: installed.fromMemory,
+    };
+}
+
+async function readBoardSources(): Promise<BoardSourceSnapshot> {
+    const inMemoryTrustPaths = boardTrust.listPaths();
+    const trustPaths = inMemoryTrustPaths.length
+        ? inMemoryTrustPaths
+        : await boardTrust.readPaths();
+    if (!inMemoryTrustPaths.length) cachedTrustPaths = [...trustPaths];
+
+    const inMemoryInstalledEntries = boardInstallRegistry.listInstalled();
+    const installedFromMemory = inMemoryInstalledEntries.length > 0;
+    const installedEntries = installedFromMemory
+        ? inMemoryInstalledEntries
+        : await boardInstallRegistry.readInstalled();
+    if (!installedFromMemory) cachedInstalledEntries = [...installedEntries];
+
+    return { trustPaths, installedEntries, installedFromMemory };
+}
+
+function isTrustedRoot(root: string, trustPaths: readonly string[]): boolean {
+    const key = fpNormalizeForCompare(root);
+    return trustPaths.some((path) => pathCovers(fpNormalizeForCompare(path), key));
+}
+
+function mergeBoardSources(sources: BoardSourceSnapshot): BoardListingSource[] {
+    const records = new Map<string, {
+        root: string;
+        installed?: InstalledBoardEntry;
+        openPageIds: string[];
+    }>();
+
+    const addRoot = (root: string): { root: string; installed?: InstalledBoardEntry; openPageIds: string[] } => {
+        const key = fpNormalizeForCompare(root);
+        const existing = records.get(key);
+        if (existing) return existing;
+        const record = { root, openPageIds: [] as string[] };
+        records.set(key, record);
+        return record;
+    };
+
+    for (const root of sources.trustPaths) addRoot(root);
+    for (const entry of sources.installedEntries) {
+        addRoot(entry.root).installed ??= entry;
+    }
+    for (const page of boardPagesForRoot()) {
+        const boardRoot = (page.mainEditorInstance as { boardRoot?: string } | undefined)?.boardRoot;
+        if (!boardRoot) continue;
+        addRoot(boardRoot).openPageIds.push(page.id);
+    }
+
+    return [...records.entries()]
+        .sort(([first], [second]) => first < second ? -1 : first > second ? 1 : 0)
+        .map(([key, record]) => ({
+            key,
+            root: record.root,
+            trusted: isTrustedRoot(record.root, sources.trustPaths),
+            installed: record.installed,
+            installedFromMemory: sources.installedFromMemory,
+            openPageIds: [...record.openPageIds].sort(),
+        }));
+}
+
+function installedListing(
+    source: BoardListingSource,
+): BoardListing["installed"] {
+    if (!source.installed) return undefined;
+    if (!source.installedFromMemory || !publishedBoards.isLoaded()) {
+        // Update availability is UNKNOWN until the catalog is in memory. The key is omitted
+        // rather than set to `undefined` (which would reach the agent as `null`) so that
+        // "cannot tell yet" stays distinguishable from the real answer `updateAvailable: false`.
+        return { id: source.installed.id, version: source.installed.version };
+    }
+    const update = getBoardUpdate(source.installed.root);
+    return update
+        ? {
+            id: source.installed.id,
+            version: source.installed.version,
+            updateAvailable: true,
+            latestVersion: update.latestVersion,
+        }
+        : { id: source.installed.id, version: source.installed.version, updateAvailable: false };
+}
+
+function toBoardListing(
+    source: BoardListingSource,
+    manifest: { name?: string; description?: string } | undefined,
+): BoardListing {
+    // Absent optionals are OMITTED, never set to `undefined`: a key explicitly holding
+    // `undefined` crosses the MCP/IPC boundary as `null`, which is exactly the falsy
+    // stand-in EPIC-088 decision 9 forbids an agent from seeing. An omitted key reads as
+    // "unavailable"; a present one always carries a real value.
+    const installed = installedListing(source);
+    return {
+        root: source.root,
+        ...(manifest?.name !== undefined ? { name: manifest.name } : {}),
+        ...(manifest?.description !== undefined ? { description: manifest.description } : {}),
+        trusted: source.trusted,
+        ...(installed !== undefined ? { installed } : {}),
+        openPageIds: [...source.openPageIds],
+    };
+}
+
+function currentBoardListings(): BoardListing[] {
+    return mergeBoardSources(currentBoardSources()).map((source) => toBoardListing(source, undefined));
+}
+
+/** Current local board inventory without disk or network access. */
+export function getCurrentBoardListings(): BoardListing[] {
+    return currentBoardListings();
+}
+
+/** Current local board inventory item for a numeric AiVision child index. */
+export function getCurrentBoardListingAt(index: number): BoardListing | undefined {
+    if (!Number.isInteger(index) || index < 0) return undefined;
+    return currentBoardListings()[index];
+}
+
+async function enumerateBoardListings(): Promise<BoardListing[]> {
+    const sources = await readBoardSources();
+    const merged = mergeBoardSources(sources);
+    return Promise.all(merged.map(async (source) => {
+        const manifest = await readBoardManifest(source.root);
+        return toBoardListing(source, manifest ?? undefined);
+    }));
 }
 
 export const boards: IBoards = {
@@ -169,6 +339,9 @@ export const boards: IBoards = {
 
         return newRoot;
     },
+
+    /** Return the merged local trust, install, and open-page inventory. */
+    list: (): Promise<BoardListing[]> => enumerateBoardListings(),
 
     // ── Published catalog — discover / install / update (EPIC-045 / US-869) ──────
 

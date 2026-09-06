@@ -245,6 +245,21 @@ interface IApp {
 }
 ```
 
+### `app.boards` — Local inventory and lifecycle
+
+`app.boards.list()` returns the local machine inventory as one record per board root known from the
+trusted-root registry, catalog install registry, or currently open board pages. Each record reports
+trust, optional installed id/version/update information, manifest metadata when readable, and the
+open page ids. Listing is read-only and local: it makes no network request and does not grant trust;
+`app.boards.registerBoard(root)` remains the consent path through the user trust dialog. Use a
+returned `root` with `app.boards.openBoard(root)`.
+
+The `boards` AiVision node exposes the same currently known roots as synchronous indexed `[i]`
+children for hints and `index()` reads. Those hints perform no disk, manifest, network, or async
+loading work; use `boards.list()` for complete cold-start discovery. `searchPublished()`,
+`getPublishedVersions()`, and the other published-board operations address the remote catalog and
+are separate from local inventory.
+
 ### `app.proc` — Process Execution
 
 Spawn external programs and stream their output. The main process owns the child process registry (including whole-tree kill); `app.proc` is the renderer client.

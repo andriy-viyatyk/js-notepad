@@ -67,16 +67,14 @@ export function listBoardUpdates(): BoardUpdate[] {
         .filter((u): u is BoardUpdate => !!u);
 }
 
-/** Open pages whose MAIN editor runs the board at `root` (includes content-host boards —
- *  `BoardContentEditorModel extends BoardEditorModel`). Secondary-view panels ride the same
- *  page, so closing the page covers them. */
-function boardPagesForRoot(root: string): PageModel[] {
-    const key = fpNormalizeForCompare(root);
+/** Open pages whose MAIN editor runs a board (or the board at `root` when supplied). */
+export function boardPagesForRoot(root?: string): PageModel[] {
+    const key = root === undefined ? undefined : fpNormalizeForCompare(root);
     return app.pages.pages.filter((p) => {
         const e = p.mainEditorInstance;
         return e instanceof BoardEditorModel
             && !!e.boardRoot
-            && fpNormalizeForCompare(e.boardRoot) === key;
+            && (key === undefined || fpNormalizeForCompare(e.boardRoot) === key);
     });
 }
 

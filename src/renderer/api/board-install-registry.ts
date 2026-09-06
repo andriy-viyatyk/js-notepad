@@ -39,6 +39,19 @@ interface RegistryState {
     loaded: boolean;
 }
 
+function parseInstalledEntries(raw: string | undefined): InstalledBoardEntry[] {
+    if (!raw) return [];
+    const data = tryParseJson<unknown>(raw, null);
+    if (!Array.isArray(data)) return [];
+    return data.filter(
+        (e): e is InstalledBoardEntry =>
+            !!e &&
+            typeof e.id === "string" &&
+            typeof e.root === "string" &&
+            typeof e.version === "string",
+    );
+}
+
 class BoardInstallRegistry {
     private readonly state = new TGlobalState<RegistryState>({ entries: [], loaded: false });
 
@@ -47,13 +60,10 @@ class BoardInstallRegistry {
     async load(): Promise<void> {
         await fs.prepareDataFile(INSTALLED_BOARDS_FILE, "[]");
         const raw = await fs.getDataFile(INSTALLED_BOARDS_FILE);
-        const parsed = this.parse(raw);
+        const parsed = parseInstalledEntries(raw);
 
         // Stale-entry reconciliation.
-        const alive: InstalledBoardEntry[] = [];
-        for (const e of parsed) {
-            if (await isBoardFolder(e.root)) alive.push(e);
-        }
+        const alive = await this.liveEntries(parsed);
         const changed = alive.length !== parsed.length;
 
         this.state.update((s) => {
@@ -63,17 +73,12 @@ class BoardInstallRegistry {
         if (changed) await this.persist(alive);
     }
 
-    private parse(raw: string | undefined): InstalledBoardEntry[] {
-        if (!raw) return [];
-        const data = tryParseJson<unknown>(raw, null);
-        if (!Array.isArray(data)) return [];
-        return data.filter(
-            (e): e is InstalledBoardEntry =>
-                !!e &&
-                typeof e.id === "string" &&
-                typeof e.root === "string" &&
-                typeof e.version === "string",
-        );
+    private async liveEntries(entries: InstalledBoardEntry[]): Promise<InstalledBoardEntry[]> {
+        const alive: InstalledBoardEntry[] = [];
+        for (const entry of entries) {
+            if (await isBoardFolder(entry.root)) alive.push(entry);
+        }
+        return alive;
     }
 
     private async persist(entries: InstalledBoardEntry[]): Promise<void> {
@@ -125,6 +130,16 @@ class BoardInstallRegistry {
 
     listInstalled(): InstalledBoardEntry[] {
         return this.selectInstalledEntries(this.state.get());
+    }
+
+    /** Read and validate installed entries without pruning or updating reactive state. */
+    async readInstalled(): Promise<InstalledBoardEntry[]> {
+        try {
+            const parsed = parseInstalledEntries(await fs.getDataFile(INSTALLED_BOARDS_FILE));
+            return await this.liveEntries(parsed);
+        } catch {
+            return [];
+        }
     }
 
     subscribeInstalled(listener: () => void): () => void {

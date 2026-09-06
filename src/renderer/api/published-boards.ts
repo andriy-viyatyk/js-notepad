@@ -86,6 +86,11 @@ class PublishedBoards {
         return this.selectCatalogBoards(this.state.get());
     }
 
+    /** Whether the in-memory catalog has completed a load or received an update. */
+    isLoaded(): boolean {
+        return this.state.get().loaded;
+    }
+
     subscribeCatalog(listener: () => void): () => void {
         return this.state.subscribe(listener, this.selectCatalogBoards);
     }

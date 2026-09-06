@@ -61,6 +61,28 @@ export interface BoardUpdateInfo {
     latestVersion: string;
 }
 
+/** One locally known board, merged from trust, installation, and open-page state. */
+export interface BoardListing {
+    /** Absolute board root; the value accepted by {@link IBoards.openBoard}. */
+    readonly root: string;
+    /** Optional metadata copied from board-manifest.json. */
+    readonly name?: string;
+    readonly description?: string;
+    /** True when the root is covered by a trusted registry path. */
+    readonly trusted: boolean;
+    /** Present only when the local catalog install registry has this root. */
+    readonly installed?: {
+        readonly id: string;
+        readonly version: string;
+        /** Known only when the already-loaded remote catalog can answer. */
+        readonly updateAvailable?: boolean;
+        /** Present only when updateAvailable is true. */
+        readonly latestVersion?: string;
+    };
+    /** All current page ids running this root; [] means no page is open. */
+    readonly openPageIds: string[];
+}
+
 /**
  * Board lifecycle namespace (`app.boards`).
  *
@@ -157,10 +179,13 @@ export interface IBoards {
      */
     renameBoard(boardRoot: string, newName: string): Promise<string>;
 
-    // ── Published catalog — discover / install / update (EPIC-045 / US-869) ──────
+    /** One-call local machine inventory; does not discover remote catalog boards. */
+    list(): Promise<BoardListing[]>;
+
+    // ── Published catalog (remote) — discover / install / update (EPIC-045 / US-869) ──────
 
     /**
-     * Search the published-boards catalog (the curated GitHub catalog Persephone ships against),
+     * Search the remote published-boards catalog (the curated GitHub catalog Persephone ships against),
      * each result annotated with its local install state. **Read-only, no dialog.**
      *
      * @param query - Case-insensitive substring matched against name, description, and file masks.

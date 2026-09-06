@@ -31,8 +31,12 @@ const trustedBoardsFileName = "trustedBoards.txt";
  * This is the basis of *inherited trust* (EPIC-036): a board is trusted when it or any
  * ancestor folder is registered, and the registry never keeps an ancestor/descendant pair.
  */
-function pathCovers(ancestorKey: string, descendantKey: string): boolean {
+export function pathCovers(ancestorKey: string, descendantKey: string): boolean {
     return descendantKey === ancestorKey || descendantKey.startsWith(ancestorKey + "/");
+}
+
+function parseTrustedPaths(data: string | undefined): string[] {
+    return (data ?? "").split("\n").map((p) => p.trim()).filter((p) => p);
 }
 
 interface BoardTrustState {
@@ -46,10 +50,19 @@ class BoardTrust {
     async load(): Promise<void> {
         await fs.prepareDataFile(trustedBoardsFileName, "");
         const data = await fs.getDataFile(trustedBoardsFileName);
-        const paths = (data ?? "").split("\n").map((p) => p.trim()).filter((p) => p);
+        const paths = parseTrustedPaths(data);
         this.state.update((s) => {
             s.paths = paths;
         });
+    }
+
+    /** Read the trusted list without creating the data file or updating reactive state. */
+    async readPaths(): Promise<string[]> {
+        try {
+            return [...parseTrustedPaths(await fs.getDataFile(trustedBoardsFileName))];
+        } catch {
+            return [];
+        }
     }
 
     /** Sync check against currently-loaded state (call load() first on mount). Ancestor-aware:
@@ -61,7 +74,7 @@ class BoardTrust {
 
     /** All trusted board-root paths (sync, non-reactive). Call `load()` first. */
     listPaths(): string[] {
-        return this.state.get().paths;
+        return [...this.state.get().paths];
     }
 
     /**
