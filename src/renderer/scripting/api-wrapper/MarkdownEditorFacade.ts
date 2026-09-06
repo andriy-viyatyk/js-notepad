@@ -35,7 +35,11 @@ const MARKDOWN_EDITOR_MEMBERS: readonly IAiMember[] = [
 ];
 
 const MARKDOWN_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "md-view".
-Markdown preview facade with rendered HTML, navigation, compact mode, and find controls. Its
+Markdown preview facade with rendered HTML, navigation, compact mode, and find controls.
+There is no manual refresh or re-render control: the preview re-renders automatically whenever the
+page content changes, so "refresh the preview" is not an action a user or an agent performs here.
+Assign pages[i].content to change what is rendered; markdown-compact-toggle only changes spacing and
+typography of the already-rendered document. Its
 persistent controls are text-compare-left, markdown-compact-toggle, markdown-back, find-input,
 find-prev, find-next, and find-close; conditional controls report visible: false when absent.
 The markdown-link context menu appears only after right-clicking a rendered link and offers Open

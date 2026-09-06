@@ -61,7 +61,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 |---|---|---|---|
 | 1 | **EPIC-084** — Attention, `dialogs`, `menus`, elements/highlight protocol | Cross-cutting infrastructure; the shell header strip as the protocol's first consumer | — (adds only) |
 | 2 | **EPIC-085** ✅ — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions — **all marked retirable 2026-09-05** |
-| 3 | EPIC-086 — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content`, `open_url` for non-browser targets |
+| 3 | **EPIC-086** ✅ — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content` — **all marked retirable 2026-09-06**. `open_url` is **not** marked; see the note below |
 | 4 | EPIC-087 — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer, git tree | `ui_push` (becomes the Log View page's node) |
 | 5 | EPIC-088 — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` |
 | 6 | EPIC-089 — Browser | `pages[i].editor`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
@@ -110,9 +110,9 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 |---|---|---|
 | `get_app_info`, `list_windows`, `open_window` | **retirable** — `version`/root summary, `windows`, `windows[i].open()`; `get_app_info`'s other fields redistributed to `settings.browserProfiles`, `settings.defaultBrowserProfile`, `main.runtime.resourcesDir`, `main.runtime.demoBoardDir`, `boards.assetsBaseUrl`, `boards.manifestUrl` | 085 ✅ |
 | `list_pages`, `get_active_page` | `pages`, `page` | already |
-| `create_page` | `pages.addEditorPage(...)` | already; 086 for the remaining editors |
-| `get_page_content`, `set_page_content` | `pages[i].content` | already |
-| `open_url` | `pages.openUrl(url, options)` | 086 / 089 |
+| `create_page` | **retirable** — `pages.addEditorPage(editor, language, title)`, with `addEmptyPage()`, `addDrawPage(dataUrl)`, `openLinks(links)` and `openFile(path)` for the other page kinds | 086 ✅ |
+| `get_page_content`, `set_page_content` | **retirable** — `pages[i].content`, read and assigned | 086 ✅ |
+| `open_url` | `pages.openUrlInBrowserTab(url, options)` today; the planned unified `pages.openUrl` does not exist — **not retirable**, and wholly EPIC-089's, not 086's. See *The `open_url` correction* below | 089 |
 | `ui_push` | `pages.logView.push(...)` (well-known page) | 087 |
 | `create_board`, `open_board`, `board_refresh` | `boards.create/open`, `boards.refresh()` | 088 |
 | `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` | `toolsets.*`, `toolsets.*` | 088 |
@@ -129,6 +129,39 @@ instructions in `assets/mcp-res-ui.md` are likewise retirable but not cut.
 Epic 2 also **added** three surfaces the roadmap listed as shell work: `window.menuBar`,
 `page.panels`, and the `settings` catalog with `settings.highlight(key)`. None of them replaces a
 tool — they were simply invisible to an agent before.
+
+**EPIC-086 marked three more retirable (2026-09-06)**, on the same standard. `create_page` is
+answered by `pages.addEditorPage(editor, language, title)` plus `addEmptyPage`, `addDrawPage`,
+`openLinks` and `openFile`; `get_page_content` and `set_page_content` are answered by reading and
+assigning `pages[i].content`. All three were exercised live through `call` before being marked, and
+a Haiku agent with `call` alone passed the epic's acceptance scenario
+([qa/runs/2026-09-06-epic-086-editor-surfaces.md](../qa/runs/2026-09-06-epic-086-editor-surfaces.md)).
+
+Epic 3 also **added** surfaces that replace no tool: a facade for video and for file diff, both of
+which had none, and `pages.compare` for compare mode.
+
+### The `open_url` correction (2026-09-06)
+
+This document said EPIC-086 retires "`open_url` **for non-browser targets**". **That premise was
+wrong, and nothing was marked on the strength of it.** `open_url` has no non-browser branch: its
+handler (`src/renderer/api/mcp/page-commands.ts:192-202`) calls `pagesModel.openUrlInBrowserTab`
+unconditionally, with no test of URL kind, extension or content type, so a URL pointing at an image
+or a markdown file lands in a browser tab and the content-delivery pipeline is never consulted.
+There is therefore no non-browser half of this tool for the editor epic to replace, and `open_url`
+belongs wholly to **EPIC-089**.
+
+Two facts to carry into that epic:
+
+- The planned unified member `pages.openUrl(url, options)` **does not exist**. `pages` has
+  `openUrlInBrowserTab` (browser-only) and `openFile` (file-path-typed); neither takes a URL and
+  lets the pipeline choose a target editor.
+- That capability *does* exist, but on the wrong node: `app.openRawLink(href, { editor })`
+  (`src/renderer/api/app.ts:113-117`) is the Layer-1 entry point, and it is the function OS deep
+  links already use. EPIC-089 should decide whether `pages.openUrl` becomes a `pages`-level wrapper
+  over it or whether `open_url` simply becomes `pages.openUrlInBrowserTab`.
+
+Principle 3 is what caught this: the tool was scheduled for retirement by a table, and checking the
+replacement path before marking it is the only reason the mistake did not ship as a promise.
 
 ## Per-surface checklist (the template every task in epics 2–6 follows)
 

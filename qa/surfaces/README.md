@@ -36,8 +36,8 @@ Two things these files are for:
 `shell.md` grew with EPIC-085 too: the Menu Bar (US-1304), the page sidebar (US-1305) and the
 Settings catalog (US-1306) are tests S.7 onward in that file, because they are all the same screen.
 
-More files arrive with each surface epic: the text editor family, the data editors, boards, the
-browser.
+The `editors/` subfolder arrived with EPIC-086, which covered the text-and-preview family in five
+files. More arrive with each surface epic: the data editors, boards, the browser.
 
 ## Running them
 

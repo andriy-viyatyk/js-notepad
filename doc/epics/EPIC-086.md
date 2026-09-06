@@ -191,7 +191,7 @@ both with `found: true` — EPIC-085's *silent success* finding, waiting in a ne
 | [US-1314](../tasks/US-1314-media-surfaces/README.md) | Media — the image surface, and a new video facade | Planned |
 | [US-1315](../tasks/US-1315-diff-and-compare/README.md) | Diff — the file-diff facade, and compare mode on `pages` | Planned |
 | [US-1316](../tasks/US-1316-graph-surface/README.md) | The graph surface — toolbar, detail and legend panels, expansion settings | Planned |
-| US-1317 | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/*.md`; the four tools marked retirable | Planned |
+| [US-1317](../tasks/US-1317-editor-surface-acceptance/README.md) | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/*.md`; three tools marked retirable (`open_url` corrected, not marked) | Implemented |
 
 US-1310 comes first and is the largest: it touches every facade's help text, the `.d.ts` typings in
 `assets/editor-types/` and `src/renderer/api/types/`, `docs/api/page.md`, `docs/scripting.md`, the
@@ -213,7 +213,76 @@ US-1310 comes first and is the largest: it touches every facade's help text, the
   `pages` for every editor in the table.
 - Typecheck, lint and production build pass; no tool removed and no `data-type` renamed.
 
+## Needs user check (raised 2026-09-06, work continued under the agent's own assumption)
+
+Nothing here blocked implementation; each was decided and the reasoning recorded. Listed so they
+can be re-verified rather than rediscovered.
+
+1. **`open_url` was scheduled for retirement on a false premise, and was not marked.** The roadmap
+   said this epic retires "`open_url` for non-browser targets", but the tool has no non-browser
+   branch at all — its handler calls `openUrlInBrowserTab` unconditionally
+   (`src/renderer/api/mcp/page-commands.ts:192-202`). The planned `pages.openUrl` member does not
+   exist. **Assumption taken:** `open_url` is wholly EPIC-089's, and only the other three tools were
+   marked retirable. The correction and what EPIC-089 must decide are written into
+   [agent-transparency-roadmap.md](../agent-transparency-roadmap.md), section "The `open_url`
+   correction". If you disagree that this belongs to EPIC-089, that section is the one to change.
+
+2. **The epic table's control counts were estimates and are now corrected.** Image fell 9 → 3 and
+   video 14 → 10 because structural roots, status labels, transient menu roots, viewport gestures
+   and generated native media controls are not curated controls; markdown, HTML and Monaco grew
+   because shared `TextChromeView` contributions and the script panel belong to the editor facade
+   under decision 8. **Assumption taken:** curated means *actionable, user-visible, app-owned*. The
+   table's new last column records both numbers.
+
+3. **Encryption exposes no password-taking member.** US-1312's plan proposed `encrypt(password)`
+   and `decrypt(password)`; these were removed in review because a member that *accepts* a password
+   writes a secret into agent call arguments and MCP transcripts, which is the roadmap's
+   "a typed value is never readable" rule from the other direction. **Assumption taken:** only
+   `showEncryptionDialog`, `encryptWithCurrentPassword` and `makeUnencrypted` are public. If you
+   want scripted encryption with a supplied password, that is a deliberate reopening.
+
+4. **Graph detail edits were left out.** Editing a node's id, title, properties and links stays
+   UI-only; data edits go through `page.content`. **Assumption taken:** widening the private graph
+   mutation models for no demonstrated agent scenario is not worth the surface. A scenario reopens it.
+
+5. **The acceptance run covered the markdown surface only.** Text, media, diff and graph were
+   verified directly through `call` during implementation but were not put in front of a Haiku
+   agent. **Assumption taken:** the full five-file Haiku sweep is EPIC-090's, where the call-only
+   flag makes it the real gate.
+
 ## Notes
+
+### 2026-09-06 — US-1312 to US-1317 implemented; the epic's acceptance run
+
+Five surfaces landed in one overnight run (Codex from reviewed plans; `apply_patch` only, no
+encoding damage in any of the five). Each was checked live through `call` before its commit:
+
+- **US-1312 Monaco/text** — 12 page-scoped declarations, `text-run-script` and `text-toggle-script`
+  visible on a JavaScript page and the other ten correctly false.
+- **US-1313 preview family** — markdown's 7 controls, and `openSearch()` flipped the four `find-*`
+  entries from invisible to visible in the same `elements` read, so the surface works as a UI
+  regression test as well as an agent surface.
+- **US-1314 media** — the pinned audio page answered `source`, `format`, `playerState` and
+  `mediaMounted: false`, with the live media properties correctly absent rather than zeroed.
+- **US-1315 diff** — a file-diff page answered `from` (a commit) and `to` (unstaged) directly, and
+  `pages.compare.enter` on an ungrouped page threw "no grouped pair exists" rather than `false`.
+- **US-1316 graph** — 33 declarations, no per-node selector, and `graph-detail-panel` correctly
+  reporting `visible: true` while dimmed and empty.
+
+**The plan reviews earned their cost.** Each of the five had at least one defect that would have
+shipped: a null-host path returning `false` instead of `undefined`; password-taking members; a
+fabricated `PageWrapper` code snippet citing a `"text-editor"` key that does not exist; a live-media
+bridge built on a `data-part` DOM query; and three unresolved either/or questions in the graph plan.
+The `data-part` one is the most instructive — it would have worked, and failed silently later.
+
+**Acceptance run.** Haiku with `call` alone, two markdown pages open, passed both questions:
+enumerated the page's capabilities from `page.editor`, and rang the correct page's control. One
+finding acted on — the markdown `$help` never said the preview re-renders automatically, so the
+agent spent two `helpSearch` calls hunting a refresh control that does not exist. Log:
+[qa/runs/2026-09-06-epic-086-editor-surfaces.md](../../qa/runs/2026-09-06-epic-086-editor-surfaces.md).
+
+**Tools marked retirable:** `create_page`, `get_page_content`, `set_page_content` — each path
+exercised live first. `open_url` was **not** marked; see "Needs user check" item 1.
 
 ### 2026-09-05 — US-1311 implemented and checked live
 

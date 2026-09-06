@@ -46,6 +46,20 @@ Release notes and changelog for Persephone (formerly js-notepad).
   curated shell controls through `ui.elements` and point at one with `ui.highlight(...)`. Native OS
   dialogs are reported as requiring the user's response.
 
+- **The text and preview editors describe themselves to an agent** — Every text, markdown, HTML,
+  SVG, Mermaid, image, video, file-diff and graph page now lists its own on-screen controls through
+  `page.editor.elements`, each with a plain-language purpose, and can point at one on screen with
+  `page.editor.highlight(...)`. Controls are addressed per page, so asking about one of two open
+  markdown pages highlights the right one, and a control that is not currently on screen reports
+  itself as not visible instead of silently succeeding.
+
+- **Video, file diff and compare are reachable for the first time** — A video or audio page answers
+  what is playing, its format and its live position; a file-diff page answers which two revisions it
+  is comparing; and `pages.compare` lists which pages are being compared side by side and can enter
+  or leave compare mode. Playback actions warn that they may start audio from a page that is not on
+  screen, and encrypting or unlocking a file still happens only through the password dialog — no
+  path accepts or reveals a password.
+
 ---
 
 ## Version 4.0.23

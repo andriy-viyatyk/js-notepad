@@ -17,7 +17,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1314: Media](tasks/US-1314-media-surfaces/README.md) — the image surface, and a new video facade
   - [ ] [US-1315: Diff](tasks/US-1315-diff-and-compare/README.md) — the file-diff facade, and compare mode on `pages`
   - [ ] [US-1316: The graph surface](tasks/US-1316-graph-surface/README.md) — toolbar, detail and legend panels, expansion settings
-  - [ ] US-1317: Acceptance run, `qa/surfaces/editors/*.md`, tools marked retirable
+  - [ ] [US-1317: Acceptance run and retirable tools](tasks/US-1317-editor-surface-acceptance/README.md) — Haiku gate, `qa/surfaces/editors/*.md`, three tools marked retirable
 
 ## Planned
 
