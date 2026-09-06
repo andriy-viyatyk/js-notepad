@@ -165,12 +165,13 @@ export async function typeTextInto(
     target: IBrowserTarget,
     locator: ElementLocator,
     text: string,
-    options: { slowly?: boolean; submit?: boolean } = {},
+    options: { tabId?: string; slowly?: boolean; submit?: boolean } = {},
 ): Promise<void> {
     await typeText(target, {
         selector: "selector" in locator ? locator.selector : undefined,
         ref: "ref" in locator ? locator.ref : undefined,
         text,
+        tabId: options.tabId,
         slowly: options.slowly,
         submit: options.submit,
     });
@@ -358,8 +359,8 @@ export async function waitFor(target: IBrowserTarget, options: WaitForOptions): 
     }
 }
 
-export async function ensureTargetReady(target: IBrowserTarget): Promise<void> {
-    await target.ensureReady?.();
+export async function ensureTargetReady(target: IBrowserTarget, tabId?: string): Promise<void> {
+    await target.ensureReady?.(tabId);
 }
 
 export function listTabs(target: IBrowserTarget): ReadonlyArray<ITargetTab> {

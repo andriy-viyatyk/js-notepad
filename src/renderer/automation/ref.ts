@@ -99,6 +99,17 @@ export async function resolveRef(cdp: CdpSession, ref: string): Promise<string> 
         return object.objectId;
     } catch (err: unknown) {
         const msg = errMessage(err);
+        // CDP has two spellings for "this id is not usable here", and they mean different
+        // things to the caller: the node is gone, or the node belongs to a different document —
+        // which is what a ref minted in one frame or tab and used against another produces.
+        // Both are recovered the same way, and neither may reach the agent as a raw
+        // `Error invoking remote method 'browser:cdp-send'` string.
+        if (msg.includes("does not belong to the document")) {
+            throw new Error(
+                `Ref "${ref}" belongs to a different document — it was taken from another frame or `
+                + "tab than the one being acted on. Take a snapshot of this one and use a ref from it.",
+            );
+        }
         if (msg.includes("No node with given id")) {
             throw new Error(
                 `Ref "${ref}" is stale — the element is no longer in the DOM. Re-take the snapshot.`,

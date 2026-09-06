@@ -242,7 +242,13 @@ async function fillInput(cdp: CdpSession, selector: string | undefined, ref: str
  * - contentEditable: .value doesn't exist, and Trusted Types may block DOM assignment
  * - webview.insertText() works like real typing at the Chromium level
  */
-async function fillWithInsertText(cdp: CdpSession, target: IBrowserTarget, elementKind: ElementKind, text: string): Promise<void> {
+async function fillWithInsertText(
+    cdp: CdpSession,
+    target: IBrowserTarget,
+    elementKind: ElementKind,
+    text: string,
+    tabId?: string,
+): Promise<void> {
     // Select all existing content
     if (elementKind === "textarea") {
         await cdp.evaluate(`(() => {
@@ -254,7 +260,7 @@ async function fillWithInsertText(cdp: CdpSession, target: IBrowserTarget, eleme
     }
     if (text) {
         // Insert via Electron's native webview API (bypasses Trusted Types)
-        await target.insertText(text);
+        await target.insertText(text, tabId);
     } else {
         await cdp.evaluate("document.execCommand('delete')");
     }
@@ -266,7 +272,13 @@ async function fillWithInsertText(cdp: CdpSession, target: IBrowserTarget, eleme
  * Works on both input/textarea and contentEditable.
  * The element must already be focused.
  */
-async function typeSlowly(cdp: CdpSession, target: IBrowserTarget, elementKind: ElementKind, text: string): Promise<void> {
+async function typeSlowly(
+    cdp: CdpSession,
+    target: IBrowserTarget,
+    elementKind: ElementKind,
+    text: string,
+    tabId?: string,
+): Promise<void> {
     if (elementKind === "input" || elementKind === "textarea") {
         await cdp.evaluate(`(() => {
             const el = document.activeElement;
@@ -278,7 +290,7 @@ async function typeSlowly(cdp: CdpSession, target: IBrowserTarget, elementKind: 
     if (text) {
         // Type character by character via webview.insertText()
         for (const char of text) {
-            await target.insertText(char);
+            await target.insertText(char, tabId);
         }
     } else {
         await cdp.evaluate("document.execCommand('delete')");
@@ -295,6 +307,8 @@ export interface TypeOptions {
     ref?: string;
     /** Text to type. */
     text: string;
+    /** Target tab, defaulting to the active tab. */
+    tabId?: string;
     /** Type one character at a time (triggers key handlers). Default: false (bulk fill). */
     slowly?: boolean;
     /** Press Enter after typing. Default: false. */
@@ -314,13 +328,13 @@ export interface TypeOptions {
  * @param options - Type options (selector/ref, text, slowly, submit)
  */
 export async function typeText(target: IBrowserTarget, options: TypeOptions): Promise<void> {
-    const { selector, ref, text, slowly, submit } = options;
+    const { selector, ref, text, tabId, slowly, submit } = options;
     if (!selector && !ref) throw new Error("Missing 'selector' or 'ref' parameter");
 
-    const cdp = target.cdp();
+    const cdp = target.cdp(tabId);
 
     // Ensure webview has Electron-level focus
-    target.focusWebview();
+    target.focusWebview(tabId);
 
     // Detect element type
     const elementKind = selector
@@ -329,12 +343,12 @@ export async function typeText(target: IBrowserTarget, options: TypeOptions): Pr
 
     // Fill using the appropriate strategy
     if (slowly) {
-        await typeSlowly(cdp, target, elementKind, text);
+        await typeSlowly(cdp, target, elementKind, text, tabId);
     } else if (elementKind === "input" || elementKind === "textarea") {
         // Atomic focus + value assignment via native setter (prevents focus interception)
         await fillInput(cdp, selector, ref, text);
     } else if (elementKind === "contentEditable") {
-        await fillWithInsertText(cdp, target, elementKind, text);
+        await fillWithInsertText(cdp, target, elementKind, text, tabId);
     } else {
         // Unknown element — try value assignment as fallback
         await fillInput(cdp, selector, ref, text);

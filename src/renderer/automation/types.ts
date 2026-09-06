@@ -38,7 +38,7 @@ export interface IBrowserTarget {
      *  (a board auto-expands + waits for a secondary-view frame); sync `void` otherwise. */
     switchTab(tabId: string): void | Promise<void>;
 
-    /** Optional: ensure the ACTIVE tab is attachable before a command runs (e.g. a board
-     *  expands + waits for a secondary-view frame). Omit when tabs are always ready. */
-    ensureReady?(): Promise<void>;
+    /** Optional: ensure a tab is attachable before a command runs (e.g. a board expands
+     *  + waits for a secondary-view frame). Omit when tabs are always ready. */
+    ensureReady?(tabId?: string): Promise<void>;
 }

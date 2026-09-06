@@ -138,9 +138,16 @@ export class BoardTargetModel implements IBrowserTarget {
      * loading — expand + wait here so the command that follows always succeeds. A no-op for
      * the main tab and for an already-ready secondary (resolves immediately).
      */
-    async ensureReady(): Promise<void> {
-        const tabId = this.model.activeTabId;
-        if (tabId === BOARD_CDP_TAB || this.model.loadedTabs.has(tabId)) return;
+    async ensureReady(tabId = this.model.activeTabId): Promise<void> {
+        if (tabId === BOARD_CDP_TAB) return;
+        // `loadedTabs` records that the frame REGISTERED for CDP — not that it is on screen.
+        // A secondary panel that has loaded and then been collapsed keeps its frame mounted and
+        // registered, and Chromium omits hidden subtrees from the accessibility tree, so a
+        // snapshot of a loaded-but-collapsed frame comes back EMPTY instead of failing. Skipping
+        // the mount for an already-loaded tab therefore produced a silent empty answer, which is
+        // worse than an error. `mountAndWait` is the only thing that expands and activates the
+        // panel, and it resolves immediately when the frame is already loaded, so run it for
+        // every secondary tab rather than trusting the registration flag.
         await this.mountAndWait(tabId);
     }
 

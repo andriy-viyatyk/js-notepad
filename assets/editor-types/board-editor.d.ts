@@ -1,3 +1,10 @@
+import type {
+    IBrowserElementLocator,
+    IBrowserNetworkRequest,
+    IBrowserScreenshot,
+    IBrowserTab,
+} from "./browser-editor";
+
 export type BoardRenderState = "trusted" | "untrusted" | "not-found";
 
 export interface IBoardSecondaryViewDeclaration {
@@ -52,4 +59,27 @@ export interface IBoardEditor {
     readonly frameReady: boolean | undefined;
     readonly contentHostError: string | undefined;
     reload(): Promise<IBoardReloadResult>;
+    /** Main frame and declared secondary-view frames. */
+    readonly tabs: IBrowserTab[];
+    /** The selected board frame. */
+    readonly activeTab: IBrowserTab | undefined;
+    snapshot(options?: { tabId?: string }): Promise<string>;
+    click(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<void>;
+    hover(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<void>;
+    type(locator: IBrowserElementLocator, text: string, options?: { tabId?: string; slowly?: boolean; submit?: boolean }): Promise<void>;
+    select(locator: IBrowserElementLocator, values: string | string[], options?: { tabId?: string }): Promise<void>;
+    pressKey(key: string, options?: { tabId?: string }): Promise<void>;
+    evaluate(expression: string, options?: { tabId?: string }): Promise<unknown>;
+    waitFor(options: {
+        selector?: string;
+        text?: string;
+        textGone?: string;
+        time?: number;
+        timeout?: number;
+        tabId?: string;
+    }): Promise<void>;
+    screenshot(options?: { tabId?: string }): Promise<IBrowserScreenshot | undefined>;
+    networkRequests(options?: { tabId?: string }): Promise<IBrowserNetworkRequest[]>;
+    /** Switch to the main frame or a declared secondary-view frame. */
+    switchTab(tabId: string): Promise<void>;
 }
