@@ -8,6 +8,10 @@ import { CompareModeNode } from "../ai-vision/page-compare";
 import { LogViewEditorFacade } from "./LogViewEditorFacade";
 import { getOrCreateMcpLogViewEditor } from "../../api/mcp/log-view-access";
 import type { HubTab } from "../../api/types/tools-hub-editor";
+import {
+    validateBrowserOpenInput,
+    validatePipelineOpenInput,
+} from "../../api/pages/open-url-validation";
 
 // AiVision (EPIC-083): the kind-level description of this wrapper. Kept next to the members it
 // describes so a new method and its descriptor entry land in the same diff.
@@ -36,7 +40,8 @@ const PAGES_MEMBERS: readonly IAiMember[] = [
     { name: "showMnemeConfigPage", kind: "method", signature: "showMnemeConfigPage()", summary: "Open the Mneme configuration page." },
     { name: "showToolsHubPage", kind: "method", signature: "showToolsHubPage(options?: { tab?: HubTab })", summary: "Show the Tools & Editors hub, optionally selecting a tab." },
     { name: "showBrowserPage", kind: "method", signature: "showBrowserPage(options?: { profileName?, incognito?, tor?, url? })", summary: "Show (or open) a browser page. Choose profileName from settings.browserProfiles; an empty profileName selects the built-in default. Incognito/Tor pages you open this way are yours to read and drive; the user's own private pages stay blocked." },
-    { name: "openUrlInBrowserTab", kind: "method", signature: "openUrlInBrowserTab(url, options?: { incognito?, profileName?, external? })", summary: "Open a URL in a browser tab; choose profileName from settings.browserProfiles, or use an empty profileName for the built-in default; returns the tab id." },
+    { name: "openUrlInBrowserTab", kind: "method", signature: "openUrlInBrowserTab(url, options?: { incognito?, profileName?, external? })", summary: "Open a plain web page or search query in/reusing a browser tab; pages.openUrl(...) is for file-like URLs. Requires a non-empty string and does not reject search text. Returns the page id before loading finishes; await pages[pageId].editor.waitForNavigation() or pages[pageId].editor.waitFor({ selector }) before page actions, then read pages[pageId].title if needed.", caution: "opens or navigates a browser page" },
+    { name: "openUrl", kind: "method", signature: "openUrl(url, options?: { editor? })", summary: "Route a supported URL naming a file through the content pipeline; pages.openUrlInBrowserTab(...) is for a plain web page or search query. Empty, malformed, unsupported, and non-string hrefs are rejected. Cannot name the opened page; inspect pages afterward.", caution: "opens or navigates a page using the content pipeline" },
     { name: "showPage", kind: "method", signature: "showPage(pageId: string)", summary: "Activate (focus) a page." },
     { name: "showNext", kind: "method", signature: "showNext()", summary: "Activate the next tab." },
     { name: "showPrevious", kind: "method", signature: "showPrevious()", summary: "Activate the previous tab." },
@@ -64,6 +69,15 @@ code blocks and progress bars, and raises the six input.* dialog types. push() r
 with the ids of any dialogs it created; the user answers them in the page and you read the answer
 with pages.logView.dialogResult(id). Reading pages.logView creates and focuses that page; scripts
 also have the global ui facade for the same channel.
+For opening a plain web page or search query, use pages.openUrlInBrowserTab(url, options); it accepts
+any non-empty string and returns a browser page id before the document necessarily loads. Await
+pages[pageId].editor.waitForNavigation() or pages[pageId].editor.waitFor({ selector }) before
+page-content actions, then read pages[pageId].title for the loaded title. For a URL naming a file or
+other content source, use pages.openUrl(url, { editor? }); it validates a supported pipeline href,
+returns void, cannot name the opened page, and requires inspecting pages after the await. These two
+openers are distinct: pages.openUrlInBrowserTab is the replacement for the browser-only open_url
+capability, while pages.openUrl is an addition. The ordinary page-object guidance above remains the
+place for opening files by path with openFile(path).
 `;
 
 /**
@@ -256,7 +270,30 @@ export class PageCollectionWrapper implements IAiVisible {
             external?: boolean;
         },
     ): Promise<string | undefined> {
-        return this.pages.openUrlInBrowserTab(url, { ...options, openedByAgent: this.openedByAgent });
+        const href = validateBrowserOpenInput(url);
+        const internalOptions = {
+            ...(options?.incognito !== undefined ? { incognito: options.incognito } : {}),
+            ...(options?.profileName !== undefined ? { profileName: options.profileName } : {}),
+            ...(options?.external !== undefined ? { external: options.external } : {}),
+            ...(this.openedByAgent ? { openedByAgent: true } : {}),
+        };
+        return this.pages.openUrlInBrowserTab(href, internalOptions);
+    }
+
+    async openUrl(url: string, options?: { editor?: string }): Promise<void> {
+        const href = validatePipelineOpenInput(url);
+        if (options !== undefined && (typeof options !== "object" || options === null || Array.isArray(options))) {
+            throw new TypeError("pages.openUrl options must be an object with an optional string editor.");
+        }
+        if (options?.editor !== undefined && typeof options.editor !== "string") {
+            throw new TypeError("pages.openUrl options.editor must be a string when provided.");
+        }
+
+        const { app } = await import("../../api/app");
+        await app.openRawLink(
+            href,
+            options?.editor !== undefined ? { editor: options.editor } : undefined,
+        );
     }
 
     // ── Navigation ────────────────────────────────────────────────────

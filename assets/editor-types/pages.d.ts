@@ -125,15 +125,30 @@ export interface IPageCollection {
     }): Promise<void>;
 
     /**
-     * Open a URL in a browser tab (internal or existing).
-     * Resolves to the id of the browser page the URL was opened in
-     * (undefined only if no page could be opened, e.g. Tor misconfiguration).
+     * Open a plain web page or search query in a browser tab (internal or existing).
+     * Use this for browser navigation; use `openUrl` when the URL names a file or
+     * other content source for the delivery pipeline. The input must be a non-empty
+     * string, and search text is intentionally accepted unchanged.
+     * Resolves to the Persephone page id before the web document is necessarily
+     * loaded (undefined only if no page could be opened, e.g. Tor misconfiguration).
+     * Await `pages[pageId].editor.waitForNavigation()` or
+     * `pages[pageId].editor.waitFor({ selector })` before page-content actions.
      */
     openUrlInBrowserTab(url: string, options?: {
         incognito?: boolean;
         profileName?: string;
         external?: boolean;
     }): Promise<string | undefined>;
+
+    /**
+     * Open a supported URL or file path through the content-delivery pipeline.
+     * Use this for a URL naming a file/content source; use `openUrlInBrowserTab`
+     * for a plain web page or search query. The pipeline may choose an editor or
+     * fall back to a browser, and an optional editor can request a specific one.
+     * Returns void because the pipeline cannot reliably report the opened page id;
+     * inspect `pages` after awaiting this method.
+     */
+    openUrl(url: string, options?: { editor?: string }): Promise<void>;
 
     // ── Navigation ───────────────────────────────────────────────────
 
