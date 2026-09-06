@@ -4,7 +4,7 @@
  * Obtained via `page.editor`. Only available for text pages
  * with force-graph JSON content.
  *
- * Primarily designed for AI agent usage via MCP (execute_script).
+ * Primarily designed for AI agent usage via MCP (`script.execute`).
  * Focuses on read/query operations — editing is done via `page.content` JSON.
  *
  * @example

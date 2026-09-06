@@ -30,7 +30,7 @@ export function getWellKnownPageDef(id: string): WellKnownPageDef | undefined {
 
 // ── Registrations ──────────────────────────────────────────────────
 
-// MCP ui_push log — shared between mcp-handler and ScriptContext
+// MCP Log View — shared between the call surface and ScriptContext
 registerWellKnownPage({
     id: "mcp-ui-log",
     editor: "log-view",

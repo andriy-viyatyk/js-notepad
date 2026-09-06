@@ -291,7 +291,7 @@ export async function executeToolById(toolId: string, args?: unknown): Promise<T
             durationMs: 0,
             error:
                 `Tool "${toolId}" is not registered. Register its toolset first ` +
-                `(create_toolset, or the Agent Tools management UI).`,
+                `(tools.createToolset, or the Agent Tools management UI).`,
         };
     }
     return executeTool(tool, args);

@@ -653,137 +653,55 @@ const diagram = ui.show.mermaid("graph LR\n    A --> B --> C");
 diagram.openInEditor("My Diagram");
 ```
 
-## MCP `ui_push` Tool
+## Log View output for MCP agents
 
-The same Log View is available to external AI agents via the MCP `ui_push` tool. While scripts use the `ui` global, MCP agents use `ui_push` to push entries to a managed Log View page.
+The same Log View is available to external AI agents through the `pages.logView` call path. While
+scripts use the `ui` global, agents use `pages.logView.push(entries)` to show status, results,
+rich output, and questions.
 
 ### How it works
 
-- On the first `ui_push` call, persephone creates a new Log View page (titled with the current date/time)
-- Subsequent calls reuse the same page, appending new entries
-- If the user closes the page, the next `ui_push` call creates a fresh one
+- The first push creates a Log View page; later pushes reuse it and append entries.
+- `push()` returns immediately with `entryIds` and `dialogIds`.
+- Read `pages.logView.dialogResult(id)` to check a dialog: it reports `unresolved` until the
+  user responds, then `resolved` with the result. The live app window may be driven through
+  `window.screen.snapshot()` and `window.screen.click(...)` when an answer is needed.
+- If the page is closed, the next push creates a fresh Log View page.
 
 ### Entry format
 
-The `entries` parameter is an array. Each element is either:
-- A **string** — treated as `log.info`
-- A **flat object** with `type` and type-specific fields directly on the object (no wrapper) — see entry types below
+The `entries` argument is an array. Each element is either a string (treated as `log.info`) or
+a flat object with `type` and type-specific fields directly on the object.
 
-**Log entry types:** `log.text`, `log.info`, `log.warn`, `log.error`, `log.success` — use a `text` field for the message.
+**Log entry types:** `log.text`, `log.info`, `log.warn`, `log.error`, `log.success` use a
+`text` field.
 
-**Dialog entry types:** `input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select` (same dialog types as `ui.dialog`) — use fields like `message`, `title`, `buttons`, `placeholder`, `defaultValue`, `items`, `checked`, `selected`, `layout` directly on the object.
+**Dialog entry types:** `input.confirm`, `input.text`, `input.buttons`,
+`input.checkboxes`, `input.radioboxes`, and `input.select` use fields such as `message`,
+`title`, `buttons`, `placeholder`, `defaultValue`, `items`, `checked`, `selected`,
+and `layout`.
 
-**Output entry types:** `output.progress` — a progress bar with `label` (string or styled text), `value` (number), `max` (number, default 100), and `completed` (boolean) fields. Use the same `id` on subsequent calls to update an existing progress bar (upsert-by-id). `output.grid` — an inline data grid with `content` (JSON or CSV string), optional `contentType` (`"json"` or `"csv"`, default `"json"`), and optional `title`. `output.text` — a syntax-highlighted text block with `text` (string), optional `language`, `title`, `wordWrap` (boolean), `lineNumbers` (boolean), and `minimap` (boolean). `output.markdown` — rendered markdown with `text` (string) and optional `title`. `output.mermaid` — a rendered Mermaid diagram with `text` (string) and optional `title`.
+**Output entry types:** `output.progress` supports `label`, `value`, `max` (default 100), and
+`completed`; reuse its `id` to update a progress bar. `output.grid` supports JSON or CSV
+`content`, optional `contentType`, and `title`. `output.text`, `output.markdown`, and
+`output.mermaid` support `text` and their corresponding display options.
 
-### Examples
+### Example
 
-```
-// Simple log messages
-ui_push({ entries: ["Starting analysis...", "Found 15 files"] })
-
-// Typed entries (flat format)
-ui_push({ entries: [
-    { type: "log.info", text: "Processing complete" },
-    { type: "log.warn", text: "2 files skipped" }
-] })
-
-// Confirmation dialog (blocks until user responds)
-ui_push({ entries: [
-    { type: "log.info", text: "Ready to apply changes." },
-    { type: "input.confirm", message: "Apply?", buttons: ["No", "Yes"] }
-] })
-// → { results: [{ button: "Yes", ... }] }
-
-// Text input dialog
-ui_push({ entries: [
-    { type: "input.text", title: "Project name", placeholder: "my-app" }
-] })
-// → { results: [{ button: "OK", text: "my-project", ... }] }
-
-// Checkboxes dialog
-ui_push({ entries: [
-    { type: "input.checkboxes", items: ["Option A", "Option B", "Option C"], title: "Select options", buttons: ["!OK", "Cancel"] }
-] })
-// → { results: [{ button: "OK", items: [{ label: "Option A", checked: true }, ...], ... }] }
-
-// Radioboxes dialog (single selection)
-ui_push({ entries: [
-    { type: "input.radioboxes", items: ["Small", "Medium", "Large"], title: "Select size", checked: "Medium", buttons: ["!OK", "Cancel"] }
-] })
-// → { results: [{ button: "OK", checked: "Large", ... }] }
-
-// Select dropdown dialog
-ui_push({ entries: [
-    { type: "input.select", items: ["Small", "Medium", "Large"], title: "Select size", selected: "Medium", placeholder: "Choose...", buttons: ["!OK", "Cancel"] }
-] })
-// → { results: [{ button: "OK", selected: "Large", ... }] }
-
-// Progress bar (initial)
-ui_push({ entries: [
-    { type: "output.progress", id: "dl-1", label: "Downloading...", value: 0, max: 100 }
-] })
-
-// Progress bar (update by same id)
-ui_push({ entries: [
-    { type: "output.progress", id: "dl-1", value: 75 }
-] })
-
-// Progress bar (completed)
-ui_push({ entries: [
-    { type: "output.progress", id: "dl-1", value: 100, completed: true, label: "Download complete" }
-] })
-
-// Grid output (JSON data)
-ui_push({ entries: [
-    { type: "output.grid", content: "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":25}]", title: "Users" }
-] })
-
-// Grid output (CSV data — first row is headers)
-ui_push({ entries: [
-    { type: "output.grid", content: "name,age\nAlice,30\nBob,25", contentType: "csv", title: "Users" }
-] })
-
-// Text output (syntax-highlighted code block)
-ui_push({ entries: [
-    { type: "output.text", text: "SELECT * FROM users WHERE active = 1;", language: "sql", title: "Query" }
-] })
-
-// Text output (with display options)
-ui_push({ entries: [
-    { type: "output.text", text: "function hello() {\n  return 'world';\n}", language: "javascript", lineNumbers: true, wordWrap: false }
-] })
-
-// Markdown output
-ui_push({ entries: [
-    { type: "output.markdown", text: "# Results\n\n| Name | Score |\n|------|-------|\n| Alice | 95 |", title: "Analysis" }
-] })
-
-// Mermaid diagram output
-ui_push({ entries: [
-    { type: "output.mermaid", text: "graph TD\n    A[Start] --> B[Process]\n    B --> C[End]", title: "Workflow" }
-] })
+```javascript
+const { dialogIds } = await app.call("pages.logView.push", {
+    args: [[
+        { type: "log.success", text: "Analysis complete" },
+        { type: "output.grid", content: "name,score\nAlice,95", contentType: "csv" },
+        { type: "output.progress", id: "work", value: 100, completed: true },
+        { type: "input.confirm", message: "Clear the temporary report?", buttons: ["No", "Yes"] },
+    ]],
+});
+const answer = await app.call("pages.logView.dialogResult", { args: [dialogIds[0]] });
 ```
 
-### Dialog results
-
-- If entries contain no dialogs, the tool returns immediately with `{}`
-- If entries contain dialogs, the tool blocks until **all** dialogs are resolved
-- Each dialog produces one result object in the `results` array (in order)
-- Results are the full flat entry objects (including `type`, `id`, `timestamp`, and all fields)
-- `button` contains the clicked button label, or `null` if the user closed the Log View page
-- Text input dialogs also include a `text` field
-- Checkboxes dialogs also include an `items` array with updated `checked` state
-- Radioboxes dialogs also include a `checked` field with the selected item label
-- Select dialogs also include a `selected` field with the chosen item label
-
-### When to use `ui_push` vs other tools
-
-| Scenario | Use |
-|----------|-----|
-| Show status, progress, results | `ui_push` with log entries |
-| Ask the user a question | `ui_push` with dialog entries |
-| Show data the user will edit | `create_page` with appropriate editor |
-| Open a file in a specific editor | `create_page` or `execute_script` |
+See the [MCP Server Setup](../mcp-setup.md#available-tools) and the [scripting API](./app.md#callpath-options)
+for the complete call-path contract.
 
 ## Example: Interactive Script
 
@@ -809,3 +727,5 @@ for (const item of data) {
 
 ui.success("Processing complete!");
 ```
+
+

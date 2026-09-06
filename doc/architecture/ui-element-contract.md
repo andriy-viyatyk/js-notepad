@@ -1,7 +1,7 @@
 # UI Element Addressing Contract
 
 How elements of the Persephone shell are addressed by MCP agents
-driving the app window (`browser_snapshot`/`browser_click` with `pageId: "app"`), by injected
+driving the app window through `window.screen.snapshot()` / `window.screen.click()`, by injected
 overlay scripts, and by tests.
 
 ## The convention: `data-name`
@@ -121,7 +121,7 @@ Two tab shapes do not match the common case, and both occur in ordinary use:
   failed selector.
 - **A pinned tab renders no title text.** `[data-part="title-label"]` exists but is empty — the
   tab shows only icons, and the file path lives in a hover tooltip. Read a page's title from
-  `list_pages`, never from the tab's DOM.
+  `pages`, never from the tab's DOM.
 
 ### Menu Bar (opens from the Persephone glyph)
 
@@ -197,7 +197,7 @@ search roots retain their `tree-provider-*` types.
 This contract covers the **shell** — the chrome around the content. An editor's own internals are
 deliberately not enumerated: they vary per editor type, they are numerous, and an agent reaches
 them perfectly well through the accessibility tree returned by
-`browser_snapshot({ pageId: "app" })`. Exhaustive `data-name` coverage inside editors would be
+`window.screen.snapshot()`. Exhaustive `data-name` coverage inside editors would be
 maintenance with no consumer.
 
 Transient surfaces (dialogs, popup menus, toasts) are likewise out of scope. An agent that needs

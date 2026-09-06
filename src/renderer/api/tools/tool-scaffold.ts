@@ -3,7 +3,7 @@
  * `assets/tool-template/` into it and setting the manifest's authoritative `name` (EPIC C8).
  *
  * Deliberately **scaffold-only — it does NOT trust/register the toolset**. Registration is a
- * separate user action: the confirmation dialog on agent-initiated `create_toolset` (the MCP
+ * separate user action: the confirmation dialog on agent-initiated `tools.createToolset` (the call
  * handler), or direct `toolsTrust.trust` from the user-initiated management UI (US-805). Mirrors
  * `board-scaffold.ts` but diverges on two points: the toolset `name` is authoritative (so it is
  * written into the copied manifest, unlike a board where name defaults to the folder), and there

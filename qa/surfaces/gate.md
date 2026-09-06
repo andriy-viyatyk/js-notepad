@@ -42,10 +42,7 @@ use the empty overview before choosing a branch.
 | G.10 answer a documentation question with no guide tool | `read_guide` | 1 |
 | **Total** | **All 32 deleted tools** | **32** |
 
-The six per-tool fallback files remain until US-1349 and are fallback evidence if a gate surface
-fails: `qa/mcp-test-create-page.md`, `qa/mcp-test-ui-push.md`,
-`qa/mcp-test-execute-script.md`, `qa/mcp-test-page-operations.md`, `qa/mcp-test-browser.md`, and
-`qa/mcp-test-ui-guidance.md`. Do not expand this gate for `execute_tool`.
+Do not expand this gate for `execute_tool`.
 
 ## Gate scenarios
 

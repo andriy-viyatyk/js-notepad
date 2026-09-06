@@ -10,6 +10,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Breaking Changes
 
+- **The 32 retired MCP tools were removed:** `execute_script`, `list_pages`, `get_active_page`,
+  `get_app_info`, `get_page_content`, `set_page_content`, `open_url`, `create_page`, `ui_push`,
+  `list_windows`, `open_window`, `create_board`, `open_board`, `board_refresh`, all 14
+  `browser_*` tools, and `read_guide`, plus `search_tools`, `refresh_toolset`, and
+  `create_toolset`. The `call` tool replaces these capabilities through live object-model paths.
+  `execute_tool` remains available in the default manifest, and all guide resources remain
+  available through their `persephone://guides/*` URIs.
 - **The old `as*()` editor methods are removed** from the scripting API and the MCP `call` tree. A
   page has exactly one editor at a time, so the editor's operations now live directly on
   `page.editor` — narrow on `page.editor.id` before calling `page.editor.addRows(5)`. Check which
@@ -34,10 +41,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **The `PERSEPHONE_MCP_CALL_ONLY` migration flag can limit the MCP tool manifest.** When set to
   `1`, `true`, or `yes` (case-insensitive), a newly initialized MCP session registers only the
-  `call` tool. The flag is off by default, and unset, empty, `0`, `false`, `no`, or any other value
-  leaves the complete manifest enabled. Focused guide resources and
-  `persephone://guides/full` remain available in both modes. Set the flag before launch, for
-  example:
+  `call` tool. The flag is off by default, so the default manifest contains `call` and
+  `execute_tool`; unset, empty, `0`, `false`, `no`, and any other value leave both available.
+  Focused guide resources and `persephone://guides/full` remain available in both modes. Set the
+  flag before launch, for example:
 
   ```powershell
   $env:PERSEPHONE_MCP_CALL_ONLY = "1"

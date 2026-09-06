@@ -35,7 +35,7 @@ const NAV_MSG =
     "Use the board's own scripts (persephone.execute) to change its content.";
 const TAB_MSG =
     "Tabs cannot be created or closed on board pages — a board's frames (its main view + " +
-    "declared secondary views) are fixed by its manifest. Use browser_tabs 'select' to switch between them.";
+    "declared secondary views) are fixed by its manifest. Use the editor's tabs and switchTab() to switch between them.";
 
 export class BoardTargetModel implements IBrowserTarget {
     constructor(private readonly model: BoardEditorModel) {}
@@ -74,7 +74,7 @@ export class BoardTargetModel implements IBrowserTarget {
     }
     reload(): void {
         // Soft reload = remount the board frames (the existing toolbar Reload /
-        // board_refresh path). Re-handshakes the bridge + re-registers CDP on load.
+        // pages[i].editor.reload() path. Re-handshakes the bridge + re-registers CDP on load.
         this.model.reloadBoard();
     }
 

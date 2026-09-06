@@ -14,23 +14,15 @@ the empty overview rather than relying on author-supplied paths.
 
 | File | Area | Tests |
 |------|------|-------|
-| `mcp-test-create-page.md` | Page creation | All editor types: text, markdown, mermaid, grid, notebook, links, graph, SVG, HTML, rest-client, JSONL; standalone-editor refusal |
-| `mcp-test-ui-push.md` | Log View output | Log messages, dialogs, rich output (markdown, mermaid, grid, code) |
-| `mcp-test-execute-script.md` | Script execution | Expression eval, page content access, transformations, facades, FS, settings |
-| `mcp-test-page-operations.md` | Page CRUD | List, read, update pages, multi-window, browser, app info, pageId targeting, overview guide |
-| `mcp-test-browser.md` | Browser automation | Targeting, snapshots, refs, click, evaluate, wait_for, screenshots, app window |
-| `mcp-test-ui-guidance.md` | Explaining the app itself | UI guide lookups, highlight overlay, editor catalog, settings, features that don't exist |
-| [`surfaces/README.md`](surfaces/README.md) | Per-surface `call` QA | Dialogs, popup menus, curated shell elements, attention, and highlights |
+| [`surfaces/README.md`](surfaces/README.md) | Per-surface `call` QA | Dialogs, popup menus, curated shell elements, attention, editors, and highlights |
 
 ## Surface QA
 
-The surface-oriented suite lives under [`qa/surfaces/`](surfaces/README.md). These tests follow
-the part of Persephone an agent is trying to understand or drive, so they cover the `call`
-protocol's live attention, dialog/menu actions, curated element descriptions, and highlights.
-The two layouts are complementary: the older `mcp-test-*.md` files group coverage by MCP tool,
-while `qa/surfaces/` groups coverage by screen, dialog family, or editor as the single `call`
-surface replaces tool-specific workflows. Use the surface index for its common rules and the
-per-surface preparation, request, expected result, and verification steps.
+The active suite lives under [`qa/surfaces/`](surfaces/README.md). These tests follow the part of
+Persephone an agent is trying to understand or drive, so they cover the `call` protocol's live
+attention, dialog/menu actions, curated element descriptions, editors, and highlights. Use the
+surface index for its common rules and the per-surface preparation, request, expected result, and
+verification steps.
 
 ## Running Tests
 
@@ -126,9 +118,6 @@ For **simple editors** (text, markdown, mermaid, grid, SVG, HTML):
 
 ## Adding New Tests
 
-When adding a new feature or editor:
-
-1. Create test entries in the relevant `mcp-test-*.md` file
-2. Each test needs: **Request** (prompt), **Expected** (what agent should do), **Verify** (how to confirm)
-3. If preparation is needed, document it in a **Preparation** field
-4. Run the test against the test agent to validate documentation quality
+When adding a new feature or editor, add a scenario to the relevant surface file. Each scenario
+needs **Request**, **Expected**, and **Verify** sections; document any setup in **Preparation**.
+Run it from a bare `call` to validate discovery and documentation quality.

@@ -30,7 +30,7 @@ persephone/
 │   ├── excalidraw/fonts/   # Self-hosted Excalidraw fonts (woff2, OFL-1.1 licensed)
 │   ├── script-library/     # Bundled example scripts (copied to user library on setup)
 │   ├── mcp-res-overview.md # MCP resource: start-here mental model + task→tool→guide routing
-│   ├── mcp-res-ui-push.md  # MCP resource: ui_push tool guide
+│   ├── mcp-res-ui-push.md  # MCP resource: Log View output reference
 │   ├── mcp-res-pages.md    # MCP resource: pages & windows guide
 │   ├── mcp-res-scripting.md # MCP resource: scripting API reference
 │   ├── mcp-res-graph.md    # MCP resource: force-graph data format & page.editor API
@@ -42,11 +42,11 @@ persephone/
 │   ├── mcp-res-ui.md       # MCP resource: Persephone's own interface — element purposes, data-name selectors, highlight recipe
 │   ├── mcp-res-ui-editors.md # MCP resource: editor catalog for explaining the app's capabilities to the user
 │   ├── agent/              # Standalone modules injected into a page by an agent (not part of the renderer bundle)
-│   │   └── ui-highlight.js # Highlight-and-tooltip overlay behind app.ui.highlightElement; also pasteable into browser_evaluate
+│   │   └── ui-highlight.js # Highlight-and-tooltip overlay for board frames
 │   ├── board-base.css      # Shared board stylesheet copied into every board — theme defaults + the opt-in .p-* chrome layer
 │   ├── board-template/     # Scaffold copied into every new board
 │   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, chrome classes, reload, MCP debug)
-│   ├── tool-template/      # Scaffold copied into every new toolset (create_toolset)
+│   ├── tool-template/      # Scaffold copied into every new toolset
 │   │   ├── tools-manifest.json # Example manifest (one echo tool)
 │   │   ├── echo.js         # Example stdin-JSON tool with the ##PERSEPHONE_RESULT## contract
 │   │   ├── .env.example    # Required env var names (no values)
@@ -123,13 +123,10 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── pages.ts            # PagesModel singleton export
 │   ├── mcp-handler.ts      # Thin MCP IPC shell (receives commands from main, logs and returns results)
 │   ├── mcp/                # Renderer MCP command dispatch and focused command handlers
-│   │   ├── command-registry.ts # Built-in command registry + dynamic browser_* dispatch
+│   │   ├── command-registry.ts # Built-in call, execute_tool, and board_call registry
 │   │   ├── call-command.ts  # Renderer-side MCP call command; creates a ScriptContext and resolves AiVision
 │   │   ├── board-call-command.ts # Page-scoped Board bridge calls; owner-page and trust checks
-│   │   ├── page-commands.ts # Page, script, app-info, and URL command handlers
-│   │   ├── board-commands.ts # Board lifecycle and refresh command handlers
-│   │   ├── ui-push.ts       # ui_push validation and Log View integration
-│   │   ├── tool-commands.ts # Agent Tools registry command handlers
+│   │   ├── tool-commands.ts # Agent Tools handlers used by call and execute_tool
 │   │   ├── request-log.ts   # Bounded MCP request history and server-log page integration
 │   │   └── types.ts         # Shared renderer MCP request/response types
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers

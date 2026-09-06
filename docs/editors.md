@@ -410,7 +410,7 @@ Long log streams remain responsive while scrolling. When you are already at the
 bottom, new output continues to follow the latest entry; scrolling upward keeps
 your current position while earlier entries are added.
 
-You'll most often meet this editor without opening a file yourself: it's what powers the **Log View page** that scripts (via the `ui` global) and AI agents (via the MCP `ui_push` tool) use as their output channel. The page is created automatically on first use and reused afterward. See [Scripting — The `ui` Object](./scripting.md#the-ui-object-log-view) for what scripts can push to it, and [MCP Server Setup](./mcp-setup.md#available-tools) for the `ui_push` tool agents use the same way.
+You'll most often meet this editor without opening a file yourself: it's what powers the **Log View page** that scripts (via the `ui` global) and AI agents (via the `pages.logView.push` call path) use as their output channel. The page is created automatically on first use and reused afterward. See [Scripting — The `ui` Object](./scripting.md#the-ui-object-log-view) for what scripts can push to it, and [MCP Server Setup](./mcp-setup.md#available-tools) for the retained MCP tool and call surface.
 
 ## Drawing Editor
 
@@ -887,9 +887,9 @@ A sandboxed HTML-page application that can live anywhere on disk. Boards let you
 **Trust gate:** Before any board renders, you must explicitly trust it. A warning dialog states that trusting lets the board's scripts run programs with your full user privileges. Trust is per board folder, remembered across restarts. Boards inside an already-trusted folder are covered automatically (inherited trust).
 
 **MCP automation:** AI agents can drive an open board through
-`pages[pageId].editor` (find the page in `list_pages` by `editor: "board-view"`). Use
+`pages[pageId].editor` (find the page in `pages` by `editor: "board-view"`). Use
 `.snapshot()`, `.click(...)`, `.evaluate(...)`, and `.reload()` to test and debug without touching
-source files. The older browser tools remain available temporarily for compatible clients.
+source files. The `persephone://guides/browser` resource documents the automation surface.
 
 **Recommended components:** Persephone publishes a catalog of component libraries — av-grid (the default data grid), Tabulator (fallback for grouping/tree data/pagination/export), Chart.js, Flatpickr, Tom Select, Mermaid, and more — with pre-built skins that match the `--p-*` theme. The catalog lives in `boards-assets/` in the repository.
 

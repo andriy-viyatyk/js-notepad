@@ -23,7 +23,7 @@ export interface IMcpToolResult {
 }
 
 /**
- * A tool as data. Most tools are pure pass-throughs to the renderer: the registrar
+ * A tool as data. The execute_tool definition is a pass-through to the renderer; the registrar
  * strips `windowIndex` from the args, forwards the rest as params under `method`
  * (defaulting to the tool's own name), and maps the response with `toResult`
  * (defaulting to `toToolResult`). Only tools that do real work in the main process

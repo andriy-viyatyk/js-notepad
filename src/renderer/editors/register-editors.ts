@@ -161,11 +161,11 @@ const EDITORS: EditorRow[] = [
     { id: "notebook-view", name: "Notebook", hasContentHost: true, load: async () => (await import("./notebook")).notebookModule },
     { id: "env-vars-view", name: "Env Vars", hasContentHost: true, load: async () => (await import("./env-vars")).envVarsModule },
     { id: "browser-view", name: "Browser", mcpHint: "Use pages.openUrlInBrowserTab(url, options) to open or reuse a URL in the built-in browser, then use pages[i].editor after narrowing editor.id to \"browser-view\".", load: async () => (await import("./browser")).browserModule },
-    { id: "image-view", name: "Image Viewer", mcpHint: 'Use execute_script with: await app.pages.openFile("/path/to/image.png")', load: async () => (await import("./image")).imageModule },
-    { id: "archive-view", name: "Archive", mcpHint: 'Use execute_script with: await app.pages.openFile("/path/to/archive.zip")', load: async () => (await import("./archive")).archiveModule },
-    { id: "video-view", name: "Video Player", mcpHint: 'Use execute_script with: await app.pages.openFile("/path/to/video.mp4")', load: async () => (await import("./video")).videoModule },
-    { id: "settings-view", name: "Settings", mcpHint: "Use execute_script with: await app.pages.showSettingsPage()", load: async () => (await import("./settings")).settingsModule },
-    { id: "about-view", name: "About", mcpHint: "Use execute_script with: await app.pages.showAboutPage()", load: async () => (await import("./about")).aboutModule },
+    { id: "image-view", name: "Image Viewer", mcpHint: 'Use script.execute with: await app.pages.openFile("/path/to/image.png")', load: async () => (await import("./image")).imageModule },
+    { id: "archive-view", name: "Archive", mcpHint: 'Use script.execute with: await app.pages.openFile("/path/to/archive.zip")', load: async () => (await import("./archive")).archiveModule },
+    { id: "video-view", name: "Video Player", mcpHint: 'Use script.execute with: await app.pages.openFile("/path/to/video.mp4")', load: async () => (await import("./video")).videoModule },
+    { id: "settings-view", name: "Settings", mcpHint: "Use script.execute with: await app.pages.showSettingsPage()", load: async () => (await import("./settings")).settingsModule },
+    { id: "about-view", name: "About", mcpHint: "Use script.execute with: await app.pages.showAboutPage()", load: async () => (await import("./about")).aboutModule },
     // Reached only via showToolsHubPage (the AppBar panel's "Open in new tab" button) —
     // never a file-open target.
     { id: "tools-hub-view", name: "Tools & Editors", load: async () => (await import("./tools-hub")).toolsHubModule },

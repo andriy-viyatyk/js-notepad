@@ -2,13 +2,13 @@
  * Registered-tools model (EPIC-038 / US-801). Enumerates the toolset folders registered in
  * `toolsTrust`, reads + validates each `tools-manifest.json`, and exposes a collision-resolved
  * flat list of tools (id = `<toolset-name>/<tool-name>`). Consumed by the MCP layer (US-803:
- * `search_tools` / `execute_tool` / `refresh_toolset`) and the management UI (US-805).
+ * `tools.search` / `execute_tool` / `tools.toolsets.refresh`) and the management UI (US-805).
  *
  * Deliberately does NOT watch the filesystem (US-801 T-C5): tool registration/editing happens
  * only during tool development, so a standing per-toolset watcher is unwanted background cost.
  * The model re-enumerates on exactly two triggers:
  *   1. a `toolsTrust` registration change (an in-memory subscription, not a file watcher), and
- *   2. an explicit `refresh()` — surfaced as the `refresh_toolset` MCP tool (US-803) and the
+ *   2. an explicit `refresh()` — surfaced as the `tools.toolsets.refresh` call path (US-803) and the
  *      management-UI Refresh button (US-805).
  */
 import { TModel } from "../../core/state/model";

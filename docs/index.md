@@ -58,7 +58,7 @@ persephone is a Windows Notepad replacement designed for developers. It combines
 - **AI scripting** — call Claude directly from scripts via `ai.ClaudeSession` (multi-turn conversations, tool use)
 - AI agent integration — connect external tools like Claude Desktop, Claude Code, or ChatGPT to control persephone via HTTP (MCP)
 - **Boards** — build fully custom HTML-page applications inside a project folder; call backend scripts (any language) via `persephone.execute()`, and theme the UI automatically with the `--p-*` CSS-variable contract; AI agents can author and test boards over MCP. You can also discover and install ready-made boards published by the project, with safe updates and rollback
-- **Agent Tools registry** — turn a working integration script into a reusable, parameterized tool (any language) that AI agents discover with `search_tools` and run with `execute_tool` over MCP; user-gated by a registration/trust dialog
+- **Agent Tools registry** — turn a working integration script into a reusable, parameterized tool (any language) that AI agents discover with `tools.search` and run with `tools.execute` or the retained `execute_tool` over MCP; user-gated by a registration/trust dialog
 - **Git integration** (optional, off by default) — Git Tree editor for browsing commit history, and a Git Diff editor switch for any tracked text file
 - **Mneme knowledge base** (optional, off by default) — index folders of Markdown for full-text and semantic search; browse and edit documents in-app, and let AI agents read, search, and maintain the knowledge base over MCP
 

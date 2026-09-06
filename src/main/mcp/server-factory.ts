@@ -2,13 +2,8 @@ import { getServerInfo, readGuideFile, resourceFiles, SERVER_INSTRUCTIONS } from
 import { registerTools } from "./register-tools";
 import { McpServerInstance, requireSdk } from "./sdk";
 import { agentTools } from "./tools/agent-tools";
-import { boardTools } from "./tools/board-tools";
-import { browserTools } from "./tools/browser-tools";
 import { callTools } from "./tools/call-tools";
-import { guideTools } from "./tools/guide-tools";
-import { pageTools } from "./tools/page-tools";
 import { createToolContext } from "./tools/params";
-import { windowTools } from "./tools/window-tools";
 
 // Enabled values are 1, true, and yes (case-insensitive); unset/empty and 0, false, and no are disabled.
 function isMcpCallOnlyEnabled(value: string | undefined): boolean {
@@ -28,15 +23,7 @@ export function createMcpServer(): McpServerInstance {
     const ctx = createToolContext(z);
     const groups = isMcpCallOnlyEnabled(process.env.PERSEPHONE_MCP_CALL_ONLY)
         ? [callTools(ctx)]
-        : [
-            callTools(ctx),
-            windowTools(ctx),
-            pageTools(ctx),
-            boardTools(ctx),
-            agentTools(ctx),
-            browserTools(ctx),
-            guideTools(ctx),
-        ];
+        : [callTools(ctx), agentTools(ctx)];
     for (const group of groups) {
         registerTools(server, group);
     }

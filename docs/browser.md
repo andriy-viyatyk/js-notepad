@@ -432,9 +432,8 @@ and [app.window](./api/window.md#windowscreen) for the full object-model context
 AI agents connected via the [MCP server](./mcp-setup.md) should open a web page with
 `pages.openUrlInBrowserTab(url, options)` and drive it through `pages[pageId].editor`, using the
 returned page ID rather than guessing a numeric index. Use `window.screen` for Persephone's own
-window and `pages[pageId].editor` for trusted boards; see
-`read_guide("browser")` for the complete path list. The older browser tools remain available
-temporarily for compatible clients.
+window and `pages[pageId].editor` for trusted boards; see the
+`persephone://guides/browser` resource for the complete path list and targeting rules.
 
 > **Privacy note:** User-opened incognito and Tor pages are refused by the browser and app-window
 > hosts. A private page opened by the agent remains available to that agent. Use a normal page when

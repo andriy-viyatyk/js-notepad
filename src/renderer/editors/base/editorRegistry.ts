@@ -71,7 +71,7 @@ export interface EditorDefinition {
     readonly hasContentHost: boolean;
 
     /** MCP-specific recovery guidance when this standalone editor is passed to
-     *  `create_page`, which only constructs content-host editors. */
+     *  `pages.addEditorPage`, which only constructs content-host editors. */
     readonly mcpHint?: string;
 
     /** Granular matching rules. Absent for pure standalone editors

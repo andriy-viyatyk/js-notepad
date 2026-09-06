@@ -4,7 +4,7 @@
 
 The **Agent Tools registry** is Persephone's *executable memory* for AI agents. Instead of re-writing (and re-debugging) the same ad-hoc integration script every session — read an Azure DevOps task, query a SQL database, check an inbox, call a cloud CLI — an agent registers the working script **once** as a reusable *tool*. From then on, any MCP-connected agent discovers and runs it in a single call. The debugging cost of an integration is paid once, and the working artifact persists across sessions and across agents.
 
-> **Target audience:** This guide is for users who want to understand, manage, and trust toolsets. For AI agents that build tools, the `read_guide("tools")` MCP guide and the `CLAUDE.md` inside each scaffolded toolset are the authoring references.
+> **Target audience:** This guide is for users who want to understand, manage, and trust toolsets. For AI agents that build tools, the `persephone://guides/tools` resource and the `CLAUDE.md` inside each scaffolded toolset are the authoring references.
 
 It complements the [Mneme knowledge base](./mneme.md): Mneme is *knowledge* memory (searchable documents), the tools registry is *executable* memory (runnable tools).
 
@@ -26,7 +26,7 @@ Each tool has an id of the form `<toolset-name>/<tool-name>` (e.g. `azure-devops
 
 ### The registry is agent-facing
 
-Unlike most editors, the tools registry is used mostly *by AI agents over MCP*, not directly in the UI. Agents discover tools with `search_tools`, run them with `execute_tool`, and — when a tool fails — fix the script and retry. The Persephone UI is where **you** stay in control: registering, inspecting, and removing toolsets.
+Unlike most editors, the tools registry is used mostly *by AI agents over MCP*, not directly in the UI. Agents discover tools with `tools.search`, run them with `execute_tool` or `tools.execute`, and — when a tool fails — fix the script and retry. The Persephone UI is where **you** stay in control: registering, inspecting, and removing toolsets.
 
 ### Toolset trust gate
 
@@ -34,7 +34,7 @@ Because a tool runs a program with your full user privileges, **a toolset must b
 
 Registration is deliberately a **user-only** decision — an agent can never silently register a folder. It happens in exactly two ways:
 
-- **Agent-initiated** (the MCP `create_toolset` tool, or an agent asking to register a folder copied from elsewhere) → Persephone shows a **"Register this toolset?"** confirmation dialog:
+- **Agent-initiated** (the `tools.createToolset` call path, or an agent asking to register a folder copied from elsewhere) → Persephone shows a **"Register this toolset?"** confirmation dialog:
 
   > *"An AI agent wants to register a toolset. Once registered, its tools run as programs on your computer with your full user privileges — headlessly, whenever the agent calls them, and after the agent edits them, with no further prompt. Only register toolsets you created or fully understand."*
 
@@ -73,15 +73,19 @@ Opening a toolset shows a read-only **toolset view** with:
 
 ## Using tools from an AI agent (MCP)
 
-The registry adds four MCP tools. They require the [MCP server](./mcp-setup.md) to be enabled. The surface is deliberately **constant-size** — these four tools work no matter how many tools you register.
+The registry exposes `execute_tool` directly in the default manifest. Discovery, refresh, and
+toolset creation are available through the `call` object-model paths:
 
-| Tool | Description |
-|------|-------------|
-| **search_tools** | Discover tools. Returns **complete, ready-to-call definitions** (id, description, `inputSchema`, `requirements`, required env-var names, `toolsetRoot`). Omit `query` for a cheap listing of every tool; use `select:<toolset>/<tool>` for an exact lookup; otherwise the query is split into whitespace-separated terms and matched (case-insensitively) against each tool's id, description, and keywords **and its toolset's name, description, and keywords** — tools matching at least one term come back ranked by how many terms matched (a `score` on each result), capped by `maxResults` (default 5). |
-| **execute_tool** | Run a tool: `{ toolId, args }`. `args` is delivered to the script on **stdin** as JSON. Returns a structured result — on failure it includes `stderr`, `exitCode`, and the toolset folder path so the agent can fix the tool. |
-| **refresh_toolset** | Re-read a registered toolset's manifest after its files are edited (all toolsets when `path` is omitted). Returns a per-toolset summary (`name`, `valid`, `errors`, `toolCount`). **Never registers** — the trust gate always holds. |
-| **create_toolset** | Scaffold a new toolset folder (starter manifest + example script) and prompt you to register it. If you decline, the folder is created but not runnable — the agent can re-offer without losing edits. |
+| Call path | Purpose |
+|-----------|---------|
+| `tools.search` | Discover registered tools and return complete definitions, including input schemas and required environment-variable names. |
+| `tools.toolsets.refresh` | Re-read edited manifests and scripts. |
+| `tools.createToolset` | Scaffold a toolset and show the user registration confirmation. |
 
+Run a discovered tool with `execute_tool({ toolId, args })` or `tools.execute(toolId, args)`. Tool
+arguments arrive on stdin as JSON; failures include stderr, exit code, and the toolset folder path
+so the agent can repair the tool and refresh the registry. These operations still run with the
+user's privileges and never bypass the registration gate.
 ### How a tool passes data back
 
 A tool script reads its `args` from stdin and returns its result on stdout using a sentinel marker:
@@ -92,7 +96,7 @@ A tool script reads its `args` from stdin and returns its result on stdout using
 
 ### Secrets and portability
 
-- **Secrets** live in a `.env` file at the toolset folder root; the manifest lists only the **names** of required variables. Persephone injects the values into the tool's process at run time. `.env` values **never** travel through MCP — `search_tools` reports names only.
+- **Secrets** live in a `.env` file at the toolset folder root; the manifest lists only the **names** of required variables. Persephone injects the values into the tool's process at run time. `.env` values **never** travel through MCP — `tools.search` reports names only.
 - A toolset is a **self-contained folder** — copy it to another machine and register it there. Each tool's free-text `requirements` field (a Python version, pip packages, a CLI) tells you what to provision on the new machine. Secrets travel only if you copy `.env` along with the folder — delete `.env` when sharing a toolset with someone else.
 
 ### Using the registry from scripts
@@ -119,6 +123,8 @@ page editor surfaces that let agents inspect the Tools & Editors hub and an indi
 
 ## Related
 
-- [MCP Server Setup](./mcp-setup.md) — enable the server so agents can use `search_tools` / `execute_tool`.
+- [MCP Server Setup](./mcp-setup.md) — enable the server so agents can use `tools.search` / `execute_tool`.
 - [Boards](./boards.md) — the sibling feature the tools registry mirrors (folder + manifest + trust gate), for building custom UIs instead of headless tools.
 - [Mneme Knowledge Base](./mneme.md) — the *knowledge* counterpart to the tools registry's *executable* memory.
+
+

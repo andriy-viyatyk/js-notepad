@@ -3,11 +3,9 @@
 Tests organised by **the part of Persephone they exercise** — one file per screen, dialog family,
 or editor — rather than by which MCP tool they use.
 
-The older `qa/mcp-test-*.md` files are grouped by tool (`create_page`, `ui_push`, `browser_*`).
-That layout was right while the tools were the product. The transparency roadmap
-([doc/agent-transparency-roadmap.md](../../doc/agent-transparency-roadmap.md)) collapses those
-tools into one `call` path, so the interesting axis becomes the surface: *can an agent see this
-screen, understand what its controls are for, and drive it?*
+The transparency roadmap ([doc/agent-transparency-roadmap.md](../../doc/agent-transparency-roadmap.md))
+collapses tool-specific workflows into one `call` path, so the interesting axis becomes the
+surface: *can an agent see this screen, understand what its controls are for, and drive it?*
 
 Two things these files are for:
 
@@ -44,8 +42,8 @@ Settings catalog (US-1306) are tests S.7 onward in that file, because they are a
 
 The `editors/` subfolder arrived with EPIC-086, which covered the text-and-preview family in five
 files, and grew with EPIC-087's data editors, EPIC-088's boards and EPIC-089's browser. With the
-browser file the surface epics are complete; what remains is EPIC-090's consolidation, which retires
-the per-tool files.
+browser file the surface epics are complete; this is now the active call-based suite for EPIC-090's
+consolidated manifest.
 
 ## Running them
 

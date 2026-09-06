@@ -14,9 +14,9 @@ When the MCP `call` tool is available, prefer its app-window protocol for explai
 `ui.elements` returns the curated controls with their purpose, resolved selector, and current
 visibility, and `ui.highlight(name, message?)` points at one of those controls. The named
 highlight returns when the overlay has been drawn; the user dismisses it afterwards. This list
-is curated, not an exhaustive DOM inventory. The raw `app.ui.highlightElement(selector, ...)`
-script API below remains available when a selector-based operation or its additional options are
-needed.
+is curated, not an exhaustive DOM inventory. When you need a selector rather than a curated name,
+`app.ui.highlightElement(selector, ...)` is still reachable from a script through
+`script.execute(code)`; prefer the named highlight, which knows what each control is for.
 
 ## What Persephone is
 
@@ -179,7 +179,7 @@ remain get/set-only: `tab-recent-languages`, `search-max-file-size`, `pinned-edi
 change, persists it, and triggers whatever the setting actuates:
 
 ```js
-// execute_script
+// script.execute
 app.settings.set("theme", "monokai");
 return { theme: app.settings.get("theme"), path: app.settings.settingsFilePath };
 ```
@@ -226,44 +226,13 @@ orange ring around the element and a card with your own text and a **Close** but
 fixed in every theme and every context, so the user always knows the callout came from their
 agent and not from the app.
 
-### In the Persephone window
-
-```js
-// execute_script
-return await app.ui.highlightElement(
-    '[data-name="mcp-indicator"]',
-    "This is the MCP indicator. It shows that the MCP server is running and how many clients are connected. Click it to open the request log."
-);
-```
-
-Signature: `app.ui.highlightElement(selector, text?, options?)`, with
-
-| Option | Effect |
-|---|---|
-| `title` | Bold heading above the text. |
-| `all: true` | Ring **every** match instead of the first (capped at 20 rings; `count` still reports the true total). |
-| `scroll: false` | Do not scroll the element into view first (it scrolls by default). |
-| `id` | Name the highlight. Re-using an id replaces that highlight instead of stacking a second one, and lets you clear it individually. |
-
-Returns `{ id, found, count, highlighted, selector, error? }` — **check `found`.** A selector
-that matched nothing returns `found: false` and draws nothing; a malformed selector also
-returns `error`.
-
-Omit `text` and `title` to get a bare ring with no card — useful when you would rather explain
-in chat.
-
-`app.ui.clearHighlights(id?)` removes one highlight or all of them, and returns how many it
-removed. The user can also dismiss with the card's **Close** button or `Esc`. A highlight
-removes itself when its target leaves the screen — so a callout on a Menu Bar button disappears
-when the user closes the Menu Bar, which is exactly the flow to expect.
-
 ### In a board
 
 `app.ui` cannot reach other frames, so inject the overlay module into the board instead. Read
 its source once from the renderer:
 
 ```js
-// execute_script
+// script.execute
 return await (await fetch("app-asset://agent/ui-highlight.js")).text();
 ```
 
@@ -303,10 +272,10 @@ to one element and put it back when you are done.
    menu" survives a redesign; "the third button from the left" does not.
 2. **Check the element exists before you point at it.** Several elements are conditional (zoom
    indicator, scroll arrows, reload button, Mneme and MCP indicators, the language button, the
-   sidebar). `found: false` from `highlightElement` is your check — you get it for free.
+   sidebar). `found: false` from `highlight` is your check — you get it for free.
 3. **Look before you describe** when you are unsure of the current state:
    `window.screen.snapshot()` shows the chrome plus the **active** page only.
-4. **Highlight, then explain.** One `highlightElement` call plus a sentence in chat beats a
+4. **Highlight, then explain.** One `highlight` call plus a sentence in chat beats a
    paragraph of layout description.
 
 ## Errors & verification
@@ -317,7 +286,7 @@ to one element and put it back when you are done.
 | `{ found: false, error: "invalid CSS selector: …" }` | Malformed selector | Fix the selector; it is reported, not thrown |
 | `count` larger than `highlighted` | `all: true` matched more than the 20-ring cap | Narrow the selector |
 | Highlight vanished on its own | Its target left the screen (page switched, Menu Bar closed, panel collapsed) | Expected; re-highlight after putting the UI back in the right state |
-| `highlightElement` throws `ui-highlight.js: HTTP …` | The overlay asset could not be loaded | Report it — the app install is incomplete; explain in chat instead |
+| `highlight` throws `ui-highlight.js: HTTP …` | The overlay asset could not be loaded | Report it — the app install is incomplete; explain in chat instead |
 | `fetch("app-asset://…")` fails inside a browser page | Expected — browser pages have no access to app assets, by design | Do not work around it; use the plain-border form above |
 | Tab shows no language button | The editor declares no language (grids, notebooks, browser, boards) | Say so — it is not a failure |
 | Tab shows no title | The tab is pinned | Read the title from `pages` |
@@ -336,3 +305,7 @@ in dialogs, in popup menus — carry no such promise; reach those through
   reading and updating pages as an agent.
 - `persephone://guides/browser` — snapshots, refs, clicking and typing, including the app window.
 - `persephone://guides/boards` — building a custom mini web-app for the user.
+
+
+
+

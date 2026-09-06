@@ -131,7 +131,7 @@ retained slot layout.`;
  * Safe facade around GraphEditor for script access.
  * Implements the IGraphEditor interface from api/types/graph-editor.d.ts.
  *
- * Primarily designed for AI agent usage via MCP (execute_script).
+ * Primarily designed for AI agent usage via MCP (`call`, or `script.execute`).
  * Focuses on read/query operations — editing is done via page.content JSON.
  */
 export class GraphEditorFacade implements IAiVisible {

@@ -15,7 +15,7 @@ export const DEFAULT_MAX_LENGTH = 20_000;
  * through a list: `tools.search()` returns tool definitions whose `inputSchema.properties.<arg>`
  * sits at depth five, so every argument list came back as `{ note: "depth limit" }` and an agent
  * could read a tool's description but not learn how to call it (found in US-1332's live check
- * against `search_tools`, which returns the schema in full). Size is bounded by `maxLength` and
+ * against `tools.search`, which returns the schema in full). Size is bounded by `maxLength` and
  * `MAX_ARRAY_ITEMS` rather than by this.
  */
 const MAX_DEPTH = 8;
@@ -76,7 +76,7 @@ function shapeValue(value: unknown, depth: number, seen: WeakSet<object>, maxLen
     }
     // A class instance with no descriptor: do not dump its internals.
     const name = (object as { constructor?: { name?: string } }).constructor?.name || "object";
-    return { kind: name, note: `No AiVision descriptor yet for ${name}; use $help on the parent, or execute_script.` };
+    return { kind: name, note: `No AiVision descriptor yet for ${name}; use $help on the parent, or script.execute.` };
 }
 
 function isPlainObject(value: object): boolean {

@@ -34,7 +34,7 @@ export interface BoardEditorState extends EditorStateBase {
      *  Re-validated on open/restore by `refreshBoards`. */
     selectedBoard?: string;
     /** Bumped to force a remount of the board's webview — by the manual Reload
-     *  action and the `board_refresh` MCP tool. */
+     *  action and the `pages[i].editor.reload()` call path. */
     reloadToken: number;
     /** Busy retention flag (US-799): set via `persephone.setBoardBusy(true)` when the
      *  board spawned processes that must outlive it. While busy, this model survives
@@ -166,7 +166,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     }
 
     /** Resolvers waiting for the NEXT `markFrameLoaded` of a tab — the deterministic
-     *  "reload finished" signal `board_refresh` awaits (a remounted frame's load +
+     *  "reload finished" signal the reload call path awaits (a remounted frame's load +
      *  CDP re-registration), so a snapshot right after refresh can't hit the stale frame. */
     private frameLoadWaiters: Array<{ tab: string; resolve: (ok: boolean) => void }> = [];
 
@@ -310,7 +310,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
      * Read-only: the cache file is never written back through the pipe. (`ImageEditor` does the same
      * job for itself; this is the generalized, board-facing version of that pattern.)
      *
-     * Memoized for the model's lifetime — the cache file outlives the iframe, so a `board_refresh`
+     * Memoized for the model's lifetime — the cache file outlives the iframe, so a board reload
      * or an in-board reload re-resolves for free. Materializes UNCONDITIONALLY on the first call
      * rather than trusting a same-named cache file from a previous session, whose source may have
      * changed since. Throws when the source cannot be read, so the caller can surface a real error
@@ -543,7 +543,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     /** Manual Reload — remount the board's webview to pick up edited files
      *  (`index.html` / `app.js` / CSS). Re-probes the board icon so a mid-session
      *  `icon.*` change shows on demand (no folder watcher — US-744 live refresh is
-     *  intentionally dropped). Also invoked by the `board_refresh` MCP tool. */
+     *  intentionally dropped). Also invoked by the board editor's reload path. */
     reloadBoard(): void {
         const boardRoot = this.state.get().boardRoot;
         if (boardRoot) invalidateBoardIcon(boardRoot);

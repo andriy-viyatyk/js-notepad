@@ -448,7 +448,7 @@ the board fails silently. Bundle fonts/images locally too (or inline images as `
 **Recommended components:** the `boards-assets/manifest.json` catalog lists pre-tested,
 theme-skinned libraries (grids, charts, markdown, …) with their vendor download URLs and load
 order. The skins are **not bundled in the installer** — they live on GitHub. Fetch the manifest and
-each skin from the raw base URL (also returned by `get_app_info` as `boardsManifestUrl` /
+each skin from the raw base URL (also returned by `main.boardsManifestUrl` /
 `boardsAssetsBaseUrl`):
 
 - Manifest: `https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/manifest.json`

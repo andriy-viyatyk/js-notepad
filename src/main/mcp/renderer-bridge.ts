@@ -38,9 +38,9 @@ export async function sendToRenderer(method: string, params: unknown, windowInde
         } };
     }
 
-    // Closed windows must be opened first via open_window tool
+    // Closed windows must be opened first via windows[i].open().
     if (!windowData.window) {
-        return { error: { code: -32603, message: `Window ${windowIndex} is closed. Use the open_window tool to reopen it first.` } };
+        return { error: { code: -32603, message: `Window ${windowIndex} is closed. Use windows[${windowIndex}].open() to reopen it first.` } };
     }
 
     // Wait for renderer to be fully initialized

@@ -52,7 +52,7 @@ export async function handleSearchTools(params: McpParams): Promise<McpResponse>
             result: {
                 total: matches.length,
                 tools: matches.map(toDefinition),
-                ...(matches.length === 0 ? { note: `No tool with id "${wantedRaw}". Call search_tools with an empty query to list all.` } : {}),
+                ...(matches.length === 0 ? { note: `No tool with id "${wantedRaw}". Call tools.search with an empty query to list all.` } : {}),
             },
         };
     }
@@ -152,7 +152,7 @@ export async function handleCreateToolset(params: McpParams): Promise<McpRespons
                 created,
                 registered: false,
                 toolsetRoot,
-                message: `Toolset is at "${toolsetRoot}" but the user declined registration — its tools are not runnable yet. If the user asks to enable it, call create_toolset again with the same name and dir to re-show the confirmation prompt.`,
+                message: `Toolset is at "${toolsetRoot}" but its tools are not runnable yet because registration was declined. If the user asks to enable it, call tools.createToolset again with the same name and dir to re-show the confirmation prompt.`,
             },
         };
     }

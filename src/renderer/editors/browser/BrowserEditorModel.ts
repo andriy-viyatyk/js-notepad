@@ -306,8 +306,8 @@ export const getDefaultBrowserPageState = (): BrowserEditorState => {
  *
  * Incognito and Tor sessions report a constant `"Browser"` and never track the active tab. The
  * page title is not a private surface: it shows in the tab strip and, more importantly, is
- * returned by the MCP `list_pages` tool, which already withholds `url` for these modes
- * (`toPageSummary` in `api/mcp/page-commands.ts`) and already refuses to drive them. The title was
+ * returned in `pages` summaries, which already withhold `url` for these modes and refuse to drive
+ * them through the call surface. The title was
  * the remaining leak -- it named the site being viewed.
  *
  * Suppressed here, at every point of assignment, rather than masked at the MCP boundary: one rule

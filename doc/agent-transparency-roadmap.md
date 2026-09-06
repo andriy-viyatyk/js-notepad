@@ -65,7 +65,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 | 4 | **EPIC-087** ✅ — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer/sidebar panels, folder view, git tree | `ui_push` — **marked retirable 2026-09-06** |
 | 5 | **EPIC-088** ✅ — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `search_tools` — **all marked retirable 2026-09-06**. `execute_tool` is **not** marked; see the note below |
 | 6 | **EPIC-089** ✅ — Browser | `pages[i].editor` on browser and board pages, and `window.screen` for the app window; HTML pages answered by the app-window snapshot | all `browser_*` (**14**, not 15) and `open_url` — **all marked retirable 2026-09-06**. The `mcp.browser-tools.enabled` setting was **deleted** |
-| 7 | EPIC-090 — Consolidation | Call-only flag, full QA re-run on Haiku and Codex, deletion, guide rewrite | `execute_script`, `read_guide`, and everything still standing |
+| 7 | **EPIC-090** ✅ — Consolidation | Call-only manifest, resource retention, and deletion gate | 32 retired tools removed; `call` and `execute_tool` remain as the default surface |
 
 Epics 2–5 are independent of each other once EPIC-084 lands and can be reordered by demand. The
 editor epics are smaller than their lists suggest: US-1291 already gave every editor a content
@@ -118,8 +118,8 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `create_toolset`, `refresh_toolset`, `search_tools` | **retirable** — `tools.createToolset`, `tools.toolsets.refresh()`, `tools.search()` under a new root `tools` node (not `toolsets` — see below) | 088 ✅ |
 | `execute_tool` | `tools.execute(toolId, args)` exists and refuses an unknown id, but is **not marked**: its rows could not be exercised without spending the user's credentials on a live service or clicking the toolset trust dialog as the agent | 088 |
 | `browser_*` | **retirable** — `pages[i].editor.snapshot/click/type/...` on browser and board pages, and the same members on **`window.screen`** for the app window (not `window.ui` — see below) | 089 ✅ |
-| `execute_script` | `script.execute(code)` — the renderer analogue of `main.script.execute` | 090 |
-| `read_guide` | MCP resources stay (`persephone://guides/*`); prose moves into `$help` | 090 |
+| `execute_script` | **deleted** — `script.execute(code)`, the renderer analogue of `main.script.execute` | 090 ✅ |
+| `read_guide` | **deleted** — the `persephone://guides/*` resources stay, reachable by URI; prose moved into `$help` | 090 ✅ |
 | `app.ui.highlightElement` via script | `<node>.highlight(name, message)` | 084, then every surface |
 
 **EPIC-085 marked the first three retirable (2026-09-05).** Retirable means every field and action
@@ -352,8 +352,8 @@ short description of what each path is for and one example path under it, so an 
 most suitable branch and dig down from there. The existing per-node hints and `$help` stay as the
 next level of detail; the overview is the map that points at them.
 
-EPIC-090 owns this: it is the epic that hides every tool except `call` and rewrites the manifest
-instructions, so the first thing a `call`-only agent sees is decided there. Requirements for the task:
+EPIC-090 delivered this. It is the epic that hid every tool except `call` and rewrote the manifest
+instructions, so the first thing a `call`-only agent sees was decided there. The requirements were:
 
 1. `path` optional in the manifest; no path ≡ `""`.
 2. `call("")` returns the path map (area → purpose → example path) before the raw member list, kept
@@ -361,6 +361,28 @@ instructions, so the first thing a `call`-only agent sees is decided there. Requ
 3. The tool description's "Start with path \"\"" line becomes "Start with no path".
 4. The QA re-run in the final gate starts every scenario from `call` with no path and records
    whether the map led the agent to the right branch without a wrong turn.
+
+## EPIC-090 closing note (2026-09-06) — the roadmap is complete
+
+The gate passed on both model families and the deletion went ahead. **The manifest went from 34
+tools to 2**: `call`, and `execute_tool`. With `PERSEPHONE_MCP_CALL_ONLY` set it is **1** — `call`
+alone, which is the end state this document set out to reach. All 13 guide resources remain,
+reachable by URI; only the `read_guide` *tool* was deleted, because a resource costs an agent
+nothing until it reads one while a tool costs a slot in every session's manifest.
+
+**Two tools were kept, and both for the same reason.** `execute_tool`'s replacement `tools.execute`
+is implemented and correct on everything testable, but verifying it needs a human to run one real
+tool: every registered toolset on this machine calls a live service with the user's credentials, and
+registering a scratch one needs a click on a trust dialog that an agent must not take on its own
+behalf. `open_window` was nearly the second — it took a deliberate setup to produce a closed window
+at all — but a Haiku agent did reach `windows[i].open()` from a bare `call`, so it went. Principle 3
+held to the end: retire nothing until its replacement passes the same test.
+
+**What the gate was actually worth.** It found five defects that would otherwise have shipped, and
+one of them had nothing to do with this roadmap: the main-process build was never marked as a Node
+build, so every `process.env` compiled to `{}` — which had been stripping the environment, PATH
+included, from every child process spawned by Agent Tools and board backends. That was found only
+because the call-only flag refused to turn on and the reason had to be chased into the bundle.
 
 ## Out of scope / recorded concerns
 

@@ -37,7 +37,7 @@ layout before drawing.`;
  * Implements the IImageEditor interface from api/types/image-editor.d.ts.
  *
  * Accessed via `page.editor` after narrowing `page.editor.id` to `image-view`. Lets a script (and, through
- * `execute_script`, an agent) write the displayed image to a file as PNG.
+ * `script.execute`, an agent) write the displayed image to a file as PNG.
  */
 export class ImageEditorFacade implements IAiVisible {
     constructor(private readonly editor: ImageEditor, readonly id: string, readonly name: string) {}

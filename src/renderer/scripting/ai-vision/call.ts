@@ -6,7 +6,7 @@ import { resolveWithAttention } from "./attention";
 
 /**
  * Renderer entry point for the `call` MCP tool: build the tree root inside a fresh script context
- * (the same lifecycle `execute_script` uses — wrappers are created per run and released after),
+ * (the same lifecycle `script.execute` uses — wrappers are created per run and released after),
  * resolve the path, dispose.
  *
  * `seenKinds` is the per-MCP-session dedupe set; the main process owns it and passes the kinds it

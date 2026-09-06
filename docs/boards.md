@@ -30,7 +30,7 @@ Boards can live **anywhere on disk** — any folder containing a `board-manifest
 
 Because `persephone.execute()` runs programs with your full user privileges, **each board must be explicitly trusted** before it renders or any script runs. Persephone shows a warning dialog that states this plainly — exactly like VS Code workspace trust.
 
-- **Boards you create** (via **"New board"**, `app.boards.createBoard()`, or the MCP `create_board` tool) are **auto-trusted immediately** — no prompt appears.
+- **Boards you create** (via **"New board"**, `app.boards.createBoard()`, or the `boards.createBoard` call path) are **auto-trusted immediately** — no prompt appears.
 - **Foreign boards** (any board Persephone did not create for you) show a **Trust board** dialog on first open:
 
   > *"Trusting this board lets it run programs on your computer with your full user privileges — including reading and changing your files and using any signed-in command-line tools (cloud CLIs, git, etc.). Only trust boards you created or fully understand. If you're not sure about a board, ask your AI agent to review its scripts before trusting it."*
@@ -517,7 +517,7 @@ An AI agent can perform the whole discover → download → review → install �
 | `app.boards.unregisterBoard(boardRoot)` | Untrust a board (no dialog — untrusting only removes privilege). |
 | `app.boards.renameBoard(boardRoot, newName)` | Rename a trusted board's folder, carrying its trust, pin, and catalog registration to the new path. |
 
-See the [Scripting API Reference](./api/app.md#boards) for full method signatures, and ask your AI agent to `read_guide("boards")` for the complete authoring/automation reference, including a checklist for reviewing a downloaded board's files before registering it.
+See the [Scripting API Reference](./api/app.md#boards) for full method signatures, and ask your AI agent to `persephone://guides/boards` for the complete authoring/automation reference, including a checklist for reviewing a downloaded board's files before registering it.
 
 > **Publishing a board to the catalog?** A `board-manifest.json` can declare `"screenshot": "screenshot.png"` (a file name, not a path) to give the board a screenshot on its catalog card and Board Info page. This only applies to boards published through the `persephone-boards` project — see that repository's own documentation for the full publishing contract.
 
@@ -533,7 +533,7 @@ A board isn't limited to the single main view in its tab. It can declare one or 
 - Some of what a board puts in that shared state is remembered across app restarts and board reloads (a per-board author choice), so a selection you made can still be there next time you open the board.
 - Closing the board's tab, or navigating it to something else, closes its secondary panels along with it — they aren't a way to keep the board running in the background (see [Long-running processes](#long-running-processes-setboardbusy--getboardbusy--getjobs) for that).
 
-> **Building a board with secondary views?** See the board's own `CLAUDE.md` (or `read_guide("boards")` for an AI agent) for the full `persephone.state.*` and `persephone.setSecondaryViews` reference. The bundled **Demo board** includes a working example.
+> **Building a board with secondary views?** See the board's own `CLAUDE.md` (or `persephone://guides/boards` for an AI agent) for the full `persephone.state.*` and `persephone.setSecondaryViews` reference. The bundled **Demo board** includes a working example.
 
 ---
 
@@ -690,34 +690,34 @@ The `boards-assets/manifest.json` file has machine-readable details — vendor U
 
 Boards are designed to be authored by an AI agent. The key workflow:
 
-1. **Agent creates or opens a board.** Use the MCP tools `create_board` / `open_board`, or the scripting API `app.boards.createBoard()` / `app.boards.openBoard()`. Boards created this way are auto-trusted — no trust prompt blocks the agent.
-2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.
-3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions. The MCP `read_guide("boards")` tool loads the complete board authoring guide.
-4. **Agent edits files** and then calls `pages[pageId].editor.reload()` to reload the board and pick up the changes. Boards do not reload automatically — `reload()` is the agent's equivalent of the toolbar **Reload** button. After calling it, run `pages[pageId].editor.snapshot()` to see the updated board.
-5. **Agent tests the board** using `pages[pageId].editor`:
+1. **Create or open a board.** Use the `boards.createBoard` or `boards.openBoard` call paths. Boards
+   created this way are auto-trusted — no trust prompt blocks the agent.
+2. **Discover the board** through `pages`; boards report `editor: "board-view"`, a
+   `selectedBoard`, and (for standalone boards) a `boardRoot`.
+3. **Read `CLAUDE.md`** inside the board folder — it documents the bridge API, theme contract,
+   recommended-components catalog, and authoring conventions. The
+   `persephone://guides/boards` resource contains the board authoring reference.
+4. **Edit files** and call `pages[pageId].editor.reload()` to pick up changes. Boards do not reload
+   automatically; after reloading, call `pages[pageId].editor.snapshot()` to inspect the result.
+5. **Test the board** using `pages[pageId].editor`:
 
 ```
-// Find the board page
-list_pages → { editor: "board-view", selectedBoard: "My Board", boardRoot: "C:/work/boards/My Board", pageId: "abc" }
-
-// Inspect the DOM
 pages["abc"].editor.snapshot()
-
-// Interact
 pages["abc"].editor.click({ ref: "e12" })
 pages["abc"].editor.evaluate("document.querySelector('#result').textContent")
 ```
 
-`pages["abc"].editor.evaluate(...)` is especially useful for testing `persephone.execute()` from the agent side — inject a test call and check the result without modifying source files.
+`pages["abc"].editor.evaluate(...)` is useful for testing `persephone.execute()` from the agent
+side without modifying source files.
 
-### MCP tools for boards
+### Board call paths
 
-| Tool | Parameters | Description |
-|------|-----------|-------------|
-| `create_board` | `name`, `dir`, `demo?` | Create a blank board (or demo board when `demo: true`) in `<dir>/<name>`. Returns `{ boardRoot }`. Auto-trusted. |
-| `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened, pageId, title }` — pass `pageId` to `pages[pageId].editor` or the legacy `board_refresh` tool to target this board explicitly. |
-| `board_refresh` | `pageId?` | Reload a board to pick up edited files. Omit `pageId` to reload the active board. Returns `{ refreshed: true, pageId }`. |
-| `read_guide("boards")` | — | Load the full board authoring reference guide. |
+| Call path | Parameters | Description |
+|-----------|------------|-------------|
+| `boards.createBoard` | `name`, `dir`, `demo?` | Create a board in `<dir>/<name>`; returns `boardRoot` and auto-trusts the result. |
+| `boards.openBoard` | `path` | Open an existing board and return its page id and title. |
+| `pages[pageId].editor.reload` | none | Reload a board after editing its files; returns the refreshed frame state. |
+| `persephone://guides/boards` | — | Board authoring and review reference. |
 
 ---
 
@@ -764,3 +764,5 @@ The Demo board (`"Create Demo board"`) is a full working example that demonstrat
 Read its `index.html`, `app.js`, and `style.css` for a rich authoring reference — they are extensively commented.
 
 The Demo board is created in the folder and with the name you specify in the **Create Demo board** dialog. The source template lives at `resources/assets/demo-board/` inside the Persephone installation folder (or at `assets/demo-board/` in the repository).
+
+

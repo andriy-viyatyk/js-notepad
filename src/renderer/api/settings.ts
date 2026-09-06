@@ -76,7 +76,7 @@ const settingsFileHeader = [
     "//",
     "// To let an AI agent drive Persephone, set \"mcp.enabled\": true below, then point the agent",
     "// at http://127.0.0.1:7865/mcp (see \"mcp.port\"). Once connected, the agent can call",
-    "// read_guide(\"overview\") for everything else.",
+    "// Start with a bare call for the overview.",
     "//",
     "// Docs: https://github.com/andriy-viyatyk/persephone",
 ].join("\n");
@@ -101,7 +101,7 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "browser-default-bookmarks-file": "Absolute path to the .link.json file holding bookmarks for the default browser profile.\nIt is an ordinary Links-editor file and can be opened as a tab.",
     "browser-incognito-bookmarks-file": "Absolute path to the .link.json bookmarks file used in incognito mode.\nKept separate so incognito bookmarks never mix with the normal profile's.",
     "link-open-behavior": "Where external links open from editors.\nOne of: \"default-browser\" (the OS default browser), \"internal-browser\" (the nearest\nPersephone Browser tab). Default: default-browser.",
-    "mcp.enabled": "Enable the MCP (Model Context Protocol) HTTP server, so AI agents can drive Persephone.\nBoolean. Default: false. Setting it true here starts the server immediately — no restart.\nThe agent connects to http://127.0.0.1:<mcp.port>/mcp and should start with read_guide(\"overview\").\nThe server listens on loopback only and is never reachable from another machine.",
+    "mcp.enabled": "Enable the MCP (Model Context Protocol) HTTP server, so AI agents can drive Persephone.\nBoolean. Default: false. Setting it true here starts the server immediately — no restart.\nThe agent connects to http://127.0.0.1:<mcp.port>/mcp and should start with a bare call for the overview.\nThe server listens on loopback only and is never reachable from another machine.",
     "mcp.port": "Port for the MCP HTTP server.\nNumber. Default: 7865. Changing this alone does NOT move a running server —\nset \"mcp.enabled\": false, save, then set it back to true.",
     "main.scripting.enabled": "Allow call → main.script.execute to run code in Persephone's main process.\nBoolean. Default: on in development and off in packaged builds. Main-process code can freeze or crash the entire app.",
     "mneme.enabled": "Enable Mneme, the local markdown knowledge base with full-text and semantic search.\nBoolean. Default: false. Persephone runs mneme.exe as a sidecar and connects over loopback HTTP.\nMneme exposes its OWN MCP server on \"mneme.port\" — separate from \"mcp.port\" above.",

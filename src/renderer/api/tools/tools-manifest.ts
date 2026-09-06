@@ -16,7 +16,7 @@ export const TOOLS_MANIFEST_SCHEMA_VERSION = 1;
 export interface ToolDef {
     /** Tool name, unique within its toolset. Combined into the id `<toolset>/<name>`. */
     name: string;
-    /** Human/agent-facing description. Surfaced by `search_tools`. */
+    /** Human/agent-facing description. Surfaced by `tools.search`. */
     description: string;
     /**
      * JSON Schema for the tool's args (MCP `inputSchema` dialect). Describes parameters to
@@ -40,7 +40,7 @@ export interface ToolDef {
      * provisioning a new machine after copying a toolset (EPIC C9).
      */
     requirements?: string;
-    /** Optional extra search terms for `search_tools` (EPIC C5). */
+    /** Optional extra search terms for `tools.search` (EPIC C5). */
     keywords?: string[];
 }
 
@@ -62,7 +62,7 @@ export interface ToolsManifest {
     description?: string;
     /** Optional author / owner. */
     author?: string;
-    /** Optional toolset-level search terms for `search_tools`. */
+    /** Optional toolset-level search terms for `tools.search`. */
     keywords?: string[];
     /** The tools this toolset declares. */
     tools: ToolDef[];

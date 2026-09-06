@@ -5,7 +5,7 @@
 ## Creating a Notebook Page
 
 ```
-create_page({
+pages.addEditorPage({
   title: "My Notes.note.json",
   editor: "notebook-view",
   language: "json",
@@ -161,7 +161,7 @@ A notebook with 3 notes — a text note, a markdown note, and a code snippet:
 
 ## Errors & verification
 
-- **`create_page` / `set_page_content` accept broken content silently** — the tool returns
+- **`pages.addEditorPage` / `pages[i].content` accept broken content silently** — the call returns
   success and the failure appears in the editor (verified):
   - Unparseable JSON → the editor shows the parse error in place of notes (page otherwise fine).
   - Valid JSON with a **missing required field** → the editor **crashes**: the page shows
@@ -170,5 +170,5 @@ A notebook with 3 notes — a text note, a markdown note, and a code snippet:
   (`tags: []` and `category: ""` even when empty), and — to confirm the render — activate the
   page and `window.screen.snapshot()`: a healthy notebook shows its notes; a broken
   one shows the error text.
-- **Fixing a crashed page**: the content is still intact — `get_page_content`, repair the JSON,
-  `set_page_content`. The editor recovers as soon as valid content arrives.
+- **Fixing a crashed page**: the content is still intact — read `pages[i].content`, repair the JSON,
+  and assign `pages[i].content`. The editor recovers as soon as valid content arrives.

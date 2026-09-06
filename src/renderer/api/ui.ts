@@ -85,7 +85,7 @@ class UserInterface implements IUserInterface {
     // ── Element highlighting ────────────────────────────────────────────
     //
     // The overlay lives in `assets/agent/ui-highlight.js` rather than here, because the same file
-    // is pasted into `browser_evaluate` to highlight elements inside boards and browser pages —
+    // is evaluated through a page editor path to highlight elements inside boards and browser pages —
     // contexts the renderer's module graph cannot reach. One implementation, three targets.
     //
     // It sits in a subfolder because the `app-asset://` handler maps the URL's HOST to a

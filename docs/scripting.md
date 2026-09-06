@@ -514,9 +514,13 @@ For the complete API with all methods and parameters, see the [Scripting API Ref
 
 ## AI Agent Integration (MCP)
 
-The same `page` and `app` scripting API is available to external AI agents via the built-in MCP server. Agents can execute scripts, create pages, read content, and more — without any user interaction.
+The same `page` and `app` scripting API is available to external AI agents through the built-in MCP
+server. Agents use the `script.execute` call path to run renderer code and the `call` surface to
+create pages, read content, and use editor facades.
 
-AI agents also have access to the **`ui_push`** MCP tool, which pushes log entries and interactive dialogs to a Log View page — the same Log View that scripts access via the `ui` global. This is the recommended output channel for agents to show status messages, results, and ask users questions. See the [ui API reference](./api/ui-log.md#mcp-ui_push-tool) for details.
+AI agents can use `pages.logView.push` to send log entries and interactive dialogs to the same Log
+View that scripts access via the `ui` global. This is the recommended output channel for status,
+results, and questions. See the [ui API reference](./api/ui-log.md#log-view-output) for details.
 
 See [MCP Server Setup](./mcp-setup.md) to connect Claude, ChatGPT, Gemini, or any MCP-compatible client.
 

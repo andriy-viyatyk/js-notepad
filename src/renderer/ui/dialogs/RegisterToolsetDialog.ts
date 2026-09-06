@@ -10,7 +10,7 @@ import { RegisterToolsetDialogView } from "./RegisterToolsetDialogView";
  * and — unlike a board (a visible artifact) — later edits to those tools run without re-prompting,
  * so registration is the user's one checkpoint on capability growth. Mirrors `TrustBoardDialog`.
  *
- * Only the MCP `create_toolset` path uses this. User-initiated registration in the management UI
+ * The `tools.createToolset` call path uses this. User-initiated registration in the management UI
  * (US-805) needs no dialog — the user already picked the folder.
  */
 export const registerToolsetDialogId = Symbol("registerToolsetDialog");

@@ -84,8 +84,8 @@ pages[pageId].editor.waitFor({ selector }) (waitForNavigation() may return at on
 page-content actions, then read pages[pageId].title for the loaded title. For a URL naming a file or
 other content source, use pages.openUrl(url, { editor? }); it validates a supported pipeline href,
 returns void, cannot name the opened page, and requires inspecting pages after the await. These two
-openers are distinct: pages.openUrlInBrowserTab is the replacement for the browser-only open_url
-capability, while pages.openUrl is an addition. The ordinary page-object guidance above remains the
+openers are distinct: pages.openUrlInBrowserTab always opens a browser tab, while pages.openUrl
+routes a file-like URL through the content pipeline and lets it choose the editor. The ordinary page-object guidance above remains the
 place for opening files by path with openFile(path).
 `;
 

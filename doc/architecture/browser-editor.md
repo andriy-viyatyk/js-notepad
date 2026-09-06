@@ -304,7 +304,7 @@ the host's `state.version`. It is mounted in both `BlankPageLinksView` and `Book
 | `src/renderer/automation/commands.ts` | Renderer | Playwright-compatible browser_* MCP command handlers |
 | `src/renderer/automation/operations.ts` | Renderer | Shared target-neutral snapshot, navigation, locator/input, waiting, screenshot, network, and inner-tab operations |
 | `src/renderer/automation/ref.ts` | Renderer | Host-scoped accessibility refs and iframe CDP-session maps |
-| `src/renderer/automation/snapshot.ts` | Renderer | Accessibility tree → YAML formatter for browser_snapshot |
+| `src/renderer/automation/snapshot.ts` | Renderer | Accessibility tree → YAML formatter for automation snapshots |
 | `src/renderer/automation/CdpSession.ts` | Renderer | CDP session wrapper (IPC to main process debugger) |
 | `src/renderer/automation/AppTargetModel.ts` | Renderer | `IBrowserTarget` adapter for the app's own UI (`pageId: "app"`) |
 | `src/renderer/api/window-screen.ts` | Renderer | Object Model adapter exposing the app-window target as `app.window.screen` |
@@ -621,7 +621,7 @@ setWindowOpenHandler(url)  →  eOpenUrl(url)  →    → "default-browser": she
 
 ### Smart Browser Tab Search (`openUrlInBrowserTab`)
 
-Located in `src/renderer/editors/browser/browser-pages.ts` (reached through a thin dynamic-import delegate on `PagesLifecycleModel`, so the browser chunk stays out of startup). Resolves to the id of the browser page the URL was opened in (`undefined` only when no page could be opened, e.g. Tor misconfiguration) — the `open_url` MCP tool surfaces it as `{ opened, pageId, title }` so agents can target the page explicitly instead of relying on the active-page default. Two search strategies depending on the source:
+Located in `src/renderer/editors/browser/browser-pages.ts` (reached through a thin dynamic-import delegate on `PagesLifecycleModel`, so the browser chunk stays out of startup). Resolves to the id of the browser page the URL was opened in (`undefined` only when no page could be opened, e.g. Tor misconfiguration) — `pages.openUrlInBrowserTab` returns the page id so agents can target it explicitly instead of relying on the active-page default. Two search strategies depending on the source:
 
 **Internal links** (Monaco, Markdown — `link-open-behavior: "internal-browser"`):
 1. Search pages to the **right** of the active page for a matching browser tab
@@ -814,135 +814,147 @@ const tabs = browser.tabs;                  // list of internal tabs
 
 Browser automation for AI agents lives in `src/renderer/automation/`. The target-neutral operation
 layer in `operations.ts` owns snapshotting, navigation waits, locator resolution, input, evaluation,
-waiting, screenshots, network-log reads, and inner-tab operations. The MCP `browser_*` command
-adapter and the scripting/Object Model facades call these operations rather than maintaining
-separate command bodies.
+waiting, screenshots, network-log reads, and inner-tab operations. The Object Model and scripting
+facades call these operations rather than maintaining separate command bodies.
 
-The same `IBrowserTarget` contract has three hosts: a **browser page** (`BrowserTargetModel`), a
-trusted **board** frame (`BoardTargetModel`), and **Persephone's own app window** (`AppTargetModel`,
-selected by the legacy `pageId: "app"` target). `BrowserEditorFacade`, `BoardEditorFacade`, and
-`window.screen` are the three facade surfaces over those hosts. The shared
-`BROWSER_AUTOMATION_MEMBERS` descriptor keeps the ten common operations consistent across all
-three surfaces; browser pages add navigation and inner-tab members, while boards add board state,
-reload, and secondary-frame selection.
+The same `IBrowserTarget` contract has three hosts: a **browser page**
+(`BrowserTargetModel`), a trusted **board** frame (`BoardTargetModel`), and **Persephone's own app
+window** (`AppTargetModel`). `BrowserEditorFacade`, `BoardEditorFacade`, and `window.screen`
+are the facade surfaces over those hosts. The shared `BROWSER_AUTOMATION_MEMBERS` descriptor keeps
+the common operations consistent; browser pages add navigation and inner-tab members, while boards
+add board state, reload, and secondary-frame selection.
 
 ```
-MCP tool call (browser_click) → mcp-handler.ts → api/mcp/command-registry.ts → automation/commands.ts
-    → getTarget(params) → resolved IBrowserTarget (browser page / board / app window)
-    → operations.ts → perform action via CDP → return result
+call: pages[pageId].editor.snapshot()
+  → resolved IBrowserTarget (browser page or board)
+  → operations.ts
+  → perform action via CDP
+  → return result
 ```
 
 The path-based `call` surface reaches the same operations through the resolved editor facade or
-`window.screen`; it is not a fourth automation implementation. A successful MCP `call` result is
-normally rendered as JSON or text, but `call-tools.ts` also recognizes a general image payload in
-either `{ type: "image", data, mimeType }` or `{ image: { data, mimeType }, ...metadata }` form.
-It emits the metadata as a text block followed by a native MCP image content block, regardless of
-which object-model member produced the image.
+`window.screen`; it is not a second automation implementation. A successful `call` result is
+normally JSON or text, but `call-tools.ts` recognizes a general image payload in either
+`{ type: "image", data, mimeType }` or `{ image: { data, mimeType }, ...metadata }` form and emits
+the metadata followed by a native MCP image block.
 
-**Target resolution:** every `browser_*` tool accepts optional `pageId` and `profileName` params; `getTarget(params)` in `commands.ts` resolves the target by precedence:
+**Target resolution:** `pages[pageId].editor` addresses an exact browser or board page.
+`pages.openUrlInBrowserTab(url, { profileName })` chooses or opens a page in the requested profile;
+an empty profile selects the built-in default. `window.screen` addresses Persephone's own window,
+and `windows[i].window.screen` selects another application window. Targeting a browser or board
+page activates it because its webview needs `display != none` for input; the app-window target
+needs no activation.
 
-0. `pageId === "app"` — Persephone's own UI (the app window). Explicit only; never reachable by the fallback branch, so an agent aiming at a web page can't accidentally act on the app chrome.
-1. `pageId` — exact page (must be a browser page or board; error otherwise).
-2. `profileName` — first browser page of that profile (`""` = default profile; never matches incognito/Tor; prefers the active page, else first in page order). A descriptive error suggests `open_url` with `profileName` when no page matches.
-3. Neither — the active browser page, else the first browser page.
+**Profile visibility & discovery:** `pages` reports `profileName`, `isIncognito`,
+`isTor`, and the active-tab `url` for browser pages; private URLs remain omitted. The configured
+profile names are available at `settings.browserProfiles`, with
+`settings.defaultBrowserProfile` for the default. Window descriptors expose the persisted
+profile and privacy fields, including for closed windows; they do not persist a URL.
 
-For browser/board targets the resolved page is **activated** (`showPage`) because the webview needs `display != none` for focus/input — so targeting a background page brings it to front, and subsequent untargeted calls naturally stick to it. The app-window target needs no activation.
+**Privacy guard:** the resolved browser page is checked for `isIncognito`, `isTor`, and the
+ephemeral `openedByAgent` provenance flag before automation returns a target. Incognito and Tor
+pages opened by the user remain inaccessible to AiVision `call`; a private page opened by the
+agent itself is accessible to that agent. The provenance is not persisted, so a restored private
+page is private again. Direct page targeting and active-page fallback use the same rule, while
+profile matching skips private pages entirely. A refusal names the privacy boundary and suggests
+opening a normal or agent-owned private page. The shared rule lives in
+`src/renderer/editors/browser/agent-access.ts` and is also applied to AiVision page summaries.
 
-**Profile visibility & discovery:** `list_pages` / `get_active_page` (renderer `api/mcp/page-commands.ts`) include `profileName` / `isIncognito` / `isTor` / `url` for browser pages — `url` is the **active internal tab's** URL and is omitted for incognito/Tor pages. The fields are read via a structural state cast keyed on `editorId === "browser-view"` — deliberately **no static `BrowserEditor` import** in the page command module (it loads at startup; the browser chunk must stay dynamically imported). `get_app_info` returns `browserProfiles` (configured names) + `defaultBrowserProfile`. `list_windows` (main process) exposes the same three identity fields from the persisted page descriptors (works for closed windows; no `url` — not persisted).
+### App-Window Target
 
-**Privacy guard:** `getTarget()` checks `isIncognito`, `isTor`, and the ephemeral `openedByAgent` provenance flag on the resolved browser page before returning the target. Incognito and Tor pages opened by the user remain inaccessible to `browser_*` and AiVision `call`; a private page opened by the agent itself is accessible to that agent. The provenance is not persisted, so a restored private page is private again. Direct `pageId` targeting and active-page fallback use the same rule; `profileName` matching skips private pages entirely. A refusal names the privacy boundary and suggests opening a normal or agent-owned private page. The shared rule lives in `src/renderer/editors/browser/agent-access.ts` and is also applied to AiVision page summaries: private URLs are omitted when the page is refused.
+The explicit app target is refused while the **active** page is an incognito or Tor browser page.
+App snapshots and screenshots include the active page, and most app-window actions return a
+full-window snapshot, so allowing the app target would bypass the browser-page privacy guard.
+An inactive private page is hidden from the app snapshot and does not trigger this check. This
+boundary applies to browser automation only; `script.execute` remains a trusted,
+full-application API and can inspect private-session state by design.
 
-**Browser tools availability:** `createMcpServer()` registers the complete `browser-tools.ts` group for every new MCP session, so all 14 tools appear in `tools/list` whenever the MCP server is running. The independent privacy boundary in `src/renderer/editors/browser/agent-access.ts` still refuses user-opened incognito and Tor pages; removing the former setting does not change that guard.
-
-**14 Playwright-compatible tools:** `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_select_option`, `browser_press_key`, `browser_evaluate`, `browser_tabs`, `browser_navigate_back`, `browser_wait_for`, `browser_take_screenshot`, `browser_network_requests`, `browser_close`
-
-Tools support both CSS selectors (`selector` param) and accessibility snapshot refs (`ref` param, e.g. `ref=e52`). Ref resolution (`automation/ref.ts`) uses CDP `DOM.resolveNode` + `Runtime.callFunctionOn`. Stale refs produce helpful "re-take the snapshot" error messages.
-
-Refs are scoped to the host that minted them. `ref.ts` keeps the iframe-to-CDP-session map by the
-target's registration key; each new snapshot replaces only that host's map, so an interleaved
-snapshot on another browser tab, board frame, or the app window cannot retarget an existing frame
-ref. A ref still becomes stale when its document or DOM node is replaced, and a ref from another
-host is rejected as belonging to a different document.
-
-**A ref does not always denote an element.** A ref is a `backendDOMNodeId`, and a `StaticText` node's id backs a DOM **text** node — which has none of the `Element` methods the command bodies call (`scrollIntoView`, `click`, `focus`, `value`, …). This is not an edge case: in list-style UI built from roleless `<div>`/`<span>` elements the ancestors resolve to the `generic` role and are dropped by `SKIP_ROLES`, so the `StaticText` ref is frequently the *only* ref on a row. `callOnRef` therefore coerces before invoking — `this.nodeType === 1 ? this : this.parentElement` — so the action lands on the element that displays the text, which is what the snapshot line denotes. Because DOM events bubble, acting on the inner element still reaches a handler bound to the row around it. A ref with no element parent fails with a message naming the ref and the node type instead of a `TypeError`.
-
-Refs are minted from the node's own `backendDOMNodeId` and are deliberately **not** rewritten to the nearest element ancestor in `snapshot.ts`: sibling text nodes under one element (ordinary prose with inline markup — `first text <b>bold</b> second text` — produces two) would collapse onto the same ref, making all but one of those lines unaddressable. Coercing at invocation time keeps every ref unique *and* usable.
-
-Consequently `callOnRef`'s `fn` argument must be a plain `function () {…}` expression: it is invoked with `.call(element)`, so an arrow function would keep its lexical `this` and silently act on the wrong object.
-
-### App-Window Target (`pageId: "app"`)
-
-The explicit app target is refused while the **active** page is an incognito or Tor browser. App
-snapshots and screenshots include the active page, and most app-window actions return a full-window
-snapshot, so allowing the app target would bypass the browser-page privacy guard. An inactive private
-page is hidden from the app snapshot and does not trigger this check. This boundary applies to
-`browser_*` automation only; `execute_script` remains a trusted, full-application API and can
-inspect private-session state by design.
-
-`AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own native UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the shared page-interaction operations are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`). The Object Model exposes the same host as `app.window.screen`, whose `WindowScreen` adapter provides the shared snapshot, interaction, wait, screenshot, and network-request members. Use `pages` and `pages.showPage(pageId)` to open or switch Persephone pages; `window.screen` has no browser navigation or page-tab management.
+`AppTargetModel` lets `window.screen` drive Persephone's native UI — the tab strip, sidebar
+panels, toolbars, dialogs, and active editor. It is a minimal `IBrowserTarget` in the board mold:
+`cdp()`, `insertText()`, and the shared page-interaction operations are real; navigation and
+tab methods throw a clear error pointing at `pages` and `script.execute`. The app target has no
+separate setting or privilege tier.
 
 Two design points make it self-contained:
 
-- **No registration needed.** Unlike browser pages (`getWebContents` resolver) and boards (`registerBoardFrame`), the app target uses a sentinel CDP regKey — `APP_WINDOW_CDP_KEY` (`"__app-window__"`, in `src/ipc/api-types.ts`). MCP commands are already routed to a specific window's renderer (`windowIndex` → `sendToRenderer`), and `CdpSession.send` is an `ipcRenderer.invoke` from that renderer, so in `cdp-service.ts` the calling `event.sender` **is** the window to automate. The three IPC handlers (`cdpAttach`/`cdpDetach`/`cdpSend`) short-circuit the sentinel to `event.sender`, running commands on its top-level session (the app UI). The debugger is shared with boards on the same webContents, so detach is a no-op. Multi-window is automatic.
-- **Snapshot shows only the active page.** Inactive pages stay mounted but hidden via `display: none` on their `PageManager` placeholders, and Chromium's accessibility tree excludes hidden subtrees — so the app snapshot naturally contains the app chrome plus the active page's content only, regardless of how many tabs are open. To reach another page, the agent clicks its tab.
+- **No registration needed.** Unlike browser pages and boards, the app target uses a sentinel CDP
+  registration key. MCP commands are already routed to a specific window's renderer
+  (`windowIndex` → `sendToRenderer`), and the calling window's `webContents` is the CDP target.
+  The debugger is shared with boards on the same webContents, so detach is a no-op.
+- **Snapshot shows only the active page.** Inactive pages stay mounted but hidden via
+  `display: none` on their `PageManager` placeholders, and Chromium's accessibility tree excludes
+  hidden subtrees. To reach another page, the agent activates its tab.
 
-`focusWebview()` is a no-op: `automation/input.ts` drives everything through JS events (`el.click()`, `KeyboardEvent` dispatch, native-setter fill), which need no OS focus, and a no-op avoids stealing the user's window focus. This carries the same synthetic-input limitations as the browser/board targets — e.g. a menu that handles Escape only from a focused element won't close on a synthetic `browser_press_key`, whereas a component with a document-level Escape listener (like `PopoverModel`) will. Content editing should go through `set_page_content` / `execute_script`, not synthetic typing into Monaco. The app target has no separate setting or privilege tier (`execute_script` already grants full Node access).
-
-### Playwright Parameter Compatibility
-
-Several tools accept Playwright MCP parameter aliases so AI agents trained on Playwright work without translation:
-
-| Tool | Persephone param | Playwright alias | Notes |
-|------|-----------------|------------------|-------|
-| `browser_evaluate` | `expression` | `function` | Auto-invokes function expressions: `() => ...` → `(() => ...)()`|
-| `browser_select_option` | `value` (string) | `values` (string[]) | Array = multi-select; first element used for single `<select>` |
-| `browser_wait_for` | `text`, `selector` | `time`, `textGone` | `time` = seconds sleep; `textGone` = wait until text absent |
-| `browser_tabs` | *(always listed)* | `action` enum | `list` (default), `new` (+ `url`), `close` (+ `index`), `select` (+ `index`) |
+`focusWebview()` is a no-op: `automation/input.ts` drives everything through JS events
+(`el.click()`, `KeyboardEvent` dispatch, native-setter fill), which need no OS focus and avoid
+stealing the user's window focus. This carries the same synthetic-input limitations as the
+browser/board targets — for example, a menu that handles Escape only from a focused element may
+not close on a synthetic `pressKey`, while a document-level Escape listener will. Content editing
+should go through `pages[i].content` or `script.execute`, not synthetic typing into Monaco.
 
 ### Text Input Strategy (Electron Webview Limitation)
 
-CDP `Input.dispatchKeyEvent` and `Input.insertText` do **not** work in Electron `<webview>` elements — the events don't cross the guest process isolation boundary. This is a known limitation confirmed by Electron, Playwright, and Puppeteer issue trackers.
+CDP `Input.dispatchKeyEvent` and `Input.insertText` do not work in Electron `<webview>` elements
+because events do not cross the guest process isolation boundary. The automation input layer
+auto-detects element type and uses the appropriate strategy:
 
-The `browser_type` tool (`automation/input.ts`) auto-detects element type and uses the appropriate strategy:
+| Element | Default | `slowly: true` |
+|---------|---------|-----------------|
+| `<input>` | Native prototype `.value` setter + InputEvent | `webview.insertText()` char by char |
+| `<textarea>` | Native prototype `.value` setter + InputEvent | `webview.insertText()` char by char |
+| contentEditable | `selectAll` + `webview.insertText(text)` | `webview.insertText()` char by char |
 
-| Element | Default (`slowly: false`) | `slowly: true` |
-|---------|--------------------------|-----------------|
-| `<input>` | Native prototype `.value` setter + InputEvent (atomic, single evaluate) | `webview.insertText()` char by char |
-| `<textarea>` | Native prototype `.value` setter + InputEvent (atomic, single evaluate) | `webview.insertText()` char by char |
-| contentEditable | `selectAll` + `webview.insertText(text)` (Electron native API) | `webview.insertText()` char by char |
-
-Key implementation details:
-- **Visible element preference:** When multiple elements match a selector (e.g., Gmail has a hidden textarea + visible contentEditable div with the same `aria-label`), the first **visible** match is used
-- **Atomic focus+fill:** For `<input>`/`<textarea>`, focus and value assignment happen in a single `Runtime.evaluate` call to prevent sites from intercepting focus between calls
-- **`webview.insertText()`:** Electron's native API that types at the Chromium level, bypassing Trusted Types CSP. Accessed via `IBrowserTarget.insertText()` → `BrowserTargetModel` → `webview.insertText()`
-- **`pressKey()`:** Uses JS `KeyboardEvent` dispatch via `Runtime.evaluate` (CDP `Input.dispatchKeyEvent` doesn't work in webviews)
+For input and textarea, focus and value assignment happen in one Runtime.evaluate call to prevent
+sites from intercepting focus between calls. Keyboard keys are dispatched as JavaScript
+`KeyboardEvent` events because CDP key dispatch does not cross webview boundaries.
 
 ### Iframe Snapshots
 
-`browser_snapshot` includes content from iframes (including JS-created and cross-origin ones). The approach:
+Automation snapshots include content from iframes, including dynamically created and cross-origin
+frames. The approach is:
 
-1. **Main frame:** `Accessibility.getFullAXTree()` — same as before
-2. **Discover iframes:** `Target.getTargets()` — finds all iframe targets (including dynamically created ones that `Page.getFrameTree` misses)
-3. **Attach per-iframe:** `Target.attachToTarget({ targetId, flatten: true })` → `sessionId`
-4. **Get iframe AX tree:** `Accessibility.getFullAXTree({}, sessionId)` — executed in the iframe's session
-5. **Merge:** Iframe content is indented under the `Iframe` placeholder node in the main snapshot
+1. Main frame: `Accessibility.getFullAXTree()`.
+2. Discover iframes: `Target.getTargets()`.
+3. Attach per iframe: `Target.attachToTarget({ targetId, flatten: true })`.
+4. Get each iframe AX tree in its session.
+5. Merge iframe content under the `Iframe` placeholder in the main snapshot.
 
-**Frame-scoped refs:** Main frame refs are `e123`, iframe refs are `f1-e456` (frame index prefix). `ref.ts` parses the prefix and uses the corresponding `sessionId` for `DOM.resolveNode` and `Runtime.callFunctionOn`, so `browser_click(ref="f1-e456")` works in the correct iframe context.
+Main-frame refs are `e123`; iframe refs are `f1-e456`. `ref.ts` parses the prefix and uses the
+corresponding session ID for `DOM.resolveNode` and `Runtime.callFunctionOn`, so a ref is acted on
+in the frame that minted it. Each new snapshot replaces only that host's map; an interleaved
+snapshot on another browser tab, board frame, or app window cannot retarget an existing ref. A ref
+becomes stale when its document or DOM node is replaced, and a ref from another host is rejected.
 
-**Overlay detection:** `detectOverlay()` checks for `dialog[open]`, `[role="dialog"][aria-modal="true"]`, and viewport-covering fixed/absolute elements. If detected, a hint line is prepended to the snapshot.
+A ref does not always denote an element. A `StaticText` node's backend ID can back a DOM text node,
+which has none of the Element methods used by the command bodies. `callOnRef` therefore coerces
+before invoking — `this.nodeType === 1 ? this : this.parentElement` — so the action lands on the
+element that displays the text. A ref with no element parent fails with a message naming the ref
+and node type instead of a `TypeError`. Refs remain unique because they are minted from the node's
+own backend ID rather than rewritten to the nearest ancestor.
+
+Consequently `callOnRef`'s `fn` argument must be a plain `function () {…}` expression: it is
+invoked with `.call(element)`, so an arrow function would keep its lexical `this` and silently
+act on the wrong object.
 
 ### Navigation Race Condition (Two-Phase Wait)
 
-`browser_navigate` and `browser_navigate_back` use a **two-phase wait** because the native view schedules the webview navigation while the guest document changes asynchronously:
+Navigation uses a **two-phase wait** because the native view schedules webview navigation while the
+guest document changes asynchronously:
 
-- `target.navigate(url)` / `target.back()` update the native browser model; the view then calls `webview.loadURL()` while the guest document changes asynchronously.
-- If the automation code immediately polls `document.readyState`, the old page is still loaded and `readyState === 'complete'` is already true — the poll exits immediately, returning a snapshot of the previous page.
+- `target.navigate(url)` / `target.back()` update the native browser model; the view then calls
+  `webview.loadURL()` while the guest document changes asynchronously.
+- If automation immediately polls `document.readyState`, the old page may still be loaded and
+  `readyState === 'complete'` is already true, returning a snapshot of the previous page.
 
-**Phase 1 (bridge the navigation-start gap):** Poll every 50 ms (up to 2 s) for either the URL to change OR `readyState` to go non-`complete`. This detects that navigation has started. The `catch(() => {})` silently ignores errors from the old page context being destroyed mid-poll.
+**Phase 1 (bridge the navigation-start gap):** poll every 50 ms (up to 2 s) for either the URL to
+change or `readyState` to go non-`complete`. This detects that navigation has started. Errors from
+the old page context being destroyed mid-poll are ignored.
 
-**Phase 2 (wait for load):** Poll every 100 ms (up to 10 s) for `readyState === 'complete'`. Again ignores errors — the new page context may not be ready immediately.
+**Phase 2 (wait for load):** poll every 100 ms (up to 10 s) for `readyState === 'complete'`.
+Errors are ignored because the new page context may not be ready immediately.
 
-This pattern is **required** for all commands that trigger a full page navigation. Do not simplify it to a single `readyState` check.
+This pattern is required for every full-page navigation. Do not simplify it to a single
+`readyState` check.
 
 ## Link Open Menu Helper
 
@@ -973,3 +985,4 @@ Additionally, `LinkViewModel.onGetLinkMenuItems` is an optional callback that al
 10. **DRM / Widevine CDM.** The app uses [Castlabs Electron (ECS)](https://github.com/castlabs/electron-releases) — a fork with Widevine DRM support. At startup, `components.whenReady()` in `main-setup.ts` ensures the CDM is downloaded. Production builds require VMP signing via Castlabs EVS (`scripts/vmp-sign.mjs`). Without VMP signing, DRM works on test pages but not on Netflix/Disney+.
 
 11. **MCP navigation must use a two-phase wait.** After calling `target.navigate()` / `target.back()`, the native view starts the webview navigation asynchronously. A single `readyState === 'complete'` check will see the *old* page still loaded and return immediately. Always use Phase 1 (wait for URL change or `readyState` non-complete) followed by Phase 2 (wait for `readyState === 'complete'`). See the "Navigation Race Condition" note in the Browser Automation section above.
+

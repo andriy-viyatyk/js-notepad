@@ -96,7 +96,8 @@ Persephone's built-in browser groups pages by **profile** — each profile is an
 
 ### Discovering configured profiles
 
-`get_app_info` returns the configured profile names and the default:
+`settings.browserProfiles` returns the configured profile names and `settings.defaultBrowserProfile`
+returns the default:
 
 ```json
 { "version": "4.0.3", "pageCount": 2, "activePageId": "abc",

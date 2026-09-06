@@ -204,7 +204,7 @@ for (const item of largeArray) {
 
 **Key behaviors:**
 - Accessing `ui` auto-creates a Log View page grouped with the source page (or standalone if no page context)
-- For MCP scripts (`runWithCapture`), `ui` uses the well-known MCP Log page (`mcp-ui-log`) — same page as `ui_push`. See [pages-architecture.md § Well-Known Pages](pages-architecture.md#8-well-known-pages)
+- For MCP scripts (`runWithCapture`), `ui` uses the well-known MCP Log page (`mcp-ui-log`) — the same page as `pages.logView`. See [pages-architecture.md § Well-Known Pages](pages-architecture.md#8-well-known-pages)
 - Accessing `ui` sets `groupedContentWritten = true`, suppressing default script output
 - Re-running a script reuses the existing grouped Log View (appends with separator)
 - Dialog results are always objects — `button` is `undefined` if canceled (page closed while pending)
@@ -542,11 +542,11 @@ declared child, and `logView` is both, so a get-or-create getter made every `hel
 and focus the Log View page as a side effect of a search (US-1351). `push(entries)` renders entries immediately and returns
 entry/dialog IDs; it does not wait for inline dialog answers. `dialogResult(id)` reports whether an
 inline dialog is unresolved or resolved, while the user answers it in the Log View page. The
-existing `ui_push` MCP tool remains available for callers that require its blocking behavior.
+The `pages.logView.push` call path remains available for agents and returns immediately; `dialogResult()` reports whether the user has answered an inline dialog.
 
 The Mermaid, SVG, and Image editors expose `savePngToFile(filePath)` — they rasterise their
 rendered output to PNG and write it to disk. This is the same capability used by each editor's
-toolbar "Save" action, surfaced to scripts and to MCP agents (which call it via `execute_script`,
+toolbar "Save" action, surfaced to scripts and to MCP agents (which call it via `script.execute`,
 then read the written file). The rendering is host-independent and runs at the model level, so it
 works even when the page is not the active tab; the Mermaid editor renders on demand if its preview
 has not been generated yet. The underlying capability is the `IImageExport` interface (see
@@ -848,7 +848,7 @@ When output is suppressed and the script throws an error, the error is displayed
 | F5 (script panel closed, JS/TS file) | `TextFileActionsModel` | From page state | Page content (or selection) |
 | F5 (notebook JS/TS note) | `NoteItemEditModel` | From note language | Note content as script |
 | Run button (script panel) | `ScriptPanelView.ts` | Always `"typescript"` | Script panel content |
-| MCP `execute_script` | `mcp-handler.ts` | Caller-specified (optional) | Script from MCP tool call |
+| MCP `script.execute` | `mcp-handler.ts` | Caller-specified (optional) | Script from an MCP call path |
 | Autoload (window open) | `AutoloadRunner.ts` | Determined by file extension | Registration scripts from `library/autoload/` |
 
 ## Autoload Scripts
@@ -1102,3 +1102,5 @@ Scripts have full Node.js access. This is by design for power users, but means:
 - Scripts can execute any Node.js code
 
 This is appropriate for a developer tool where the user writes/controls the scripts.
+
+

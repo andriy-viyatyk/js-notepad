@@ -264,7 +264,7 @@ export class EnvVarsEditor extends TextHostEditorModel<EnvVarsEditorState> {
     // ── Save / release / dispose ────────────────────────────────────────
 
     /** Delegate to host — edits flow through the host, so `host.modified` is the source of
-     *  truth (mirrors LinkEditor.modified). Without this override, `page.modified` / `list_pages`
+     *  truth (mirrors LinkEditor.modified). Without this override, `page.modified` / `pages`
      *  would report a dirty env-vars editor as unmodified, and the close-loop save prompt would
      *  be skipped. */
     get modified(): boolean {

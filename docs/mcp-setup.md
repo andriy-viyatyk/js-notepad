@@ -69,22 +69,14 @@ process, and the guide resources remain available.
 
 ## Available Tools
 
+The default manifest advertises two tools:
+
 | Tool | Description |
 |------|-------------|
-| **list_windows** | List all windows (open and closed) with their status, page count, and page metadata. Browser pages also include `profileName`, `isIncognito`, and `isTor`. |
-| **open_window** | Open or reopen a window by index. Closed windows are recreated with their persisted pages. |
-| **execute_script** | Execute JavaScript or TypeScript with access to `page` and `app` objects. Accepts an optional `language` parameter (`"javascript"` or `"typescript"`; defaults to `"javascript"`). The most powerful tool — can do anything the scripting system supports. |
-| **call** | Read or act on the live object model with a path. Use `args` for the final method, `value` for a writable property, and `maxLength` to bound long strings. It can target `windows[i].*` and the process-wide `main.*` tree; main-process script execution requires the separate opt-in below. Renderer calls also report open dialogs and popup menus: blocking renderer dialogs return a pending result with `dialogs[i].click(...)` / `cancel()` paths, while `menus[0]` exposes popup items and actions. Use `ui.elements` and `ui.highlight(...)` to explain and point at curated shell controls. Native OS dialogs are reported as requiring the user's response. Screenshot paths such as `windows[0].window.screen.screenshot` return an MCP image block alongside JSON metadata. |
-| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and a URL for normal sessions; private pages omit the URL and use the generic title `Browser`. Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
-| **get_page_content** | Get the content of a page by ID. Text-based pages return `{ id, title, content }`. Image pages (e.g. screen snips) return the rendered PNG as an image block in the tool result — you see the picture directly, even for a background (non-active) tab. Other non-text pages (browser, board, video, PDF, etc.) return `{ id, title, hint }` describing how to read them instead. |
-| **get_active_page** | Get the active page with metadata plus the same content/image/hint handling as `get_page_content`. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
-| **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `pages.openUrlInBrowserTab` or `execute_script` instead. |
-| **set_page_content** | Update text content of a page by ID. |
-| **open_url** | Legacy opener for a URL in the [built-in browser](./browser.md). The `call` equivalent is `pages.openUrlInBrowserTab(url, options)`, which returns a page id to use with `pages[pageId].editor`. |
-| **ui_push** | Push log entries, interactive dialogs, and output widgets to a Log View page — the recommended output channel for AI agents. Strings are shorthand for `log.info`. Dialog entries (`input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select`) block until the user responds. Output entries (`output.progress`, `output.grid`) support rich display — progress bars with upsert-by-id for real-time updates, and inline data grids from JSON or CSV strings. The Log View page is created automatically on first call and reused on subsequent calls. |
-| **read_guide** | Read a documentation guide by name (`overview`, `ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`, `browser`, `ui`, `ui-editors`). Returns the guide content as text. An alternative to fetching `persephone://guides/*` resources — works with AI clients that don't support MCP resources. New to Persephone? Start with `read_guide("overview")` for the mental model and a task → tool → guide routing table. |
-| **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), the default profile name (`defaultBrowserProfile`), application resource paths, and the published-board catalog URLs. Use this to discover valid profile names before calling `pages.openUrlInBrowserTab`. |
+| **call** | Read or act on the live object model with a path. Start with no path for the overview; use `args` for method arguments, `value` for assignments, and `maxLength` to bound long strings. |
+| **execute_tool** | Run a registered Agent Tool by id discovered through `tools.search`; pass `args` matching its input schema. |
 
+With `PERSEPHONE_MCP_CALL_ONLY` enabled, only `call` is advertised. All guide resources remain available by URI.
 ### Discovering the application shell with `call`
 
 The `call` tool is the discoverable route for the live application shell. Start with an empty path
@@ -116,44 +108,13 @@ The `call` route refuses attempts to disable the MCP server or change its port t
 `settings.set`, because either action would disconnect the current caller. The Settings page (or
 the direct script API `app.settings.set()`) remains available for an intentional change.
 
-### Browser Automation Tools
+### Browser automation through call
 
-Use the `call` paths for browser automation: open a web page with
-`pages.openUrlInBrowserTab(url, options)` and drive it through `pages[pageId].editor`; use
-`pages[pageId].editor` for a trusted board and `window.screen` for Persephone's own window. Find a
-board in `list_pages` by `editor: "board-view"` and read its `pageId` and `selectedBoard` fields.
-See `read_guide("browser")` for the full path list. The tools below remain available temporarily
-as older equivalents for compatible clients.
-
-> **Note:** The independent privacy guard below refuses user-opened incognito and Tor pages.
-
-#### Older `browser_*` tool reference
-
-Every `browser_*` tool accepts two optional parameters for targeting a specific browser page:
-
-- **`pageId`** — target an exact browser page by its ID (from `list_pages`). Takes precedence over `profileName`. The special value `"app"` targets Persephone's **own window** instead of a web page — see [Automating Persephone's own UI](#automating-persephones-own-ui) below.
-- **`profileName`** — target the browser page belonging to this profile (`""` = built-in default profile). Never matches incognito or Tor pages. If omitted, the active (or first) browser page is used.
-
-Targeting a page also **focuses** it — the resolved page becomes the active tab. This is a useful side-effect: subsequent untargeted calls stay on the now-active page. If no matching page is found, use `pages.openUrlInBrowserTab(url, { profileName })` to open one.
-
-| Tool | Description |
-|------|-------------|
-| **browser_navigate** | Navigate to a URL. Returns an accessibility snapshot of the loaded page. Accepts optional `pageId` and `profileName`. |
-| **browser_snapshot** | Get the accessibility snapshot of the current page — a YAML-like tree of elements with roles, names, and `[ref=eN]` IDs. Preferred over screenshots for structured, deterministic inspection. Accepts optional `pageId` and `profileName`. |
-| **browser_click** | Click an element. Accepts a CSS `selector`, an accessibility `ref` from a snapshot (e.g. `"e52"`), or a human-readable `element` description used as a CSS selector. Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
-| **browser_type** | Type text into an input element. Clears existing value first. Returns an updated snapshot. Accepts `selector` or `ref`. Optional `slowly: true` to type character by character (triggers key handlers); optional `submit: true` to press Enter after typing. Accepts optional `pageId` and `profileName`. |
-| **browser_select_option** | Select an option in a `<select>` element. Returns an updated snapshot. Accepts `selector` or `ref`. Pass `value` (string) or `values` (array, Playwright-compatible — first value is used). Accepts optional `pageId` and `profileName`. |
-| **browser_press_key** | Press a keyboard key (e.g. `"Enter"`, `"Tab"`, `"Escape"`, `"ArrowDown"`). Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
-| **browser_evaluate** | Run JavaScript in the page and return the result. Supports async expressions. Accepts `expression` (JS expression string) or `function` (Playwright-compatible — a function string like `"() => document.title"` that is automatically invoked). Accepts optional `pageId` and `profileName`. |
-| **browser_tabs** | Manage browser tabs. Accepts `action`: `"list"` (default) — return all tabs; `"new"` — open a new tab (optional `url`); `"close"` — close a tab by `index` (or the active tab if omitted); `"select"` — switch to a tab by `index`. Returns updated tab list. Accepts optional `pageId` and `profileName`. |
-| **browser_hover** | Hover over an element, triggering `mouseenter` and `mouseover` events. Useful for revealing tooltips, dropdown menus, and other hover-dependent UI. Accepts `selector` or `ref`. Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
-| **browser_navigate_back** | Navigate back in browser history. Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
-| **browser_wait_for** | Wait for a condition on the page. Returns a snapshot when done. Options: `selector` — wait for a CSS element to appear; `text` — wait for text to appear; `textGone` — wait until text disappears (Playwright-compatible); `time` — wait a fixed number of seconds, e.g. `2` (Playwright-compatible). Optional `timeout` in ms (default 30000) applies to selector/text/textGone modes. Accepts optional `pageId` and `profileName`. |
-| **browser_take_screenshot** | Take a screenshot of the current page. Returns a base64-encoded PNG image. Accepts optional `pageId` and `profileName`. |
-| **browser_network_requests** | Get the network request log for the current tab. Returns an array of `{ url, method, statusCode, resourceType, requestHeaders, responseHeaders }`. Accepts optional `pageId` and `profileName`. |
-| **browser_close** | Close the active browser tab. Accepts optional `pageId` and `profileName`. |
-
-> **Tip:** `pages[pageId].editor.snapshot()` is the recommended way to inspect page state — it is faster and more deterministic than screenshots. After any click or type action, the path result includes updated state so you can verify the result without a separate call.
+Use the live object-model paths for browser automation: open a page with
+`pages.openUrlInBrowserTab(url, options)`, then drive it through
+`pages[pageId].editor`. Use `pages[pageId].editor` for a trusted board and
+`window.screen` for Persephone's own window. The browser resource
+`persephone://guides/browser` documents targeting, snapshots, refs, waits, and privacy behavior.
 
 > **Privacy guard:** User-opened incognito and Tor pages are refused by the browser host and by
 > `window.screen` while that page is active. A private page opened by the agent remains available
@@ -178,8 +139,8 @@ What's different:
 - The snapshot only ever shows the app **chrome** (tab strip, sidebar, toolbars) plus the **active page's** content — other open tabs stay hidden until you click their tab to activate them.
 - Browser navigation and inner-tab management don't apply to the app window — use `pages` and page
   methods to open or switch Persephone pages instead.
-- Editing document content (e.g. typing into a Monaco editor) should go through `set_page_content`
-  or `execute_script`, not synthetic typing. `window.screen.type` is for simple inputs like dialogs
+- Editing document content (e.g. typing into a Monaco editor) should go through `pages[i].content`
+  or `script.execute`, not synthetic typing. `window.screen.type` is for simple inputs like dialogs
   and search boxes.
 - Use `windows[i].window.screen` to target a specific window.
 
@@ -189,7 +150,7 @@ Persephone's built-in browser supports multiple **profiles** — each is an isol
 
 **Discovering profiles**
 
-Call `get_app_info` to discover which profiles are configured:
+Call `settings.browserProfiles` to discover which profiles are configured:
 
 ```json
 {
@@ -205,7 +166,7 @@ Call `get_app_info` to discover which profiles are configured:
 
 **Profile fields on browser pages**
 
-`list_pages` and `get_active_page` include these fields for `browser-view` pages:
+`pages` and `page` include these fields for `browser-view` pages:
 
 | Field | Description |
 |-------|-------------|
@@ -215,12 +176,12 @@ Call `get_app_info` to discover which profiles are configured:
 | `url` | The active tab's URL. Omitted for incognito/Tor pages (privacy). |
 | `title` | The Persephone page title. Incognito and Tor pages use the generic `Browser` title so the site name is not exposed outside the private session. |
 
-`list_windows` also includes `profileName`, `isIncognito`, and `isTor` for browser pages — but not `url`.
+`windows` also includes `profileName`, `isIncognito`, and `isTor` for browser pages — but not `url`.
 
 **Targeting a specific profile**
 
 Pass `profileName` to `pages.openUrlInBrowserTab` to open or reuse the page belonging to that
-profile. Pass its returned `pageId` (or one from `list_pages`) for precise targeting when several
+profile. Pass its returned `pageId` (or one from `pages`) for precise targeting when several
 pages share a profile:
 
 ```
@@ -243,14 +204,14 @@ that profile, or creates a new page — it never attaches to a different-profile
 pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })
 ```
 
-Incognito and Tor pages are never automatable: `profileName` never matches them, a direct `pageId` targeting such a page returns a privacy-refusal error, and `pageId: "app"` is refused while one of them is active. `execute_script` remains unrestricted by this browser-automation guard and can still access private-session state.
+Incognito and Tor pages are never automatable: `profileName` never matches them, a direct `pageId` targeting such a page returns a privacy-refusal error, and `pageId: "app"` is refused while one of them is active. `script.execute` remains unrestricted by this browser-automation guard and can still access private-session state.
 
 ### Multi-Window Support
 
-All tools (except `list_windows`) accept an optional `windowIndex` parameter to target a specific window. If omitted, the first open window is used.
+All tools (except `windows`) accept an optional `windowIndex` parameter to target a specific window. If omitted, the first open window is used.
 
-- Use `list_windows` to discover all windows and their status (`open` or `closed`). Browser pages in the list include `profileName`, `isIncognito`, and `isTor` so you can identify which profile's page is in each window.
-- Closed windows have persisted pages but cannot be targeted directly — use `open_window` to reopen them first
+- Use `windows` to discover all windows and their status (`open` or `closed`). Browser pages in the list include `profileName`, `isIncognito`, and `isTor` so you can identify which profile's page is in each window.
+- Closed windows have persisted pages but cannot be targeted directly — use `windows[i].open()` to reopen them first
 - After reopening, target the window with any tool using its `windowIndex`
 
 ## Available Resources
@@ -260,32 +221,20 @@ MCP resources are read-only documents that AI clients can discover and read to g
 | Resource | URI | Description |
 |----------|-----|-------------|
 | **Overview Guide** | `persephone://guides/overview` | Start here — the mental model (windows, pages, editors, boards, tools) and a task → tool → guide routing table. Read this first if you are new to Persephone. |
-| **ui_push Guide** | `persephone://guides/ui-push` | Log View output channel — entry types, dialogs, examples. Read when showing output to the user. |
+| **pages.logView.push Guide** | `persephone://guides/ui-push` | Log View output channel — entry types, dialogs, examples. Read when showing output to the user. |
 | **Pages Guide** | `persephone://guides/pages` | Pages & windows — page properties, editor types, creating pages, multi-window support. Read when working with tabs or documents. |
-| **Scripting Guide** | `persephone://guides/scripting` | Full scripting API — `app` object, editor facades, TypeScript, Node.js access. Read when using `execute_script`. |
+| **Scripting Guide** | `persephone://guides/scripting` | Full scripting API — `app` object, editor facades, TypeScript, Node.js access. Read when using `script.execute`. |
 | **Graph Guide** | `persephone://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.editor` facade, query and traversal methods. Read when working with force-graph pages. |
 | **Notebook Guide** | `persephone://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
 | **Links Guide** | `persephone://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
 | **Boards Guide** | `persephone://guides/boards` | Board authoring/automation reference — bridge API, theme contract, local vendoring, `pages[pageId].editor` testing. Read before building or opening a board. |
-| **Tools Guide** | `persephone://guides/tools` | Agent Tools registry — `search_tools`/`execute_tool`, the stdin-JSON + result-marker contract, `.env` secrets. Read before using `search_tools`/`execute_tool`. |
+| **Tools Guide** | `persephone://guides/tools` | Agent Tools registry — `tools.search`/`execute_tool`, the stdin-JSON + result-marker contract, `.env` secrets. Read before using `tools.search`/`execute_tool`. |
 | **Browser Guide** | `persephone://guides/browser` | Browser automation in depth — `call` paths, snapshot format, ref lifecycle, waiting strategies, errors, and older-tool equivalents. |
 | **UI Guide** | `persephone://guides/ui` | Persephone's own interface — what each always-visible element is for, its stable selector, where Settings lives, and how to highlight an element on screen. Read when helping the user with the app itself. |
 | **UI Editors Guide** | `persephone://guides/ui-editors` | The editor catalog — what each editor is for, how the user opens it, what it can do. Read when explaining Persephone's capabilities to the user. |
 | **Full Guide** | `persephone://guides/full` | All guides combined into one document. Only read if you need the complete reference. |
 
 AI agents also receive **server instructions** on connection — a concise overview of persephone and its main workflows, with pointers to which guide to read for each task. This means agents have immediate context without reading any resource.
-
-> **Tip:** All guides are also available via the `read_guide` tool — call `read_guide({ guide: "scripting" })` instead of fetching `persephone://guides/scripting`. This is useful for AI clients that don't support MCP resources.
-
-> **Note:** Claude Code users working inside the persephone project already have full documentation context via CLAUDE.md, so they rarely need to fetch resources explicitly. Resources are most useful for standalone AI clients connecting without any project context.
-
-## Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `mcp.enabled` | `false` | Enable/disable the MCP HTTP server |
-| `mcp.port` | `7865` | Port number for the MCP server |
-| `main.scripting.enabled` | `false` in packaged builds | Allow the MCP `call` tool to execute code in the main process. Enable this only for trusted clients; main-process code can freeze the app. Development builds enable it by default. The Settings label is **Allow main-process scripts**. |
 
 The `call` tool follows the browser privacy boundary: a user-opened incognito or Tor page is not
 readable through its object-model path, while a private page opened by the agent is available to
@@ -297,13 +246,13 @@ that agent. The `app.call()` method in ordinary scripts has the same page privac
 
 Ask your AI agent: *"Read the current page in persephone"*
 
-The agent will use `get_active_page` to retrieve the content.
+The agent will use `page` to retrieve the content.
 
 ### Create a page with content
 
 Ask: *"Create a new JavaScript page in persephone with a hello world script"*
 
-The agent will use `create_page` with `language: "javascript"` and the content.
+The agent will use `pages.addEditorPage` with `language: "javascript"` and the content.
 
 ### Open a URL in the browser
 
@@ -319,8 +268,8 @@ Ask: *"Go to my Outlook inbox in the work profile and tell me the subject of the
 
 The agent will:
 
-1. `get_app_info` — confirm that the `"work"` profile exists in `browserProfiles`
-2. `list_pages` — find the browser page whose `profileName` is `"work"`; note its `url`
+1. `settings.browserProfiles` — confirm that the `"work"` profile exists in `browserProfiles`
+2. `pages` — find the browser page whose `profileName` is `"work"`; note its `url`
 3. `pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })` — navigate to Outlook if not already there
 4. `pages[pageId].editor.snapshot()` — read the page structure
 5. Extract and return the first unread subject from the snapshot
@@ -344,27 +293,27 @@ The agent will use the browser paths:
 
 Ask: *"Parse the JSON in the active page and create a CSV version"*
 
-The agent will use `execute_script` to read the active page content, transform it, and write the result to a grouped page.
+The agent will use `script.execute` to read the active page content, transform it, and write the result to a grouped page.
 
 ### Show progress and ask questions
 
 Ask: *"Analyze the JSON in the active page and ask me before making changes"*
 
-The agent will use `ui_push` to log status messages and show an interactive confirmation dialog in the Log View:
+The agent will use `pages.logView.push` to log status messages and show an interactive confirmation dialog in the Log View:
 
 ```
-ui_push({ entries: [
+pages.logView.push({ entries: [
     "Analyzing JSON structure...",
     { type: "log.success", text: "Found 42 records" },
     { type: "input.confirm", message: "Apply formatting to all records?" }
 ] })
 ```
 
-The tool blocks until you click a button. See the [ui API reference](./api/ui-log.md#mcp-ui_push-tool) for all entry types and dialog options.
+The tool blocks until you click a button. See the [ui API reference](./api/ui-log.md#mcp-pages.logView.push-tool) for all entry types and dialog options.
 
 ### Advanced scripting
 
-The `execute_script` tool gives AI access to the full [Scripting API](scripting.md):
+The `script.execute` tool gives AI access to the full [Scripting API](scripting.md):
 
 - **`page`** — Active page: content, language, editor, grouped output
 - **`app.pages`** — All pages: create, open, close, navigate
@@ -389,4 +338,6 @@ The `execute_script` tool gives AI access to the full [Scripting API](scripting.
 **Tool calls timing out?**
 - The server has a 30-second timeout for script execution
 - Long-running scripts may need to be broken into smaller steps
-- `ui_push` calls with dialog entries have no timeout — they block until the user responds
+- `pages.logView.push` calls with dialog entries have no timeout — they block until the user responds
+
+

@@ -63,7 +63,7 @@ Links from a group node to another node indicate **group membership** (the targe
 
 ## `page.editor` API Reference
 
-Access via `execute_script`:
+Access via `script.execute` or the `call` path `pages[i].editor`:
 
 ```javascript
 const graph = page.editor;
@@ -213,7 +213,7 @@ const chain = graph.getGroupChain("some-node"); // [parent-group, grandparent-gr
 
 ## Errors & verification
 
-- **`create_page` / `set_page_content` accept broken graph JSON silently** — the failure shows
+- **`pages.addEditorPage` / `pages[i].content` accept broken graph JSON silently** — the failure shows
   up in the editor, not in the tool result. Unparseable JSON renders as a parse-error message;
   structurally wrong JSON (e.g. a link pointing at a nonexistent node id) renders a partial or
   empty graph.
@@ -221,7 +221,7 @@ const chain = graph.getGroupChain("some-node"); // [parent-group, grandparent-gr
   and make sure every link's `source`/`target` matches a node `id`. To confirm the render,
   activate the page and `window.screen.snapshot()` — a crashed editor shows
   `Editor crashed` plus the exception text.
-- **`page.editor` on a non-graph page** rejects — check `list_pages` for
+- **`page.editor` on a non-graph page** rejects — check `pages` for
   `editor: "graph-view"` first.
 - **Writing `page.content` from stale parsed data**: if you `JSON.parse(page.content)` on a
   live graph, nodes may carry D3 runtime fields (`x`, `y`, `vx`, `vy`, `index`). Writing them

@@ -69,7 +69,7 @@ export class ScriptContext {
     private previousUiDescriptor: PropertyDescriptor | undefined;
 
     constructor(page?: EditorOrHost, consoleLogs?: ConsoleLogEntry[], libraryPath?: string) {
-        // consoleLogs is only passed for MCP-originated runs (execute_script, `call`) — that is the
+        // consoleLogs is only passed for MCP-originated runs (script.execute, `call`) — that is the
         // provenance signal: browser pages such a run opens are "opened by agent".
         const isMcp = !!consoleLogs;
         this.page = page ? new PageWrapper(page, this.releaseList, this.outputFlags) : undefined;

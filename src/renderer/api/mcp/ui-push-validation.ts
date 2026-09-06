@@ -61,9 +61,9 @@ function knownEntryTypes(): string {
 }
 
 /**
- * Normalize one ui_push-compatible entry, preserving its established validation rules.
+ * Normalize one Log View-compatible entry, preserving its established validation rules.
  *
- * `strictTypes` rejects an entry type that is not one of the documented ones. The `ui_push` tool
+ * `strictTypes` rejects an entry type that is not one of the documented ones. The Log View call
  * does **not** pass it, so that tool's behaviour is unchanged; `pages.logView.push` does.
  *
  * The reason is a real failure, observed in US-1324's acceptance run: a Haiku agent guessed the

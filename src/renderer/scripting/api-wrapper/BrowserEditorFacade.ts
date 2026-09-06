@@ -79,8 +79,8 @@ const BROWSER_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.i
 Use elements for Persephone browser chrome (address bar, toolbar, tabs host, and blocked-popup bar);
 those controls are not in snapshot(). Use snapshot() for the web page inside the webview and pass its
 returned refs as { ref: "e52" } to supported target methods. Plain strings are always CSS selectors.
-snapshot() may begin with # <overlay> when a modal covers the page. browser_tabs maps to
-tabs/addTab/closeTab/switchTab, browser_close closes the active browser tab, and screenshot() returns
+snapshot() may begin with # <overlay> when a modal covers the page. The editor's tabs map to
+tabs/addTab/closeTab/switchTab, closeTab closes the active browser tab, and screenshot() returns
 metadata plus an inline image block through call. Transient menus, drawers, dialogs, suggestions,
 downloads, and popup actions are not part of the default curated elements list; use the chrome control
 that opens them first. snapshot() reports a field's role, accessible name and ref but never its
@@ -176,7 +176,7 @@ export class BrowserEditorFacade implements IAiVisible {
 
     /**
      * Get an accessibility snapshot of the page as a YAML-like tree.
-     * Format matches Playwright MCP's browser_snapshot output.
+     * Format matches Playwright MCP's accessibility-snapshot output.
      * Each interactive element has a ref (e.g., ref=e52) usable for targeting.
      */
     async snapshot(options?: TabOption): Promise<string> {
@@ -401,7 +401,7 @@ export class BrowserEditorFacade implements IAiVisible {
      * this resolves immediately, before the new page exists. That matters after
      * `pages.openUrlInBrowserTab(...)`, which returns its page id before the document is ready —
      * prefer `waitFor({ selector })` or `waitFor({ text })` there, which wait for the content you
-     * actually expect. The `browser_navigate` tool path avoids the same trap with a two-phase wait
+     * actually expect. The navigation path avoids the same trap with a two-phase wait
      * (`navigateAndWait` in automation/operations.ts) that first watches for the URL to change or
      * readyState to leave "complete".
      *
