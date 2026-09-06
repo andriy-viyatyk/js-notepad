@@ -2,10 +2,10 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-09-06
 **Started:** 2026-09-06
-**Completed:** —
+**Completed:** 2026-09-06
 **Roadmap:** [agent-transparency-roadmap.md](../agent-transparency-roadmap.md), epic 7 of 7 — the last one
 
 ## Overview
@@ -251,13 +251,13 @@ is the user's to do — and no version bump happens here.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1343](../tasks/US-1343-call-overview/README.md) | The `call("")` overview — optional `path` and a high-level area map | Planned |
-| [US-1344](../tasks/US-1344-script-execute/README.md) | `script.execute(code)` — the renderer half of gated scripting, replacing `execute_script` | Planned |
-| [US-1345](../tasks/US-1345-guide-prose-to-help/README.md) | Retire the `read_guide` tool: resources stay, operational prose moves into `$help` | Planned |
-| [US-1346](../tasks/US-1346-call-only-flag/README.md) | The `PERSEPHONE_MCP_CALL_ONLY` flag, and the `waitForNavigation` documentation duty | Planned |
-| [US-1347](../tasks/US-1347-qa-suite-for-call/README.md) | Rewrite the QA suite for `call`: every scenario starts from a bare call | Planned |
-| [US-1348](../tasks/US-1348-two-model-gate/README.md) | The gate: the Haiku pass and the Codex pass, logged in `qa/runs/` | Planned |
-| [US-1349](../tasks/US-1349-deletion/README.md) | Delete the thirty-two tools, the highlight recipe, the per-tool QA files; rewrite the manifest instructions | Planned |
+| [US-1343](../tasks/US-1343-call-overview/README.md) | The `call("")` overview — optional `path` and a high-level area map | Reviewed |
+| [US-1344](../tasks/US-1344-script-execute/README.md) | `script.execute(code)` — the renderer half of gated scripting, replacing `execute_script` | Reviewed |
+| [US-1345](../tasks/US-1345-guide-prose-to-help/README.md) | Retire the `read_guide` tool: resources stay, operational prose moves into `$help` | Reviewed |
+| [US-1346](../tasks/US-1346-call-only-flag/README.md) | The `PERSEPHONE_MCP_CALL_ONLY` flag, and the `waitForNavigation` documentation duty | Reviewed |
+| [US-1347](../tasks/US-1347-qa-suite-for-call/README.md) | Rewrite the QA suite for `call`: every scenario starts from a bare call | Reviewed |
+| [US-1348](../tasks/US-1348-two-model-gate/README.md) | The gate: the Haiku pass and the Codex pass, logged in `qa/runs/` | Reviewed |
+| [US-1349](../tasks/US-1349-deletion/README.md) | Delete the thirty-two tools, the highlight recipe, the per-tool QA files; rewrite the manifest instructions | Reviewed |
 
 Order matters more here than in any previous epic, and it is not negotiable at four points:
 US-1343 precedes everything because the gate's entry point is the overview; US-1344 and US-1345
@@ -309,9 +309,48 @@ carried forward from earlier epics at the user's explicit request; items 3 onwar
    once more because the programme is now finished and the exposure is now permanent rather than
    accumulating.
 
-5. **Anything the two QA passes could not exercise.** Filled in by US-1348 with the specific rows, if
-   any. A capability nobody reached from a bare `call` does not get its tool deleted (decision 7),
-   and lands here instead.
+5. **Nothing was withheld by the QA passes.** All 32 capabilities were reached from a bare `call` by
+   at least one agent, so decision 7's third criterion was met in full and no tool was kept for lack
+   of evidence. `open_window` was the only row in doubt and it passed once a closed window could be
+   produced at all — see the run log.
+
+6. **Two browser defects are real, pre-existing, and were deliberately not fixed.** Found by the
+   gate and left alone because the deleted tool and its replacement behave **identically**, so the
+   replacement is faithful and the deletion is not what caused them:
+   - `pages[i].editor.networkRequests()` returns an empty array for browser pages. So did
+     `browser_network_requests`, verified on the same page. Network logging appears not to record
+     for browser pages at all.
+   - `pages[i].editor.back()` does not return after a link-click navigation, though it works after
+     an explicit `navigate()`. `browser_navigate_back` behaved the same way on the same page.
+   **Assumption taken:** these are ordinary product bugs, not roadmap work, and each deserves its
+   own task rather than a fix rushed inside a deletion gate.
+
+7. **`pressKey` cannot perform a browser default action, by construction.** It dispatches a
+   synthetic `KeyboardEvent` through `evaluate`, which browsers ignore for default actions: it
+   inserts no text and submits no form. The retired `browser_press_key` did exactly the same.
+   **Assumption taken:** documented rather than reimplemented — the member summary now says so and
+   points at `type()` and `click()`. Making it dispatch trusted CDP input events would be a genuine
+   improvement and a behaviour change to shared automation code; it is worth a task if you want it.
+
+8. **The non-`call` test-agent skill now models a manifest that no longer exists.**
+   `.claude/skills/mcp-test-agent/SKILL.md` lists `allowed-tools` for the deleted tools, so invoking
+   it would hand the agent almost nothing. **Assumption taken:** left in place, not deleted — it is
+   your test harness and the standing rule is not to delete your fixtures without asking. Retire it,
+   or repoint it at `call` + `execute_tool`, as you prefer.
+
+9. **`process.env` was compiling to `{}` throughout the main process (fixed, US-1352), and the fix
+   deserves a second pair of eyes.** The main-process Vite build was never marked as a Node build,
+   so nineteen environment reads in the shipped bundle were dead — including
+   `command-runner`'s `env: { ...process.env }`, which had been starting every Agent Tool and board
+   backend child process with the parent environment stripped, PATH included. The fix is
+   `ssr: { target: "node" }` + `build.ssr: true` in `scripts/dev.mjs` and `scripts/build-prod.mjs`.
+   **Assumption taken:** this is the correct fix and matches what Electron Forge's own Vite plugin
+   does; typecheck, lint, build and a cold start all pass. But it changes how the main bundle is
+   produced, so it is worth confirming against a packaged installer build before release.
+
+10. **The API reference omits `app.events`, `app.pages.compare` and `logView`.** Raised by
+    `/review` at epic close; pre-existing and not consolidation work. **Assumption taken:** recorded
+    rather than fixed, so it is not lost.
 
 ## Notes
 
@@ -338,3 +377,32 @@ The flag decision (decision 1) is the one most worth revisiting if it looks wron
 environment variable over a setting explicitly because EPIC-089 had just spent a task deleting a
 settings-shaped flag of the same kind, and consistency with that judgement was worth more than the
 convenience of flipping it from the Settings editor.
+
+### 2026-09-06 — epic completed
+
+Seven tasks, three standalone fixes found along the way, and one gate that paid for itself.
+
+**The manifest went from 34 tools to 2** — `call` and `execute_tool` — verified against the running
+app by raw JSON-RPC rather than by reading the code. With `PERSEPHONE_MCP_CALL_ONLY` set it is 1.
+All 13 guide resources remain. The roadmap's end state is reached.
+
+Both QA passes were green ([the run log](../../qa/runs/2026-09-06-epic-090-deletion-gate.md)):
+Haiku through `mcp-test-agent-call`, and Codex against the genuinely reduced manifest. No scenario
+failed; two PARTIALs, both fixed.
+
+**Decision 7's abort criteria were not needed, but they were not free either.** `open_window` came
+within one investigation of being kept: no closed window could be produced to reopen, and only
+reading `windowOnClose` revealed that a closed window is retained solely when one of its pages is
+modified or pinned. Pinning a page made the test possible and the row passed honestly. That is the
+difference between a gate and a formality.
+
+**What the gate found that nothing else would have.** Five defects, three fixed inside it — a stale
+`page.editor.url` that made an agent report a working click as a failure, an undocumented
+`pressKey` limitation, and a Log View help line that taught agents CSV grids do not exist. And one
+that had nothing to do with this roadmap at all: the main-process build compiled every
+`process.env` to `{}`, which had been stripping PATH from every child process spawned by Agent
+Tools and board backends. It surfaced only because the call-only flag refused to turn on and the
+reason had to be chased into the bundle.
+
+Two tools remain and both are honest: `call` is the endpoint, and `execute_tool` stays because its
+replacement could not be proved without a human running one real tool. Principle 3 held to the end.

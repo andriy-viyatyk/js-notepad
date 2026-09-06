@@ -1,3 +1,77 @@
+## EPIC-090 - Consolidation: the call-only manifest, the two-model gate, and the deletion of thirty-two tools
+
+Completed 2026-09-06. [Epic document](EPIC-090.md). Epic 7 of 7 - the last - in the
+[agent transparency roadmap](../agent-transparency-roadmap.md), and the only one whose main
+deliverable was subtraction.
+
+**Persephone's MCP manifest went from 34 tools to 2**: `call`, and `execute_tool`. With
+`PERSEPHONE_MCP_CALL_ONLY` set it is 1 - `call` alone, which is the end state the roadmap set out
+to reach. All 13 guide resources remain, reachable by URI; only the `read_guide` *tool* went,
+because a resource costs an agent nothing until it reads one while a tool costs a slot in every
+session's manifest.
+
+**Nothing was deleted on the strength of a table.** Thirty of the tools carried a retirable marking
+from epics 085-089; this epic added replacements for the last two (`execute_script` becomes
+`script.execute(code)`, `read_guide` becomes resources plus `$help`), then put all 32 in front of a
+gate: ten scenarios covering every deleted capability, each starting from `call` with **no path**,
+run twice - Haiku through `mcp-test-agent-call`, and Codex against the genuinely reduced manifest.
+No scenario failed. Two PARTIALs, both fixed and the affected surface re-run
+([run log](../../qa/runs/2026-09-06-epic-090-deletion-gate.md)).
+
+**Two tools survive and both survive honestly.** `call` is the endpoint. `execute_tool` stays
+because its replacement `tools.execute` could not be proved without a human running one real tool -
+every registered toolset on this machine calls a live service with the user's credentials, and
+registering a scratch one needs a click on a trust dialog an agent must not take on its own behalf.
+Principle 3 - *retire nothing until its replacement passes the same test* - held to the last row.
+
+**`open_window` came within one investigation of joining it.** No closed window could be produced to
+reopen, and only reading `windowOnClose` revealed why: a closed window is retained solely when one
+of its pages is modified or pinned. Pinning a page made the test possible and the row passed on its
+own merit. That is the difference between a gate and a formality.
+
+**The flag is an environment variable, not a setting**, and deliberately so: EPIC-089 had spent a
+whole task one day earlier deleting `mcp.browser-tools.enabled` and its eight files of plumbing
+because a switch that trims the manifest reads to a user as a privacy control and is not one. Adding
+a second of that shape immediately afterwards would have been incoherent. Ten lines in one file, off
+by construction.
+
+**What the gate was actually worth.** Five defects it alone would have caught. Three fixed inside
+it: `page.editor.url` went stale after an in-page navigation, so an agent clicked a link, read the
+old URL and reported to the user that the click had done nothing; `pressKey`'s summary never said it
+performs no browser default action; and the Log View help claimed CSV grids without naming the
+`contentType` discriminator, so an agent concluded they did not exist. Two left alone on purpose,
+because the deleted tool and its replacement behave identically and the replacement is therefore
+faithful: `networkRequests()` returns empty for browser pages, and `back()` does not return after a
+link-click navigation.
+
+**And one that had nothing to do with this roadmap.** The main-process Vite build was never marked
+as a Node build, so every `process.env` compiled to `{}` - nineteen dead reads in the shipped
+bundle, including `command-runner`'s `env: { ...process.env }`, which had been starting every Agent
+Tool and board-backend child process with the parent environment stripped, PATH included. It
+surfaced only because the call-only flag refused to turn on and the reason had to be chased into the
+bundle (US-1352).
+
+Three standalone fixes came out of the epic besides: US-1350 (the MCP Inspector's result editor
+never filled its RESULT panel), US-1351 (`call helpSearch(...)` opened the MCP Log page as a side
+effect of a *search*, because `helpSearch` walks every `node: true` member and `pages.logView`'s
+getter created the page), and US-1352 above.
+
+| Task | Title |
+|------|-------|
+| [US-1343](../tasks/US-1343-call-overview/README.md) | The `call("")` overview - optional `path` and a high-level area map |
+| [US-1344](../tasks/US-1344-script-execute/README.md) | `script.execute(code)` - the renderer half of gated scripting |
+| [US-1345](../tasks/US-1345-guide-prose-to-help/README.md) | Retire `read_guide`'s prose: resources stay, operations move into `$help` |
+| [US-1346](../tasks/US-1346-call-only-flag/README.md) | The `PERSEPHONE_MCP_CALL_ONLY` flag, and the `waitForNavigation` decision |
+| [US-1347](../tasks/US-1347-qa-suite-for-call/README.md) | Rewrite the QA suite for `call`, and the deletion gate |
+| [US-1348](../tasks/US-1348-two-model-gate/README.md) | The gate - the Haiku pass and the Codex pass |
+| [US-1349](../tasks/US-1349-deletion/README.md) | Delete the thirty-two tools and rewrite the manifest instructions |
+
+**The epic document's Needs user check list is the one to read in the morning** - it collects every
+open item from epics 086-089 as well as this one's, including the `execute_tool` marking that is a
+single `call` away from being finished.
+
+---
+
 ## EPIC-089 - The browser and the app window through `call`, and the retirement of fifteen tools
 
 Completed 2026-09-06. [Epic document](EPIC-089.md). Epic 6 of 7 in the
