@@ -283,6 +283,30 @@ procedure; the model stays Haiku for the gate, with Codex as the second model fa
    in `assets/mcp-res-ui.md`, and the per-tool QA files; rewrite the manifest instructions.
 4. Fail → the flag stays off, the failing surface's epic reopens, and nothing is deleted.
 
+## The `call("")` overview — the agent's first step (recorded 2026-09-06, for EPIC-090)
+
+User observation: the `call` tool's manifest marks `path` as **required**, so a fresh agent has to
+guess a first path instead of being invited to start empty. The handler already treats a missing
+`path` as `""` (`src/main/mcp/tools/call-tools.ts`), so the fix is only the schema: `path` becomes
+optional, described as "omit for the overview".
+
+The overview itself should do more than list root member names. `call("")` (or `call` with no
+arguments) is the natural home for a **high-level path map**: one line per top-level area — `pages`,
+`page`, `windows`, `tools`, `boards`, `settings`, `dialogs`, `menus`, `main`, `helpSearch`, … — with a
+short description of what each path is for and one example path under it, so an agent can pick the
+most suitable branch and dig down from there. The existing per-node hints and `$help` stay as the
+next level of detail; the overview is the map that points at them.
+
+EPIC-090 owns this: it is the epic that hides every tool except `call` and rewrites the manifest
+instructions, so the first thing a `call`-only agent sees is decided there. Requirements for the task:
+
+1. `path` optional in the manifest; no path ≡ `""`.
+2. `call("")` returns the path map (area → purpose → example path) before the raw member list, kept
+   short enough to be cheap on every session.
+3. The tool description's "Start with path \"\"" line becomes "Start with no path".
+4. The QA re-run in the final gate starts every scenario from `call` with no path and records
+   whether the map led the agent to the right branch without a wrong turn.
+
 ## Out of scope / recorded concerns
 
 - **Native OS dialogs** (file pickers, main-process message boxes) can be *reported* by attention
