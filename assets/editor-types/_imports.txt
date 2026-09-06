@@ -4,10 +4,12 @@ board-vars.d.ts
 boards.d.ts
 browser-editor.d.ts
 common.d.ts
+compare.d.ts
 downloads.d.ts
 draw-editor.d.ts
 editors.d.ts
 events.d.ts
+file-diff-editor.d.ts
 fs.d.ts
 generic-editor.d.ts
 graph-editor.d.ts

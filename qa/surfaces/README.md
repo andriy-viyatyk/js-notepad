@@ -28,6 +28,7 @@ Two things these files are for:
 | [editors/text.md](editors/text.md) | Monaco/text editor elements, actions, conditional controls, and host state | EPIC-086 (US-1312) |
 | [editors/preview.md](editors/preview.md) | Markdown, HTML, SVG, and Mermaid preview elements, actions, and boundaries | EPIC-086 (US-1313) |
 | [editors/media.md](editors/media.md) | Image and video/audio editor elements, facades, media state, and dialogs | EPIC-086 (US-1314) |
+| [editors/diff.md](editors/diff.md) | File-diff revision state, controls, and compare-mode pairs | EPIC-086 (US-1315) |
 | [menus.md](menus.md) | Popup and context menus, the `menus` node | EPIC-084 (US-1299) |
 | [windows.md](windows.md) | Multiple windows, open and closed, and the redistributed application facts | EPIC-085 (US-1303) |
 

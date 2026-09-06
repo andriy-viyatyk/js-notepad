@@ -56,6 +56,9 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
     readonly editorId = "file-diff";
     protected readonly displayName = "File Diff";
 
+    private _diffStateReady = false;
+    private _diffResolution = 0;
+
     /** Set once `applyDiffRevisions` has installed a caller-chosen comparison
      *  (US-637). Tells `initDiffDefaults` to keep `from`/`to` untouched so a late
      *  git-detection re-run can't clobber the explicit selection. */
@@ -70,6 +73,11 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
     readonly fileTree = new GitTreeModel();
 
     getIconElement = (): SVGElement | undefined => CompareIcon.createElement({ width: 16, height: 16 });
+
+    /** True only after the attached host's repository-backed revisions resolve. */
+    get diffStateReady(): boolean {
+        return this._host !== null && this._diffStateReady;
+    }
 
     // ── Diff helpers (consumed by the body) ─────────────────────────────
 
@@ -129,9 +137,11 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
      *  (restore). Eagerly reloads so the "Revisions" panel shows history immediately;
      *  the popovers' lazy `ensureLoaded()` then finds it already loaded. */
     private configureForRepo(): void {
+        this._diffStateReady = false;
+        const resolution = ++this._diffResolution;
         this.fileTree.configure(this.repoRoot, this.relPath);
         void this.fileTree.reload();
-        void this.initDiffDefaults();
+        void this.initDiffDefaults(resolution);
     }
 
     /** Header "Refresh" for the Revisions panel (US-618): reload the commit list
@@ -142,7 +152,7 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
         this.configureForRepo();
     };
 
-    private async initDiffDefaults(): Promise<void> {
+    private async initDiffDefaults(resolution: number): Promise<void> {
         const root = this.repoRoot;
         const relPath = this.relPath;
         // Repo not resolved yet (restore: detection still in flight) — wait for the
@@ -156,6 +166,7 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
             git.show(root, "HEAD", relPath),
             git.log(root, { file: relPath, maxCount: 1 }),
         ]);
+        if (resolution !== this._diffResolution || this._host === null) return;
         const hasStaged = index !== head;
         const c = log[0];
         const fallback: RevSel = c
@@ -173,6 +184,7 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
                 if (s.to.kind === "staged" || s.to.kind === "head") s.to = fallback;
             }
         });
+        this._diffStateReady = true;
     }
 
     // ── Persistence ─────────────────────────────────────────────────────
@@ -209,6 +221,7 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
     adoptHost(host: TextFileModel): void {
+        this._diffStateReady = false;
         super.adoptHost(host);
 
         // Detect git membership (no-op if already detected). On restore the host
@@ -229,6 +242,11 @@ export class FileDiffEditor extends TextHostEditorModel<FileDiffEditorState> {
         // the editor stops being main — it disappears on navigation to another file
         // AND on switching the Git Diff back to the Text Editor (US-618).
         this.secondaryView = ["git-diff-revisions"];
+    }
+
+    protected onHostExtracted(): void {
+        this._diffStateReady = false;
+        this._diffResolution++;
     }
 
     // ── Save / release / dispose ────────────────────────────────────────

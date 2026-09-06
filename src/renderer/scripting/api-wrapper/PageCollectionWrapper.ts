@@ -4,6 +4,7 @@ import { PageWrapper } from "./PageWrapper";
 import { EditorView } from "../../../shared/types";
 import type { ILink } from "../../api/types/io.tree";
 import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+import { CompareModeNode } from "../ai-vision/page-compare";
 
 // AiVision (EPIC-083): the kind-level description of this wrapper. Kept next to the members it
 // describes so a new method and its descriptor entry land in the same diff.
@@ -24,6 +25,7 @@ const PAGES_MEMBERS: readonly IAiMember[] = [
     { name: "addDrawPage", kind: "method", signature: "addDrawPage(dataUrl: string, title?)", summary: "New drawing page from an image data URL." },
     { name: "openLinks", kind: "method", signature: "openLinks(links: (string | ILink)[], title?)", summary: "New links page listing the given URLs/paths." },
     { name: "openDiff", kind: "method", signature: "openDiff({ firstPath, secondPath })", summary: "Open a file compare page." },
+    { name: "compare", kind: "property", node: true, summary: "Inspect active compare pairs and enter or exit compare mode for a grouped pair." },
     { name: "showAboutPage", kind: "method", signature: "showAboutPage()", summary: "Show the About page." },
     { name: "showSettingsPage", kind: "method", signature: "showSettingsPage()", summary: "Show Settings." },
     { name: "showMcpInspectorPage", kind: "method", signature: "showMcpInspectorPage(options?: { url? })", summary: "Show the MCP inspector page." },
@@ -45,7 +47,11 @@ Ids are stable while the page is open; positions change when tabs move.
 Read a page's text with pages[i].content, replace it by assigning "value" to the same path, switch
 editors with pages[i].editor; narrow its id for editor-specific operations, then use
 pages[i].editorSwitches.switchTo(id) to switch. Create pages with addEmptyPage(), addEditorPage(...)
-or openFile(path).
+or openFile(path). openDiff({ firstPath, secondPath }) remains the path-based entry point that
+opens/groups pages and enters compare mode. Inspect pages.compare.pairs for explicit left/right
+page identity, use pages.compare.enter(pageId) or exit(pageId) for compare mode, and highlight
+compare-root or compare-exit through pages.compare.elements. Compare elements live in the active
+pair's left page slot.
 `;
 
 /**
@@ -76,7 +82,10 @@ export class PageCollectionWrapper implements IAiVisible {
 
     private aiChildren(): IAiChild[] {
         const activeId = this.pages.activePage?.id;
-        return this.all.map((page, i) => {
+        const children: IAiChild[] = [
+            { segment: ".compare", kind: this.compare.aiVision.kind, summary: "active compare pairs and compare-mode controls" },
+        ];
+        children.push(...this.all.map((page, i) => {
             const restricted = page.aiVision.restricted?.();
             const active = page.id === activeId ? " ← active" : "";
             return {
@@ -85,7 +94,12 @@ export class PageCollectionWrapper implements IAiVisible {
                 summary: `"${page.title}" id=${page.id} (${page.editor.id}${page.modified ? ", modified" : ""})${active}`,
                 ...(restricted ? { restricted } : {}),
             };
-        });
+        }));
+        return children;
+    }
+
+    get compare(): CompareModeNode {
+        return new CompareModeNode(this.pages);
     }
 
     private wrap(page: PageModel | null | undefined): PageWrapper | undefined {

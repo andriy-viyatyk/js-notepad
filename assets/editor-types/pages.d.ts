@@ -1,6 +1,7 @@
 import type { EditorView } from "./common";
 import type { IPage } from "./page";
 import type { ILink } from "./io.tree";
+import type { ICompareMode } from "./compare";
 
 /**
  * IPageCollection — `app.pages`
@@ -28,6 +29,8 @@ export interface IPageCollection {
 
     /** The grouped (side-by-side) partner of the active page, if any. */
     readonly groupedPage: IPage | undefined;
+    /** Active compare-mode pairs and compare-mode controls. */
+    readonly compare: ICompareMode;
 
     /** Find a page by its ID. */
     findPage(pageId: string): IPage | undefined;
