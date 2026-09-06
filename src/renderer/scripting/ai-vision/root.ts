@@ -1,6 +1,7 @@
 import "./namespaces";
 import { DialogsNode } from "./dialogs";
 import { MenusNode } from "./menus";
+import { toolsNode } from "./namespaces/tools";
 
 import type { AppWrapper } from "../api-wrapper/AppWrapper";
 import type { PageCollectionWrapper } from "../api-wrapper/PageCollectionWrapper";
@@ -25,11 +26,11 @@ export interface AiRootOptions {
  */
 
 /**
- * Names the epic reserves at the root for later tasks — served by the main process (`windows`,
- * `main`) or not yet built (`guides`, `tools`, `script`, `pipe`). Kept here so no renderer member
- * ever takes one of them; the main-side handler routes the first two before forwarding.
+ * Names still reserved at the root: served by the main process (`windows`, `main`) or owned by
+ * later tasks (`guides`, `script`, `pipe`). Kept here for declaration consumers; the main-side
+ * handler routes the first two before forwarding.
  */
-export const RESERVED_ROOT_NAMES: readonly string[] = ["windows", "main", "guides", "tools", "script", "pipe"];
+export const RESERVED_ROOT_NAMES: readonly string[] = ["windows", "main", "guides", "script", "pipe"];
 
 const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "pages", kind: "property", summary: "All open pages (tabs) in this window; index by position or page id. Also holds pages.logView — the channel for showing the user output or asking them a question." },
@@ -45,6 +46,7 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "window", kind: "property", node: true, summary: "This window: state, sidebar, zoom, and multi-window actions." },
     { name: "proc", kind: "property", node: true, summary: "Spawn and manage child processes.", caution: "runs processes with the user's privileges" },
     { name: "boards", kind: "property", node: true, summary: "Boards — sandboxed mini web-apps: create, open, trust, install, update, and remove." },
+    { name: "tools", kind: "property", node: true, summary: "Agent Tools: search and execute registered tool scripts, inspect or refresh toolsets, and request user registration.", caution: "execution runs registered scripts with the user's privileges and registration requires user consent" },
     { name: "boardVars", kind: "property", node: true, summary: "Administer board environment variables and secrets." },
     { name: "editors", kind: "property", node: true, summary: "The editor registry: which editors exist and which languages they take." },
     { name: "recent", kind: "property", node: true, summary: "Recently opened files." },
@@ -74,12 +76,26 @@ Common paths:
   pages.showPage("<id>")      activate a page
   helpSearch("add rows")      find where something lives
   main                        main-process diagnostics and gated scripting
+  tools.search                search registered Agent Tools (use args for query and maxResults)
+  tools.execute               execute a registered tool (use args for tool id and JSON arguments)
+  tools.toolsets              inspect current registered toolsets, including invalid and shadowed entries
+  tools.toolsets.refresh()    refresh the whole registered-tool registry
+  tools.createToolset         scaffold a toolset and offer the existing user registration prompt
   ui.elements                 curated shell controls with live visibility, purpose, and selectors
   pages[0].tab.highlight("tab-language")  point the user at one page's tab control ("where is …?", "show me …")
   <path>.$help                long-form help for any node
 
 Rules: arguments for the last segment go in "args" (a JSON array); assignments go in "value";
 the path itself takes only short JSON literals. Unknown members return the valid member list.
+
+Agent Tools are a root-only call namespace, not an app/script member. Search exposes environment
+variable names only; credentials remain in the toolset's .env and never in a call result. Execution
+returns the structured result, including advisory argWarnings when inputSchema is not satisfied;
+the schema is descriptive and the tool script remains authoritative. On failure, use toolsetRoot
+and stderr to repair the tool, call tools.toolsets.refresh(), and run it again. Tool output uses
+the last ##PERSEPHONE_RESULT##<json> marker; unmarked stdout becomes logs or resultText and stderr is
+diagnostics. Toolset refresh is whole-registry only, and createToolset never registers without the
+existing user confirmation; a declined registration can be offered again with the same call.
 `;
 
 export class AiRoot implements IAiVisible {
@@ -113,6 +129,7 @@ export class AiRoot implements IAiVisible {
     get window() { return this.app.window; }
     get proc() { return this.app.proc; }
     get boards() { return this.app.boards; }
+    get tools() { return toolsNode; }
     get boardVars() { return this.app.boardVars; }
     get editors() { return this.app.editors; }
     get recent() { return this.app.recent; }

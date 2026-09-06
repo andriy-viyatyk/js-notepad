@@ -266,7 +266,7 @@ paths are proven, and the tools themselves are not touched.
 | [US-1325](../tasks/US-1325-board-page-surface/README.md) | The board page surface — trust states, toolbar, secondary views, and `reload()` | Implemented |
 | [US-1326](../tasks/US-1326-boards-enumeration/README.md) | The `boards` node completes — enumeration of installed, trusted and open boards | Implemented |
 | US-1327 | The Board Info surface — install, version, screenshots, and the board-vars question | Planned |
-| US-1328 | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Planned |
+| [US-1328](../tasks/US-1328-tools-root-node/README.md) | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Implemented |
 | US-1329 | The toolset editor and the Tools hub | Planned |
 | US-1330 | The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels | Planned |
 | US-1331 | Mneme config and Mneme root | Planned |

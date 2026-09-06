@@ -26,6 +26,7 @@ import { describeUserInterface } from "./ui";
 import { describeWindow } from "./window";
 import { describeProcess } from "./proc";
 import { proc } from "../../../api/proc";
+import { describeTools, toolsNode } from "./tools";
 
 registerAiVisionFor(fs, describeFileSystem);
 registerAiVisionFor(settings, describeSettings);
@@ -38,6 +39,7 @@ registerAiVisionFor(appWindow.menuBar, describeMenuBar);
 registerAiVisionFor(proc, describeProcess);
 registerAiVisionFor(boards, describeBoards);
 registerAiVisionFor(boardVarsAdmin, describeBoardVars);
+registerAiVisionFor(toolsNode, describeTools);
 registerAiVisionFor(editors, describeEditorRegistry);
 registerAiVisionFor(recent, describeRecentFiles);
 registerAiVisionFor(downloads, describeDownloads);

@@ -86,6 +86,11 @@ class RegisteredTools extends TModel<RegisteredToolsState> {
         await this.refresh();
     }
 
+    /** Read-only initialization state for consumers that must fail closed without loading. */
+    get isInitialized(): boolean {
+        return this.initialized;
+    }
+
     get toolsets(): RegisteredToolset[] {
         return this.state.get().toolsets;
     }

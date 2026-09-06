@@ -188,6 +188,12 @@ class App {
         // Load the board install registry so update checks / "already installed" filters
         // have data (US-863). Fire-and-forget; reconciles stale entries on load.
         import("./board-install-registry").then(({ boardInstallRegistry }) => boardInstallRegistry.load());
+
+        // Hydrate the Agent Tools registry so the `tools` call node can answer without
+        // initializing (and therefore mutating) it on a read (US-1328). Fire-and-forget,
+        // like the two above: nothing blocks on it, and `registeredTools.isInitialized`
+        // lets the node fail closed until it lands.
+        import("./tools/registered-tools").then(({ registeredTools }) => registeredTools.ensureInitialized());
     }
 
     /**
