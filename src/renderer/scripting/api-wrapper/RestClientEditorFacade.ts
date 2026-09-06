@@ -81,25 +81,16 @@ const REST_CLIENT_MEMBERS: readonly IAiMember[] = [
 ];
 
 const REST_CLIENT_HELP = `Access via pages[i].editor after narrowing page.editor.id to "rest-client".
-This page-scoped facade exposes copied REST collection, selected-request, and response state. The
-21 curated editor controls are body-language, body-type-select, form-data-browse, form-data-delete,
-form-data-key, form-data-type-toggle, form-data-value, headers-view, kv-row-delete, kv-row-key,
-kv-row-value, method-label, request-delete, request-header-collection, request-header-name,
-response-headers-view, response-language, response-open-in-tab, response-tab-select, rest-send,
-and url-input. Eight row controls occur once per row: form-data-browse is once per file row,
-form-data-delete is once per non-empty multipart row, form-data-key/form-data-type-toggle/
-form-data-value are once per multipart row, and kv-row-delete/kv-row-key/kv-row-value are once per
-header or form-urlencoded row. Conditional controls are visible only while their matching mounted
-row or view branch exists.
+This page-scoped facade exposes copied REST collection, selected-request, and response state.
+The curated editor controls are exposed through the members and elements below this page; inspect
+their summaries for the live operation and selector contract. Conditional controls are visible only
+while their matching mounted row or view branch exists.
 
 elements resolves selectors below this page's [data-page-id] scope. highlight activates this page,
 waits for its rendered layout, and passes highlightOptions: { all: true }; repeated controls therefore
 ring every matching mounted row. A result's count is the total matching controls and highlighted is
 the number of rings drawn by the overlay. A repeated selector does not identify a row or provide an
 index for an action.
-
-The five REST sidebar names — rest-secondary-view, rest-panel-pane, rest-client-tree, rest-tree-add,
-and rest-tree-root-label — belong to page.panels and US-1323, not this editor facade.
 
 On an attached page, requests is always a fresh array of copied request snapshots; an empty
 collection is []. selectedRequestId and selectedRequest are undefined when the model has no selected
@@ -118,6 +109,12 @@ so no stored-variable surface is invented. This facade uses no restricted() boun
 it would not hide the same data already available through page.content; a genuine credential boundary
 would have to cover the page's content and editor together.
 
+To create REST content through the page path, use a JSON root of
+{ type: "rest-client", requests: [...] }. Each request needs a unique id; collection groups
+requests, bodyType is "none", "raw", "form-urlencoded", "binary", or "form-data" for the
+documented request model, and .rest.json is the required title suffix for the Rest Client switch.
+Use send() deliberately: it sends the selected request's real headers and body to the real service.
+
 Actions are model-backed and do not query views, Monaco, menus, or the clipboard. Request-targeted
 actions validate that the id exists and throw a diagnostic otherwise. No action accepts a password,
 token, header value, body value, or form value: setHeaderValue, setBody, setFormDataValue, generic
@@ -128,7 +125,8 @@ locations because their state and handlers belong to view-local models.
 
 send() is asynchronous and returns Promise<void>, never a response object or body. It sends the user's
 real headers/body and visible credentials to the user's real service, clears the prior response while
-executing, and leaves a copied response snapshot to read after awaiting completion.`;
+executing, and leaves a copied response snapshot to read after awaiting completion.
+`;
 
 export class RestClientEditorFacade implements IAiVisible, IRestClientEditor {
     constructor(

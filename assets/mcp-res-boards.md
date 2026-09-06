@@ -3,7 +3,7 @@
 A **Board** is a small, self-contained web app you (the agent) build for the user:
 a dashboard, tool, viewer, or custom editor. Persephone hosts it in a locked-down,
 cross-origin `<iframe>` and gives it a single bridge object, `window.persephone`. You can
-create one, open it, and develop it end-to-end through the **`execute_script`** tool calling
+create one, open it, and develop it end-to-end through **`script.execute`** calling
 the `app` API — no user clicks required.
 
 ## What a board is
@@ -24,21 +24,21 @@ source — trust is a user decision held outside the board).
 
 ## Create & open a board
 
-Two MCP tools cover the lifecycle. A board you create is **auto-trusted at creation**, so it
-opens with no prompt — the whole create→open→develop loop runs without user interaction.
+Inspect `boards.$help` for the concise live lifecycle. A board you create is **auto-trusted at
+creation**, so it opens with no prompt; the details below are the authoring and format reference.
 
-1. **`create_board { name, dir, demo? }`** — scaffold a board (blank, or `demo: true` for the
-   rich Demo template). `name` is the board folder name; `dir` is the **container folder** it's
+1. **`boards.createBoard(name, dir)` / `boards.createDemoBoard(name, dir)`** — scaffold a board
+   (blank or the bundled Demo template). `name` is the board folder name; `dir` is the **container folder** it's
    created inside (created if missing). Returns **`{ boardRoot }`** — the new board's absolute
    root path. A name collision errors.
-2. **`open_board { path }`** — open the board (`path` = the `boardRoot` from step 1). Opens a
+2. **`boards.openBoard(boardRoot)`** — open the board (`boardRoot` from step 1). Opens a
    **new tab** (or reuses the board's existing tab) and makes it the active page.
 
-Then confirm with `get_active_page` (or `list_pages`) and read the board page's `pageId` for
+Then confirm with `call` at `pages` and read the board page's `pageId` for
 `pages[pageId].editor` testing (see below). Opening a board you did **not** create (a foreign folder) shows
 the **user** a trust prompt; a board you created never does.
 
-> The same lifecycle is on the script API too, if you prefer `execute_script`:
+> The same lifecycle is on the script API too:
 > `app.boards.createBoard(name, dir)` / `createDemoBoard(name, dir)` → returns the board root,
 > and `app.boards.openBoard(root)`. (`app.openRawLink(href)` is a generic opener — files, URLs,
 > in-app links.)
@@ -111,11 +111,11 @@ author), **review it before `registerBoard`**:
 4. Report your findings to the user, then call `app.boards.registerBoard(root)` — they make the
    final call at the trust dialog. You can never trust a board on their behalf.
 
-All six calls are reached through **`execute_script`** — there are no dedicated MCP tools for them.
+All six calls are reached through **`script.execute`** — there are no separate board call paths for them.
 
 ## Develop it
 
-`create_board` scaffolds a **working starter** — build on it, don't blindly overwrite it. A
+`boards.createBoard` scaffolds a **working starter** — build on it, don't blindly overwrite it. A
 blank board contains:
 
 - `index.html` — the page shell (a starter button + output area), linked to `board-base.css`.
@@ -129,9 +129,9 @@ blank board contains:
 - `CLAUDE.md` — the generic board authoring guide. **When the board is built, rewrite this file
   to document _this_ board** (purpose, how it works, key files, run/test steps, gotchas) so a
   future agent has instant context — see the "rewrite this file" note at its top. The generic
-  reference is always available here (`read_guide("boards")`), so it's safe to trim.
+  reference is always available in this resource, so it's safe to trim.
 
-Edit these with your own file tools (or `app.fs` inside another `execute_script`). The key
+Edit these with your own file tools (or `app.fs` inside another `script.execute`). The key
 surfaces:
 
 ### Give the board its secrets — env vars
@@ -140,7 +140,7 @@ A board should never store secrets (connection strings, API keys, passwords) in 
 they'd leak the moment the board is copied, shared, or committed. Persephone keeps a single,
 optionally-encrypted `.env.json` file **outside every board folder**, namespaced per board.
 
-**Provision values before the board needs them (you, via `execute_script`):**
+**Provision values before the board needs them (you, via `script.execute`):**
 
 ```js
 const namespace = await app.boardVars.namespaceFor(boardRoot); // author/name, or the root path
@@ -152,7 +152,7 @@ await app.boardVars.show(namespace);        // open the built-in editor, focused
 
 **This call can block on a dialog.** The first-ever `app.boardVars.*` call on a machine with no
 `.env.json` configured shows the user a "Create environment variables storage" dialog (default
-path, editable) — your `execute_script` call does not resolve until the user responds; declining
+path, editable) — your `script.execute` call does not resolve until the user responds; declining
 rejects it. The same applies if the file is encrypted and locked this session (a decrypt-password
 prompt). Don't treat a slow-to-resolve call as a hang — it is waiting on the user. Always resolve
 the namespace via `namespaceFor` rather than guessing the `author/name` string yourself.
@@ -474,7 +474,7 @@ formatters (progress bar, star rating, traffic light).
 
 Vendor flow on any machine: **GET the manifest → read the component's `vendor` URLs (the third-party
 library, from a CDN) and its `skin.file` → GET `baseUrl + skin.file` → write both into the board folder**
-(relative paths). Download from inside `execute_script` (full Node.js — e.g. `https.get` then
+(relative paths). Download from inside `script.execute` (full Node.js — e.g. `https.get` then
 `app.fs.writeBinary(destPath, data)`), then reference the files with relative paths in `index.html` per
 the manifest's `loadOrder`.
 
@@ -509,7 +509,7 @@ the manifest's `loadOrder`.
 - **`board-manifest.json` is not covered by a reload.** Persephone caches a board's manifest from the
   moment the board is trusted, so a manifest edit (`fileMasks`, `editorPriority`, `editorSources`)
   applies only after toggling the board's trust off and on, or restarting the app — not after
-  `board_refresh`.
+  `pages[pageId].editor.reload()`.
 
 ## Test it
 
@@ -517,12 +517,12 @@ Once the board is open, drive it through `pages[pageId].editor`. Always get the 
 first:
 
 ```
-list_pages                       → pick the entry with editor: "board-view" → its pageId
+call at `pages`                  → pick the entry with editor: "board-view" → its pageId
 pages[pageId].editor.snapshot()  → read the UI
 pages[pageId].editor.click({ ref: "e12" }) / .type(...) / .evaluate(...)  → interact
 ```
 
-- `list_pages` → find the board (`editor: "board-view"`) and read its `pageId`. If several
+- `pages` → find the board (`editor: "board-view"`) and read its `pageId`. If several
   `board-view` pages exist, match the one you opened by its `boardRoot` / `selectedBoard`.
 - `pages[pageId].editor.snapshot()` → read the accessibility tree (element refs). **Always use the
   board's page id** — board pages are not browser tabs.
@@ -584,15 +584,15 @@ The debugging surfaces, in the order to check them:
   uncaught errors, unhandled rejections, and every `console.error`/`console.warn` from the
   board's frames land there automatically. Read it first when a board renders blank or a
   feature silently does nothing.
-- **`board_refresh` returning `frameReady: false`** means the reloaded frame never signalled
+- **`pages[pageId].editor.reload()` returning `frameReady: false`** means the reloaded frame never signalled
   load — almost always broken board HTML/JS; `ui.log` has the reason.
 - **A silently-dead feature after adding a library** is usually the CSP: remote
   `<script>`/`<link>`/`fetch` are blocked without a visible error in the UI — but the violation
   is in `ui.log`. Vendor the file locally (see "Libraries & assets").
 - **Snapshot vs screenshot**: `snapshot()` includes invisible elements, so verify visual changes
   with `screenshot()` before declaring the UI correct.
-- **`open_board` / `create_board` failures** return real errors (`Not a board: …` — missing
-  `board-manifest.json`; name collision on create). `open_board` success returns
+- **`boards.openBoard` / `boards.createBoard` failures** return real errors (`Not a board: …` — missing
+  `board-manifest.json`; name collision on create). `boards.openBoard` success returns
   `{ opened, pageId, title }` — use that `pageId` for `pages[pageId].editor`; boards are never
   reached by the untargeted browser-page fallback unless they are the active page.
 - **Manifest edits don't apply on refresh** — `fileMasks`/`editorPriority`/`editorSources` are

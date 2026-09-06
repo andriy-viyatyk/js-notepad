@@ -20,15 +20,15 @@ the scripts those tools run (any language), an optional `.env` for secrets, and 
 ## The workflow
 
 1. **Before writing an ad-hoc script** for a recurring external-system task, call
-   `search_tools` — a ready-made tool may already exist.
-2. **Run it** with `execute_tool { toolId, args }`.
+   `tools.search` — a ready-made tool may already exist.
+2. **Run it** with `tools.execute(toolId, args)`.
 3. **If it fails**, the result carries the tool's folder path (`toolsetRoot`) and its `stderr`.
-   **Fix the tool at that path**, then `refresh_toolset` and re-run — do *not* silently work
+   **Fix the tool at that path**, then `tools.toolsets.refresh()` and re-run — do *not* silently work
    around a broken tool (that's the whole point of the registry).
 4. **After a repeatable ad-hoc success**, offer to register it as a reusable tool so the next
    session gets it for free.
 
-## `search_tools` — discover tools
+## `tools.search` — discover tools
 
 Returns **complete, ready-to-call definitions** (like `ToolSearch` — there is no separate
 "get info" call). Query forms:
@@ -46,10 +46,10 @@ the args, may be absent), `requirements` (runtime prerequisites), `env` (the **n
 required environment variables — never their values), `timeoutMs`, and `toolsetRoot` (the local
 folder, where you go to read or fix the tool).
 
-## `execute_tool` — run a tool
+## `tools.execute` — run a tool
 
 ```
-execute_tool { toolId: "azure-devops/get_task", args: { id: 12345 } }
+tools.execute("azure-devops/get_task", { id: 12345 })
 ```
 
 `args` is a JSON object matching the tool's `inputSchema`; Persephone delivers it to the tool
@@ -69,7 +69,7 @@ A tool communicates its result through stdout, using a sentinel marker:
 - A **non-zero exit code** is a failure: the result is `{ ok:false, error, exitCode, stderr,
   toolsetRoot }`.
 
-The `execute_tool` result is always structured (even on failure — so you get the self-repair
+The `tools.execute` result is always structured (even on failure — so you get the self-repair
 fuel):
 
 ```jsonc
@@ -121,7 +121,7 @@ Write-Output ("##PERSEPHONE_RESULT##" + (@{ ok = $true; value = 42 } | ConvertTo
   "tools": [
     {
       "name": "get_task",                         // id becomes "azure-devops/get_task"
-      "description": "Fetch a work item by id",   // shown by search_tools
+      "description": "Fetch a work item by id",   // shown by tools.search
       "command": "python get_task.py",            // run with cwd = the toolset folder
       "inputSchema": {                            // JSON Schema (MCP dialect) — optional
         "type": "object",
@@ -151,7 +151,7 @@ Put secret **values** in a `.env` file at the toolset folder root (next to
 `tools-manifest.json`); list only their **names** in the tool's `env[]`. Persephone parses
 `.env` and injects the values into the tool's process environment at run time, so scripts just
 read plain environment variables. `.env` values **never** travel through MCP —
-`search_tools` reports env var names only.
+`tools.search` reports env var names only.
 
 ```
 # .env  (git-ignore this)
@@ -165,31 +165,31 @@ is passed to the child as an empty string, not removed. When sharing a toolset w
 ## Portability
 
 A toolset is a self-contained folder — copy it to another machine and register it there. The
-per-tool `requirements` field (surfaced by `search_tools` and the management UI) tells you what
+per-tool `requirements` field (surfaced by `tools.search` and the management UI) tells you what
 to provision on the new machine (a Python version, pip packages, a CLI). Secrets travel only if
 the user copies `.env` along with the folder.
 
 ## Creating a toolset
 
-Use `create_toolset` to scaffold a toolset folder with a
+Use `tools.createToolset` to scaffold a toolset folder with a
 starter manifest and example script; then edit the manifest + scripts and call
-`refresh_toolset` to pick up your changes. `refresh_toolset` returns a per-toolset summary
+`tools.toolsets.refresh()` to pick up your changes. It returns a per-toolset summary
 (`name`, `valid`, `errors`, `toolCount`) so you can confirm a manifest edit parsed before
 running anything.
 
-`create_toolset` **prompts the user to confirm registration** (its tools will run headlessly with
+`tools.createToolset` **prompts the user to confirm registration** (its tools will run headlessly with
 their privileges). If they decline, the result is `{ registered: false }`: the folder was created
 but its tools are not runnable yet. This is recoverable without any manual step — if the user asks
-to enable it (e.g. they declined by mistake), just call `create_toolset` again with the **same
+to enable it (e.g. they declined by mistake), just call `tools.createToolset` again with the **same
 `name` and `dir`** and the prompt reappears; it will **not** overwrite your edits. Calling it on a
 toolset that already exists never re-scaffolds (it re-offers registration, or no-ops if the toolset
 is already registered).
 
 ## Self-repair — the core rule
 
-A registered tool that fails is a **bug to fix**, not an obstacle to route around. `execute_tool`
+A registered tool that fails is a **bug to fix**, not an obstacle to route around. `tools.execute`
 hands you everything you need: the exact `stderr`, the `exitCode`, and the `toolsetRoot` folder.
-Open the script at that path, fix it, `refresh_toolset`, and re-run. Every fix makes the tool
+Open the script at that path, fix it, `tools.toolsets.refresh()`, and re-run. Every fix makes the tool
 more reliable for the next session — that is what makes the registry *memory*.
 
 ## Errors & verification
@@ -199,14 +199,14 @@ Failure shapes are part of this guide's contract already — the short version:
 - **Tool failed** → `{ ok: false, error, exitCode, stderr, logs, toolsetRoot }` — everything
   needed for self-repair (see above). A tool that exceeds its `timeoutMs` is killed and fails
   the same way.
-- **Unknown toolId** → an error naming the id; run `search_tools` with no query to list what
+- **Unknown toolId** → an error naming the id; run `tools.search()` with no query to list what
   actually exists (tool ids are `<toolset>/<tool>` — the toolset half comes from the manifest's
   `name`, not the folder name).
-- **After editing a manifest**, `refresh_toolset` is your verification: it returns `valid` +
+- **After editing a manifest**, `tools.toolsets.refresh()` is your verification: it returns `valid` +
   `errors` per toolset — check it **before** running anything, a manifest typo otherwise
   surfaces as a confusing execute failure.
-- **`create_toolset` → `{ registered: false }`** means the user declined registration — the
-  folder exists but tools won't run. Re-offer by calling `create_toolset` again with the same
+- **`tools.createToolset` → `{ registered: false }`** means the user declined registration — the
+  folder exists but tools won't run. Re-offer by calling `tools.createToolset` again with the same
   `name` + `dir` (it never overwrites your edits).
 - **Success isn't `ok: true` alone** — a tool that prints no marker returns its stdout as
   `resultText`; validate the payload shape you expect, not just the flag.

@@ -1,11 +1,13 @@
-# ui_push — Log View Output Channel
+# `pages.logView.push` — Log View Output Channel
 
-The `ui_push` tool is the **recommended way for AI agents to show information** to the user. It pushes entries to a Log View page — a scrollable, styled log with support for interactive dialogs.
+Use `pages.logView.push(entries)` to show information to the user. It pushes entries to a Log View
+page — a scrollable, styled log with support for interactive dialogs. The live call, return, pending,
+and window contract is in `pages.logView.$help`; this resource keeps the entry schema and examples.
 
 Persephone manages the Log View page automatically:
-- On first `ui_push` call, a new Log View page is created
-- Subsequent `ui_push` calls reuse the same page
-- If the user closes the page, the next `ui_push` creates a new one
+- On first access, a new Log View page is created
+- Subsequent `pages.logView` calls reuse the same page
+- If the user closes the page, the next access creates a new one
 
 ## Entry Format
 
@@ -28,7 +30,7 @@ Entries are **flat objects** with `type` and type-specific fields directly on th
 | `log.error` | `text` | Error (red) |
 | `log.success` | `text` | Success (green) |
 
-**Dialog entries** (interactive — tool blocks until user responds):
+**Dialog entries** (interactive — the call returns ids immediately):
 
 | Type | Fields | Description |
 |------|--------|-------------|
@@ -72,80 +74,80 @@ No separate `columns` parameter — columns are always derived from the data its
 
 ```
 // Simple log messages (string shorthand)
-ui_push({ entries: ["Analyzing code...", "Found 3 files to process"] })
-→ returns immediately: { }
+pages.logView.push(["Analyzing code...", "Found 3 files to process"])
+→ returns immediately: { entryIds: [...], dialogIds: [] }
 
 // Typed log entries (flat format)
-ui_push({ entries: [
+pages.logView.push([
     { type: "log.info", text: "Analysis complete." },
     { type: "log.warn", text: "2 files have issues." },
     { type: "log.success", text: "All other files are clean." }
-] })
-→ returns immediately: { }
+])
+→ returns immediately: { entryIds: [...], dialogIds: [] }
 
-// Confirm dialog (blocks until user clicks)
-ui_push({ entries: [
+// Confirm dialog (the call remains non-blocking)
+pages.logView.push([
     { type: "log.info", text: "Ready to apply changes." },
     { type: "input.confirm", message: "Apply changes?", buttons: ["No", "Yes"] }
-] })
-→ blocks until user responds → { results: [{ button: "Yes", ... }] }
+])
+→ returns immediately with a dialog id; read pages.logView.dialogResult(id) later
 
 // Text input dialog
-ui_push({ entries: [
+pages.logView.push([
     { type: "input.text", title: "Project name", placeholder: "my-app", buttons: ["Cancel", "OK"] }
-] })
-→ blocks → { results: [{ button: "OK", text: "my-project", ... }] }
+])
+→ returns immediately with a dialog id; read pages.logView.dialogResult(id) later
 
 // Checkboxes dialog (items must be objects with label)
-ui_push({ entries: [
+pages.logView.push([
     { type: "input.checkboxes", title: "Select items to process", items: [
         { label: "Item A" }, { label: "Item B", checked: true }, { label: "Item C" }
     ], buttons: ["!Process", "Cancel"] }
-] })
-→ blocks → { results: [{ button: "Process", items: [{label:"Item A"}, {label:"Item B",checked:true}, {label:"Item C",checked:true}], ... }] }
+])
+→ returns immediately with a dialog id; read pages.logView.dialogResult(id) later
 
 // Radio buttons dialog (items are plain strings)
-ui_push({ entries: [
+pages.logView.push([
     { type: "input.radioboxes", title: "Select size", items: ["Small", "Medium", "Large"], buttons: ["!OK", "Cancel"] }
-] })
-→ blocks → { results: [{ button: "OK", checked: "Medium", ... }] }
+])
+→ returns immediately with a dialog id; read pages.logView.dialogResult(id) later
 
 // Select dropdown dialog
-ui_push({ entries: [
+pages.logView.push([
     { type: "input.select", title: "Select format", items: ["JSON", "CSV", "XML"], placeholder: "Choose format...", buttons: ["!OK", "Cancel"] }
-] })
-→ blocks → { results: [{ button: "OK", selected: "JSON", ... }] }
+])
+→ returns immediately with a dialog id; read pages.logView.dialogResult(id) later
 
 // Syntax-highlighted text block
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.text", text: "SELECT * FROM users WHERE active = true;", language: "sql", title: "Query" }
-] })
-→ returns immediately: { }
+])
+→ returns immediately: { entryIds: [...], dialogIds: [] }
 
 // Text block with line numbers and no word wrap
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.text", text: "function hello() {\n  console.log('world');\n}", language: "javascript", lineNumbers: true, wordWrap: false }
-] })
-→ returns immediately: { }
+])
+→ returns immediately: { entryIds: [...], dialogIds: [] }
 
 // Rendered markdown document
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.markdown", text: "# Report\n\n| Name | Score |\n|------|-------|\n| Alice | 95 |\n| Bob | 87 |", title: "Analysis Results" }
-] })
+])
 → returns immediately: { }
 
 // Rendered mermaid diagram
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.mermaid", text: "graph TD\n  A[Start] --> B[Process]\n  B --> C[End]", title: "Pipeline" }
-] })
+])
 → returns immediately: { }
 
-// Multiple dialogs in one call (all shown, all must be resolved)
-ui_push({ entries: [
+// Multiple dialogs in one call (all shown; resolve through dialogResult)
+pages.logView.push([
     { type: "input.text", title: "Name?" },
     { type: "input.confirm", message: "Proceed?" }
-] })
-→ blocks until BOTH resolved → { results: [{ button: "OK", text: "Alice", ... }, { button: "Yes", ... }] }
+])
+→ returns immediately with both dialog ids
 ```
 
 ## Dialog Results
@@ -161,47 +163,43 @@ ui_push({ entries: [
 
 ## Updating Entries by ID
 
-Every entry gets an auto-generated `id`. To **update an existing entry**, pass your own `id` when creating it, then send another `ui_push` with the same `id` — the entry is updated in-place instead of appended.
+Every entry gets an auto-generated `id`. To **update an existing entry**, pass your own `id` when creating it, then send another `pages.logView.push` with the same `id` — the entry is updated in-place instead of appended.
 
 ```
 // Create a progress bar with a custom id
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.progress", id: "dl-1", label: "Downloading...", value: 0, max: 100 }
-] })
+])
 
 // Update it (same id → merges fields into existing entry)
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.progress", id: "dl-1", value: 75 }
-] })
+])
 
 // Mark as complete
-ui_push({ entries: [
+pages.logView.push([
     { type: "output.progress", id: "dl-1", completed: true, label: "Download complete!" }
-] })
+])
 ```
 
 This works for **any entry type** — not just progress bars. Use it to update diagrams, tables, or text blocks without creating duplicates. Generate unique IDs yourself (e.g., `"my-diagram"`, `"status-1"`) for entries you plan to update later.
 
-## When to Use `ui_push` vs `create_page`
+## When to Use `pages.logView.push` vs page creation
 
 | Scenario | Use |
 |----------|-----|
-| Show status, progress, results | `ui_push` with log entries |
-| Ask user a question | `ui_push` with dialog entries |
-| Show data that user will edit | `create_page` with appropriate editor |
-| Open a file in a specific editor | `create_page` or `execute_script` |
+| Show status, progress, results | `pages.logView.push` with log entries |
+| Ask user a question | `pages.logView.push` with dialog entries |
+| Show data that user will edit | `pages.addEditorPage` with the appropriate editor |
+| Open a file in a specific editor | `pages.openFile` or `app.openRawLink` |
 
 ## Errors & verification
 
-- **Dialogs wait forever.** A `ui_push` containing dialog entries has **no timeout** — the call
-  blocks until the user responds (or closes the Log View page, which resolves every pending
-  dialog with `button: null`). A long wait means the user hasn't answered yet, not a hang.
-  Don't stack questions the user might never see; one dialog at a time reads better.
-- **Non-dialog pushes** use the standard ~30 s tool timeout; they return `{ }` immediately in
-  practice.
-- **Which window?** The Log View page lives in the window addressed by `windowIndex` (the
-  first open window when omitted). With multiple windows, pass `windowIndex` consistently or
-  your log entries will split across two Log View pages.
+## Errors & verification
+
+- **Dialogs are non-blocking.** `pages.logView.push` returns dialog ids immediately; an unresolved
+  dialog raises call attention until the user answers it in Log View. There is no automatic
+  user-response timeout. See `pages.logView.$help` for the omission and window rules.
 - **Malformed entries fail loudly** with a message that includes the expected shape and an
   example (e.g. `output.grid requires 'content' field (JSON string or CSV string). Example: …`)
   — fix the entry per the message; nothing was appended.

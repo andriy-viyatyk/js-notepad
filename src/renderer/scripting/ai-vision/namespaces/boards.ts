@@ -54,7 +54,7 @@ export function describeBoards(_instance: unknown): IAiVisionDescriptor {
             if (name === "manifestUrl") return { value: BOARDS_MANIFEST_URL };
             return undefined;
         },
-        help: "Call boards.list() for this machine's trusted/installed/open local roots, take a returned root, then call boards.openBoard(root). Use boards.searchPublished() only for the remote published catalog; listing reports trust but never grants it, and boards.registerBoard(root) remains the only trust path through the existing user dialog.",
+        help: "Call boards.list() for this machine's trusted/installed/open local roots, take a returned root, then call boards.openBoard(root). Use boards.searchPublished() and boards.getPublishedVersions(id) for the remote catalog, then use boards.downloadPublished() or boards.installPublished() to place a board on disk. Review downloaded files before calling boards.registerBoard(root); listing, download, and install never grant trust, and registerBoard(root) remains the only trust path through the existing user dialog. Use boards.checkPublishedUpdates() for catalog updates and boards.uninstallBoard(id) only when removal is intended.",
         summarize: () => ({ kind: "Boards", boardCount: getCurrentBoardListings().length }),
     };
 }

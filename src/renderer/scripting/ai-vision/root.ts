@@ -90,6 +90,10 @@ Raise call's maxLength to return the rest. For detailed API operations, use the 
 and their descendants; use helpSearch when you need to discover another path. This help is the
 execution contract for script.execute. The separate main.script.execute path runs settings-gated
 main-process code.
+
+Inside a renderer script, app.call(path, options?) resolves the renderer tree only; it cannot
+resolve the MCP router's main.* or windows[i].* paths. It returns a bounded plain value, accepts
+args or value (not both), and never returns hints or resolver metadata.
 `.trim();
 
 const ROOT_OVERVIEW = `

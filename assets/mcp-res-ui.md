@@ -6,9 +6,9 @@ folder?", "what can this app do?". It describes the always-visible chrome by **p
 you a stable selector for each element, and shows you how to draw a highlight on screen so the
 user can see what you are talking about.
 
-For the editors that fill the page area, read `read_guide("ui-editors")`.
-For creating/reading pages as an agent, `read_guide("pages")`.
-For driving the UI (clicking, typing, snapshots), `read_guide("browser")`.
+For the editors that fill the page area, read `persephone://guides/ui-editors`.
+For creating/reading pages as an agent, read `persephone://guides/pages`.
+For driving the UI (clicking, typing, snapshots), read `persephone://guides/browser`.
 
 When the MCP `call` tool is available, prefer its app-window protocol for explaining the shell:
 `ui.elements` returns the curated controls with their purpose, resolved selector, and current
@@ -85,7 +85,7 @@ Small, muted, and easy for a first-time user to miss — a common thing to be as
 **"Language" always means the Monaco syntax-highlighting mode** — never the app's UI locale (there
 is no locale setting) and never a spoken language. When a user says "change the language of this
 tab", they mean syntax highlighting, and the whole feature is the one button above plus the
-`language` field on `create_page` / `list_pages`. There is nothing else to look for.
+`language` field on `pages.addEditorPage` / `pages`. There is nothing else to look for.
 
 State attributes on a tab: `data-active`, `data-modified`, `data-pinned`, `data-temp`,
 `data-deleted`, `data-grouped`, `data-has-encryption`.
@@ -96,12 +96,12 @@ Two shapes break the pattern, and both occur in ordinary use:
   browser, boards, and app pages such as Tools & Editors)
   render **no** `[data-name="tab-language"]` button — an editor icon sits in its place
   (`[data-part="empty-language"]`). If the user asks to change the language of such a tab, the
-  honest answer is that the editor does not have one. **Check this in `list_pages` before doing
+  honest answer is that the editor does not have one. **Check this in `pages` before doing
   anything else** — a page whose `language` is empty or absent has no language to change. That
   one call settles it; searching a snapshot for the button, or probing the scripting API, does
   not, and leaves the user's app in a different state than you found it.
 - **A pinned tab shows no title** — only icons, with the file path in a hover tooltip. Read page
-  titles from `list_pages`, never from the tab's DOM.
+  titles from `pages`, never from the tab's DOM.
 
 **Grouping.** `Ctrl+click` a second tab to show two pages side by side; the grouped tab's close
 button ungroups instead of closing. Scripts write their output into the grouped page.
@@ -320,7 +320,7 @@ to one element and put it back when you are done.
 | `highlightElement` throws `ui-highlight.js: HTTP …` | The overlay asset could not be loaded | Report it — the app install is incomplete; explain in chat instead |
 | `fetch("app-asset://…")` fails inside a browser page | Expected — browser pages have no access to app assets, by design | Do not work around it; use the plain-border form above |
 | Tab shows no language button | The editor declares no language (grids, notebooks, browser, boards) | Say so — it is not a failure |
-| Tab shows no title | The tab is pinned | Read the title from `list_pages` |
+| Tab shows no title | The tab is pinned | Read the title from `pages` |
 | `[data-name="menu-bar"]` exists but the user sees no menu | The backdrop is always in the DOM; `display: none` when closed | Click `[data-name="persephone-menu"]` to open it |
 
 **The selectors in this guide are a stable contract.** They will not be renamed without this
@@ -330,9 +330,9 @@ in dialogs, in popup menus — carry no such promise; reach those through
 
 ## Where to go next
 
-- `read_guide("ui-editors")` — the editor catalog: what each editor is for, how the user opens
+- `persephone://guides/ui-editors` — the editor catalog: what each editor is for, how the user opens
   it, what it can do.
-- `read_guide("pages")` — editor ids, required languages and title suffixes, and creating,
+- `persephone://guides/pages` — editor ids, required languages and title suffixes, and creating,
   reading and updating pages as an agent.
-- `read_guide("browser")` — snapshots, refs, clicking and typing, including `pageId: "app"`.
-- `read_guide("boards")` — building a custom mini web-app for the user.
+- `persephone://guides/browser` — snapshots, refs, clicking and typing, including the app window.
+- `persephone://guides/boards` — building a custom mini web-app for the user.

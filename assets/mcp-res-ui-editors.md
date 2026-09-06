@@ -5,10 +5,10 @@ Every page in Persephone renders through an **editor**. This guide is the catalo
 you can answer "what can this app open?", "how do I view this file as a table?", or "is there a
 diagram editor?".
 
-This is the companion to `read_guide("ui")` (the app's chrome — tabs, Menu Bar, sidebar,
+This is the companion to `persephone://guides/ui` (the app's chrome — tabs, Menu Bar, sidebar,
 highlighting an element on screen).
 
-**If you are creating a page rather than explaining one, read `read_guide("pages")` instead.** It
+**If you are creating a page rather than explaining one, read `persephone://guides/pages` instead.** It
 carries the required `language` value and title suffix for each editor id, which this guide
 deliberately does not duplicate — getting those wrong produces a broken page.
 
@@ -33,7 +33,7 @@ selection (`Shift+Alt+Arrows`), minimap, `Ctrl+Y` to delete a line. In Markdown 
 `Ctrl+Shift+V` pastes clipboard content converted to Markdown (or raw HTML).
 
 It also hosts the **Script Panel** — run JavaScript/TypeScript against the file's content. That
-is Persephone's headline feature; see `read_guide("scripting")`.
+is Persephone's headline feature; see `persephone://guides/scripting`.
 
 ### Compare Mode
 Side-by-side diff of two open files, using Monaco's diff viewer. The user opens both files,
@@ -72,7 +72,7 @@ For `.note.json`. Structured notes where **each note has its own editor** (Monac
 Markdown, SVG) and can run JavaScript/TypeScript on its own. Categories and Tags appear as
 sidebar panels; full-text search highlights across all notes; notes expand to full editor size
 and can carry comments. Drag files or links onto a category to create notes from them.
-Format: `read_guide("notebook")`.
+Format: `persephone://guides/notebook`.
 
 ### Links — `link-view`
 For `.link.json`. A link manager with collections, tags, and hostnames — each a sidebar panel
@@ -80,7 +80,7 @@ with its own filter. List and tile view modes (remembered per collection/tag/hos
 preview images, a pinned-links strip, and heavy drag-and-drop: reassign links between categories,
 import files or folders from Windows Explorer, drag across windows. Each link can name a **target
 editor**, so a link can be set to always open in the Browser, the Image Viewer, Grid, and so on.
-Format: `read_guide("links")`.
+Format: `persephone://guides/links`.
 
 ### Rest Client — `rest-client`
 For `.rest.json`. An HTTP request collection: a request tree in the sidebar, request detail in
@@ -101,11 +101,11 @@ Variables**, or when a board calls `persephone.var.show()`.
 ### Graph — `graph-view`
 For `.fg.json`, and any JSON containing `"type": "force-graph"` with a `"nodes"` property. An
 interactive force-directed graph with a detail panel and group nodes.
-Format: `read_guide("graph")`.
+Format: `persephone://guides/graph`.
 
 ### Log View — `log-view`
 For `.log.jsonl` and JSONL log content — a reader for structured log lines. This is also the
-editor behind the **Log View page that `ui_push` manages for you**; see `read_guide("ui-push")`.
+editor behind the **Log View page that `pages.logView.push` manages for you**; see `persephone://guides/ui-push`.
 
 ## Viewers and previews
 
@@ -197,7 +197,7 @@ A real Chromium browser in a tab: URL bar with 11 search engines, **inner tabs**
 Persephone tab, **profiles** (isolated cookies/storage), incognito, bookmarks, downloads,
 find-in-page, DevTools (`F12`), and session restore. Persephone can be set as the Windows default
 browser. Agents open one with `pages.openUrlInBrowserTab(url, options)` and drive it through
-`pages[i].editor` — `read_guide("browser")`.
+`pages[i].editor` — `persephone://guides/browser`.
 
 ### Board — `board-view`
 A sandboxed mini web-app (HTML + CSS + JS) backed by scripts in any language, living in a folder
@@ -210,15 +210,15 @@ full privileges. Trust is per folder and remembered.
 
 Persephone publishes a **boards catalog** the user can install from (Tools & Editors → Boards →
 Search boards). Two editors that Persephone no longer ships built-in now live there — see
-*Things that are no longer built in* below. Building one: `read_guide("boards")`.
+*Things that are no longer built in* below. Building one: `persephone://guides/boards`.
 
 ## App and tool pages
 
-These are ordinary tabs, not file editors. `create_page` rejects them; open them the listed way.
+These are ordinary tabs, not file editors. `pages.addEditorPage` rejects them; open them the listed way.
 
 | Page | What it is | How to open |
 |---|---|---|
-| `settings-view` | Settings | Menu Bar → gear icon, or `execute_script`: `app.pages.showSettingsPage()` |
+| `settings-view` | Settings | Menu Bar → gear icon, or `script.execute`: `app.pages.showSettingsPage()` |
 | `about-view` | About / version | Menu Bar → info icon |
 | `tools-hub-view` | Tools & Editors hub — every editor, board and tool, plus the published boards catalog | `+` arrow → *Show All…*, or the Menu Bar category |
 | `mcp-view` | MCP Inspector — connect to an MCP server using a credential-free URL and exercise its tools, resources and prompts, with request history | `+` arrow, or `app.pages.showMcpInspectorPage({ url })` |
@@ -278,11 +278,11 @@ find it → **Install** → trust it when prompted.
 
 | Symptom | Meaning | Fix |
 |---|---|---|
-| `Unknown editor '…'. Valid editors: …` | Bad `editor` id on `create_page` | Use an id from `read_guide("pages")` |
-| `create_page` rejects an id with a hint | It is a standalone editor (browser, board, image, settings…) | Use the path the hint names — `pages.openUrlInBrowserTab`, `open_board`, `app.pages.openFile(path)` |
-| The page renders empty or shows raw text | Wrong `language` for the editor | Each non-monaco editor needs a specific `language` — `read_guide("pages")` |
+| `Unknown editor '…'. Valid editors: …` | Bad `editor` id on `pages.addEditorPage` | Use an id from `persephone://guides/pages` |
+| `pages.addEditorPage` rejects an id with a hint | It is a standalone editor (browser, board, image, settings…) | Use the path the hint names — `pages.openUrlInBrowserTab`, `boards.openBoard`, `app.pages.openFile(path)` |
+| The page renders empty or shows raw text | Wrong `language` for the editor | Use the language and suffix table in `persephone://guides/pages` |
 | The editor shows a parse error, or `Editor crashed` | Content is not valid for that editor | Read the format guide (`notebook` / `links` / `graph`) and `JSON.parse` your content first |
-| The user reports a missing switch button | The file lacks the required title suffix, or content-based detection did not match | Check the suffix column in `read_guide("pages")` |
+| The user reports a missing switch button | The file lacks the required title suffix, or content-based detection did not match | Check the suffix column in `persephone://guides/pages` |
 | No git features anywhere | Git integration is off (the default) | Settings → Git Integration |
 | No Mneme features anywhere | Mneme is off (the default) | Settings → Mneme (vector memory) |
 | A board shows a trust prompt instead of content | Expected — boards are never rendered untrusted | The user must trust it; you cannot bypass this |
@@ -293,8 +293,8 @@ tree, a broken one shows the error text.
 
 ## Where to go next
 
-- `read_guide("ui")` — the app's chrome, and highlighting an element on screen for the user.
-- `read_guide("pages")` — editor ids, required languages, title suffixes, creating pages.
-- `read_guide("scripting")` — the Script Panel, `page` facades, Node.js access.
-- `read_guide("boards")` — building a board, including custom editors.
-- `read_guide("browser")` — driving the browser, boards, and the app window.
+- `persephone://guides/ui` — the app's chrome, and highlighting an element on screen for the user.
+- `persephone://guides/pages` — editor ids, required languages, title suffixes, creating pages.
+- `persephone://guides/scripting` — the Script Panel, `page` facades, Node.js access.
+- `persephone://guides/boards` — building a board, including custom editors.
+- `persephone://guides/browser` — driving the browser, boards, and the app window.

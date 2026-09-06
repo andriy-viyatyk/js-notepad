@@ -1,8 +1,8 @@
 # Browser automation through `call`
 
-Use the `call` paths below first. They cover a browser page, a trusted board page, and
-Persephone's own window. The older `browser_*` tools still work for now but are being retired; their
-equivalents are listed at the end for clients that still use them.
+Use the `call` paths below for browser pages, trusted boards, and Persephone's own window. The
+browser member and wait contract is already discoverable from `pages[i].editor.$help`; this
+resource keeps the detailed host, ref, and error reference.
 
 ## The paths
 
@@ -43,12 +43,11 @@ pages[i].editor.switchTab(tabId);
 object such as `{ ref: "e12" }`. `type` clears and replaces the value; its options can request
 slow typing or submission. The other methods accept their documented options, including `tabId`
 for an inner browser tab. `waitFor` accepts exactly one of `selector`, `text`, `textGone`, or
-`time`, with an optional `timeout`. `waitForNavigation` waits on the document loaded right now, so it can return immediately when a navigation has been requested but the old document is still in place; prefer a `selector` or `text` wait after opening or navigating.
+`time`, with an optional `timeout`. Inspect `pages[i].editor.$help` for the live navigation-wait
+contract.
 
-`pages.openUrlInBrowserTab` accepts URLs and search queries and returns its page id before the
-document is ready. Do not act on the new page immediately: wait for content with
-`waitFor({ selector })` first. Otherwise an action can land on a document that is about to be
-replaced and still report success.
+`pages.openUrlInBrowserTab` returns its page id before the document is ready; wait for expected
+content with `waitFor({ selector })` or `waitFor({ text })` before the first page action.
 
 ### Board page
 
@@ -158,48 +157,17 @@ the app window can use the UI highlight facilities.
 
 ## Navigation, input, and privacy
 
-Navigation uses a two-phase wait: first wait for navigation to start or the URL/readiness state to
-change, then wait for `document.readyState === "complete"`. The shared `navigate`, `back`, and
-`forward` paths use this behavior and return the resulting state without failing merely because a
-page is slow. For dynamic applications, prefer `waitFor({ selector })` or a text condition. The
-explicit opener race is separate: its returned id can precede the first document, so wait before
-the first action as described above.
+Navigation, opener readiness, and the two-phase wait behavior are owned by the existing browser
+members; inspect `pages[i].editor.$help` and the `waitForNavigation` member summary before acting.
 
 For browser and board inputs, use `type` for ordinary fields; it clears the old value and
 dispatches the input/change events needed by frameworks. In the app window, prefer
-`set_page_content` or `execute_script` for editor content, especially Monaco. Use
+  assigning `value` to `pages[i].content` or using `script.execute` for editor content, especially Monaco. Use
 `window.screen.type` for simple dialogs, search boxes, and settings fields.
 
 Private browser pages opened by the user, including incognito and Tor pages, are refused by the
 browser host and by `window.screen` while that page is active. A private page opened by the agent
 remains available to that agent. The privacy guard is unchanged.
-
-## Older equivalent tools
-
-The fourteen `browser_*` tools and `open_url` still work, but are being retired. They are the older
-equivalents, not the primary paths:
-
-| Older tool | `call` equivalent |
-|---|---|
-| `browser_snapshot` | `<host>.snapshot()` |
-| `browser_click` | `<host>.click(locator)` |
-| `browser_hover` | `<host>.hover(locator)` |
-| `browser_type` | `<host>.type(locator, text, options)` |
-| `browser_select_option` | `<host>.select(locator, values)` |
-| `browser_press_key` | `<host>.pressKey(key)` |
-| `browser_evaluate` | `<host>.evaluate(expression)` |
-| `browser_wait_for` | `<host>.waitFor({ selector \| text \| textGone \| time })` |
-| `browser_take_screenshot` | `<host>.screenshot()` |
-| `browser_network_requests` | `<host>.networkRequests()` |
-| `browser_navigate` | `pages[i].editor.navigate(url)` |
-| `browser_navigate_back` | `pages[i].editor.back()` |
-| `browser_tabs` | browser `tabs`/`addTab`/`closeTab`/`switchTab`, or board `tabs`/`switchTab` |
-| `browser_close` | `pages[i].editor.closeTab()` for a browser inner tab |
-| `open_url` | `pages.openUrlInBrowserTab(url, options)` |
-
-The old tools retain their targeting rules: `pageId: "app"` means the app window, a browser or
-board page can be targeted by page id, and an untargeted call follows the active-page fallback.
-The path API makes the host explicit instead.
 
 ## Common errors
 

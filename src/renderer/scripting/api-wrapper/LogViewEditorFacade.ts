@@ -7,7 +7,7 @@ import type {
 import type { LogViewEditor } from "../../editors/log-view/LogViewEditor";
 import type { IAiElementDeclaration, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 import { ui } from "../../api/ui";
-import { DIALOG_SPECS, normalizeUiPushEntry } from "../../api/mcp/ui-push-validation";
+import { normalizeUiPushEntry } from "../../api/mcp/ui-push-validation";
 import { createElements } from "../ai-vision/elements";
 import { activatePageAndWaitForLayout, pageScopeSelector } from "../ai-vision/page-elements";
 
@@ -42,9 +42,12 @@ const LOG_VIEW_MEMBERS: readonly IAiMember[] = [
 const LOG_VIEW_HELP = `Access via pages[i].editor after narrowing editor.id to "log-view", or read pages.logView for the fixed MCP Log View writer.
 The facade is model-backed: entries are fresh deep-copied snapshots, actions do not inspect views, DOM controls, clipboard state, or live model arrays, and pages[i].content remains the raw JSONL content because Log View has a content host.
 When attached, entries is [] for a valid empty Log View, entryCount is its real count including 0, error is the actual parse error or undefined for a valid parse, and showTimestamps is the real boolean including false. Detached host-backed state is undefined; false, 0, "", null, and [] are never used as absence markers.
-push validates and normalizes the same entries as ui_push, returns immediately with fresh entryIds and dialogIds arrays (including [] for empty input), and supports string shorthand, log levels, text/Markdown/Mermaid, JSON/CSV grids, progress, and all six input dialog types. These exact dialog examples are:
-${Object.values(DIALOG_SPECS).map((spec) => spec.usage).join("\n")}
-Log View dialogs are inline entries, not renderer dialogs: they do not appear in dialogs[0], the agent cannot answer them, and the user must answer them in the Log View page. Read dialogResult(id): it is undefined only when that entry no longer exists, { id, status: "unresolved" } while button is undefined, or { id, status: "resolved", entry } once button exists, including falsy button and answer fields. Unresolved dialogs raise attention on call results until answered.
+push validates and normalizes the documented flat entries, returns immediately with fresh entryIds and dialogIds arrays (including [] for empty input), and supports string shorthand, log levels, text/Markdown/Mermaid, JSON/CSV grids, progress, and all six input dialog types. These exact entry and dialog examples remain in the ui-push resource.
+Log View dialogs are inline entries, not renderer dialogs: they do not appear in dialogs[0], the agent cannot answer them, and the user must answer them in the Log View page. Read dialogResult(id): it is undefined only when that entry no longer exists, { id, status: "unresolved" } while button is undefined, or { id, status: "resolved", entry } once button exists, including falsy button and answer fields.
+pages.logView.push() is non-blocking, including when it creates input dialogs: it returns entryIds
+and dialogIds, and an unresolved dialog raises call attention until the user answers it in Log View.
+There is no automatic user-response timeout; a pending dialog means the user has not answered it.
+The call result omits fields that are absent; it does not replace an absent field with null.
 The curated elements are page-scoped. Prefix selectors log-dialog-button and log-dialog-checkbox locate control families; highlight passes highlightOptions: { all: true }. A highlight result's count is total matches and highlighted is the number actually ringed or capped by the overlay. Output open/copy controls are locations only because their handlers remain view-owned; use entries or push for model-backed data.
 `;
 
@@ -105,7 +108,7 @@ export class LogViewEditorFacade implements IAiVisible {
 
         for (const raw of entries) {
             // strictTypes: reject a guessed entry type instead of rendering a blank entry and
-            // reporting success. The ui_push tool keeps its lenient behaviour unchanged.
+            // reporting success. The legacy output route keeps its lenient behaviour unchanged.
             const normalized = normalizeUiPushEntry(raw, { strictTypes: true });
             if (!normalized) continue;
             if (normalized.isDialog) {

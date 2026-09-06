@@ -1,24 +1,14 @@
-# Scripting API — execute_script
+# Scripting API — script.execute
 
-The `execute_script` tool runs JavaScript or TypeScript in Persephone's context. Scripts have access to `page` (current tab), `app` (application services), and full Node.js APIs.
+The `script.execute` path runs JavaScript or TypeScript in Persephone's renderer context. Inspect
+`script.$help` for the live execution contract; this resource keeps longer API examples and
+format/reference material.
 
 ## Execution model & security
 
-- **No sandbox.** Scripts run inside Persephone's renderer with **full Node.js and the user's
-  OS privileges** — they can read/write any file the user can, spawn processes, and reach the
-  network. Treat a script like code you'd run in the user's terminal: be deliberate with
-  deletes, overwrites, and anything that leaves the machine.
-- **30-second tool timeout.** The MCP call returns `Error: Request timeout` after ~30 s — but
-  the script itself **keeps running** in Persephone; only your view of the result is lost.
-  For long work: report progress out-of-band (`ui_push` entries or `app.ui.notify`) so results
-  aren't tied to the tool response, or split the work into shorter script calls. For recurring
-  long-running integrations, prefer a registered tool (`read_guide("tools")`) — `execute_tool`
-  has no fixed MCP timeout (the tool's own `timeoutMs` governs).
-- **Dialogs block the call.** APIs like `app.ui.confirm` / `app.ui.input` (and the first
-  `app.boardVars.*` call) wait for the user — a slow response is a waiting user, not a hang,
-  but the 30 s tool timeout still applies to your view of it.
-- **Result = last expression** (or `return …`), serialized to text in the tool result.
-  `console.log` output is captured separately into `consoleLogs`.
+The live execution, privilege, timeout, result, and dialog contract is owned by `script.$help`.
+Use this resource for longer API examples and reference material; do not infer a second execution
+protocol from the examples below.
 
 ## Main-process scripts via `call`
 
@@ -55,21 +45,16 @@ logic, loops, or Node.js.
 | `app.editors` | Editor registry — list and resolve editors |
 | `app.recent` | Recently opened files |
 | `app.downloads` | Download tracking |
-| `app.boards` | Boards — `createBoard(name, dir)` / `createDemoBoard(name, dir)` / `openBoard(root)`. See `read_guide("boards")`. |
-| `app.boardVars` | Env vars/secrets store for boards — get/set/list per namespace, resolve a board's namespace, open the editor. See `read_guide("boards")`. |
+| `app.boards` | Boards — `createBoard(name, dir)` / `createDemoBoard(name, dir)` / `openBoard(root)`. See `persephone://guides/boards`. |
+| `app.boardVars` | Env vars/secrets store for boards — get/set/list per namespace, resolve a board's namespace, open the editor. See `persephone://guides/boards`. |
 | `app.openRawLink(href, options?)` | Open any link (file path, URL, or in-app scheme) in a new/reused tab and make it active. `options.editor` requests a specific editor (e.g. `{ editor: "md-view" }` for rendered Markdown); falls back to the default when omitted/unmatched |
 | `app.call(path, options?)` | Resolve the live AiVision tree from the script's own page context; returns a plain bounded value and rejects `Error` on resolver failure |
 
 ### `app.call(path, options?)`
 
-`app.call()` uses the same descriptor tree as the MCP `call` tool, but it is rooted in the page
-that owns the running script. It always sends `hints: "never"`, so the result is only the shaped
-plain value. `args` invokes the final method, `value` assigns a writable property, and `maxLength`
-controls string shaping; `args` and `value` are mutually exclusive.
-
-This is the renderer-side tree only. `app.call()` cannot resolve the MCP router's process-wide
-`main.*` or `windows[i].*` paths; use the MCP `call` tool for those paths. In particular,
-`main.script.execute(code)` is not available through a script's `app.call()`.
+For the script-side call seam, inspect `script.$help` and use `app.call(path)` inside
+`script.execute`. The examples below show the renderer facade's format; the full live contract is
+owned by the `script` node.
 
 ```javascript
 const source = await app.call("page.grouped.content");
@@ -79,10 +64,6 @@ await app.call("page.grouped.content", {
 });
 const result = await app.call("page.editor.getCell", { args: [0, "name"] });
 ```
-
-The method does not return hints or resolver metadata. Invalid paths, restricted descriptors,
-invocation failures, and invalid assignments reject as `Error`, so use ordinary `try`/`catch` when
-a script wants to report or recover from a failed call.
 
 The shell nodes are available through the MCP `call` path as well. Use `window.menuBar.folders`
 to discover the live built-in and user-folder IDs, then `window.menuBar.open(id)` to open one;
@@ -174,7 +155,7 @@ save, so an external edit applies immediately and fires `onChanged` just like `s
 `set()` when you are connected; edit the file only when you are not (that is how the MCP server
 gets turned on in the first place). Persephone regenerates the file's comments on every save, so
 comments added by hand are lost. Keys, defaults, and accepted values are documented in the file
-itself and summarised in `read_guide("ui")`.
+itself and summarised in `persephone://guides/ui`.
 
 ### app.ui
 
@@ -337,7 +318,7 @@ page.editor.savePngToFile("D:/tmp/image.png");
 page.editor.savePngToFile("D:/tmp/photo.png");
 ```
 
-To simply *look at* an image page, you usually don't need a script at all: `get_page_content`
+To simply *look at* an image page, you usually don't need a script at all: `pages[i].content`
 returns the rendered PNG directly as an image block in the tool result. `savePngToFile` remains
 the way to put the image on disk (or to read one that is too large to inline).
 
@@ -403,10 +384,10 @@ await app.pages.addDrawPage(dataUrl, "Screenshot.excalidraw");
 
 ## TypeScript Support
 
-The `execute_script` tool accepts an optional `language` parameter. Set it to `"typescript"` to write scripts with type annotations — types are stripped via sucrase before execution.
+The `script.execute` path accepts an optional `language` parameter. Set it to `"typescript"` to write scripts with type annotations — types are stripped via sucrase before execution.
 
 ```
-execute_script({ script: "const x: number = 42; x", language: "typescript" })
+script.execute("const x: number = 42; x", undefined, "typescript")
 ```
 
 TypeScript scripts have the same access to `page`, `app`, and Node.js APIs as JavaScript scripts. All type annotations are removed at runtime — no type checking is performed.
@@ -475,11 +456,11 @@ const https = require('https');
 When using `main.script.execute`, a caught error returns `{ result: <error text>, isError: true,
 consoleLogs }` and never escapes as an MCP unhandled rejection. The timeout response sets
 `timedOut: true`; an async evaluation may still be running. These semantics are separate from the
-renderer `execute_script` 30-second request timeout above.
+renderer `script.execute` 30-second request timeout described in `script.$help`.
 
 ## Errors & verification
 
-What failures actually look like in the `execute_script` result (verified against the app):
+What failures actually look like in the `script.execute` result (verified against the app):
 
 - **A thrown exception** (or syntax error) returns `isError: true` with the error message and
   the **full stack trace** in `text`, plus whatever `consoleLogs` were captured before the
@@ -496,6 +477,6 @@ What failures actually look like in the `execute_script` result (verified agains
   blocks until they answer — if you truly don't need the content, it is your responsibility to
   have saved or discarded deliberately, not to assume the close is silent.
 - **Verify side effects, not intentions**: after writing a file, `await app.fs.exists(path)`;
-  after creating/modifying a page, `get_page_content` (content) or
+  after creating/modifying a page, `pages[i].content` (content) or
   `window.screen.snapshot()` (rendering). A `true`/content response from those is
   ground truth; your script returning without error is not.

@@ -4,15 +4,16 @@ Persephone uses tabbed pages (like browser tabs). Each page has an editor and, w
 supports one, a **`language`** — which throughout Persephone means the **Monaco
 syntax-highlighting mode** (`javascript`, `json`, `python`, …), never a UI locale or a spoken
 language. Editors that are not text editors (grids, notebooks, browser, boards, app pages) have
-none, and `list_pages` reports theirs as empty or absent.
+none, and `call` at `pages` reports theirs as empty or absent.
 
 ## Reading Page Content
 
-`get_page_content` (and `get_active_page`) adapt to the page type:
+`pages[i].content` and the page's editor facade adapt to the page type:
 
 - **Text-based pages** (monaco, markdown, grid, notebook, mermaid, svg, …) return `{ id, title, content }` — the source text.
 - **Image pages** (`image-view`, e.g. screen snips or opened image files) return the rendered PNG **as an image block in the tool result** — you see the picture directly. Works for background (non-active) pages too. Very large images degrade to a hint pointing at `page.editor.savePngToFile(path)`.
-- **Other non-text pages** (browser, board, video, PDF, …) return `{ id, title, hint }` — a one-line pointer to the right path (`pages[i].editor`, `window.screen`, `execute_script` facades, or the file path from `list_pages`).
+- **Other non-text pages** (browser, board, video, PDF, …) expose their live behavior through
+  `pages[i].editor`, `window.screen`, or the relevant `script.execute` facade.
 
 ## Automating Persephone's Own UI
 
@@ -33,7 +34,7 @@ window.screen.screenshot()                                  // pixels of the app
 - **What's not supported:** browser navigation and browser inner-tab management — the app window is
   not a browser. To open or switch Persephone pages, use `pages.openUrl`, `pages.showPage`, or
   the page methods.
-- **Editing content:** prefer `set_page_content` / `execute_script` over typing into the editor —
+- **Editing content:** prefer assigning `value` to `pages[i].content` or using `script.execute` over typing into the editor —
   synthetic typing into Monaco is unreliable. `window.screen.type` is for simple inputs (dialogs,
   search boxes, settings fields).
 - Combine with `windows[i].window.screen` to target a specific window's UI.
@@ -44,7 +45,7 @@ Persephone supports multiple windows. Each window has a stable `windowIndex` (st
 
 ### Discovering Windows
 
-Use `list_windows` to see all windows and their status:
+Use `call` at `windows` to see all windows and their status:
 
 ```json
 [
@@ -61,19 +62,19 @@ Use `list_windows` to see all windows and their status:
 All tools accept an optional `windowIndex` parameter:
 
 ```
-execute_script({ script: "page.content", windowIndex: 1 })
-list_pages({ windowIndex: 0 })
-create_page({ title: "Notes", windowIndex: 1 })
+call({ path: "windows[1].pages[0].content" })
+call({ path: "windows[0].pages" })
+call({ path: "windows[1].pages.addEditorPage", args: [{ title: "Notes" }] })
 ```
 
 If `windowIndex` is omitted, the first open window is used (backward compatible).
 
 ### Reopening Closed Windows
 
-Closed windows cannot be targeted directly by other tools. Use `open_window` to reopen them first:
+Closed windows cannot be targeted directly by other calls. Use the window's `open` member to reopen them first:
 
 ```
-open_window({ windowIndex: 1 })  // Reopens window 1 with its persisted pages
+call({ path: "windows[1].open" })  // Reopens window 1 with its persisted pages
 ```
 
 After reopening, you can target the window with any tool using `windowIndex`.
@@ -84,14 +85,14 @@ Persephone's built-in browser groups pages by **profile** — each profile is an
 
 ### Profile fields on browser pages
 
-`list_pages`, `get_active_page`, and `list_windows` expose profile identity for `browser-view` pages:
+`pages`, `windows`, and the browser page descriptors expose profile identity for `browser-view` pages:
 
 | Field | Description |
 |-------|-------------|
 | `profileName` | Profile name. `""` = the built-in default profile. |
 | `isIncognito` | `true` for incognito sessions (no cookies/history). |
 | `isTor` | `true` for Tor browsing sessions. |
-| `url` | The **active tab's** URL. A browser page hosts multiple internal tabs — use `pages[i].editor.tabs` to enumerate them all. Omitted for incognito/Tor pages (privacy). `list_windows` does not include `url`. |
+| `url` | The **active tab's** URL. A browser page hosts multiple internal tabs — use `pages[i].editor.tabs` to enumerate them all. Omitted for incognito/Tor pages (privacy). `windows` does not include `url`. |
 
 ### Discovering configured profiles
 
@@ -104,10 +105,10 @@ Persephone's built-in browser groups pages by **profile** — each profile is an
 
 ### Targeting a profile
 
-Browser pages expose profile identity in `list_pages`; target the exact page with its returned id:
+Browser pages expose profile identity in `pages`; target the exact page with its returned id:
 
 - **`profileName`** — is an opening option for `pages.openUrlInBrowserTab` (`""` = default profile).
-- **`pageId`** — targets an exact browser page from `list_pages`; use it to disambiguate when
+- **`pageId`** — targets an exact browser page from `pages`; use it to disambiguate when
   several pages share a profile.
 
 ```
@@ -118,7 +119,7 @@ await pages["abc"].editor.click({ ref: "e12" })
 Targeting through `pages[pageId].editor` focuses the resolved page — the page content must be
 visible for input. Keep the returned page id instead of relying on mutable active-page state.
 
-The exact resolution algorithm (including how board pages participate and why an untargeted call can land on a board) is in `read_guide("browser")` → "Page targeting resolution". Rule of thumb: **always pass `pageId` when you care which page you hit** — the active page can change between your calls (the user, or another agent on the same Persephone, can switch tabs).
+The exact resolution algorithm (including how board pages participate and why an untargeted call can land on a board) is in `persephone://guides/browser` → "Page targeting resolution". Rule of thumb: **always pass `pageId` when you care which page you hit** — the active page can change between your calls (the user, or another agent on the same Persephone, can switch tabs).
 
 ### Opening a URL in a profile
 
@@ -157,25 +158,26 @@ The current page (tab). Available as a global in scripts.
 
 ### Editor Types
 
-**Creatable with `create_page`** (content-hosting editors — see the table below for the
+**Creatable with `pages.addEditorPage`** (content-hosting editors — see the table below for the
 required `language` and title suffix):
 
 `"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"`
 
-**Standalone editors** — `create_page` rejects these with a hint; open them the way listed:
+**Standalone editors** — `pages.addEditorPage` rejects these with a hint; open them the way listed:
 
 | Editor | What it is | How to open |
 |--------|------------|-------------|
 | `browser-view` | Built-in web browser | `pages.openUrlInBrowserTab(url, options)` |
-| `board-view` | A Board (your mini web-app) | `open_board` tool |
-| `image-view` / `archive-view` / `video-view` | File viewers | `execute_script`: `await app.pages.openFile(path)` |
-| `mcp-view` | MCP Inspector | `execute_script`: `await app.pages.showMcpInspectorPage()` |
-| `about-view` / `settings-view` | App pages | `execute_script`: `showAboutPage()` / `showSettingsPage()` |
-| `category-view`, `tools-hub-view`, `toolset-view`, `board-info`, `file-diff`, `env-vars-view`, and other ids you may see in `list_pages` | Internal app views | Opened by the app itself — read them, don't create them |
+| `board-view` | A Board (your mini web-app) | `boards.openBoard(root)` |
+| `image-view` / `archive-view` / `video-view` | File viewers | `script.execute`: `await app.pages.openFile(path)` |
+| `mcp-view` | MCP Inspector | `script.execute`: `await app.pages.showMcpInspectorPage()` |
+| `about-view` / `settings-view` | App pages | `script.execute`: `showAboutPage()` / `showSettingsPage()` |
+| `category-view`, `tools-hub-view`, `toolset-view`, `board-info`, `file-diff`, `env-vars-view`, and other ids you may see in `pages` | Internal app views | Opened by the app itself — read them, don't create them |
 
 ### Creating Pages with Specialized Editors
 
-**CRITICAL: Each non-monaco editor REQUIRES a specific `language` parameter. Using the wrong language (e.g., `language: "plaintext"` with `editor: "md-view"`) will result in broken rendering — the page will appear empty or display raw text instead of rendered content.**
+For the live creation language and title-suffix constraints, inspect `pages.$help`; the table below
+is the complete editor reference.
 
 | Editor | Required `language` | Title suffix | Example |
 |--------|-------------------|------------------------|---------|
@@ -194,10 +196,6 @@ required `language` and title suffix):
 | `log-view` | **`jsonl`** | `.log.jsonl` (optional) | `"Output.log.jsonl"` |
 | `rest-client` | **`json`** | `.rest.json` (**required**) | `"API Collection.rest.json"` |
 
-**Common mistake:** `create_page({ editor: "md-view", language: "plaintext", ... })` — this creates a broken page. Use `language: "markdown"` with `md-view`.
-
-**Title suffix:** Suffixes marked **required** are needed for the editor switch buttons to appear (e.g., XML/Preview toggle for SVG, JSON/Graph toggle for graphs). Without the suffix, the page renders but the user cannot switch between editor modes.
-
 **Initial content:** Structured editors expect valid JSON content on creation. **Read the dedicated resource guide BEFORE creating pages with these editors** — incorrect JSON will crash the editor:
 - **Notebook:** Read `persephone://guides/notebook` for NoteItem format. Empty: `{"notes":[],"state":{}}`
 - **Links:** Read `persephone://guides/links` for LinkItem format. Empty: `{"links":[],"state":{}}`
@@ -208,7 +206,7 @@ required `language` and title suffix):
 
 The graph editor renders an interactive force-directed graph. The full data format (node/link
 properties, options and their defaults, group nodes, legend) and the `page.editor` scripting
-API live in **`read_guide("graph")`** — read it before creating or editing graph pages. The
+API live in **`persephone://guides/graph`** — read it before creating or editing graph pages. The
 minimum you need here: content is JSON with `"type": "force-graph"`, `nodes`, `links`, and
 `options`; the empty page is `{"type":"force-graph","nodes":[],"links":[],"options":{}}`; the
 `.fg.json` title suffix enables the JSON/Graph editor switch.
@@ -269,14 +267,8 @@ The Rest Client editor displays a collection of HTTP requests organized in colle
 | `bodyLanguage` | string | Language for raw body: `"plaintext"`, `"json"`, `"javascript"`, `"html"`, `"xml"` |
 | `formData` | array | Array of `{ key, value, enabled }` for form-urlencoded body |
 
-**Tips for generating Rest Client pages:**
-- Always include `"type": "rest-client"` for content detection
-- Generate unique `id` values for each request (e.g., `"req-1"`, `"req-2"`)
-- Use `collection` to group related requests (e.g., `"Auth"`, `"Users"`, `"Products"`)
-- Set `bodyType: "raw"` + `bodyLanguage: "json"` for JSON request bodies
-- Set `bodyType: "form-urlencoded"` and populate `formData` for form submissions
-- Title suffix `.rest.json` is **required** for the editor to activate
-- Scripts can use `app.fetch(url, options)` to execute HTTP requests directly — no need to go through the editor
+**Live REST creation and send behavior:** inspect `pages[i].editor.$help` after narrowing the
+editor id to `rest-client`. The full request field table and example remain in this resource.
 
 ## Grouped Pages (Script Output)
 
@@ -296,7 +288,7 @@ Access `page.grouped` to auto-create a grouped page. Set `page.grouped.language`
 
 What failures actually look like, and how to check your work (verified against the app):
 
-- **`create_page` does NOT validate content.** Creating a structured-editor page (notebook,
+- **`pages.addEditorPage` does NOT validate content.** Creating a structured-editor page (notebook,
   links, graph, rest-client) with broken content returns a normal `{ id, title }` success — the
   failure happens at render time, in the editor:
   - **Unparseable JSON** → the editor shows a parse error in place of content (e.g.
@@ -304,17 +296,10 @@ What failures actually look like, and how to check your work (verified against t
   - **Valid JSON with a missing required field** → the editor **crashes** into an error
     boundary: the page shows `Editor crashed` with the exception (e.g.
     `TypeError: note.tags is not iterable`) and a stack trace.
-- **`get_page_content` is not a validity check** — it returns the raw content you sent,
-  byte-for-byte, whether or not the editor can render it. Use it to verify *what* the page
-  holds, not *whether* it renders.
-- **To verify rendering**, snapshot the app window: `window.screen.snapshot()` shows
-  the active page's UI — a healthy editor shows its content tree; a broken one shows the parse
-  error text or `Editor crashed`. (Activate the page first if it isn't active.)
-- **Cheapest prevention**: `JSON.parse` your content yourself before `create_page` /
-  `set_page_content`, and read the format guide (`notebook` / `links` / `graph`) — the required
-  fields are exactly the ones that crash when missing.
-- **Wrong `editor` id** → `create_page` errors with `Unknown editor '…'. Valid editors: …`.
-  A standalone editor id (e.g. `browser-view`) errors with a hint telling you the right tool.
-- **`Page not found: <id>`** — the page was closed since you got the id; call `list_pages`.
-- **Every tool result is authoritative** — if `create_page` returned an error, no page was
+ - For the live raw-content versus rendered-editor boundary, inspect `pages[i].$help`; the
+   longer failure examples above remain the reference for diagnosing the editor.
+- **Wrong `editor` id** → `pages.addEditorPage` errors with `Unknown editor '…'. Valid editors: …`.
+  A standalone editor id (e.g. `browser-view`) errors with a hint telling you the right call path.
+- **`Page not found: <id>`** — the page was closed since you got the id; call at `pages`.
+- **Every call result is authoritative** — if `pages.addEditorPage` returned an error, no page was
   created; there is nothing to clean up.

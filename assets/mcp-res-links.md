@@ -1,16 +1,14 @@
 # Links Editor Format (`link-view`)
 
-**IMPORTANT: Read this guide BEFORE creating or updating links pages. Incorrect JSON structure will result in an empty or broken editor.**
+The live creation and mutation paths are `pages.addEditorPage("link-view", "json", title)`,
+`pages[i].content = value`, and the `link-view` editor facade. This resource is the LinkItem format
+reference; inspect `pages[i].$help` for the live projection and mutation contract.
 
 ## Creating a Links Page
 
 ```
-create_page({
-  title: "Bookmarks.link.json",
-  editor: "link-view",
-  language: "json",
-  content: JSON.stringify(linksData)
-})
+const page = pages.addEditorPage("link-view", "json", "Bookmarks.link.json");
+page.content = JSON.stringify(linksData);
 ```
 
 **Required:** `language: "json"`, title ending with `.link.json`
@@ -96,10 +94,10 @@ A links collection with 3 bookmarks in 2 categories:
 
 ## Errors & verification
 
-- **`create_page` / `set_page_content` accept broken content silently** — the tool returns
+- **`pages.addEditorPage` / content assignment accept broken content silently** — the call returns
   success; unparseable JSON shows a parse error in the editor, and valid JSON missing required
   LinkItem fields renders a broken/empty editor or crashes it (`Editor crashed` + exception).
 - **Verify**: `JSON.parse` your content before sending; include `tags: []` and `category: ""`
   even when empty; to confirm the render, activate the page and
   `window.screen.snapshot()`.
-- **Fixing a broken page**: content survives — `get_page_content`, repair, `set_page_content`.
+- **Fixing a broken page**: content survives — read `pages[i].content`, repair, and assign it again.

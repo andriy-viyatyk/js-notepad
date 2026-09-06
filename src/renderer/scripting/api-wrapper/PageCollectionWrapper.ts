@@ -58,7 +58,15 @@ Ids are stable while the page is open; positions change when tabs move.
 Read a page's text with pages[i].content, replace it by assigning "value" to the same path, switch
 editors with pages[i].editor; narrow its id for editor-specific operations, then use
 pages[i].editorSwitches.switchTo(id) to switch. Create pages with addEmptyPage(), addEditorPage(...)
-or openFile(path). openDiff({ firstPath, secondPath }) remains the path-based entry point that
+or openFile(path). For a non-monaco editor, pass the editor's required language; structured pages
+also need the documented title suffix when the editor-switch button depends on it. The editor
+registry and the pages resource provide the complete editor/language/suffix table.
+
+pages.logView belongs to this window. With multiple windows, address the intended window before
+using its Log View; otherwise output is written to the first/current window selected by the call
+context.
+
+openDiff({ firstPath, secondPath }) remains the path-based entry point that
 opens/groups pages and enters compare mode. Inspect pages.compare.pairs for explicit left/right
 page identity, use pages.compare.enter(pageId) or exit(pageId) for compare mode, and highlight
 compare-root or compare-exit through pages.compare.elements. Compare elements live in the active

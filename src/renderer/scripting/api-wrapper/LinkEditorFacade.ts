@@ -15,7 +15,9 @@ const LINK_EDITOR_MEMBERS: readonly IAiMember[] = [
 ];
 
 const LINK_EDITOR_HELP = `Access via pages[i].editor after narrowing editor.id to "link-view".
-Links, categories, and tags management.`;
+Links, categories, and tags management. links are copied LinkItem projections: href is exposed as
+url, and each snapshot includes pinned and isDirectory state. addLink(), updateLink(), and
+deleteLink() are model-backed; deleteLink() does not open a confirmation dialog.`;
 
 /**
  * Safe facade around LinkEditor for script access.

@@ -140,7 +140,10 @@ exposes the toolbar's merged options and switchTo(id), which accepts any registe
 tab is this page's tab-strip entry and its curated controls; its title remains available even when a
 pinned tab hides title text. Use pages.showPage, closePage, pinTab, unpinTab, and moveTab for tab
 actions. The panels node is a live view of the page's sidebar. Grouped is a side-by-side page and
-creates one when none exists.
+creates one when none exists. A successful content read or assignment reports the raw source, not
+that a structured editor rendered it successfully. Parse JSON before writing notebook, links, graph,
+or REST content, then activate the page and use window.screen.snapshot() when you need to verify the
+rendered editor.
 `;
 
 interface IBrowserPrivacyState {
