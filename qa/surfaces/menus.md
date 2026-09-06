@@ -26,7 +26,11 @@ el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true
 
 ## Test M.1: Read an open menu
 **Preparation:** Open the active tab's context menu as above
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "A menu just opened in Persephone. What are my options?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** any `call` surfaces the popup attention; the agent reads `menus[0].items` and lists
 the labels, marking the disabled ones as unavailable
 **Verify:** the labels match the menu on screen, and disabled items (e.g. "Close Tabs to the
@@ -36,7 +40,11 @@ offered
 
 ## Test M.2: Activate an item
 **Preparation:** Open the active tab's context menu on a **non-pinned, file-backed** page
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Copy this file's path to the clipboard using that menu."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `menus[0].click("Copy File Path")`
 **Verify:** the clipboard actually holds the path — the callback must really run, not just the
 menu close. Check with `execute_script`: `require("electron").clipboard.readText()`. And
@@ -47,20 +55,32 @@ activating is the specific failure this test catches
 
 ## Test M.3: A disabled item is refused
 **Preparation:** Open the tab context menu on an unencrypted page, where "Decrypt" is disabled
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Decrypt this page from the menu."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `menus[0].click("Decrypt")` fails saying the item is disabled; the agent reports
 that it is unavailable and, ideally, why
 **Verify:** nothing happened — no dialog opened, the menu is still open, no state changed
 
 ## Test M.4: Dismiss without acting
 **Preparation:** Open any popup
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Close that menu without choosing anything."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `menus[0].close()`
 **Verify:** `menus.children()` is empty and no menu callback ran
 
 ## Test M.5: No menu open
 **Preparation:** No popup on screen
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "What's in the open menu?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** reads `menus`, finds no children, and says no menu is open — then, if asked to open
 one, explains that a popup needs a right-click it cannot perform (there is no `open` on the node
 by design; the node reports and drives, it does not summon)

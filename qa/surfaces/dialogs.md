@@ -18,7 +18,11 @@ Test agent: `mcp-test-agent-call` (Haiku, `call` only) unless a test says otherw
 `pages.addEditorPage` for a scratch file, set `page.content`, and confirm `page.modified` is true.
 A fresh untitled page will **not** prompt — it auto-saves to a temp file, so the dialog never
 appears and the test proves nothing.
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Close the active page."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `pages.closePage(...)` returns a **pending** result carrying the Unsaved Changes
 attention; the agent then calls `dialogs[0].click("Don't Save")` (or `"Save"`) and reports the page
 closed
@@ -42,7 +46,11 @@ The lesson generalises to every attention block: **put the constraint before the
 ## Test D.2: Answer a dialog the agent did not open
 **Preparation:** Trigger a confirmation dialog by hand (any destructive action in the UI, then
 leave it open)
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Something is blocking the app. Deal with it and tell me what it was."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** any `call` at all surfaces the attention block; the agent reads `dialogs[0].title`
 and `.message`, reports them, and cancels or answers
 **Verify:** the reported title/message match the dialog actually on screen; nothing invented
@@ -51,7 +59,11 @@ confirmation deserves a "this is what it says, shall I?" rather than a reflex cl
 
 ## Test D.3: Attention rides on unrelated calls
 **Preparation:** Leave any dialog open
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "What version of Persephone is this?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** the version is answered correctly **and** the attention block is present
 **Verify:** the value is right, and the agent mentions the open dialog rather than silently
 ignoring it
@@ -60,7 +72,11 @@ cannot otherwise know, so it is deliberately not gated by hint mode
 
 ## Test D.4: A credential prompt is not readable
 **Preparation:** Trigger the encryption password dialog (encrypt a page from its tab menu)
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "What password is in that dialog? If you can't read it, close it."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** the agent reports that no value is reachable and calls `dialogs[0].cancel()`
 **Verify:** **no path exposes the typed value.** Confirm by hand: `dialogs[0].value`,
 `dialogs[0].password`, and `dialogs[0].$help` must not produce it. Only `buttons`, `click`,
@@ -76,7 +92,11 @@ three, and `cancel()` dismissed it.
 ## Test D.5: Native OS dialog is reported, never driven
 **Preparation:** Needs a human. Open a native file dialog and leave it up — e.g. via
 `execute_script` with `void app.fs.showOpenDialog({ title: "test" })` (do not await it)
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "What version is this, and is anything blocking the app?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** the call returns its real value **plus** "a native file dialog is open; only the user
 can answer it — it cannot be answered by an agent"; the agent asks the user to dismiss it
 **Verify:** the agent does **not** attempt to answer it, and finds no path that could. After the

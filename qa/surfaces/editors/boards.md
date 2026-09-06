@@ -11,7 +11,11 @@ Landed by EPIC-088 (US-1325, US-1326, US-1327).
 **Preparation:** none. This is the scenario the surface exists for — an agent that has never seen
 this machine.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Read `boards`, then `boards.list()`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The member list distinguishes the **local** inventory from the **remote** catalog
 (`searchPublished`). `list()` returns one record per board root, each carrying `trusted`, and the
@@ -25,7 +29,11 @@ root path and nothing could produce one.
 
 **Preparation:** note which boards are trusted before you start.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `boards.list()` several times.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** No board is created, trusted, opened or modified. Nothing appears in the tab strip. The
 answer does not depend on network availability — update availability comes from the in-memory
@@ -36,7 +44,11 @@ catalog, and when that catalog has not loaded `updateAvailable` is **absent** (u
 
 **Preparation:** a trusted board open as a page.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Read `pages[id].editor` on the board page.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** `renderState` is `"trusted"`, and `boardRoot`, `boardName`, `frameReady` and `busy` are
 present. `busy` is a real `false` on an idle board, not absent.
@@ -50,7 +62,11 @@ an empty board is not private content.
 
 **Preparation:** an open, trusted board page.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.reload()`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Returns `{ refreshed: true, pageId, frameReady: true, renderState: "trusted" }`, and it
 waits for the frame — a snapshot taken straight afterwards sees the reloaded board, not the stale
@@ -64,7 +80,11 @@ then claims an unqualified success is the failure this shape exists to prevent.
 
 **Preparation:** a trusted board page that is **not** active.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Read `elements` on its editor, then activate the page and read them again.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** All five are declared either way, but `visible` is honest: everything reads `false`
 while the page is inactive, and the four toolbar controls read `true` once it is active.
@@ -79,7 +99,11 @@ page-scoped selector could not honestly resolve it.
 **Preparation:** open Board Info for a locally trusted, non-catalog board (the board toolbar's
 properties control).
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Read `pages[id].editor` and its `elements`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** `mode` is `"properties"`. Only `board-info-open` and `board-info-unregister` report
 `visible: true`; every catalog install control (`download`, `register`, `cancel`, `retry`,
@@ -89,8 +113,12 @@ declaring one that could never appear is not.
 
 ## Test B.7: The trust boundary holds
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Look for any member on `boards`, the board facade or the Board Info facade that grants
 trust, and try `boards.registerBoard(root)` on an untrusted board.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** No member trusts a board directly. `registerBoard` raises the user's trust dialog and
 the result carries `attention` naming it. The agent cannot answer it on the user's behalf, and

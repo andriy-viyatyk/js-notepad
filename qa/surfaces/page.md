@@ -8,9 +8,13 @@ created by the scenario.
 
 **Preparation:** Open two Monaco/script pages and obtain both page ids from `pages`.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Read `pages[firstId].editor.elements`, `pages[secondId].editor.elements`, and both
 pages' `editorSwitches.elements` and `panels.elements`. Read `pages[firstId].tab.elements` and
 `pages[secondId].tab.elements` as well.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Every returned selector contains the requested `[data-page-id="id"]`; the active
 page's slot-hosted controls are visible, while the inactive retained slot's controls are not
@@ -23,7 +27,11 @@ success.
 **Preparation:** Leave the second same-editor page inactive and use a script-language page so
 `text-run-script` exists.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[secondId].editor.highlight("text-run-script", "...")`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The active page becomes `secondId`, the result is `found: true`, and the visible ring
 is on the second page's button rather than the first page's matching button. Repeat with
@@ -35,6 +43,10 @@ rectangle before drawing, including when the requested page is the right member 
 
 **Preparation:** Leave one page inactive. Read `pages[inactiveId].tab` and its `elements`.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Verify:** The tab root and any rendered tab controls report visible, `tab.active` is false, and
 the inactive page's editor elements report invisible. Read and highlight a tab control, then verify
 the page remains inactive. Create enough tabs to overflow the strip and verify tab highlighting
@@ -44,8 +56,12 @@ centres the target into view without relying on `[data-active]` or activating th
 
 **Preparation:** Create a grouped pair, then a compare pair from two text pages.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** For each side, read `PageWrapper.id`, inspect the rendered slot/tab identity through the
 page-owned selectors, and read `pages[id].tab.elements`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Each `PageWrapper.id`, slot `data-page-id`, and tab `data-page-id` equals that side's
 `PageModel.id`. Grouping and compare mode preserve the two ids; they never merge the left and right

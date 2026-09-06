@@ -16,8 +16,12 @@ between hosts is a regression even when each host answers plausibly on its own.
 
 **Preparation:** open `https://example.com` with `pages.openUrlInBrowserTab`.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.snapshot()`, then click the "More information" link **by ref** —
 `pages[id].editor.click({ ref: "<the link's ref>" })`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The click lands. This is the scenario the epic exists for: before it, `snapshot()`
 returned refs and no member on the facade accepted one, so an agent had to reverse-engineer a CSS
@@ -29,7 +33,11 @@ defect in `snapshot`'s summary, not an agent mistake.
 
 ## Test W.2: A plain string is a selector, always
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.click("e15")` where `e15` is a real ref on the page.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** It fails with `Element not found: e15` — it looked for an `<e15>` element. It must **not**
 be interpreted as a ref. Then `click({ ref: 42 })` and `click(null)`: both throw a message naming
@@ -43,7 +51,11 @@ failure class this roadmap exists to remove.
 
 **Preparation:** snapshot a page, then navigate it elsewhere.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Use one of the first snapshot's refs.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The error says the ref is stale and to re-take the snapshot. It does **not** act on
 whatever now occupies that position, and it does not surface as a raw
@@ -55,7 +67,11 @@ US-1334 built — and a ref crossing hosts is the case that used to act on the w
 
 ## Test W.4: The address bar is not in the page snapshot
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.snapshot()` on a browser page, then `pages[id].editor.elements`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The snapshot contains the **web page** and none of Persephone's chrome. `elements`
 contains the chrome — `url-input`, `toolbar-back`, `toolbar-reload`, `tabs-panel-host` and the rest
@@ -67,7 +83,11 @@ reach `elements`/`highlight` for chrome, or `navigate()` for the actual intent.
 
 ## Test W.5: `visible` tells the truth about a conditional control
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.elements` on a **non-Tor** browser page.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** `toolbar-tor-info` is present with `visible: false`, and `popup-blocked-bar` is present
 with `visible: false`. A declared-but-absent control and a control that does not exist are different
@@ -82,8 +102,12 @@ file after an unrelated UIKit change is a functional test of that.
 
 **Preparation:** a trusted board with at least one secondary view (the repo's Demo board has two).
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.tabs`, then `snapshot({ tabId: "board-secondary:<viewId>" })` **without**
 switching to it first.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The tabs list names the main frame and each secondary view. The snapshot returns that
 view's real content — expanding its panel if it was collapsed. It must **not** return an empty
@@ -96,7 +120,11 @@ and must not have been shadowed by the shared automation set.
 
 ## Test W.7: Persephone's own window, and the curated/complete pair
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `window.screen.snapshot()`, then `ui.elements`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The snapshot carries the shell — Menu, the tab strip, Minimize/Maximize/Close — plus the
 **active** page's content and no other page's. `ui.elements` carries the curated shell controls with
@@ -113,7 +141,11 @@ points at `pages` / `pages.showPage` for opening and switching Persephone pages 
 
 **Preparation:** a Tor or incognito browser page that **the user** opened, made active.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `window.screen.snapshot()`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Refused, naming the boundary and telling the agent to activate a non-private page. Then
 activate a normal page and call again: it works. The check is live per call — no reload is involved.
@@ -127,7 +159,11 @@ the snapshot.
 
 ## Test W.9: Screenshots come back as pictures
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages[id].editor.screenshot()`, and `window.screen.screenshot()`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The answer is metadata plus a real image block the agent can **see** — not base64 inside
 JSON. A truncated base64 string means the `call` result mapper regressed, and `browser_take_screenshot`
@@ -135,8 +171,12 @@ would then be strictly better than its replacement.
 
 ## Test W.10: `openUrl` versus `openUrlInBrowserTab`
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages.openUrl("file:///<path>/README.md")`, then `pages.openUrlInBrowserTab` with the same
 URL.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The first lands in `md-view` — the content pipeline chose the editor. The second lands in
 a browser tab. Each member's `$help` names the other in one line, because this is the only choice an
@@ -148,7 +188,11 @@ through, so a stricter replacement would be a regression.
 
 ## Test W.11: The page id comes back before the page is loaded
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages.openUrlInBrowserTab(url)`, then immediately `type(...)` into a field on that page.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The member's help warned you: it says the returned page is not necessarily loaded and to
 `waitForNavigation()` or `waitFor({ selector })` first. Without the wait, the action can land on a
@@ -160,7 +204,11 @@ supposed to prevent it is not doing its job.
 
 ## Test W.12: No enablement step remains
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Ask the agent to drive the built-in browser, from a cold session, with `call` only.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** It never looks for a setting to turn on. `mcp.browser-tools.enabled` is gone (US-1339),
 and no guide, hint or `$help` mentions enabling browser interaction. An agent that asks the user to
@@ -174,7 +222,11 @@ what protected those.
 
 **Preparation:** a local scratch HTML file with a password input and an ordinary text input.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `type` into both, then `snapshot()`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Neither field's **value** appears. The snapshot carries role, accessible name and ref
 only — verified live for both field kinds. `evaluate()` and `getValue()` can still read them, which

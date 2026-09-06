@@ -15,7 +15,11 @@ Landed by EPIC-088 (US-1328, US-1329, US-1330, US-1331).
 
 **Preparation:** at least one registered toolset.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** Read the root (path `""`), then `tools`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** `tools` appears in the root member list, and its own hint lists `search`, `execute`,
 `toolsets` and `createToolset`, with the live toolset count as a child. Before EPIC-088 the
@@ -23,8 +27,12 @@ registry was reachable only through the four MCP tools and was invisible to `cal
 
 ## Test T.2: Search, in all three query forms
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `tools.search()`, then `tools.search("select:<toolset>/<tool>")`, then a keyword query
 with `maxResults`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The empty query gives the cheap `{ id, description }` listing of everything. The
 `select:` form returns **one complete definition** — and the whole `inputSchema`, with every
@@ -37,7 +45,11 @@ not a QA finding.
 
 ## Test T.3: An invalid target is refused, a legitimate miss is not
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `tools.execute("no-such-toolset/no-such-tool")`, then `tools.search("zzzznomatch")`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** `execute` **throws**, naming the requested id and listing the valid ids, and spawns no
 process. The empty search returns a genuine empty result — a keyword that matches nothing is a
@@ -46,7 +58,11 @@ guess; an empty search is a fact.
 
 ## Test T.4: Refresh reports what parsed
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `tools.toolsets.refresh()`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Returns `{ refreshed, toolsetCount, toolCount, toolsets: [{ name, root, valid,
 shadowed, toolCount, errors }] }` — the same envelope `refresh_toolset` returns, so a manifest edit
@@ -60,7 +76,11 @@ refresh everything.
 
 **Preparation:** a scratch folder outside the repo.
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `tools.createToolset("qa-probe", "<scratch folder>")`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The call returns **pending** with an `attention` block naming the "Register this
 toolset?" dialog, its warning that tools run headlessly with the user's full privileges, and both
@@ -74,8 +94,12 @@ it as the agent defeats the test.
 
 ## Test T.6: The toolset page and the Tools hub
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages.showToolsHubPage({ tab: "tools" })`, then read `pages[id].editor`. Then open a
 toolset page and read its editor.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The hub reports `activeTab: "tools"`; an invalid tab name is rejected rather than
 silently ignored. The toolset facade reports its root, name, `registered` and `valid` state with a
@@ -84,8 +108,12 @@ data rather than repeating it — one registry, one projection.
 
 ## Test T.7: MCP Inspector — the panels, and what an agent may not set
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages.showMcpInspectorPage()`, then read `pages[id].editor`. Then try to assign
 `pages[id].editor.command`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** The facade reports `activePanel`, `availablePanels`, and the Tools / Resources /
 Prompts state, each `undefined` while disconnected rather than a falsy stand-in. Assigning
@@ -97,7 +125,11 @@ address is not a credential. `$help` warns against embedding credentials in a UR
 
 ## Test T.8: Mneme describes its screens, not the knowledge base
 
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Call:** `pages.showMnemeConfigPage()`, then read `pages[id].editor`.
+
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** Reports the service and connection state, the roots and the embedding model — and no
 credential; the transport token appears nowhere. `$help` states plainly that the Mneme MCP server

@@ -4,11 +4,11 @@ Quality assurance tests for persephone MCP server documentation. The goal is to 
 
 ## How It Works
 
-A **test agent** (the `mcp-test-agent` skill, `.claude/skills/mcp-test-agent/SKILL.md`) simulates a generic AI assistant that only knows about persephone through its MCP connection. It is told to ignore CLAUDE.md, source code, and project files — only MCP tools and resources.
+The **Haiku pass** uses the `mcp-test-agent-call` skill to simulate a generic AI assistant that only
+knows Persephone through its `call` connection. The **Codex pass** uses the genuinely reduced
+Persephone manifest, with `call` as the only advertised MCP tool. Both passes test discovery from
+the empty overview rather than relying on author-supplied paths.
 
-The **test runner** (you, in the main conversation) sends test prompts to the agent, then verifies the results by checking persephone pages via MCP.
-
-**Model choice:** the skill's frontmatter `model:` field selects the model. It is set to `haiku` on purpose — the weaker the model, the stronger the documentation test: if Haiku can drive persephone correctly from the docs alone, the docs work. Bump to `sonnet` only to distinguish "docs unclear" from "model too weak" on a failing test.
 
 ## Test Files
 
@@ -36,44 +36,66 @@ per-surface preparation, request, expected result, and verification steps.
 
 ### Prerequisites
 
-- persephone running with MCP server enabled
-- MCP connection established (verify with `list_pages` call)
+- Persephone running with its MCP server enabled
+- MCP connection established (verify with a bare `call`, with no `path`)
 
 ### Important Rules
 
 - **NEVER close, modify, or interact with pinned tabs.** Pinned tabs belong to the user and must not be touched during testing.
 - Only non-pinned tabs may be closed, created, or modified.
-- Some tests require preparation pages — create them as non-pinned tabs before running the test agent.
+- Some tests require preparation pages - create them as non-pinned tabs before running the test agent.
 
-### Test Procedure
+### Runner procedure
 
-For each test:
+The procedures below apply to one surface and to the EPIC-090 deletion gate. Keep the pinned-tab
+rules above for every run.
 
-1. **Prepare** — On a **dedicated test instance**, clean up first (close all non-pinned pages,
-   leave pinned tabs untouched):
-   ```javascript
-   // via execute_script
-   const nonPinned = app.pages.all.filter(p => !p.pinned);
-   for (const p of nonPinned) { app.pages.closePage(p.id); }
-   ```
-   **On the user's live instance, skip the blanket cleanup** — instead note the page ids that
-   exist before the run (`list_pages`) and close only pages the test created afterwards.
-   If the test requires a preparation page, create (and activate) it just before the run.
+1. **Run one surface.** Prepare a dedicated instance, leave pinned tabs alone, choose one surface
+   file (or `gate.md`), and run its scenarios from a first bare `call` with no `path`. Invoke
+   the Haiku skill with the scenario request:
 
-2. **Run test agent** — invoke the `mcp-test-agent` skill with the test request as its
-   argument (it runs as a forked subagent and returns a report of what it did):
-   ```
-   Skill(skill: "mcp-test-agent", args: "<test request>")
+   ```text
+   Haiku pass:
+   Skill(skill: "mcp-test-agent-call", args: "<the scenario request>")
+
+   Codex pass:
+   codex mcp add persephone --url http://127.0.0.1:<mcp.port>/mcp
    ```
 
-3. **Verify results** — Check what the agent created:
-   - `list_pages` — verify page exists with correct editor/language/title
-   - `get_page_content` — verify content structure
-   - Visual check — `browser_snapshot({ pageId: "app" })` with the page active: a healthy
-     editor shows its content; a broken one shows a parse error or `Editor crashed`
+   The skill restricts its own tools to `call`, so the Haiku pass simulates call-only regardless of
+   the server manifest and tests documentation/discovery.
 
-4. **Record result** — PASS, PARTIAL (works but suboptimal), or FAIL (broken/wrong), in a run
-   log under `qa/runs/` (e.g. `qa/runs/2026-08-09-haiku.md`), then close the created pages
+2. **Run all surfaces.** For the EPIC-090 deletion gate, run the ten scenarios in `gate.md` once
+   in the Haiku pass and once in the Codex pass. This is the compact all-surface capability sweep,
+   not a request to run all roughly sixty historical scenarios twice. A separate UI-regression
+   sweep may iterate every file in the surface index when requested, but it is not the deletion gate.
+
+3. **Codex setup.** Codex has no Persephone MCP server configured today. Launch Persephone with
+   `PERSEPHONE_MCP_CALL_ONLY=1`, then add `codex mcp add persephone --url
+   http://127.0.0.1:<mcp.port>/mcp`; the default port is `7865`. This is the only end-to-end
+   exercise of the genuinely reduced manifest. The environment is fixed at process start, so
+   changing the flag requires restarting Persephone before the Codex pass.
+
+4. **Verify and classify results.** Verify the expected surface state through `call`, including
+   the on-screen result. `PASS` means the request succeeded with the expected surface result.
+   `PARTIAL` means the goal was reached after wrong turns: record it as a finding, fix the relevant
+   overview, hint, summary or `$help`, and re-run that scenario. `FAIL` means the agent could not
+   reach the goal: abort deletion for that surface's tools only; other surface groups may continue,
+   and the failed surface reopens.
+
+5. **Run log.** Write one dated Markdown log under `qa/runs/` for each pass, or a clearly labelled
+   combined two-pass log. Include the model/harness, Persephone build and manifest mode,
+   surface/scenario ids and user requests, confirmation that each first call had no `path`, the
+   `Overview route` field with every wrong path, exact paths reached, on-screen verification,
+   PASS/PARTIAL/FAIL, findings and fixes, re-run results, and the 32-tool coverage matrix. For the
+   Codex log, record the MCP endpoint and evidence that only `call` was advertised. Redact secrets,
+   credentials, private URLs, and user data; keep diagnostics such as path errors and tool names.
+
+The runner does not delete pages or accept user trust/destructive dialogs on the user's behalf.
+The only unattended answer exception is a low-privilege inline Log View question as defined in
+[`surfaces/gate.md`](surfaces/gate.md). QA runs belong to Claude as recorded in
+`.claude/skills/codex-dev/SKILL.md`.
+
 
 ### What to Check
 

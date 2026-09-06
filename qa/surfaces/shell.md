@@ -16,14 +16,22 @@ Selector reference: [doc/architecture/ui-element-contract.md](../../doc/architec
 ---
 
 ## Test S.1: Where is the tab strip
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Where is the tab strip?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** finds `ui.elements` (via `helpSearch`, root discovery, or `ui.$help`) and answers
 from the `page-tabs` purpose — the strip contains the open-page tabs.
 **Verify:** the answer names the shell tab strip and its role, not an individual page control.
 **Watch for:** the agent reaching for `pages[i].tab` for a shell-strip question.
 
 ## Test S.2: Show the user where it is
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Show me where the open-page tabs are."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `ui.highlight("page-tabs", "<explanation>")`, returning `found: true, count: 1`
 **Verify:** the overlay is actually on the tab strip. Then
 `ui.clearHighlights()` removes it
@@ -32,7 +40,11 @@ That works, but it means the shell strip was not discoverable enough — a findi
 
 ## Test S.3: A conditional control that is not currently there
 **Preparation:** Make sure the tabs do **not** overflow and the window is at 100% zoom
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Scroll the tab strip to the right for me."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** reads `ui.elements`, sees `page-tabs-scroll-right` with `visible: false`, and
 explains that the arrows only appear when the tabs overflow — rather than hunting for the button
 or claiming to have clicked it
@@ -42,14 +54,22 @@ purpose with measured visibility, and the purpose strings state each condition e
 this test exists for
 
 ## Test S.4: Explain the status indicators
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "There are small indicators in the top-right. What are they?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** answers from the `status-indicators`, `mneme-indicator`, `mcp-indicator` and
 `header-snip-button` purposes, and describes only the ones whose `visible` is true
 **Verify:** matches what is actually on screen; the agent does not describe an absent indicator as
 though it were present
 
 ## Test S.5: An element that does not exist
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Highlight the Save button in the toolbar."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `ui.highlight("save-button", ...)` (or similar) fails with the self-correcting error
 listing every valid element name; the agent then either picks the right control or says Persephone
 has no toolbar Save button — saving lives on the tab menu and Ctrl+S
@@ -57,7 +77,11 @@ has no toolbar Save button — saving lives on the tab menu and Ctrl+S
 five invented names in a row means the error text is not being read
 
 ## Test S.6: Elements are curated, not exhaustive — say so
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "List every clickable thing in the Persephone window."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** returns the curated list and is explicit that it is the described shell controls,
 not an exhaustive DOM inventory
 **Verify:** no claim of completeness. `elements` is deliberately hand-written
@@ -67,8 +91,12 @@ EPIC-089 owns
 ---
 
 ## Test S.7: Discover Menu Bar folders
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Add a temporary configured folder with `app.menuFolders.add`, then use
 `window.menuBar.folders` and report every Menu Bar folder with each folder's kind, ID, and label."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** uses `call` to read the live list; reports the four built-ins (`open-tabs`,
 `recent-files`, `tools-editors`, `script-library`) and the configured folder without inventing IDs
 or labels
@@ -76,15 +104,23 @@ or labels
 comes from the live folder records
 
 ## Test S.8: Open and select a built-in category
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Call `window.menuBar.open(\"recent-files\")`, then verify it is open and Recent Files
 is selected."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** calls the strict node method, then reads `window.menuBar.isOpen` and
 `window.menuBar.selected.id`; both report the requested state
 **Verify:** `isOpen === true` and `selected.id === "recent-files"`
 
 ## Test S.9: Close state and Menu Bar controls
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Close the Menu Bar, verify it is closed even though its backdrop remains mounted and
 all Menu Bar elements are hidden, then reopen it and highlight Settings."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** calls `window.menuBar.close()`, reads `isOpen === false`, reads `menuBar.elements`
 and sees every declared control is `visible: false`, then calls `window.menuBar.open()` and
 `window.menuBar.highlight(\"menubar-settings\")` (or another visible declared control)
@@ -92,8 +128,12 @@ and sees every declared control is `visible: false`, then calls `window.menuBar.
 `found: true`
 
 ## Test S.10: Strict folder-ID errors recover themselves
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Try `window.menuBar.open(\"Recent Files\")` and an unknown/stale ID, then recover by
 reading `folders` and opening the current `recent-files` ID."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** each rejected call names the bad value and every valid folder's ID, label, and kind;
 the final ID call succeeds
 **Verify:** labels and paths are rejected as inputs, the error is self-correcting, and the recovery
@@ -127,8 +167,12 @@ recording because neither would fail a build:
   the path for an agent that genuinely needs more.
 
 ## Test S.11: Legacy opener compatibility
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Call the legacy `window.openMenuBar(\"Recent Files\")` and check whether it selected
 that label; compare the result with the live `window.menuBar.folders` IDs."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** the legacy call opens without throwing, does not claim to select the label, and
 discovery points to `recent-files` as the actionable ID
 **Verify:** the strict node and legacy method are described as having different unknown-string
@@ -139,21 +183,33 @@ behavior
 ## The page sidebar (`page.panels`)
 
 ## Test S.12: What panels does this page have
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "What sidebar panels does this page have open?" — on a page with an Explorer and a
 git tree
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** reads `page.panels.items` and reports each panel's label and which is expanded
 **Verify:** two panels with distinct `editorId` owners; labels come from the registry
 (`Explorer`, `Git`), not from the bare ids
 
 ## Test S.13: Expand a panel by its bare id
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Show me the Git panel."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `page.panels.expand("git-changes")`, then `items` shows that panel `expanded: true`
 and the previously expanded one `false`
 **Watch for:** an agent passing a composite `editorId::panelId` key — that is rejected by design
 
 ## Test S.14: A sidebar that refuses to close
 **Preparation:** a page whose panels include a non-Explorer panel (git tree, archive, links)
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Close the sidebar on this page."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `page.panels.toggleSidebar()` throws, explaining that the page's panels keep the
 sidebar open; the agent reports that rather than claiming success
 **Verify:** the sidebar is still open afterwards. This is the test that matters most on this
@@ -195,7 +251,11 @@ Answering "where do I change X" without displacing "change X". `settings.get/set
 to change a setting; the catalog is the way to *find* one on screen.
 
 ## Test S.15: Where is a setting
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Where do I turn off the MCP server?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** finds the catalog and answers from the MCP section's row purpose, then offers to show
 it — or shows it — with `settings.highlight("mcp.enabled")`
 **Verify:** the answer names the Settings page's MCP section, and `settings.set` is still offered as
@@ -204,26 +264,42 @@ applied by design rather than after three failed runs
 
 ## Test S.16: Show the user, from a page that is not open
 **Preparation:** make sure the Settings page is **closed**
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Show me where the Git integration setting is."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** `settings.highlight("git.enabled")` opens/activates Settings itself, waits for the
 section to mount, and rings it
 **Verify:** the overlay is on the Git Integration section, not merely `found: true`. This is the
 whole reason the catalog lives on `settings` rather than on a page facade
 
 ## Test S.17: A real setting with no row on the page
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Show me where to change the audio shuffle setting."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** the error says it is a real setting with no Settings-page row and points at
 `settings.get`/`set` and the control that owns it
 **Verify:** the agent does **not** tell the user the setting does not exist. Two different failures,
 two different messages
 
 ## Test S.18: A key that is not a setting at all
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Highlight the `dark-mode` setting."
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** rejected with the list of 25 valid keys; the agent picks `theme` from the list
 **Verify:** recovery uses the returned list, not another guess
 
 ## Test S.19: "Where" is not "do"
+**Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
+
 **Request:** "Where do I turn off the MCP server?"
+**Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
+
 **Expected:** the agent locates the MCP section, offers `settings.highlight("mcp.enabled")`, and
 **leaves the value alone**
 **Verify:** `settings.get("mcp.enabled")` is unchanged afterwards. A location question does not
