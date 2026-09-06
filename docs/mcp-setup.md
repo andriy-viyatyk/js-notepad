@@ -101,7 +101,7 @@ the direct script API `app.settings.set()`) remains available for an intentional
 
 These tools control the built-in browser and drive **board pages** directly. Use `open_url` first to open a browser page if one is not already open; for boards, the user opens the board in Persephone first (agent cannot open an untrusted board). Find a board in `list_pages` by `editor: "board-view"` and read its `pageId` and `selectedBoard` fields.
 
-> **Note:** Browser automation tools are disabled by default. Enable them in **Settings → MCP Server → Enable browser interaction**. While disabled, the tools are hidden from the agent entirely (not listed in the MCP tool set). This is an opt-in safety gate — enable only when you want AI agents to be able to control the browser.
+> **Note:** Browser automation is available whenever the MCP server is running; the independent privacy guard below refuses user-opened incognito and Tor pages.
 
 Every `browser_*` tool accepts two optional parameters for targeting a specific browser page:
 
@@ -146,8 +146,6 @@ What's different:
 - Navigation and tab-management tools (`browser_navigate`, `browser_tabs`) don't apply to the app window and return a clear error — use `list_pages` and `execute_script` (`app.pages`) to open, switch, or close pages instead.
 - Editing document content (e.g. typing into a Monaco editor) should go through `set_page_content` or `execute_script`, not synthetic typing — `browser_type` is meant for simple inputs like dialogs and search boxes.
 - `pageId: "app"` must be passed explicitly — omitting `pageId` never falls back to the app window, so ordinary browser/board automation is unaffected.
-
-This is gated by the same **Enable browser interaction** setting as the rest of the `browser_*` tools (see below).
 
 ### Browser Profiles
 
@@ -248,7 +246,6 @@ AI agents also receive **server instructions** on connection — a concise overv
 |---------|---------|-------------|
 | `mcp.enabled` | `false` | Enable/disable the MCP HTTP server |
 | `mcp.port` | `7865` | Port number for the MCP server |
-| `mcp.browser-tools.enabled` | `false` | Expose browser automation tools to connected AI agents. When disabled, all `browser_*` tools are hidden from agents entirely. Reconnect the agent after changing this setting. |
 | `main.scripting.enabled` | `false` in packaged builds | Allow the MCP `call` tool to execute code in the main process. Enable this only for trusted clients; main-process code can freeze the app. Development builds enable it by default. The Settings label is **Allow main-process scripts**. |
 
 The `call` tool follows the browser privacy boundary: a user-opened incognito or Tor page is not

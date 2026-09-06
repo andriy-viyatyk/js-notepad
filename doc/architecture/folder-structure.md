@@ -907,7 +907,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 ├── pipe-server.ts          # Named Pipe server (launcher integration)
 ├── mcp-http-server.ts      # MCP Streamable HTTP transport — sessions (idle reaper, cap), HTTP handling, start/stop lifecycle
 ├── mcp/                    # What the MCP server offers, separate from how it is served
-│   ├── server-factory.ts   # createMcpServer({ browserTools }) — assembles manifest + tool groups + guide resources
+│   ├── server-factory.ts   # createMcpServer() — assembles manifest + tool groups + guide resources
 │   ├── manifest.ts         # Server identity, client instructions, guide resource list, mtime-cached guide reader
 │   ├── register-tools.ts   # Generic registrar + the pass-through that implements most tools
 │   ├── renderer-bridge.ts  # MCP_EXECUTE/MCP_RESULT IPC — sendToRenderer with per-call timeout

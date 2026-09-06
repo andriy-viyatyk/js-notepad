@@ -472,7 +472,7 @@ Object Model interfaces (`app.settings`, `app.pages`) when available, not throug
 
 Settings live in a JSON5 file under the user-data folder, watched by a `FileWatcher`. A setting
 that merely gets *read* needs nothing beyond the state update; a setting that *does* something —
-`mcp.enabled`, `mcp.browser-tools.enabled`, `mneme.enabled`, `script-library.path` — is actuated
+`mcp.enabled`, `mneme.enabled`, `script-library.path` — is actuated
 by a subscriber to `settings.onChanged`. Both write paths therefore have to emit:
 
 - **`set()`** emits for the key it changed.

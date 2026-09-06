@@ -358,7 +358,7 @@ themselves are **not** touched.
 | [US-1336](../tasks/US-1336-board-page-automation/README.md) | The board page host — the same member set on the board facade, with the readiness gate | Implemented |
 | [US-1337](../tasks/US-1337-window-screen-node/README.md) | `window.screen` — Persephone's own window as an automation host, and its privacy rule | Implemented |
 | [US-1338](../tasks/US-1338-page-open-url/README.md) | `pages.openUrlInBrowserTab` as `open_url`'s replacement, and `pages.openUrl` as the pipeline-routed opener | Implemented |
-| [US-1339](../tasks/US-1339-retire-browser-setting/README.md) | Delete `mcp.browser-tools.enabled`, its mirror, its Settings row, and its guide instructions | Planned |
+| [US-1339](../tasks/US-1339-retire-browser-setting/README.md) | Delete `mcp.browser-tools.enabled`, its mirror, its Settings row, and its guide instructions | Implemented |
 | [US-1340](../tasks/US-1340-browser-acceptance/README.md) | Acceptance run on Haiku; `qa/surfaces/editors/browser.md`; fifteen tools marked retirable | Planned |
 
 US-1334 is the foundation and blocks US-1335 → US-1337. US-1338 and US-1339 are independent of all

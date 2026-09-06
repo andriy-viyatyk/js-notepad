@@ -6,7 +6,6 @@
  */
 import { pagesModel } from "../api/pages";
 import type { PageModel } from "../api/pages/PageModel";
-import { settings } from "../api/settings";
 // Type-only imports: automation/ is a leaf that must NOT pull editor modules into
 // its bundle (they are dynamic-import isolated). We narrow by the duck-typed
 // `editorId` discriminator below — the `import type` is erased at build, so no
@@ -183,9 +182,6 @@ export async function handleBrowserCommand(
     command: string,
     params: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<McpResponse> {
-    if (!settings.get("mcp.browser-tools.enabled")) {
-        return { error: { code: -32602, message: "Browser interaction is disabled. Enable it in Settings → MCP Server → 'Enable browser interaction'." } };
-    }
     const target = await getTarget(params);
     if (isErrorResponse(target)) return target;
 

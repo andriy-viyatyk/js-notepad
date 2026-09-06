@@ -10,17 +10,12 @@ import { pageTools } from "./tools/page-tools";
 import { createToolContext } from "./tools/params";
 import { windowTools } from "./tools/window-tools";
 
-export interface IMcpServerOptions {
-    /** Include the Playwright-compatible browser_* group. */
-    browserTools: boolean;
-}
-
 /**
  * Creates a new McpServer — one per session, as the SDK requires one transport per
- * server. Tools are data (see `tools/`); this assembles the groups, so enabling or
- * disabling a group is a filter over the list rather than a conditional block.
+ * server. Tools are data (see `tools/`); this assembles the complete group list for
+ * each new session.
  */
-export function createMcpServer(options: IMcpServerOptions): McpServerInstance {
+export function createMcpServer(): McpServerInstance {
     const { McpServer, z } = requireSdk();
     const server = new McpServer(getServerInfo(), { instructions: SERVER_INSTRUCTIONS });
 
@@ -31,7 +26,7 @@ export function createMcpServer(options: IMcpServerOptions): McpServerInstance {
         pageTools(ctx),
         boardTools(ctx),
         agentTools(ctx),
-        ...(options.browserTools ? [browserTools(ctx)] : []),
+        browserTools(ctx),
         guideTools(ctx),
     ];
     for (const group of groups) {

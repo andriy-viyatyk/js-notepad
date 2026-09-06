@@ -55,7 +55,7 @@ const sections = await app.call("settings.sections");
 await app.call("settings.highlight", { args: ["mcp.enabled"] });
 ```
 
-The catalog has 13 sections and 25 Settings-page rows:
+The catalog has 13 sections and 24 Settings-page rows:
 
 | Section | Rows |
 |---------|------|
@@ -65,7 +65,7 @@ The catalog has 13 sections and 25 Settings-page rows:
 | Links | `link-open-behavior` |
 | Default Browser | *(no setting row)* |
 | File Search | `search-extensions`, `search-exclude` |
-| MCP Server / Mneme | `mcp.enabled`, `mcp.port`, `mcp.browser-tools.enabled`, `main.scripting.enabled`, `mneme.enabled`, `mneme.port` |
+| MCP Server / Mneme | `mcp.enabled`, `mcp.port`, `main.scripting.enabled`, `mneme.enabled`, `mneme.port` |
 | Git Integration | `git.enabled` |
 | Board Environment Variables | `board-vars.file` |
 | Script Library | `script-library.path` |
@@ -84,7 +84,6 @@ Five real settings have no Settings-page row because their controls live elsewhe
 | `theme` | `string` | `"default-dark"` | Color theme name |
 | `mcp.enabled` | `boolean` | `false` | Enable the MCP HTTP server for AI agent integration. When `true`, external tools (e.g., Claude Desktop, Claude Code, ChatGPT) can connect to persephone and run scripts, read content, and list open tabs. The server listens on `http://127.0.0.1:{mcp.port}/mcp`. See [What's New](../whats-new.md) for details. |
 | `mcp.port` | `number` | `7865` | Port for the MCP HTTP server. The server URL will be `http://127.0.0.1:{port}/mcp`. Changing this setting requires toggling `mcp.enabled` off and on to take effect. |
-| `mcp.browser-tools.enabled` | `boolean` | `false` | Allow connected AI agents to use browser automation and interact with Persephone's own window. This is an opt-in setting under Settings → MCP Server. |
 | `main.scripting.enabled` | `boolean` | `false` in packaged builds | Allow the MCP `call` tool to run code in Persephone's main process. This can freeze the app; enable it only for trusted MCP clients. Development builds enable it by default. |
 | `script-library.path` | `string` | `""` | Path to the Script Library folder. When set, a "Script Library" entry appears in the sidebar for quick access to reusable scripts. |
 | `board-vars.file` | `string` | `""` | Path to the board environment-variables file (`.env.json`) — stores per-board variables/secrets outside board folders. Empty means not configured yet. May be encrypted with a password via the file's own encryption menu. See [Boards — Environment variables](../boards.md#environment-variables--secrets-outside-the-board-folder). |

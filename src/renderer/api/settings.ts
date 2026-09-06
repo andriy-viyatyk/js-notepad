@@ -33,7 +33,6 @@ export type AppSettingsKey =
     | "link-open-behavior"
     | "mcp.enabled"
     | "mcp.port"
-    | "mcp.browser-tools.enabled"
     | "main.scripting.enabled"
     | "mneme.enabled"
     | "mneme.port"
@@ -104,7 +103,6 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "link-open-behavior": "Where external links open from editors.\nOne of: \"default-browser\" (the OS default browser), \"internal-browser\" (the nearest\nPersephone Browser tab). Default: default-browser.",
     "mcp.enabled": "Enable the MCP (Model Context Protocol) HTTP server, so AI agents can drive Persephone.\nBoolean. Default: false. Setting it true here starts the server immediately — no restart.\nThe agent connects to http://127.0.0.1:<mcp.port>/mcp and should start with read_guide(\"overview\").\nThe server listens on loopback only and is never reachable from another machine.",
     "mcp.port": "Port for the MCP HTTP server.\nNumber. Default: 7865. Changing this alone does NOT move a running server —\nset \"mcp.enabled\": false, save, then set it back to true.",
-    "mcp.browser-tools.enabled": "Expose the browser_* MCP tools, letting an agent drive the built-in browser,\nboards, and Persephone's own window (pageId: \"app\").\nBoolean. Default: false. A connected agent must reconnect before the tools appear.",
     "main.scripting.enabled": "Allow call → main.script.execute to run code in Persephone's main process.\nBoolean. Default: on in development and off in packaged builds. Main-process code can freeze or crash the entire app.",
     "mneme.enabled": "Enable Mneme, the local markdown knowledge base with full-text and semantic search.\nBoolean. Default: false. Persephone runs mneme.exe as a sidecar and connects over loopback HTTP.\nMneme exposes its OWN MCP server on \"mneme.port\" — separate from \"mcp.port\" above.",
     "mneme.port": "Port for the Mneme HTTP (MCP) server.\nNumber. Default: 7700. Changing this alone does NOT move a running server —\nset \"mneme.enabled\": false, save, then set it back to true.",
@@ -138,7 +136,6 @@ const defaultAppSettingsState = {
         "link-open-behavior": "default-browser" as "default-browser" | "internal-browser",
         "mcp.enabled": false,
         "mcp.port": 7865,
-        "mcp.browser-tools.enabled": false,
         "main.scripting.enabled": import.meta.env.DEV,
         "mneme.enabled": false,
         "mneme.port": 7700,

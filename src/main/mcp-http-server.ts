@@ -32,7 +32,6 @@ const MAX_SESSIONS = 500;            // backstop cap against burst leaks
 
 let httpServer: http.Server | undefined;
 let currentPort = DEFAULT_PORT;
-let browserToolsEnabled = false;
 interface Session { server: McpServerInstance; transport: McpTransportInstance; lastActivity: number }
 const sessions = new Map<string, Session>();
 let sessionSweepTimer: ReturnType<typeof setInterval> | undefined;
@@ -164,7 +163,7 @@ async function startSession(req: http.IncomingMessage, res: http.ServerResponse,
         });
     }
 
-    const mcpServer = createMcpServer({ browserTools: browserToolsEnabled });
+    const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid: string) => {
@@ -184,10 +183,6 @@ async function startSession(req: http.IncomingMessage, res: http.ServerResponse,
 }
 
 // ── Server Lifecycle ───────────────────────────────────────────────
-
-export function setBrowserToolsEnabled(enabled: boolean): void {
-    browserToolsEnabled = enabled;
-}
 
 /**
  * Guards against a concurrent second start. `httpServer` is only assigned in the `listen`

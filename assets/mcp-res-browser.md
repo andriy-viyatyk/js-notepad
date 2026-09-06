@@ -7,10 +7,6 @@ by `ref`, get a fresh snapshot back. They drive three kinds of target:
 2. **Board pages** (`board-view`) — your sandboxed mini web-apps (see `read_guide("boards")`).
 3. **The app window** — Persephone's own UI, via the explicit `pageId: "app"` sentinel.
 
-All `browser_*` tools are gated by a setting: if browser interaction is disabled you get
-`Browser interaction is disabled. Enable it in Settings → MCP Server → 'Enable browser
-interaction'.` — ask the user to enable it; there is no way around it.
-
 ## Page targeting resolution
 
 Every `browser_*` tool resolves its target page with this exact precedence:
@@ -146,7 +142,6 @@ state (an editor that failed to render shows its error text right in the app sna
 
 | Symptom | Meaning | Fix |
 |---|---|---|
-| `Browser interaction is disabled…` | The MCP browser-tools setting is off | Ask the user to enable it in Settings → MCP Server |
 | `Page not found: <id>` | Stale pageId (page closed) | `list_pages`, re-resolve |
 | `Page <id> is not an automatable page…` | pageId points at a text/grid/etc. page | Automate only browser/board pages; for editors use `execute_script` / `set_page_content` |
 | `No browser page with profile '…'` | No page of that profile is open | `open_url` with that `profileName` first |

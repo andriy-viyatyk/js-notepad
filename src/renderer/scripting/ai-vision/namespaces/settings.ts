@@ -87,7 +87,6 @@ const SETTINGS_CATALOG: readonly SettingsCatalogSection[] = [
         rows: [
             { key: "mcp.enabled", label: "MCP server", purpose: "Whether the MCP HTTP server is enabled for AI agents to drive Persephone." },
             { key: "mcp.port", label: "MCP port", purpose: "The loopback port used by the MCP HTTP server." },
-            { key: "mcp.browser-tools.enabled", label: "MCP browser tools", purpose: "Whether the browser, board, and Persephone-window MCP tools are exposed." },
             { key: "main.scripting.enabled", label: "Main-process scripting", purpose: "Whether call → main.script.execute may run code in Persephone's main process." },
             { key: "mneme.enabled", label: "Mneme", purpose: "Whether the local Mneme markdown knowledge base is enabled." },
             { key: "mneme.port", label: "Mneme port", purpose: "The loopback port used by Mneme's HTTP/MCP server." },

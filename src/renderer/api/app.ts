@@ -281,8 +281,6 @@ class App {
                 const port = this._settings.get("mcp.port") as number | undefined;
                 api.setMcpEnabled(true, port || undefined);
             }
-            const browserToolsEnabled = this._settings.get("mcp.browser-tools.enabled");
-            api.setBrowserToolsEnabled(!!browserToolsEnabled);
 
             // Auto-start Mneme if enabled. Toast only on failure here (success on every
             // launch would be noisy); user-initiated toggles toast success below.
@@ -325,9 +323,6 @@ class App {
             if (key === "mcp.enabled") {
                 const port = this._settings.get("mcp.port") as number | undefined;
                 api.setMcpEnabled(!!value, port || undefined);
-            }
-            if (key === "mcp.browser-tools.enabled") {
-                api.setBrowserToolsEnabled(value !== false);
             }
             if (key === "mneme.enabled") {
                 const mnemePort = this._settings.get("mneme.port") as number | undefined;

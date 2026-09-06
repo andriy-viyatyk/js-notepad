@@ -211,11 +211,6 @@ class Controller implements Omit<MainApi, BoardEndpoint | GitEndpoint> {
         setMainScriptsEnabled(enabled);
     }
 
-    setBrowserToolsEnabled = async (event: IpcMainEvent, enabled: boolean): Promise<void> => {
-        const { setBrowserToolsEnabled } = await import("../../main/mcp-http-server");
-        setBrowserToolsEnabled(enabled);
-    }
-
     getMcpStatus = async (_event: IpcMainEvent): Promise<McpStatus> => {
         return {
             running: isMcpHttpServerRunning(),
@@ -361,7 +356,6 @@ export function initCoreHandlers(): void {
     bindEndpoint(Endpoint.setMnemeEnabled, controllerInstance.setMnemeEnabled);
     bindEndpoint(Endpoint.restartMneme, controllerInstance.restartMneme);
     bindEndpoint(Endpoint.getMnemeStatus, controllerInstance.getMnemeStatus);
-    bindEndpoint(Endpoint.setBrowserToolsEnabled, controllerInstance.setBrowserToolsEnabled);
     bindEndpoint(Endpoint.startScreenSnip, controllerInstance.startScreenSnip);
     bindEndpoint(Endpoint.clipboardReadFilePaths, controllerInstance.clipboardReadFilePaths);
     bindEndpoint(Endpoint.clipboardWriteFilePaths, controllerInstance.clipboardWriteFilePaths);

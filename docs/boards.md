@@ -694,7 +694,7 @@ Boards are designed to be authored by an AI agent. The key workflow:
 2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.
 3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions. The MCP `read_guide("boards")` tool loads the complete board authoring guide.
 4. **Agent edits files** and then calls **`board_refresh`** (MCP tool) to reload the board and pick up the changes. Boards do not reload automatically — `board_refresh` is the agent's equivalent of the toolbar **Reload** button. After calling it, run `browser_snapshot` to see the updated board.
-5. **Agent tests the board** using the `browser_*` MCP tools (require [browser interaction enabled in MCP settings](./mcp-setup.md)):
+5. **Agent tests the board** using the `browser_*` MCP tools:
 
 ```
 // Find the board page

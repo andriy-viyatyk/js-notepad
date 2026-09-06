@@ -65,7 +65,6 @@ export enum Endpoint {
     setMnemeEnabled = "setMnemeEnabled",
     restartMneme = "restartMneme",
     getMnemeStatus = "getMnemeStatus",
-    setBrowserToolsEnabled = "setBrowserToolsEnabled",
     startScreenSnip = "startScreenSnip",
     clipboardReadFilePaths = "clipboardReadFilePaths",
     clipboardWriteFilePaths = "clipboardWriteFilePaths",
@@ -201,7 +200,6 @@ export type Api = {
     [Endpoint.setMnemeEnabled]: (enabled: boolean, port?: number) => Promise<MnemeStatus>;
     [Endpoint.restartMneme]: (port?: number) => Promise<MnemeStatus>;
     [Endpoint.getMnemeStatus]: () => Promise<MnemeStatus>;
-    [Endpoint.setBrowserToolsEnabled]: (enabled: boolean) => Promise<void>;
     [Endpoint.startScreenSnip]: (hideWindows: boolean) => Promise<string | null>;
     [Endpoint.clipboardReadFilePaths]: () => Promise<ClipboardFileList>;
     [Endpoint.clipboardWriteFilePaths]: (paths: string[], cut: boolean) => Promise<boolean>;

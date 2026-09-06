@@ -103,7 +103,7 @@ You can also cycle through themes with `Ctrl+Alt+]` (next) and `Ctrl+Alt+[` (pre
 
 Your theme preference is saved automatically and applied on next launch.
 
-The Settings page also has a "View Settings File" button to open the raw `appSettings.json` for manual editing (`%APPDATA%\persephone\data\appSettings.json`). Edits to the file — made by hand, by a script, or by an AI agent — take effect immediately, with no restart needed, including settings that start or stop something (the MCP server, browser tools, Mneme). The file carries a header comment plus a per-setting comment (accepted values, default, and any gotcha — for example, changing a port only moves a running server if you also toggle the feature off and on). Persephone rewrites these comments on every save, so they always match the current version.
+The Settings page also has a "View Settings File" button to open the raw `appSettings.json` for manual editing (`%APPDATA%\persephone\data\appSettings.json`). Edits to the file — made by hand, by a script, or by an AI agent — take effect immediately, with no restart needed, including settings that start or stop something (the MCP server, Mneme). The file carries a header comment plus a per-setting comment (accepted values, default, and any gotcha — for example, changing a port only moves a running server if you also toggle the feature off and on). Persephone rewrites these comments on every save, so they always match the current version.
 
 ## Window Behavior
 

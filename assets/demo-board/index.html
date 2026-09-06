@@ -353,7 +353,6 @@
             <p>Open <strong>Settings → MCP Server</strong> and:</p>
             <ul>
                 <li>Check <strong>Enable MCP server</strong> (off by default).</li>
-                <li>Check <strong>Enable browser interaction</strong> — required for the <code>browser_*</code> tools that drive a board.</li>
                 <li>Leave the <strong>Port</strong> at <code>7865</code> (changing it requires toggling the server off and on).</li>
             </ul>
             <p class="muted">
@@ -372,8 +371,8 @@
   }
 }</pre>
             <p class="muted">
-                Claude Desktop: add an MCP server named <code>persephone</code> with the same URL. After enabling
-                browser interaction, <strong>reconnect the agent</strong> so it picks up the new tools.
+                Claude Desktop: add an MCP server named <code>persephone</code> with the same URL. Reconnect
+                the agent after changing its MCP client configuration so it picks up the current tools.
             </p>
 
             <h2>3 · Open the board, then drive it</h2>

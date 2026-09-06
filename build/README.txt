@@ -52,9 +52,6 @@ you need is on this machine.
 
        "mcp.enabled": true
 
-   Optionally also set "mcp.browser-tools.enabled": true to be able to drive the built-in
-   browser, boards, and Persephone's own window.
-
    Then add the server to your own MCP client configuration:
 
        URL:  http://127.0.0.1:7865/mcp        (the port is "mcp.port" in the settings file)

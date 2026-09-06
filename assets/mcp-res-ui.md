@@ -211,7 +211,6 @@ Two things to know before editing it:
 |---|---|
 | `mcp.enabled` | The MCP server, **off by default**. Set it true to connect an agent; the server starts immediately. |
 | `mcp.port` | Default 7865. Changing it alone does *not* move a running server — set `mcp.enabled` false, save, then true. |
-| `mcp.browser-tools.enabled` | **Off by default.** Without it there are no `browser_*` tools, so no board, browser, or app-window automation. A connected agent must reconnect after enabling. |
 | `git.enabled` | **Off by default** — the reason a user sees no Git Tree or Git Diff. |
 | `mneme.enabled` | **Off by default** — the reason a user sees no Mneme features. Mneme runs its own MCP server on `mneme.port`, separate from `mcp.port`. |
 | `theme` | Applies on save. One of nine names; the file's own comment lists them. |
@@ -219,9 +218,6 @@ Two things to know before editing it:
 
 The file's comments carry the accepted values and defaults for every key, so read it before
 guessing — it is written to be self-describing.
-
-**Do not enable things the user did not ask for.** `mcp.browser-tools.enabled` in particular
-grants automation of the user's browser sessions; explain what it does and let them decide.
 
 ## Pointing at an element on screen
 
