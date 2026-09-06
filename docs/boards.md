@@ -73,7 +73,7 @@ The board opens immediately after creation.
 
 ### 3. Edit and reload
 
-Boards do **not** reload automatically when files change. To apply edits to `index.html`, `app.js`, or any `.js`/`.css`, click the **Reload** button in the in-board toolbar. AI agents editing board files should call the **`board_refresh`** MCP tool and then re-run `browser_snapshot` to see the updated board.
+Boards do **not** reload automatically when files change. To apply edits to `index.html`, `app.js`, or any `.js`/`.css`, click the **Reload** button in the in-board toolbar. AI agents editing board files should call `pages[pageId].editor.reload()` and then re-run `pages[pageId].editor.snapshot()` to see the updated board.
 
 ---
 
@@ -693,29 +693,29 @@ Boards are designed to be authored by an AI agent. The key workflow:
 1. **Agent creates or opens a board.** Use the MCP tools `create_board` / `open_board`, or the scripting API `app.boards.createBoard()` / `app.boards.openBoard()`. Boards created this way are auto-trusted — no trust prompt blocks the agent.
 2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.
 3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions. The MCP `read_guide("boards")` tool loads the complete board authoring guide.
-4. **Agent edits files** and then calls **`board_refresh`** (MCP tool) to reload the board and pick up the changes. Boards do not reload automatically — `board_refresh` is the agent's equivalent of the toolbar **Reload** button. After calling it, run `browser_snapshot` to see the updated board.
-5. **Agent tests the board** using the `browser_*` MCP tools:
+4. **Agent edits files** and then calls `pages[pageId].editor.reload()` to reload the board and pick up the changes. Boards do not reload automatically — `reload()` is the agent's equivalent of the toolbar **Reload** button. After calling it, run `pages[pageId].editor.snapshot()` to see the updated board.
+5. **Agent tests the board** using `pages[pageId].editor`:
 
 ```
 // Find the board page
 list_pages → { editor: "board-view", selectedBoard: "My Board", boardRoot: "C:/work/boards/My Board", pageId: "abc" }
 
 // Inspect the DOM
-browser_snapshot({ pageId: "abc" })
+pages["abc"].editor.snapshot()
 
 // Interact
-browser_click({ pageId: "abc", ref: "e12" })
-browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result').textContent" })
+pages["abc"].editor.click({ ref: "e12" })
+pages["abc"].editor.evaluate("document.querySelector('#result').textContent")
 ```
 
-`browser_evaluate` is especially useful for testing `persephone.execute()` from the agent side — inject a test call and check the result without modifying source files.
+`pages["abc"].editor.evaluate(...)` is especially useful for testing `persephone.execute()` from the agent side — inject a test call and check the result without modifying source files.
 
 ### MCP tools for boards
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
 | `create_board` | `name`, `dir`, `demo?` | Create a blank board (or demo board when `demo: true`) in `<dir>/<name>`. Returns `{ boardRoot }`. Auto-trusted. |
-| `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened, pageId, title }` — pass `pageId` to `browser_*` tools or `board_refresh` to target this board explicitly. |
+| `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened, pageId, title }` — pass `pageId` to `pages[pageId].editor` or the legacy `board_refresh` tool to target this board explicitly. |
 | `board_refresh` | `pageId?` | Reload a board to pick up edited files. Omit `pageId` to reload the active board. Returns `{ refreshed: true, pageId }`. |
 | `read_guide("boards")` | — | Load the full board authoring reference guide. |
 

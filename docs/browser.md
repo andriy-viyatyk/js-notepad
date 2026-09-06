@@ -420,9 +420,15 @@ See the [`page.editor` API reference](./api/page.md#editor-facades) for the full
 
 ### MCP browser automation
 
-AI agents connected via the [MCP server](./mcp-setup.md) can control the browser directly using dedicated browser tools — no script needed. Tools include `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_wait_for`, `browser_evaluate`, and more. See [MCP Server Setup → Browser Automation Tools](./mcp-setup.md#browser-automation-tools) for the full list.
+AI agents connected via the [MCP server](./mcp-setup.md) should open a web page with
+`pages.openUrlInBrowserTab(url, options)` and drive it through `pages[i].editor`. Use
+`window.screen` for Persephone's own window and `pages[i].editor` for trusted boards; see
+`read_guide("browser")` for the complete path list. The older browser tools remain available
+temporarily for compatible clients.
 
-> **Privacy note:** MCP browser automation tools are blocked while the active page is incognito or Tor. This includes calls targeting Persephone's own window (`pageId: "app"`), because that window displays the active browser page. Any `browser_*` call returns an error until you activate a non-private page. Use `open_url` (without `incognito` or `tor`) to open a normal browser session before using automation tools. Similarly, `open_url` will not reuse an existing incognito or Tor page for a normal URL — it always opens normal URLs in a separate normal session. The `execute_script` tool is separate and can still read private-session state; do not use it when that state must remain inaccessible to an agent.
+> **Privacy note:** User-opened incognito and Tor pages are refused by the browser and app-window
+> hosts. A private page opened by the agent remains available to that agent. Use a normal page when
+> the privacy guard refuses a user-opened private page.
 
 ---
 

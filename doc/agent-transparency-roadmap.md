@@ -64,7 +64,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 | 3 | **EPIC-086** ✅ — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content` — **all marked retirable 2026-09-06**. `open_url` is **not** marked; see the note below |
 | 4 | **EPIC-087** ✅ — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer/sidebar panels, folder view, git tree | `ui_push` — **marked retirable 2026-09-06** |
 | 5 | **EPIC-088** ✅ — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `search_tools` — **all marked retirable 2026-09-06**. `execute_tool` is **not** marked; see the note below |
-| 6 | EPIC-089 — Browser | `pages[i].editor`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
+| 6 | **EPIC-089** ✅ — Browser | `pages[i].editor` on browser and board pages, and `window.screen` for the app window; HTML pages answered by the app-window snapshot | all `browser_*` (**14**, not 15) and `open_url` — **all marked retirable 2026-09-06**. The `mcp.browser-tools.enabled` setting was **deleted** |
 | 7 | EPIC-090 — Consolidation | Call-only flag, full QA re-run on Haiku and Codex, deletion, guide rewrite | `execute_script`, `read_guide`, and everything still standing |
 
 Epics 2–5 are independent of each other once EPIC-084 lands and can be reordered by demand. The
@@ -87,7 +87,7 @@ screenshot, evaluate — are implemented once and hung on every node that owns a
 |---|---|---|
 | A browser page (webview) | `pages[i].editor` | `browser_*` with `pageId` |
 | A board or HTML page (webview / iframe) | `pages[i].editor` / `editor` — the same members | `browser_*` with `pageId` |
-| **Persephone's own window** — header, tabs, Menu Bar, dialogs, every editor's DOM | `window.ui` (name decided in EPIC-089) — the same members | `browser_*` with `pageId: "app"` |
+| **Persephone's own window** — header, tabs, Menu Bar, dialogs, every editor's DOM | **`window.screen`** (named in EPIC-089) — the same members | `browser_*` with `pageId: "app"` |
 
 The third row is not optional. `elements` and `highlight` describe the controls a surface *chose*
 to document; the snapshot of the app window is the complete, purpose-free fallback that lets an
@@ -112,12 +112,12 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `list_pages`, `get_active_page` | `pages`, `page` | already |
 | `create_page` | **retirable** — `pages.addEditorPage(editor, language, title)`, with `addEmptyPage()`, `addDrawPage(dataUrl)`, `openLinks(links)` and `openFile(path)` for the other page kinds | 086 ✅ |
 | `get_page_content`, `set_page_content` | **retirable** — `pages[i].content`, read and assigned | 086 ✅ |
-| `open_url` | `pages.openUrlInBrowserTab(url, options)` today; the planned unified `pages.openUrl` does not exist — **not retirable**, and wholly EPIC-089's, not 086's. See *The `open_url` correction* below | 089 |
+| `open_url` | **retirable** — `pages.openUrlInBrowserTab(url, options)`, with two recorded return-shape deviations (see below). `pages.openUrl(url, options)` was **added** as the pipeline-routed opener the roadmap wanted under that name; it replaces no tool | 089 ✅ |
 | `ui_push` | **retirable** — `pages.logView.push(entries)` on the well-known page, plus `dialogResult(id)` for answers; **non-blocking**, unlike the tool | 087 ✅ |
 | `create_board`, `open_board`, `board_refresh` | **retirable** — `boards.createBoard`/`createDemoBoard`/`openBoard` (already existed; the epic added `boards.list()`, without which no root could be discovered), and `pages[i].editor.reload()` on the board facade. The planned `boards.create/open` spelling and `boards.refresh()` were **not** adopted — see the note below | 088 ✅ |
 | `create_toolset`, `refresh_toolset`, `search_tools` | **retirable** — `tools.createToolset`, `tools.toolsets.refresh()`, `tools.search()` under a new root `tools` node (not `toolsets` — see below) | 088 ✅ |
 | `execute_tool` | `tools.execute(toolId, args)` exists and refuses an unknown id, but is **not marked**: its rows could not be exercised without spending the user's credentials on a live service or clicking the toolset trust dialog as the agent | 088 |
-| `browser_*` | `pages[i].editor.snapshot/click/type/...`; the same members on board/HTML facades and on `window.ui` for the app window | 089 |
+| `browser_*` | **retirable** — `pages[i].editor.snapshot/click/type/...` on browser and board pages, and the same members on **`window.screen`** for the app window (not `window.ui` — see below) | 089 ✅ |
 | `execute_script` | `script.execute(code)` — the renderer analogue of `main.script.execute` | 090 |
 | `read_guide` | MCP resources stay (`persephone://guides/*`); prose moves into `$help` | 090 |
 | `app.ui.highlightElement` via script | `<node>.highlight(name, message)` | 084, then every surface |
@@ -213,6 +213,61 @@ agent could read a tool's description but not learn how to call it, making the r
 worse than `search_tools`. And **a key set to `undefined` reaches an agent as `null`** across the
 MCP boundary, so absent optionals must be *omitted*, not assigned. Both are general to every surface
 and now apply to the rest of the roadmap.
+
+**EPIC-089 marked fifteen tools retirable (2026-09-06)** — the fourteen `browser_*` tools and
+`open_url` — on the same standard, and a Haiku agent with `call` alone passed the epic's scenario
+([qa/runs/2026-09-06-epic-089-browser-surfaces.md](../qa/runs/2026-09-06-epic-089-browser-surfaces.md)).
+
+Four corrections this epic made to the table above, each decided against the code rather than the plan:
+
+- **There are fourteen `browser_*` tools, not fifteen.** The fifteenth tool this epic retires is
+  `open_url`. `doc/architecture/browser-editor.md` had the count right all along.
+- **The app-window node is `window.screen`, not `window.ui`.** The root already has a `ui` node
+  ("dialogs, notifications… and `ui.elements`"), and a second `ui` one level down meaning "the raw
+  DOM of this window" would make the root hint ambiguous exactly where an agent chooses between
+  them. `window` already owns this window and `window.menuBar` was the precedent.
+- **HTML pages get no facade of their own.** An HTML preview renders in an iframe inside
+  Persephone's own webContents, and the app-window snapshot already merges iframe accessibility
+  trees, so preview content is reachable through `window.screen` for free. A fourth automation
+  target would have been a second way to do the same thing with its own bugs.
+- **`open_url`'s replacement is `pages.openUrlInBrowserTab`, and `pages.openUrl` is an addition.**
+  Renaming the browser-only member to `openUrl` would have promised routing it does not perform.
+  Two return-shape deviations are recorded rather than glossed: `opened` merely echoed the caller's
+  own argument, and `title` is the generic browser title at return time, because the page id comes
+  back **before** the document loads. `pages.openUrl(url, options)` — the pipeline-routed opener the
+  roadmap wanted under that name — was added separately; it returns `void`, because the content
+  pipeline genuinely cannot report which page it opened (`sendAsync` yields a boolean, `ILinkData`
+  has no output id field, and inferring "the active page" afterwards is a race).
+
+Epic 6 also **deleted** a setting rather than only marking tools: `mcp.browser-tools.enabled` is
+gone. It read as a privacy switch and was not one — it gated only the `browser_*` tools, never `call`
+or `execute_script`, so the browser facade's `snapshot()` and `click()` had worked with it off since
+`call` shipped. The real boundary is `agent-access.ts` and is untouched. Until EPIC-090 deletes the
+tools, the fourteen now appear in every agent's manifest by default; that is a context cost, not a
+privilege change.
+
+The design task this epic was scheduled late for turned out to be **narrower than feared**. Main-frame
+refs already resolved per CDP session; only `ref.ts`'s module-level frame-index map was global, so a
+`f1-e456` ref meant "the first iframe of whichever host was snapshotted last". The store is now keyed
+by CDP registration key, which is exact for a browser tab, a board frame and the app-window sentinel.
+
+Two `call`-wide improvements came out of the epic, neither of them descriptor work — the same pattern
+as EPIC-088's `MAX_DEPTH` and absent-key findings. **`call` can now return an image**: its handler
+detects an image payload and emits metadata text plus a real MCP image content block, following
+`toPageContentResult`'s precedent. Without it `screenshot()` would have returned base64 inside JSON,
+truncated by `maxLength` and invisible to the model, and `browser_take_screenshot` could not have
+been marked. And **`pages.showPage` now refuses an unknown page id** instead of silently leaving the
+previous page active — found because `window.screen`'s privacy refusal tells the agent to recover
+with exactly that call.
+
+Epic 6 also produced two ordinary bug fixes, both found by the surfaces themselves rather than by
+reading code, which is the UI-regression property this document predicted the per-surface files would
+have. The browser `elements` list reported `toolbar-tor-info` as visible on a non-Tor page — and it
+was right, because `IconButtonView` dropped the `hidden` prop on update, so a "Tor connection info"
+button rendered on every browser page (US-1341). And a board secondary frame that had loaded and then
+been collapsed answered CDP with an **empty** accessibility tree, so `snapshot({ tabId })` returned
+`""` while reporting success — a silent empty, fixed by making the readiness gate ensure visibility
+rather than trusting a registration flag.
 
 ### The `open_url` correction (2026-09-06)
 

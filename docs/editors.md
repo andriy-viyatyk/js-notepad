@@ -886,7 +886,10 @@ A sandboxed HTML-page application that can live anywhere on disk. Boards let you
 
 **Trust gate:** Before any board renders, you must explicitly trust it. A warning dialog states that trusting lets the board's scripts run programs with your full user privileges. Trust is per board folder, remembered across restarts. Boards inside an already-trusted folder are covered automatically (inherited trust).
 
-**MCP automation:** AI agents can drive an open board using the `browser_*` MCP tools (same Playwright-compatible tools used for the built-in browser). Find the board in `list_pages` by `editor: "board-view"`, then use `browser_snapshot`, `browser_click`, `browser_evaluate`, etc. to test and debug without touching source files.
+**MCP automation:** AI agents can drive an open board through
+`pages[pageId].editor` (find the page in `list_pages` by `editor: "board-view"`). Use
+`.snapshot()`, `.click(...)`, `.evaluate(...)`, and `.reload()` to test and debug without touching
+source files. The older browser tools remain available temporarily for compatible clients.
 
 **Recommended components:** Persephone publishes a catalog of component libraries — av-grid (the default data grid), Tabulator (fallback for grouping/tree data/pagination/export), Chart.js, Flatpickr, Tom Select, Mermaid, and more — with pre-built skins that match the `--p-*` theme. The catalog lives in `boards-assets/` in the repository.
 

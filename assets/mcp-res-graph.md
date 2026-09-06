@@ -219,7 +219,7 @@ const chain = graph.getGroupChain("some-node"); // [parent-group, grandparent-gr
   empty graph.
 - **Verify**: `JSON.parse` the content yourself before writing it, keep `"type": "force-graph"`,
   and make sure every link's `source`/`target` matches a node `id`. To confirm the render,
-  activate the page and `browser_snapshot({ pageId: "app" })` — a crashed editor shows
+  activate the page and `window.screen.snapshot()` — a crashed editor shows
   `Editor crashed` plus the exception text.
 - **`page.editor` on a non-graph page** rejects — check `list_pages` for
   `editor: "graph-view"` first.

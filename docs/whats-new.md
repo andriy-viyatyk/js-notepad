@@ -17,6 +17,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **`page.editor` is no longer a string and is no longer assignable.** Switching editors is done
   through `page.editorSwitches.switchTo("grid-json")`, which also lists the editors compatible with
   the page (`page.editorSwitches.options`) — the same list the toolbar's switch widget shows.
+- **The "Enable browser interaction" setting is gone.** Browser automation is always available to
+  a connected agent now, and the fifteen browser tools no longer need to be switched on. The
+  setting never protected as much as its wording suggested: it gated only the `browser_*` tools, not
+  the `call` or `execute_script` paths, so an agent could already drive the browser with it turned
+  off. What actually protects your private browsing is unchanged — **your own incognito and Tor
+  pages remain unreadable to an agent**, and only a private page the agent opened itself is
+  available to it. A leftover `mcp.browser-tools.enabled` line in your settings file is harmless and
+  can be deleted.
 - **MCP Inspector stdio command and argument setters were removed from the facade.** An agent that
   previously configured stdio must now open the Inspector and ask the user to enter the command
   and arguments; this prevents an agent from starting an arbitrary process with the user's
@@ -25,6 +33,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 ### Bug Fixes
 
 - **HTML Preview no longer goes blank in installed builds** — HTML that uses browser history methods to manage its own tabs could render in development but show a blank preview in a packaged installation. The preview now remains visible.
+
+- **The Tor info button no longer appears on ordinary browser pages** — a "Tor connection info"
+  button was shown in the browser toolbar of every page, whether or not the page was using Tor.
+
+- **Activating a page by id reports a bad id instead of doing nothing** — a script or agent that
+  passed a stale or mistyped page id used to get silence and the previous page, and could go on to
+  act on the wrong page. It now says which page ids are open.
 
 - **Link Editor highlights follow auto-advanced tracks again** — When a media player advances to the next link automatically, the selected item in the Collections and Tags panels now follows the new track and remains highlighted.
 
@@ -48,6 +63,20 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **The Tools & Editors hub and the Mneme configuration page can now be opened by an agent** —
   `pages.showToolsHubPage()` and `pages.showMnemeConfigPage()`, which previously existed internally
   but were not reachable.
+
+- **An agent can now see and drive any screen through one surface** — the same operations
+  (accessibility snapshot, click, hover, type, select, key press, wait, screenshot, network
+  requests) work on a browser page, on a board's frames, and on Persephone's own window through
+  `window.screen`. An agent can point at what it means using the refs a snapshot returns, instead of
+  guessing at CSS selectors, and it can fall back to a snapshot of the whole window for any control
+  no descriptor has described yet — a dialog, an editor toolbar, a third-party control.
+- **Browser page controls are discoverable** — the address bar, toolbar buttons and tab strip are
+  listed with a purpose each through `elements`, and can be pointed out to you with `highlight(...)`.
+  What is inside the web page stays separate, reachable through the page snapshot.
+- **`pages.openUrl(url)` opens a URL in the right editor** — a URL naming an image, a Markdown file
+  or an archive now goes through Persephone's content pipeline and lands in the matching editor,
+  rather than always opening a browser tab. `pages.openUrlInBrowserTab(url)` remains the way to open
+  a web page or a search.
 
 - **Data and navigation surfaces are now available through `call`** — Grid, Notebook, REST,
   environment-variable, Archive, Log View, Folder View, and Git Tree pages expose their useful

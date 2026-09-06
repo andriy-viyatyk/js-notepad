@@ -101,5 +101,5 @@ A links collection with 3 bookmarks in 2 categories:
   LinkItem fields renders a broken/empty editor or crashes it (`Editor crashed` + exception).
 - **Verify**: `JSON.parse` your content before sending; include `tags: []` and `category: ""`
   even when empty; to confirm the render, activate the page and
-  `browser_snapshot({ pageId: "app" })`.
+  `window.screen.snapshot()`.
 - **Fixing a broken page**: content survives — `get_page_content`, repair, `set_page_content`.

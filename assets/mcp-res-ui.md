@@ -270,8 +270,8 @@ return await (await fetch("app-asset://agent/ui-highlight.js")).text();
 then, with that text as `CODE`:
 
 ```js
-// browser_evaluate on the board page
-{ "pageId": "<board page id>", "function": "() => { CODE; return window.__persephoneHighlight.show({ selector: '#submit', text: 'This is the button that submits the form.' }); }" }
+// call: pages[pageId].editor.evaluate(...)
+{ "function": "() => { CODE; return window.__persephoneHighlight.show({ selector: '#submit', text: 'This is the button that submits the form.' }); }" }
 ```
 
 The module installs `window.__persephoneHighlight` with `show(options)`, `showMany([options])`
@@ -288,8 +288,8 @@ feature exists.
 If you need to point at something on a web page, style the element directly and explain in chat:
 
 ```js
-// browser_evaluate — a plain border, nothing more
-{ "pageId": "<page id>", "function": "() => { const el = document.querySelector('#submit'); if (!el) return { found: false }; el.style.outline = '2px solid #F97316'; el.style.outlineOffset = '2px'; el.scrollIntoView({ block: 'nearest' }); return { found: true }; }" }
+// call: pages[pageId].editor.evaluate(...) — a plain border, nothing more
+{ "function": "() => { const el = document.querySelector('#submit'); if (!el) return { found: false }; el.style.outline = '2px solid #F97316'; el.style.outlineOffset = '2px'; el.scrollIntoView({ block: 'nearest' }); return { found: true }; }" }
 ```
 
 Say in your reply what you outlined and why — that is the explanation the user needs, and the
@@ -305,7 +305,7 @@ to one element and put it back when you are done.
    indicator, scroll arrows, reload button, Mneme and MCP indicators, the language button, the
    sidebar). `found: false` from `highlightElement` is your check — you get it for free.
 3. **Look before you describe** when you are unsure of the current state:
-   `browser_snapshot({ pageId: "app" })` shows the chrome plus the **active** page only.
+   `window.screen.snapshot()` shows the chrome plus the **active** page only.
 4. **Highlight, then explain.** One `highlightElement` call plus a sentence in chat beats a
    paragraph of layout description.
 
@@ -326,7 +326,7 @@ to one element and put it back when you are done.
 **The selectors in this guide are a stable contract.** They will not be renamed without this
 guide being updated in the same change. `data-name` values *not* listed here — inside editors,
 in dialogs, in popup menus — carry no such promise; reach those through
-`browser_snapshot({ pageId: "app" })` instead.
+`window.screen.snapshot()` instead.
 
 ## Where to go next
 

@@ -497,5 +497,5 @@ What failures actually look like in the `execute_script` result (verified agains
   have saved or discarded deliberately, not to assume the close is silent.
 - **Verify side effects, not intentions**: after writing a file, `await app.fs.exists(path)`;
   after creating/modifying a page, `get_page_content` (content) or
-  `browser_snapshot({ pageId: "app" })` (rendering). A `true`/content response from those is
+  `window.screen.snapshot()` (rendering). A `true`/content response from those is
   ground truth; your script returning without error is not.

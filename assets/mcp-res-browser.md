@@ -1,154 +1,215 @@
-# Browser Automation — the `browser_*` tools in depth
+# Browser automation through `call`
 
-The `browser_*` tools follow the Playwright MCP convention: snapshot the page, act on elements
-by `ref`, get a fresh snapshot back. They drive three kinds of target:
+Use the `call` paths below first. They cover a browser page, a trusted board page, and
+Persephone's own window. The older `browser_*` tools still work for now but are being retired; their
+equivalents are listed at the end for clients that still use them.
 
-1. **Browser pages** (`browser-view`) — real web pages in the built-in browser.
-2. **Board pages** (`board-view`) — your sandboxed mini web-apps (see `read_guide("boards")`).
-3. **The app window** — Persephone's own UI, via the explicit `pageId: "app"` sentinel.
+## The paths
 
-## Page targeting resolution
+### Browser page
 
-Every `browser_*` tool resolves its target page with this exact precedence:
+Open or reuse a web page, or submit a search query, with:
 
-| # | Input | Resolves to |
-|---|-------|-------------|
-| 0 | `pageId: "app"` | Persephone's own main window. **Explicit only** — no fallback ever lands here. |
-| 1 | `pageId` | Exactly that page. Error if not found, or if it is not a browser/board page. |
-| 2 | `profileName` (no pageId) | Browser pages only: the active page if it has that profile, else the first page with it. `""` = default profile. Never matches incognito/Tor. Error if none. |
-| 3 | neither | The **active** page if it is a browser **or board** page; else the **first browser page**; else the **first board page**; else an error. |
-
-After resolution the page is **activated** (shown) — the webview must be visible for
-focus/input to work. Incognito and Tor pages are refused after resolution, for privacy.
-
-Two consequences worth internalizing:
-
-- **A board can win the untargeted fallback.** If the active page is a board, `browser_snapshot`
-  with no `pageId` snapshots the board — not your web page. This is by design (rule 3).
-- **The active page is shared, mutable state.** The user — or a second agent connected to the
-  same Persephone — can switch tabs between your calls. Always pass `pageId` when you care
-  which page you hit; `open_url`, `open_board`, and `list_pages` all give you one.
-
-Profiles (isolated cookie/login sessions) are described in `read_guide("pages")` — discover
-them with `get_app_info` → `browserProfiles`.
-
-## Snapshots
-
-`browser_snapshot` returns the page's **accessibility tree** as indented YAML-like lines:
-
-```
-- button "Submit" [ref=e123]
-- textbox "Search..." [ref=e88]: "current value"
-- checkbox "Enable" [checked] [ref=e201]
-- heading "Results" [level=2] [ref=e300]
+```js
+const pageId = await pages.openUrlInBrowserTab(url, options);
 ```
 
-- Roles come from the accessibility tree; non-semantic wrappers (`generic`, `none`) are
-  skipped, so the tree is much flatter than the DOM.
-- State markers: `[checked]`, `[expanded]`/`[collapsed]`, `[required]`, `[disabled]`,
-  `[level=N]`. Inputs show their current value after a colon.
-- **Iframes are merged in**: same-process iframe content appears indented under its
-  `- Iframe` line, with frame-scoped refs (`f1-e456`).
-- If a modal/overlay likely blocks interaction, the snapshot is prefixed with a hint line:
-  `# Modal dialog detected: …` or `# Overlay detected: …` — handle it first.
-- **Invisible elements are included.** The accessibility tree contains zero-height or
-  display-overridden elements, so a snapshot can look right while the render is broken. To
-  verify *visuals*, use `browser_take_screenshot`.
+The result contains the page id. Target that page as `pages[pageId]` (or use a stable index when
+appropriate); the browser surface is `pages[i].editor`:
 
-## Refs and their lifecycle
+```js
+await pages[i].editor.waitForNavigation(); // or await pages[i].editor.waitFor({ selector: "main" })
+await pages[i].editor.snapshot();
+await pages[i].editor.click({ ref: "e12" });
+await pages[i].editor.hover({ ref: "e12" });
+await pages[i].editor.type({ ref: "e12" }, "text");
+await pages[i].editor.select({ ref: "e12" }, "option-value");
+await pages[i].editor.pressKey("Enter");
+await pages[i].editor.evaluate("document.title");
+await pages[i].editor.waitFor({ text: "Done" });
+await pages[i].editor.screenshot();
+await pages[i].editor.networkRequests();
+pages[i].editor.navigate(url);
+pages[i].editor.back();
+pages[i].editor.forward();
+pages[i].editor.reload();
+pages[i].editor.tabs;
+pages[i].editor.addTab(url);
+pages[i].editor.closeTab();
+pages[i].editor.switchTab(tabId);
+```
 
-A ref identifies an element: `e123` in the main frame, `f1-e456` in iframe #1. The number is
-the element's Chrome DevTools backend node id — it names the **live DOM node**, not a position
-in the last snapshot. That gives refs simple lifetime rules:
+`click`, `hover`, `type`, and `select` take either a CSS selector string or an explicit locator
+object such as `{ ref: "e12" }`. `type` clears and replaces the value; its options can request
+slow typing or submission. The other methods accept their documented options, including `tabId`
+for an inner browser tab. `waitFor` accepts exactly one of `selector`, `text`, `textGone`, or
+`time`, with an optional `timeout`. `waitForNavigation` remains available for a document load.
 
-- A **main-frame ref stays valid as long as its element stays in the DOM** — across further
-  snapshots, scrolling, and unrelated DOM changes. You do NOT need to re-snapshot just because
-  you took another action.
-- A ref **dies** when its element is removed or the page navigates (the document is destroyed).
-  Using it then returns: `Ref "eN" is stale — the element is no longer in the DOM. Re-take the
-  snapshot.` — do exactly that.
-- **Iframe refs (`fN-e…`) are weaker**: the frame-index → session mapping is rebuilt on each
-  snapshot, so only use iframe refs from the **most recent** snapshot, and re-snapshot if
-  iframes may have mounted/unmounted (frame indexes can shift).
-- A ref on a text line (StaticText) is automatically coerced to its parent element for
-  actions, so clicking "the text of a row" clicks the row.
+`pages.openUrlInBrowserTab` accepts URLs and search queries and returns its page id before the
+document is ready. Do not act on the new page immediately: call `waitForNavigation()` or
+`waitFor({ selector })` first. Otherwise an action can land on a document that is about to be
+replaced and still report success.
 
-Most interaction tools also accept a CSS `selector` instead of a `ref` — useful when you know
-the markup (e.g. your own board): `browser_click({ pageId, selector: "#save-btn" })`.
+### Board page
 
-## Every action returns a fresh snapshot
+A trusted board uses the same automation members on `pages[i].editor`:
 
-`browser_click`, `browser_type`, `browser_hover`, `browser_select_option`,
-`browser_press_key`, `browser_navigate`, `browser_navigate_back`, and `browser_wait_for` all
-return the post-action snapshot as their result. **Do not call `browser_snapshot` right after
-an action** — you already have the updated tree.
+```js
+await pages[i].editor.snapshot();
+await pages[i].editor.click({ ref: "e12" });
+await pages[i].editor.hover({ ref: "e12" });
+await pages[i].editor.type({ ref: "e12" }, "text");
+await pages[i].editor.select({ ref: "e12" }, "option-value");
+await pages[i].editor.pressKey("Enter");
+await pages[i].editor.evaluate("document.title");
+await pages[i].editor.waitFor({ selector: "#result" });
+await pages[i].editor.screenshot();
+await pages[i].editor.networkRequests();
+pages[i].editor.reload();
+pages[i].editor.tabs;
+pages[i].editor.switchTab("board-secondary:<viewId>");
+```
 
-## Navigation and waiting
+Board `tabs` lists the main frame and secondary-view frames. Pass a returned
+`board-secondary:<viewId>` id to `switchTab` to address that frame; the board opens the view and
+waits for it to be ready. Boards do not navigate, and they do not add or close frames. `reload()`
+is the board-refresh operation. A board's snapshot can include invisible elements, so use
+`screenshot()` when visual rendering matters.
 
-- `browser_navigate` waits internally: up to 2 s for navigation to start, then up to 10 s for
-  `document.readyState === "complete"`. It never throws on slow pages — it returns the
-  snapshot of whatever state was reached, so check the snapshot content.
-- `browser_wait_for` covers dynamic content, with four modes (first match wins):
-  - `{ time: 2.5 }` — sleep N **seconds** (Playwright-style), then snapshot.
-  - `{ selector: ".results" }` — until the CSS selector matches.
-  - `{ text: "Done" }` — until the text appears anywhere on the page.
-  - `{ textGone: "Loading…" }` — until the text disappears.
-  - `timeout` (ms, default 30000) applies to the selector/text/textGone modes; on expiry you
-    get an error like `Timeout waiting for selector: …` — the page is likely still loading or
-    the condition is wrong.
+### Persephone's own window
 
-## Evaluate
+The complete app-window surface is `window.screen`:
 
-`browser_evaluate` runs JavaScript in the page and returns the value:
+```js
+await window.screen.snapshot();
+await window.screen.click({ ref: "e12" });
+await window.screen.hover({ ref: "e12" });
+await window.screen.type({ ref: "e12" }, "text");
+await window.screen.select({ ref: "e12" }, "option-value");
+await window.screen.pressKey("Escape");
+await window.screen.evaluate("document.title");
+await window.screen.waitFor({ selector: '[data-name="page-tabs"]' });
+await window.screen.screenshot();
+await window.screen.networkRequests();
+```
 
-- `{ function: "() => document.title" }` — Playwright style; function expressions are
-  auto-invoked.
-- `{ expression: "document.title" }` — evaluated as-is (an arrow function here returns the
-  function, not its result — auto-invoke applies only to the `function` parameter).
-- Exceptions in the page surface as tool errors with the page-side message.
+For another window, use the same members below its window node:
 
-## Pointing at an element on a web page
+```js
+await windows[i].window.screen.snapshot();
+await windows[i].window.screen.click({ ref: "e12" });
+await windows[i].window.screen.hover({ ref: "e12" });
+await windows[i].window.screen.type({ ref: "e12" }, "text");
+await windows[i].window.screen.select({ ref: "e12" }, "option-value");
+await windows[i].window.screen.pressKey("Escape");
+await windows[i].window.screen.evaluate("document.title");
+await windows[i].window.screen.waitFor({ selector: '[data-name="page-tabs"]' });
+await windows[i].window.screen.screenshot();
+await windows[i].window.screen.networkRequests();
+```
 
-**Persephone has no highlight overlay for web pages.** The overlay module lives in the app's
-assets, which a browser page's session cannot reach — a deliberate security boundary, not a gap
-to route around. Do not fetch `app-asset://` from a page, and do not imply the app has a
-highlight feature here.
+`window.screen` has no browser navigation or tab-management members. Use `pages` and page
+members to open or switch Persephone pages. Its snapshot contains the shell and the active page's
+content only. `ui.elements` is the curated shell inventory with purpose lines; use
+`window.screen.snapshot()` for controls and editor content not covered there. The HTML preview is
+inside this app window, so it is reached through `window.screen`, not a fourth automation host.
 
-What you can do instead: set a plain `outline` on the element with `browser_evaluate`, then
-explain the element in your reply. Say both things out loud — that this is an ordinary style
-change to the page's own DOM (it disappears on reload and is not something Persephone drew), and
-that it is *not* the app's highlight. Persephone's real highlight — an orange ring and an
-explanation card — exists only in its own window and in boards: `read_guide("ui")`.
+## Opening pages
 
-## Tabs, screenshots, network
+Use `pages.openUrlInBrowserTab(url, options)` for a web URL or search query. Use
+`pages.openUrl(url, options)` when the URL names a file: the content pipeline chooses the editor,
+such as Markdown Preview for a Markdown file. Each opener has its own help describing the other;
+do not use the browser opener when the file should be routed to an editor.
 
-- `browser_tabs { action: "list" | "new" | "close" | "select", index?, url? }` operates on the
-  **inner tabs** of the resolved browser page. `select` activates by index from `list`. On a
-  **board** page, "tabs" are the board's frames (main + secondary views) — see
-  `read_guide("boards")`; `new`/`close` throw there, and boards never navigate.
-- `browser_take_screenshot` returns a PNG of the current viewport (no full-page or per-element
-  options). On a selected board secondary view, the screenshot is clipped to that panel.
-- `browser_network_requests` returns the request log of the resolved page's **active tab**.
+Capture the id returned by `openUrlInBrowserTab` and target `pages[pageId]`. Page positions can
+move, and the id is returned before loading finishes. The browser editor's `mcpHint` points to
+this opener and then to `pages[i].editor`.
 
-## Driving Persephone's own UI (`pageId: "app"`)
+## Snapshots and refs
 
-Snapshot/click/type/press_key/screenshot/evaluate work on the app window; navigation and tabs
-don't. The snapshot shows app chrome + the **active** page only. Details and examples:
-`read_guide("pages")` → "Automating Persephone's Own UI". Two habits: prefer
-`set_page_content`/`execute_script` over typing into Monaco, and use it to *verify* editor
-state (an editor that failed to render shows its error text right in the app snapshot).
+`snapshot()` returns a YAML-like accessibility tree with roles, names, and state markers such as
+checked, expanded/collapsed, required, disabled, and heading level. A modal or overlay may add a
+hint line at the beginning. Invisible elements can still be present in the tree, so use
+`screenshot()` to verify visual rendering. A line such as:
 
-## Errors & verification
+```text
+- link "Learn more" [ref=e12]
+```
 
-| Symptom | Meaning | Fix |
+gives a usable address: pass it straight back as `{ ref: "e12" }` to `click`, `hover`, `type`, or
+`select`. This is the cheapest way to act on anything visible in the snapshot. Do not spend an
+`evaluate()` call finding its href or invent a hand-written selector for it. A plain string is
+always a CSS selector; it is never guessed to be a ref.
+
+Refs identify live DOM nodes, not positions in a snapshot. Main-frame refs survive further
+snapshots, scrolling, and unrelated DOM changes while the element remains in the DOM. A ref dies
+when its element is removed or the document navigates; take a fresh snapshot then. A text-line
+(StaticText) ref is coerced to its parent element for actions.
+
+Iframe content is merged under its iframe line and uses refs such as `f1-e456`. Those refs are
+valid only from the most recent snapshot because frame-index mappings are rebuilt on each
+snapshot; re-snapshot after frames mount or unmount. Ref stores are scoped to the host that
+minted them, so a browser-page ref cannot act on a board or app-window host.
+
+Selectors reach the main frame. Use a frame ref for an element shown inside an iframe. Browser
+pages have no Persephone highlight overlay; if a page element must be pointed out, an ordinary
+outline set by `evaluate()` is the page's own temporary style, not an app highlight. Boards and
+the app window can use the UI highlight facilities.
+
+## Navigation, input, and privacy
+
+Navigation uses a two-phase wait: first wait for navigation to start or the URL/readiness state to
+change, then wait for `document.readyState === "complete"`. The shared `navigate`, `back`, and
+`forward` paths use this behavior and return the resulting state without failing merely because a
+page is slow. For dynamic applications, prefer `waitFor({ selector })` or a text condition. The
+explicit opener race is separate: its returned id can precede the first document, so wait before
+the first action as described above.
+
+For browser and board inputs, use `type` for ordinary fields; it clears the old value and
+dispatches the input/change events needed by frameworks. In the app window, prefer
+`set_page_content` or `execute_script` for editor content, especially Monaco. Use
+`window.screen.type` for simple dialogs, search boxes, and settings fields.
+
+Private browser pages opened by the user, including incognito and Tor pages, are refused by the
+browser host and by `window.screen` while that page is active. A private page opened by the agent
+remains available to that agent. The privacy guard is unchanged.
+
+## Older equivalent tools
+
+The fourteen `browser_*` tools and `open_url` still work, but are being retired. They are the older
+equivalents, not the primary paths:
+
+| Older tool | `call` equivalent |
+|---|---|
+| `browser_snapshot` | `<host>.snapshot()` |
+| `browser_click` | `<host>.click(locator)` |
+| `browser_hover` | `<host>.hover(locator)` |
+| `browser_type` | `<host>.type(locator, text, options)` |
+| `browser_select_option` | `<host>.select(locator, values)` |
+| `browser_press_key` | `<host>.pressKey(key)` |
+| `browser_evaluate` | `<host>.evaluate(expression)` |
+| `browser_wait_for` | `<host>.waitFor({ selector \| text \| textGone \| time })` |
+| `browser_take_screenshot` | `<host>.screenshot()` |
+| `browser_network_requests` | `<host>.networkRequests()` |
+| `browser_navigate` | `pages[i].editor.navigate(url)` |
+| `browser_navigate_back` | `pages[i].editor.back()` |
+| `browser_tabs` | browser `tabs`/`addTab`/`closeTab`/`switchTab`, or board `tabs`/`switchTab` |
+| `browser_close` | `pages[i].editor.closeTab()` for a browser inner tab |
+| `open_url` | `pages.openUrlInBrowserTab(url, options)` |
+
+The old tools retain their targeting rules: `pageId: "app"` means the app window, a browser or
+board page can be targeted by page id, and an untargeted call follows the active-page fallback.
+The path API makes the host explicit instead.
+
+## Common errors
+
+| Symptom | Meaning | Recovery |
 |---|---|---|
-| `Page not found: <id>` | Stale pageId (page closed) | `list_pages`, re-resolve |
-| `Page <id> is not an automatable page…` | pageId points at a text/grid/etc. page | Automate only browser/board pages; for editors use `execute_script` / `set_page_content` |
-| `No browser page with profile '…'` | No page of that profile is open | `open_url` with that `profileName` first |
-| `No automatable page open…` | No browser or board page at all | `open_url` or `open_board` first |
-| `Ref "eN" is stale…` / `Could not resolve ref…` | Element left the DOM (or iframe ref after a newer snapshot) | Re-take the snapshot, use fresh refs |
-| `Element not found: <selector>` | CSS selector matched nothing | Check the snapshot; the element may be in an iframe (selectors only reach the main frame — use frame refs) |
-| `Timeout waiting for …` | `browser_wait_for` condition never became true within `timeout` | Increase `timeout`, or verify the condition against a snapshot |
-| Active page is in incognito/Tor mode | Privacy block — these pages are never automatable | Use a normal page (`open_url`) |
-| Snapshot looks right but UI is broken | Accessibility tree includes invisible elements | `browser_take_screenshot` to verify visually |
-| Snapshot shows a different page than expected | Untargeted call + active page changed (user or concurrent agent) | Always pass `pageId` |
+| Page id not found | The page was closed or the id is stale | Read `pages` and target a current id |
+| Page is not an automatable page | The page is text/grid/another non-host editor | Use its editor facade or `window.screen` |
+| Ref is stale or cannot be resolved | The node left the DOM, or a frame ref is old/foreign | Snapshot the same host again and use a fresh ref |
+| Element not found | Selector matched nothing | Check the snapshot; use a frame ref for iframe content |
+| Wait timed out | The condition did not arrive | Check the condition or increase `timeout` |
+| Private page refused | The active page is a user-opened incognito/Tor page | Activate a normal page; agent-opened private pages retain provenance access |
+| Snapshot looks right but UI is broken | Accessibility includes invisible elements | Use `screenshot()` |
+| Snapshot shows another page | A mutable active page changed between calls | Keep and use the returned page id |

@@ -64,11 +64,11 @@ function toPageSummary(page: NonNullable<ReturnType<typeof pagesModel.findPage>>
 
 function hintForEditor(editorId: string | undefined): string {
     if (isBoardEditorId(editorId)) {
-        return 'This is a board page. Use the browser_* tools targeted at it (see read_guide("boards")), or read the board\'s files from disk.';
+        return 'This is a board page. Use pages[pageId].editor (see read_guide("boards")), or read the board\'s files from disk.';
     }
     switch (editorId) {
         case "browser-view":
-            return "This is a browser page. Use the browser_* tools — browser_snapshot for the DOM, browser_take_screenshot for pixels.";
+            return "This is a browser page. Use pages[pageId].editor — snapshot() for the DOM and screenshot() for pixels.";
         case "video-view":
             return "This page has no extractable text or image content. Its source file path is available via list_pages → filePath.";
         default:

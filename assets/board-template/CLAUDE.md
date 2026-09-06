@@ -625,7 +625,7 @@ and it renders more smoothly than Tabulator — noticeably so **even on small da
   is `AVGrid.AVGrid`.
 - **Read the API doc first:** https://raw.githubusercontent.com/andriy-viyatyk/av-grid/main/docs/api.md
   — one complete file, written for an agent, with a *"Driving the grid from an agent"*
-  section on the MCP browser tools and a DOM contract for selectors.
+  section on the `pages[pageId].editor` path and a DOM contract for selectors.
 - **Load order:** `board-base.css` → `lib/av-grid.css` → your own `<style>`, and pass
   `injectStyles: false` to `create()` — otherwise the grid appends its stylesheet *after*
   your page and out-orders your overrides. Give the grid host a **definite height** (a host
@@ -660,9 +660,9 @@ sidebar. First match wins (SVG preferred). Without one, a default glyph is used.
 
 Boards do **not** auto-reload when you edit their files. After editing `index.html`,
 `app.js`, or `.css`, apply the changes with the **Reload** button in the in-board
-toolbar. When an AI agent is driving the board, it reloads with the **`board_refresh`**
-MCP tool instead — the tool returns only after the reloaded main frame has finished
-loading, so a `browser_snapshot` right after it sees the new content.
+toolbar. When an AI agent is driving the board, it reloads with
+`pages[pageId].editor.reload()` — the path returns only after the reloaded main frame has
+finished loading, so `pages[pageId].editor.snapshot()` right after it sees the new content.
 
 **`board-manifest.json` is the exception — a reload does not pick it up.** Persephone reads a
 board's manifest when the board becomes trusted and caches it from then on, so a manifest edit
@@ -672,36 +672,37 @@ manifest change is this, not a broken manifest.
 
 ## Testing & automation (for an AI agent)
 
-Once the user has opened this board in Persephone, an agent can drive it with the
-**`browser_*` MCP tools** (Playwright-compatible) to test and debug it:
+Once the user has opened this board in Persephone, an agent can drive it with
+`pages[pageId].editor` to test and debug it:
 
 - `list_pages` → find this board (`editor: "board-view"`, with its `selectedBoard`)
   and read its `pageId`.
-- `browser_snapshot { pageId }` → read the page's accessibility tree (element refs).
-- `browser_click` / `browser_type` / `browser_press_key` / `browser_evaluate` →
-  interact, using the refs from the snapshot.
-- **Secondary views** (if this board declares any): every `browser_*` call targets the main
-  frame by default. `browser_tabs { pageId, action: "list" }` lists the main view (`index: 0`,
-  id `"main"`) + one tab per secondary view (id `board-secondary:<viewId>`);
-  `browser_tabs { pageId, action: "select", index: N }` points every subsequent call at that
-  frame, so `browser_snapshot` then reads THAT frame's DOM and `browser_click` / `browser_type`
+- `pages[pageId].editor.snapshot()` → read the page's accessibility tree (element refs).
+- `pages[pageId].editor.click/type/pressKey/evaluate(...)` → interact, using refs from
+  the snapshot. Pass a ref as `{ ref: "e12" }`; a plain string is always a selector.
+- **Secondary views** (if this board declares any): every `pages[pageId].editor` call targets the
+  main frame by default. `pages[pageId].editor.tabs` lists the main view (`index: 0`,
+  id `"main"`) plus one frame per secondary view (id `board-secondary:<viewId>`);
+  `pages[pageId].editor.switchTab("board-secondary:<viewId>")` points subsequent calls at that
+  frame, so `snapshot()` then reads THAT frame's DOM and `click` / `type`
   drive it. Persephone auto-opens the view's sidebar panel and waits for it to render — the call
-  always succeeds, even if the panel was closed (no "frame not mounted" error). `index: 0`
+  always succeeds, even if the panel was closed (no "frame not mounted" error). `switchTab("main")`
   returns to the main view. All frames share `persephone.state.*`, so a change in one is visible
   when you snapshot another.
 
 **Verify visually, not just structurally.** The accessibility snapshot includes elements that
 are invisible on screen (zero-height, overridden `display`, below the fold), so a snapshot that
-"looks right" does not prove the board renders right. After UI changes, take a
-`browser_take_screenshot { pageId }` and inspect the image before declaring the UI correct.
+"looks right" does not prove the board renders right. After UI changes, take
+`pages[pageId].editor.screenshot()` and inspect the image before declaring the UI correct.
 Two classic CSS traps a snapshot won't catch: the `[hidden]` attribute loses to any explicit
 `display` rule (add `[hidden] { display: none !important; }` if you style displays), and a
 textarea sized by script before layout collapses to zero height (prefer CSS
 `field-sizing: content` for auto-growing inputs).
 
 The board must be **open** (the user opens it; an untrusted project won't render).
-Navigation tools don't apply — a board is a fixed document; `browser_tabs` selects among its
-frames (main + secondary views) rather than creating/closing tabs.
+Navigation does not apply — a board is a fixed document; `tabs` and
+`switchTab("board-secondary:<viewId>")` select among its frames (main + secondary views) rather
+than creating/closing tabs.
 
 ## More examples — the bundled Demo board
 

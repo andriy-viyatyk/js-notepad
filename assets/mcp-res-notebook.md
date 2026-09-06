@@ -168,7 +168,7 @@ A notebook with 3 notes — a text note, a markdown note, and a code snippet:
     `Editor crashed` with the exception (e.g. `TypeError: note.tags is not iterable`).
 - **Verify**: `JSON.parse` your content before sending, include every required NoteItem field
   (`tags: []` and `category: ""` even when empty), and — to confirm the render — activate the
-  page and `browser_snapshot({ pageId: "app" })`: a healthy notebook shows its notes; a broken
+  page and `window.screen.snapshot()`: a healthy notebook shows its notes; a broken
   one shows the error text.
 - **Fixing a crashed page**: the content is still intact — `get_page_content`, repair the JSON,
   `set_page_content`. The editor recovers as soon as valid content arrives.

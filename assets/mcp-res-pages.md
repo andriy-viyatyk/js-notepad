@@ -12,24 +12,31 @@ none, and `list_pages` reports theirs as empty or absent.
 
 - **Text-based pages** (monaco, markdown, grid, notebook, mermaid, svg, …) return `{ id, title, content }` — the source text.
 - **Image pages** (`image-view`, e.g. screen snips or opened image files) return the rendered PNG **as an image block in the tool result** — you see the picture directly. Works for background (non-active) pages too. Very large images degrade to a hint pointing at `page.editor.savePngToFile(path)`.
-- **Other non-text pages** (browser, board, video, PDF, …) return `{ id, title, hint }` — a one-line pointer to the right tool (`browser_*`, `execute_script` facades, or the file path from `list_pages`).
+- **Other non-text pages** (browser, board, video, PDF, …) return `{ id, title, hint }` — a one-line pointer to the right path (`pages[i].editor`, `window.screen`, `execute_script` facades, or the file path from `list_pages`).
 
 ## Automating Persephone's Own UI
 
-The `browser_*` tools can drive Persephone's own window — not just web pages and boards. Pass `pageId: "app"` to any `browser_*` tool to see and interact with the app UI itself: the tab strip, sidebar panels, toolbars, dialogs, and the active editor. This lets you help the user with Persephone's interface directly (find a setting, click through a flow, reproduce a UI issue).
+`window.screen` drives Persephone's own window — not just web pages and boards. Use it to see and
+interact with the app UI itself: the tab strip, sidebar panels, toolbars, dialogs, and the active
+editor. This lets you help the user with Persephone's interface directly (find a setting, click
+through a flow, reproduce a UI issue).
 
 ```
-browser_snapshot({ pageId: "app" })                       // accessibility tree of the app window
-browser_click({ pageId: "app", ref: "e42" })              // click a tab, button, tree item…
-browser_type({ pageId: "app", ref: "e88", text: "…" })    // type into a dialog / search field
-browser_press_key({ pageId: "app", key: "Escape" })       // e.g. dismiss a menu
-browser_take_screenshot({ pageId: "app" })                // pixels of the app window
+window.screen.snapshot()                                    // accessibility tree of the app window
+window.screen.click({ ref: "e42" })                         // click a tab, button, tree item…
+window.screen.type({ ref: "e88" }, "…")                    // type into a dialog / search field
+window.screen.pressKey("Escape")                            // e.g. dismiss a menu
+window.screen.screenshot()                                  // pixels of the app window
 ```
 
 - **What you see:** the snapshot contains the app chrome plus the **active** page only — inactive pages are hidden, regardless of how many tabs are open. To reach another page, click its tab in the snapshot to activate it.
-- **What's not supported:** navigation (`browser_navigate`/`browser_navigate_back`) and tab management (`browser_tabs`) throw — the app window is not a browser. To open or switch Persephone pages, use `list_pages` + `execute_script` (`app.pages`).
-- **Editing content:** prefer `set_page_content` / `execute_script` over typing into the editor — synthetic typing into Monaco is unreliable. `browser_type` is for simple inputs (dialogs, search boxes, settings fields).
-- Combine with `windowIndex` to target a specific window's UI.
+- **What's not supported:** browser navigation and browser inner-tab management — the app window is
+  not a browser. To open or switch Persephone pages, use `pages.openUrl`, `pages.showPage`, or
+  the page methods.
+- **Editing content:** prefer `set_page_content` / `execute_script` over typing into the editor —
+  synthetic typing into Monaco is unreliable. `window.screen.type` is for simple inputs (dialogs,
+  search boxes, settings fields).
+- Combine with `windows[i].window.screen` to target a specific window's UI.
 
 ## Multi-Window Support
 
@@ -84,7 +91,7 @@ Persephone's built-in browser groups pages by **profile** — each profile is an
 | `profileName` | Profile name. `""` = the built-in default profile. |
 | `isIncognito` | `true` for incognito sessions (no cookies/history). |
 | `isTor` | `true` for Tor browsing sessions. |
-| `url` | The **active tab's** URL. A browser page hosts multiple internal tabs — use `browser_tabs` with `action: "list"` to enumerate them all. Omitted for incognito/Tor pages (privacy). `list_windows` does not include `url`. |
+| `url` | The **active tab's** URL. A browser page hosts multiple internal tabs — use `pages[i].editor.tabs` to enumerate them all. Omitted for incognito/Tor pages (privacy). `list_windows` does not include `url`. |
 
 ### Discovering configured profiles
 
@@ -97,32 +104,36 @@ Persephone's built-in browser groups pages by **profile** — each profile is an
 
 ### Targeting a profile
 
-Every `browser_*` tool accepts optional `profileName` and `pageId` parameters:
+Browser pages expose profile identity in `list_pages`; target the exact page with its returned id:
 
-- **`profileName`** — acts on the browser page of that profile (`""` = default profile). Prefers the active page if it matches, otherwise the first such page. Never matches incognito/Tor pages.
-- **`pageId`** — targets an exact browser page (from `list_pages`). Takes precedence over `profileName`. Use it to disambiguate when several pages share a profile.
-- Omit both to act on the active browser page (or the first one).
+- **`profileName`** — is an opening option for `pages.openUrlInBrowserTab` (`""` = default profile).
+- **`pageId`** — targets an exact browser page from `list_pages`; use it to disambiguate when
+  several pages share a profile.
 
 ```
-browser_snapshot({ profileName: "work" })
-browser_click({ pageId: "abc", ref: "e12" })
+await pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })
+await pages["abc"].editor.click({ ref: "e12" })
 ```
 
-Targeting **focuses** (activates) the resolved page — the page content must be visible for input. A useful side effect: subsequent untargeted calls stick to the now-active page.
+Targeting through `pages[pageId].editor` focuses the resolved page — the page content must be
+visible for input. Keep the returned page id instead of relying on mutable active-page state.
 
 The exact resolution algorithm (including how board pages participate and why an untargeted call can land on a board) is in `read_guide("browser")` → "Page targeting resolution". Rule of thumb: **always pass `pageId` when you care which page you hit** — the active page can change between your calls (the user, or another agent on the same Persephone, can switch tabs).
 
 ### Opening a URL in a profile
 
-`open_url` reuse is profile-matched: with `profileName` it adds the tab to (and focuses) an existing page of that profile, or creates a new page with that profile — it never attaches to a different-profile page.
+`pages.openUrlInBrowserTab` reuse is profile-matched: with `profileName` it adds the tab to (and
+focuses) an existing page of that profile, or creates a new page with that profile — it never
+attaches to a different-profile page.
 
 ```
-open_url({ url: "https://outlook.com", profileName: "work" })
+pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })
 → { "opened": "https://outlook.com", "pageId": "abc-123", "title": "Outlook" }
 ```
 
-`open_url` focuses the target page and returns its `pageId` — capture it and pass it to
-subsequent `browser_*` calls instead of relying on the active-page default.
+`pages.openUrlInBrowserTab` focuses the target page and returns its `pageId` — capture it and use
+`pages[pageId].editor` instead of relying on mutable active-page state. The id can arrive before
+the document is ready, so wait before the first action.
 
 ### Privacy
 
@@ -155,7 +166,7 @@ required `language` and title suffix):
 
 | Editor | What it is | How to open |
 |--------|------------|-------------|
-| `browser-view` | Built-in web browser | `open_url` tool |
+| `browser-view` | Built-in web browser | `pages.openUrlInBrowserTab(url, options)` |
 | `board-view` | A Board (your mini web-app) | `open_board` tool |
 | `image-view` / `archive-view` / `video-view` | File viewers | `execute_script`: `await app.pages.openFile(path)` |
 | `mcp-view` | MCP Inspector | `execute_script`: `await app.pages.showMcpInspectorPage()` |
@@ -296,7 +307,7 @@ What failures actually look like, and how to check your work (verified against t
 - **`get_page_content` is not a validity check** — it returns the raw content you sent,
   byte-for-byte, whether or not the editor can render it. Use it to verify *what* the page
   holds, not *whether* it renders.
-- **To verify rendering**, snapshot the app window: `browser_snapshot({ pageId: "app" })` shows
+- **To verify rendering**, snapshot the app window: `window.screen.snapshot()` shows
   the active page's UI — a healthy editor shows its content tree; a broken one shows the parse
   error text or `Editor crashed`. (Activate the page first if it isn't active.)
 - **Cheapest prevention**: `JSON.parse` your content yourself before `create_page` /

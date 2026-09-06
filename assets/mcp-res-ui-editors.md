@@ -196,7 +196,8 @@ rendered HTML page.
 A real Chromium browser in a tab: URL bar with 11 search engines, **inner tabs** within the one
 Persephone tab, **profiles** (isolated cookies/storage), incognito, bookmarks, downloads,
 find-in-page, DevTools (`F12`), and session restore. Persephone can be set as the Windows default
-browser. Agents open one with `open_url` and drive it with `browser_*` — `read_guide("browser")`.
+browser. Agents open one with `pages.openUrlInBrowserTab(url, options)` and drive it through
+`pages[i].editor` — `read_guide("browser")`.
 
 ### Board — `board-view`
 A sandboxed mini web-app (HTML + CSS + JS) backed by scripts in any language, living in a folder
@@ -278,7 +279,7 @@ find it → **Install** → trust it when prompted.
 | Symptom | Meaning | Fix |
 |---|---|---|
 | `Unknown editor '…'. Valid editors: …` | Bad `editor` id on `create_page` | Use an id from `read_guide("pages")` |
-| `create_page` rejects an id with a hint | It is a standalone editor (browser, board, image, settings…) | Use the tool the hint names — `open_url`, `open_board`, `app.pages.openFile(path)` |
+| `create_page` rejects an id with a hint | It is a standalone editor (browser, board, image, settings…) | Use the path the hint names — `pages.openUrlInBrowserTab`, `open_board`, `app.pages.openFile(path)` |
 | The page renders empty or shows raw text | Wrong `language` for the editor | Each non-monaco editor needs a specific `language` — `read_guide("pages")` |
 | The editor shows a parse error, or `Editor crashed` | Content is not valid for that editor | Read the format guide (`notebook` / `links` / `graph`) and `JSON.parse` your content first |
 | The user reports a missing switch button | The file lacks the required title suffix, or content-based detection did not match | Check the suffix column in `read_guide("pages")` |
@@ -287,7 +288,7 @@ find it → **Install** → trust it when prompted.
 | A board shows a trust prompt instead of content | Expected — boards are never rendered untrusted | The user must trust it; you cannot bypass this |
 
 To see what an editor actually did with your content, snapshot the app window:
-`browser_snapshot({ pageId: "app" })` shows the active page — a healthy editor shows its content
+`window.screen.snapshot()` shows the active page — a healthy editor shows its content
 tree, a broken one shows the error text.
 
 ## Where to go next

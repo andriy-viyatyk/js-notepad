@@ -35,7 +35,7 @@ opens with no prompt — the whole create→open→develop loop runs without use
    **new tab** (or reuses the board's existing tab) and makes it the active page.
 
 Then confirm with `get_active_page` (or `list_pages`) and read the board page's `pageId` for
-`browser_*` testing (see below). Opening a board you did **not** create (a foreign folder) shows
+`pages[pageId].editor` testing (see below). Opening a board you did **not** create (a foreign folder) shows
 the **user** a trust prompt; a board you created never does.
 
 > The same lifecycle is on the script API too, if you prefer `execute_script`:
@@ -336,7 +336,7 @@ persephone.state.onChange((s) => highlight(s.selectedId));
 // a sidebar view writes: persephone.state.merge({ selectedId: id })
 ```
 
-- **Inspect a secondary view** with the `browser_*` tools by selecting its frame — see
+- **Inspect a secondary view** with `pages[pageId].editor.switchTab("board-secondary:<viewId>")` — see
   [Inspecting secondary views](#inspecting-secondary-views) under "Test it".
 
 ### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
@@ -465,7 +465,7 @@ clipboard, virtualization, editing, and add/delete rows and columns. Vendor `av-
 `av-grid.umd.cjs` (rename the `.cjs` to `.js`; it exposes `window.AVGrid`, class `AVGrid.AVGrid`),
 link its CSS **before** your own `<style>` and pass `injectStyles: false`, and give the host a
 definite height. Read its API doc first — one complete file written for an agent, including a
-*"Driving the grid from an agent"* section on the MCP browser tools:
+  *"Driving the grid from an agent"* section on the `pages[pageId].editor` path:
 `https://raw.githubusercontent.com/andriy-viyatyk/av-grid/main/docs/api.md`.
 Choose **Tabulator** instead only for a feature av-grid lacks: variable row heights, row grouping,
 tree/nested rows, nested column headers, pagination, footer calculations, built-in export, remote-ajax
@@ -504,9 +504,8 @@ the manifest's `loadOrder`.
   preferred). Without one, a default glyph is used.
 - **Reload model:** boards do **not** auto-reload on file changes. After editing a board's files,
   apply the changes with the **Reload** button in the in-board toolbar — or, when driving the board
-  as an agent, the **`board_refresh`** MCP tool (pass the board's `pageId`, or omit it to reload the
-  active board). The tool returns after the reloaded main frame has finished loading, so an iterate
-  loop is race-free: edit files → `board_refresh` → `browser_snapshot`.
+  as an agent, `pages[pageId].editor.reload()`. The path returns after the reloaded main frame has
+  finished loading, so an iterate loop is race-free: edit files → `reload()` → `snapshot()`.
 - **`board-manifest.json` is not covered by a reload.** Persephone caches a board's manifest from the
   moment the board is trusted, so a manifest edit (`fileMasks`, `editorPriority`, `editorSources`)
   applies only after toggling the board's trust off and on, or restarting the app — not after
@@ -514,48 +513,49 @@ the manifest's `loadOrder`.
 
 ## Test it
 
-Once the board is open, drive it with the **`browser_*`** tools (Playwright-compatible). Always
-get the board's `pageId` first, then pass it to every `browser_*` call:
+Once the board is open, drive it through `pages[pageId].editor`. Always get the board's `pageId`
+first:
 
 ```
 list_pages                       → pick the entry with editor: "board-view" → its pageId
-browser_snapshot { pageId }      → read the UI
-browser_click/type/evaluate { pageId, … }  → interact
+pages[pageId].editor.snapshot()  → read the UI
+pages[pageId].editor.click({ ref: "e12" }) / .type(...) / .evaluate(...)  → interact
 ```
 
 - `list_pages` → find the board (`editor: "board-view"`) and read its `pageId`. If several
   `board-view` pages exist, match the one you opened by its `boardRoot` / `selectedBoard`.
-- `browser_snapshot { pageId }` → read the accessibility tree (element refs). **Always pass
-  `pageId`** for a board — board pages are not browser tabs, so the default "active browser page"
-  fallback does not reach them.
-- `browser_click` / `browser_type` / `browser_press_key` / `browser_evaluate` (each with
-  `pageId`) → interact using the refs from the snapshot.
+- `pages[pageId].editor.snapshot()` → read the accessibility tree (element refs). **Always use the
+  board's page id** — board pages are not browser tabs.
+- `click`, `type`, `pressKey`, and `evaluate` on that editor → interact using refs from the
+  snapshot. Pass `{ ref: "e12" }` explicitly; a plain string is a CSS selector.
 - **Verify UI visually.** The accessibility snapshot includes elements that are invisible on
   screen (zero-height, overridden `display`), so it can look right while the render is broken.
-  After UI changes, check a `browser_take_screenshot { pageId }` before declaring the UI correct.
+  After UI changes, check `pages[pageId].editor.screenshot()` before declaring the UI correct.
 
-A board never navigates, so the navigation tools (`browser_navigate`, `browser_navigate_back`)
-don't apply, and `browser_tabs` cannot open or close tabs. But `browser_tabs` **does** work for
-a different purpose — selecting which board **frame** the tools drive (see next).
+A board never navigates, so it has no navigation members and cannot add or close frames. Its
+`tabs` and `switchTab("board-secondary:<viewId>")` members select which board frame to drive
+(see next).
 
 ### Inspecting secondary views
 
-By default every `browser_*` call targets the board's **main** frame. To inspect a
+By default every editor call targets the board's **main** frame. To inspect a
 [secondary view](#secondary-views--shared-state) (a sidebar panel — its own `board://` frame),
-use `browser_tabs` to select it first; Persephone treats the board's frames as "tabs":
+read `pages[pageId].editor.tabs` and select it with
+`pages[pageId].editor.switchTab("board-secondary:<viewId>")`; Persephone treats the board's frames
+as "tabs":
 
 ```
-browser_tabs { pageId, action: "list" }
+pages[pageId].editor.tabs
   → [ { id: "main", … },
       { id: "board-secondary:<viewId>", title: "<panel title>", … }, … ]
-browser_tabs { pageId, action: "select", index: N }   → make frame N the active target
-browser_snapshot { pageId }                            → now reads THAT frame's DOM
-browser_click / browser_type / browser_take_screenshot { pageId, … }  → drive that frame
+pages[pageId].editor.switchTab("board-secondary:<viewId>") → make that frame the active target
+pages[pageId].editor.snapshot()                            → now reads THAT frame's DOM
+pages[pageId].editor.click/type/screenshot()               → drive that frame
 ```
 
 - `list` returns the main view (`index: 0`, id `"main"`) plus one entry per declared secondary
   view (id `board-secondary:<viewId>`, `title` = the panel title).
-- `select` points every subsequent `browser_*` call at that frame until you select another.
+- `switchTab` points subsequent editor calls at that frame until you select another.
   **Persephone auto-opens the view's sidebar panel and waits for its frame to render**, so the
   next command always succeeds — you never get a "frame not mounted" error, even if the panel
   was closed. `select { index: 0 }` returns to the main view.
@@ -589,11 +589,11 @@ The debugging surfaces, in the order to check them:
 - **A silently-dead feature after adding a library** is usually the CSP: remote
   `<script>`/`<link>`/`fetch` are blocked without a visible error in the UI — but the violation
   is in `ui.log`. Vendor the file locally (see "Libraries & assets").
-- **Snapshot vs screenshot**: `browser_snapshot` includes invisible elements, so verify visual
-  changes with `browser_take_screenshot { pageId }` before declaring the UI correct.
+- **Snapshot vs screenshot**: `snapshot()` includes invisible elements, so verify visual changes
+  with `screenshot()` before declaring the UI correct.
 - **`open_board` / `create_board` failures** return real errors (`Not a board: …` — missing
   `board-manifest.json`; name collision on create). `open_board` success returns
-  `{ opened, pageId, title }` — use that `pageId` for all `browser_*` calls; boards are never
+  `{ opened, pageId, title }` — use that `pageId` for `pages[pageId].editor`; boards are never
   reached by the untargeted browser-page fallback unless they are the active page.
 - **Manifest edits don't apply on refresh** — `fileMasks`/`editorPriority`/`editorSources` are
   cached from trust time; toggle trust or restart the app (see "Manifest, icon, reload").

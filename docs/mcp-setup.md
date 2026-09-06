@@ -59,12 +59,12 @@ gemini --mcp-server http://127.0.0.1:7865/mcp
 | **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and a URL for normal sessions; private pages omit the URL and use the generic title `Browser`. Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
 | **get_page_content** | Get the content of a page by ID. Text-based pages return `{ id, title, content }`. Image pages (e.g. screen snips) return the rendered PNG as an image block in the tool result — you see the picture directly, even for a background (non-active) tab. Other non-text pages (browser, board, video, PDF, etc.) return `{ id, title, hint }` describing how to read them instead. |
 | **get_active_page** | Get the active page with metadata plus the same content/image/hint handling as `get_page_content`. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
-| **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `open_url` or `execute_script` instead. |
+| **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `pages.openUrlInBrowserTab` or `execute_script` instead. |
 | **set_page_content** | Update text content of a page by ID. |
-| **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuse is profile-matched: with `profileName` it adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — never attaches to a different-profile page. Focuses the target page and returns `{ opened, pageId, title }` — pass `pageId` to `browser_*` tools to target this exact page (recommended, since the active page can change between calls). |
+| **open_url** | Legacy opener for a URL in the [built-in browser](./browser.md). The `call` equivalent is `pages.openUrlInBrowserTab(url, options)`, which returns a page id to use with `pages[pageId].editor`. |
 | **ui_push** | Push log entries, interactive dialogs, and output widgets to a Log View page — the recommended output channel for AI agents. Strings are shorthand for `log.info`. Dialog entries (`input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select`) block until the user responds. Output entries (`output.progress`, `output.grid`) support rich display — progress bars with upsert-by-id for real-time updates, and inline data grids from JSON or CSV strings. The Log View page is created automatically on first call and reused on subsequent calls. |
 | **read_guide** | Read a documentation guide by name (`overview`, `ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`, `browser`, `ui`, `ui-editors`). Returns the guide content as text. An alternative to fetching `persephone://guides/*` resources — works with AI clients that don't support MCP resources. New to Persephone? Start with `read_guide("overview")` for the mental model and a task → tool → guide routing table. |
-| **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), the default profile name (`defaultBrowserProfile`), application resource paths, and the published-board catalog URLs. Use this to discover valid profile names before calling browser tools. |
+| **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), the default profile name (`defaultBrowserProfile`), application resource paths, and the published-board catalog URLs. Use this to discover valid profile names before calling `pages.openUrlInBrowserTab`. |
 
 ### Discovering the application shell with `call`
 
@@ -99,16 +99,23 @@ the direct script API `app.settings.set()`) remains available for an intentional
 
 ### Browser Automation Tools
 
-These tools control the built-in browser and drive **board pages** directly. Use `open_url` first to open a browser page if one is not already open; for boards, the user opens the board in Persephone first (agent cannot open an untrusted board). Find a board in `list_pages` by `editor: "board-view"` and read its `pageId` and `selectedBoard` fields.
+Use the `call` paths for browser automation: open a web page with
+`pages.openUrlInBrowserTab(url, options)` and drive it through `pages[pageId].editor`; use
+`pages[pageId].editor` for a trusted board and `window.screen` for Persephone's own window. Find a
+board in `list_pages` by `editor: "board-view"` and read its `pageId` and `selectedBoard` fields.
+See `read_guide("browser")` for the full path list. The tools below remain available temporarily
+as older equivalents for compatible clients.
 
-> **Note:** Browser automation is available whenever the MCP server is running; the independent privacy guard below refuses user-opened incognito and Tor pages.
+> **Note:** The independent privacy guard below refuses user-opened incognito and Tor pages.
+
+#### Older `browser_*` tool reference
 
 Every `browser_*` tool accepts two optional parameters for targeting a specific browser page:
 
 - **`pageId`** — target an exact browser page by its ID (from `list_pages`). Takes precedence over `profileName`. The special value `"app"` targets Persephone's **own window** instead of a web page — see [Automating Persephone's own UI](#automating-persephones-own-ui) below.
 - **`profileName`** — target the browser page belonging to this profile (`""` = built-in default profile). Never matches incognito or Tor pages. If omitted, the active (or first) browser page is used.
 
-Targeting a page also **focuses** it — the resolved page becomes the active tab. This is a useful side-effect: subsequent untargeted calls stay on the now-active page. If no matching page is found a clear error message suggests using `open_url` with the desired `profileName` to open one.
+Targeting a page also **focuses** it — the resolved page becomes the active tab. This is a useful side-effect: subsequent untargeted calls stay on the now-active page. If no matching page is found, use `pages.openUrlInBrowserTab(url, { profileName })` to open one.
 
 | Tool | Description |
 |------|-------------|
@@ -127,25 +134,35 @@ Targeting a page also **focuses** it — the resolved page becomes the active ta
 | **browser_network_requests** | Get the network request log for the current tab. Returns an array of `{ url, method, statusCode, resourceType, requestHeaders, responseHeaders }`. Accepts optional `pageId` and `profileName`. |
 | **browser_close** | Close the active browser tab. Accepts optional `pageId` and `profileName`. |
 
-> **Tip:** `browser_snapshot` is the recommended way to inspect page state — it is faster and more deterministic than screenshots. After any click or type action, the tool automatically returns an updated snapshot so you can verify the result without a separate call.
+> **Tip:** `pages[pageId].editor.snapshot()` is the recommended way to inspect page state — it is faster and more deterministic than screenshots. After any click or type action, the path result includes updated state so you can verify the result without a separate call.
 
-> **Privacy guard:** Browser automation tools are blocked when the active browser page is in incognito or Tor mode. This also blocks `pageId: "app"`, because the app window would expose the active private page through its rendered UI. Any `browser_*` call returns an error with a clear message until a non-private page is active. Use `open_url` without `incognito` or `tor` to open a normal browser session first. `open_url` also never reuses an incognito or Tor page for a normal URL — it always creates a fresh normal session. `execute_script` is not covered by this guard and can still read private-session state.
+> **Privacy guard:** User-opened incognito and Tor pages are refused by the browser host and by
+> `window.screen` while that page is active. A private page opened by the agent remains available
+> to that agent. Use a normal page when the guard refuses a user-opened private page.
 
 ### Automating Persephone's own UI
 
-Pass `pageId: "app"` to any `browser_*` tool to drive **Persephone's own main window** instead of a web page — its tab strip, sidebar, toolbars, dialogs, and the currently active editor. This lets an AI agent see and interact with the live app: useful during development to reproduce or inspect a UI issue, and for end users who want the agent to answer "where is that setting?" or click through a workflow with them.
+Use `window.screen` to drive **Persephone's own main window** instead of a web page — its tab strip,
+sidebar, toolbars, dialogs, and the currently active editor. This lets an AI agent see and interact
+with the live app: useful during development to reproduce or inspect a UI issue, and for end users
+who want the agent to answer "where is that setting?" or click through a workflow with them.
 
 ```
-browser_snapshot({ pageId: "app" })
+window.screen.snapshot()
 ```
 
-What works: `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_press_key`, `browser_evaluate`, `browser_take_screenshot`, and `browser_wait_for` all operate normally against the app window using refs or CSS selectors, exactly like a browser page, provided the active page is not incognito or Tor.
+`window.screen.snapshot`, `.click`, `.hover`, `.type`, `.pressKey`, `.evaluate`, `.screenshot`, and
+`.waitFor` operate against the app window using refs or CSS selectors, exactly like a browser page,
+provided the active page is not incognito or Tor.
 
 What's different:
 - The snapshot only ever shows the app **chrome** (tab strip, sidebar, toolbars) plus the **active page's** content — other open tabs stay hidden until you click their tab to activate them.
-- Navigation and tab-management tools (`browser_navigate`, `browser_tabs`) don't apply to the app window and return a clear error — use `list_pages` and `execute_script` (`app.pages`) to open, switch, or close pages instead.
-- Editing document content (e.g. typing into a Monaco editor) should go through `set_page_content` or `execute_script`, not synthetic typing — `browser_type` is meant for simple inputs like dialogs and search boxes.
-- `pageId: "app"` must be passed explicitly — omitting `pageId` never falls back to the app window, so ordinary browser/board automation is unaffected.
+- Browser navigation and inner-tab management don't apply to the app window — use `pages` and page
+  methods to open or switch Persephone pages instead.
+- Editing document content (e.g. typing into a Monaco editor) should go through `set_page_content`
+  or `execute_script`, not synthetic typing. `window.screen.type` is for simple inputs like dialogs
+  and search boxes.
+- Use `windows[i].window.screen` to target a specific window.
 
 ### Browser Profiles
 
@@ -183,25 +200,28 @@ Call `get_app_info` to discover which profiles are configured:
 
 **Targeting a specific profile**
 
-Pass `profileName` to any `browser_*` tool to act on the page belonging to that profile. Pass `pageId` (from `list_pages`) for precise targeting when several pages share a profile:
+Pass `profileName` to `pages.openUrlInBrowserTab` to open or reuse the page belonging to that
+profile. Pass its returned `pageId` (or one from `list_pages`) for precise targeting when several
+pages share a profile:
 
 ```
 // Snapshot the "work" profile's page
-browser_snapshot({ profileName: "work" })
+pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })
 
 // Click an element on a specific page by ID
-browser_click({ pageId: "abc", ref: "e12" })
+pages["abc"].editor.click({ ref: "e12" })
 
 // Navigate the default-profile page
-browser_navigate({ url: "https://example.com", profileName: "" })
+pages.openUrlInBrowserTab("https://example.com", { profileName: "" })
 ```
 
 **Opening a URL in a profile**
 
-`open_url` with `profileName` adds the tab to (and focuses) an existing page of that profile, or creates a new page — it never attaches to a different-profile page:
+`pages.openUrlInBrowserTab` with `profileName` adds the tab to (and focuses) an existing page of
+that profile, or creates a new page — it never attaches to a different-profile page:
 
 ```
-open_url({ url: "https://outlook.com", profileName: "work" })
+pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })
 ```
 
 Incognito and Tor pages are never automatable: `profileName` never matches them, a direct `pageId` targeting such a page returns a privacy-refusal error, and `pageId: "app"` is refused while one of them is active. `execute_script` remains unrestricted by this browser-automation guard and can still access private-session state.
@@ -227,9 +247,9 @@ MCP resources are read-only documents that AI clients can discover and read to g
 | **Graph Guide** | `persephone://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.editor` facade, query and traversal methods. Read when working with force-graph pages. |
 | **Notebook Guide** | `persephone://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
 | **Links Guide** | `persephone://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
-| **Boards Guide** | `persephone://guides/boards` | Board authoring/automation reference — bridge API, theme contract, local vendoring, `browser_*` testing. Read before building or opening a board. |
+| **Boards Guide** | `persephone://guides/boards` | Board authoring/automation reference — bridge API, theme contract, local vendoring, `pages[pageId].editor` testing. Read before building or opening a board. |
 | **Tools Guide** | `persephone://guides/tools` | Agent Tools registry — `search_tools`/`execute_tool`, the stdin-JSON + result-marker contract, `.env` secrets. Read before using `search_tools`/`execute_tool`. |
-| **Browser Guide** | `persephone://guides/browser` | Browser automation in depth — page targeting resolution, snapshot format, ref lifecycle, waiting strategies, errors. Read when using `browser_*` tools beyond the basics. |
+| **Browser Guide** | `persephone://guides/browser` | Browser automation in depth — `call` paths, snapshot format, ref lifecycle, waiting strategies, errors, and older-tool equivalents. |
 | **UI Guide** | `persephone://guides/ui` | Persephone's own interface — what each always-visible element is for, its stable selector, where Settings lives, and how to highlight an element on screen. Read when helping the user with the app itself. |
 | **UI Editors Guide** | `persephone://guides/ui-editors` | The editor catalog — what each editor is for, how the user opens it, what it can do. Read when explaining Persephone's capabilities to the user. |
 | **Full Guide** | `persephone://guides/full` | All guides combined into one document. Only read if you need the complete reference. |
@@ -270,7 +290,9 @@ The agent will use `create_page` with `language: "javascript"` and the content.
 
 Ask: *"Open the GitHub API docs in persephone"*
 
-The agent will use `open_url` with the URL. You can also ask for a specific profile, incognito mode, or Tor mode: *"Open google.com in incognito"*, *"Open this page through Tor"*.
+The agent will use `pages.openUrlInBrowserTab(url, options)`. You can also ask for a specific
+profile, incognito mode, or Tor mode: *"Open google.com in incognito"*, *"Open this page through
+Tor"*.
 
 ### Automate the browser in a specific profile
 
@@ -280,8 +302,8 @@ The agent will:
 
 1. `get_app_info` — confirm that the `"work"` profile exists in `browserProfiles`
 2. `list_pages` — find the browser page whose `profileName` is `"work"`; note its `url`
-3. `open_url({ url: "https://outlook.com", profileName: "work" })` — navigate to Outlook if not already there
-4. `browser_snapshot({ profileName: "work" })` — read the page structure
+3. `pages.openUrlInBrowserTab("https://outlook.com", { profileName: "work" })` — navigate to Outlook if not already there
+4. `pages[pageId].editor.snapshot()` — read the page structure
 5. Extract and return the first unread subject from the snapshot
 
 Because `profileName: "work"` is passed, every tool targets the page holding the work login session — regardless of which browser page happens to be active.
@@ -290,14 +312,14 @@ Because `profileName: "work"` is passed, every tool targets the page holding the
 
 Ask: *"Search for 'persephone editor' on Google and show me the first result title"*
 
-The agent will use the browser automation tools:
+The agent will use the browser paths:
 
-1. `open_url` — opens a browser page navigated to `https://google.com`
-2. `browser_wait_for` — waits for the search box to appear
-3. `browser_type` — types the query into the search box
-4. `browser_press_key` — presses `Enter`
-5. `browser_wait_for` — waits for results to load
-6. `browser_snapshot` — reads the page structure to find the first result title
+1. `pages.openUrlInBrowserTab("https://google.com")` — opens a browser page
+2. `pages[pageId].editor.waitFor({ selector: "input" })` — waits for the search box
+3. `pages[pageId].editor.type({ ref: "<search ref>" }, query)` — types the query
+4. `pages[pageId].editor.pressKey("Enter")` — presses `Enter`
+5. `pages[pageId].editor.waitFor({ text: "<result text>" })` — waits for results
+6. `pages[pageId].editor.snapshot()` — reads the page structure to find the first result title
 
 ### Transform data
 
