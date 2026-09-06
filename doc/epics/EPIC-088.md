@@ -265,7 +265,7 @@ paths are proven, and the tools themselves are not touched.
 |------|-------|--------|
 | [US-1325](../tasks/US-1325-board-page-surface/README.md) | The board page surface — trust states, toolbar, secondary views, and `reload()` | Implemented |
 | [US-1326](../tasks/US-1326-boards-enumeration/README.md) | The `boards` node completes — enumeration of installed, trusted and open boards | Implemented |
-| US-1327 | The Board Info surface — install, version, screenshots, and the board-vars question | Planned |
+| [US-1327](../tasks/US-1327-board-info-surface/README.md) | The Board Info surface — install, version, screenshots, and the board-vars question | Implemented |
 | [US-1328](../tasks/US-1328-tools-root-node/README.md) | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Implemented |
 | US-1329 | The toolset editor and the Tools hub | Planned |
 | US-1330 | The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels | Planned |
@@ -354,7 +354,17 @@ Stop the epic and record why, rather than pushing through, if any of these appea
 
 ## Needs user check
 
-*(none yet — items are added as they are found)*
+1. **`app.boardVars.get()` returns secret values to an agent with no restriction (pre-existing, not
+   this epic's).** Found during US-1327's secret audit. The board-vars store schema explicitly holds
+   connection strings, API keys and passwords (`src/renderer/api/board-vars/types.ts:4-17`), and
+   `boardVars.get(namespace, name, env)` returns a stored value through the ordinary `call` tree
+   (`api/board-vars/admin-api.ts:36-59`); `list()` correctly returns names only.
+   **Assumption taken:** out of scope here. US-1327 adds no second path and no board-vars node, and
+   the epic's rule that a member must never *accept* a secret is honoured throughout. But whether an
+   agent should be able to *read* a stored credential at all is a user-owned decision with a blast
+   radius wider than a descriptor task, and it predates this epic. Worth deciding alongside
+   EPIC-087's Needs-user-check 1 (the REST page-level boundary), since both are the same question:
+   where does the boundary live when the value is already reachable by another path?
 
 ## Notes
 

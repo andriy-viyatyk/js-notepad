@@ -4,6 +4,7 @@ import type { EditorModel } from "../../editors/base/EditorModel";
 import { isTextFileModel, type TextFileModel } from "../../editors/text/TextEditorModel";
 import { customEditorRegistry, isBoardEditorId } from "../../editors/board/custom-editor-registry";
 import type { BoardEditorModel } from "../../editors/board/BoardEditorModel";
+import type { BoardInfoEditorModel } from "../../editors/board-info/BoardInfoEditorModel";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import { NotebookEditor } from "../../editors/notebook/NotebookEditor";
@@ -52,6 +53,7 @@ import type { LogViewEditor } from "../../editors/log-view/LogViewEditor";
 import { FolderViewEditorFacade } from "./FolderViewEditorFacade";
 import { GitTreeEditorFacade } from "./GitTreeEditorFacade";
 import { BoardEditorFacade } from "./BoardEditorFacade";
+import { BoardInfoEditorFacade } from "./BoardInfoEditorFacade";
 import type { CategoryEditorModel } from "../../editors/category/CategoryEditorModel";
 import type { GitTreeEditorModel } from "../../editors/git-tree/GitTreeEditorModel";
 
@@ -62,11 +64,15 @@ type EditorFacade =
     | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
     | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
     | EnvVarsEditorFacade | ArchiveEditorFacade
-    | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | BoardEditorFacade | GenericEditorFacade;
+    | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | BoardEditorFacade
+    | BoardInfoEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const BOARD_FACADE_FACTORY: EditorFacadeFactory = (editor, id, name) =>
     new BoardEditorFacade(editor as BoardEditorModel, id as "board-view" | `board-editor:${string}`, name);
+
+const BOARD_INFO_FACADE_FACTORY: EditorFacadeFactory = (editor, id, name) =>
+    new BoardInfoEditorFacade(editor as BoardInfoEditorModel, id as "board-info", name);
 
 const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "monaco": (editor, id, name) => new TextEditorFacade(editor as MonacoEditor, id, name),
@@ -93,6 +99,7 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "category-view": (editor, id, name) => new FolderViewEditorFacade(editor as CategoryEditorModel, id as "category-view", name),
     "git-tree": (editor, id, name) => new GitTreeEditorFacade(editor as GitTreeEditorModel, id as "git-tree", name),
     "board-view": BOARD_FACADE_FACTORY,
+    "board-info": BOARD_INFO_FACADE_FACTORY,
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [
