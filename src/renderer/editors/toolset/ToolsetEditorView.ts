@@ -1,9 +1,5 @@
-import { pagesModel } from "../../api/pages";
-import { fs } from "../../api/fs";
-import { ui } from "../../api/ui";
 import { guard } from "../../core/utils/guard";
 import { toolsTrust } from "../../api/tools/tools-trust";
-import { registeredTools } from "../../api/tools/registered-tools";
 import { type ToolDef, type ToolsManifest } from "../../api/tools/tools-manifest";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { createTextElement, applyTextAttributes, resolveTextAttributes } from "../../uikit/Text/text-style";
@@ -229,22 +225,15 @@ export class ToolsetEditorView extends VanillaView<{ model: ToolsetEditorModel }
     }
 
     private async handleRefresh(): Promise<void> {
-        await registeredTools.refresh();
-        await this.model.reload();
+        await this.model.refresh();
     }
 
     private handleOpenFolder(): void {
-        if (this.currentRoot) void pagesModel.addEmptyPageWithNavPanel(this.currentRoot);
+        void this.model.openFolder();
     }
 
     private async handleOpenLog(): Promise<void> {
-        const logPath = this.model.getLogPath();
-        if (!logPath) return;
-        if (!(await fs.exists(logPath))) {
-            ui.notify("No execution log yet — run a tool first.", "info");
-            return;
-        }
-        void pagesModel.openFile(logPath);
+        await this.model.openLog();
     }
 }
 

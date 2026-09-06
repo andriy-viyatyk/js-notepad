@@ -8,6 +8,10 @@ import {
     type ToolsManifest,
 } from "../../api/tools/tools-manifest";
 import { TOOLS_EXECUTION_LOG_FILE } from "../../api/tools/tool-log";
+import { registeredTools } from "../../api/tools/registered-tools";
+import { pagesModel } from "../../api/pages";
+import { fs } from "../../api/fs";
+import { ui } from "../../api/ui";
 
 export interface ToolsetEditorState extends EditorStateBase {
     type: "toolsetPage";
@@ -110,5 +114,28 @@ export class ToolsetEditorModel extends EditorModel<ToolsetEditorState> {
             s.errors = validation.errors;
             s.title = name;
         });
+    }
+
+    /** Refresh the whole registry, then re-read this editor's manifest. */
+    async refresh(): Promise<void> {
+        await registeredTools.refresh();
+        await this.reload();
+    }
+
+    /** Open this toolset's root in an Explorer page when the root is resolved. */
+    async openFolder(): Promise<void> {
+        const root = this.state.get().toolsetRoot;
+        if (root) await pagesModel.addEmptyPageWithNavPanel(root);
+    }
+
+    /** Open this toolset's execution log when it exists. */
+    async openLog(): Promise<void> {
+        const logPath = this.getLogPath();
+        if (!logPath) return;
+        if (!(await fs.exists(logPath))) {
+            ui.notify("No execution log yet — run a tool first.", "info");
+            return;
+        }
+        void pagesModel.openFile(logPath);
     }
 }

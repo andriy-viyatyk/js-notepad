@@ -4,6 +4,7 @@ export const TOOLS_HUB_PAGE_ID = "tools-hub-page";
 
 /** Which content tab the hub shows. Persisted in editor state (survives restart). */
 export type HubTab = "builtin" | "boards" | "search" | "tools";
+const VALID_HUB_TABS: readonly HubTab[] = ["builtin", "boards", "search", "tools"];
 
 export interface ToolsHubEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -36,6 +37,9 @@ export class ToolsHubEditor extends EditorModel<ToolsHubEditorState> {
     showBackgroundOrnament = true;
 
     setTab(tab: HubTab): void {
+        if (!VALID_HUB_TABS.includes(tab)) {
+            throw new Error(`Unknown Tools hub tab ${JSON.stringify(tab)}. Valid tabs: ${VALID_HUB_TABS.join(", ")}.`);
+        }
         this.state.update((s) => { s.tab = tab; });
     }
 

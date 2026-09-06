@@ -54,8 +54,12 @@ import { FolderViewEditorFacade } from "./FolderViewEditorFacade";
 import { GitTreeEditorFacade } from "./GitTreeEditorFacade";
 import { BoardEditorFacade } from "./BoardEditorFacade";
 import { BoardInfoEditorFacade } from "./BoardInfoEditorFacade";
+import { ToolsetEditorFacade } from "./ToolsetEditorFacade";
+import { ToolsHubEditorFacade } from "./ToolsHubEditorFacade";
 import type { CategoryEditorModel } from "../../editors/category/CategoryEditorModel";
 import type { GitTreeEditorModel } from "../../editors/git-tree/GitTreeEditorModel";
+import type { ToolsetEditorModel } from "../../editors/toolset/ToolsetEditorModel";
+import type { ToolsHubEditor } from "../../editors/tools-hub/ToolsHubEditor";
 
 type EditorOrHost = EditorModel | TextFileModel;
 type EditorFacade =
@@ -65,7 +69,7 @@ type EditorFacade =
     | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
     | EnvVarsEditorFacade | ArchiveEditorFacade
     | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | BoardEditorFacade
-    | BoardInfoEditorFacade | GenericEditorFacade;
+    | BoardInfoEditorFacade | ToolsetEditorFacade | ToolsHubEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const BOARD_FACADE_FACTORY: EditorFacadeFactory = (editor, id, name) =>
@@ -100,6 +104,8 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "git-tree": (editor, id, name) => new GitTreeEditorFacade(editor as GitTreeEditorModel, id as "git-tree", name),
     "board-view": BOARD_FACADE_FACTORY,
     "board-info": BOARD_INFO_FACADE_FACTORY,
+    "toolset-view": (editor, id, name) => new ToolsetEditorFacade(editor as ToolsetEditorModel, id as "toolset-view", name),
+    "tools-hub-view": (editor, id, name) => new ToolsHubEditorFacade(editor as ToolsHubEditor, id as "tools-hub-view", name),
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [

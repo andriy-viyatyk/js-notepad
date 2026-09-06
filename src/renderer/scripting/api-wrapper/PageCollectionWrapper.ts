@@ -7,6 +7,7 @@ import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../..
 import { CompareModeNode } from "../ai-vision/page-compare";
 import { LogViewEditorFacade } from "./LogViewEditorFacade";
 import { getOrCreateMcpLogViewEditor } from "../../api/mcp/log-view-access";
+import type { HubTab } from "../../api/types/tools-hub-editor";
 
 // AiVision (EPIC-083): the kind-level description of this wrapper. Kept next to the members it
 // describes so a new method and its descriptor entry land in the same diff.
@@ -32,6 +33,7 @@ const PAGES_MEMBERS: readonly IAiMember[] = [
     { name: "showAboutPage", kind: "method", signature: "showAboutPage()", summary: "Show the About page." },
     { name: "showSettingsPage", kind: "method", signature: "showSettingsPage()", summary: "Show Settings." },
     { name: "showMcpInspectorPage", kind: "method", signature: "showMcpInspectorPage(options?: { url? })", summary: "Show the MCP inspector page." },
+    { name: "showToolsHubPage", kind: "method", signature: "showToolsHubPage(options?: { tab?: HubTab })", summary: "Show the Tools & Editors hub, optionally selecting a tab." },
     { name: "showBrowserPage", kind: "method", signature: "showBrowserPage(options?: { profileName?, incognito?, tor?, url? })", summary: "Show (or open) a browser page. Choose profileName from settings.browserProfiles; an empty profileName selects the built-in default. Incognito/Tor pages you open this way are yours to read and drive; the user's own private pages stay blocked." },
     { name: "openUrlInBrowserTab", kind: "method", signature: "openUrlInBrowserTab(url, options?: { incognito?, profileName?, external? })", summary: "Open a URL in a browser tab; choose profileName from settings.browserProfiles, or use an empty profileName for the built-in default; returns the tab id." },
     { name: "showPage", kind: "method", signature: "showPage(pageId: string)", summary: "Activate (focus) a page." },
@@ -224,6 +226,10 @@ export class PageCollectionWrapper implements IAiVisible {
 
     showMcpInspectorPage(options?: { url?: string }): Promise<void> {
         return this.pages.showMcpInspectorPage(options);
+    }
+
+    showToolsHubPage(options?: { tab?: HubTab }): Promise<void> {
+        return this.pages.showToolsHubPage(options);
     }
 
     showBrowserPage(options?: {

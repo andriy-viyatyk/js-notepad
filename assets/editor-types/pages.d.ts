@@ -3,6 +3,7 @@ import type { IPage } from "./page";
 import type { ILink } from "./io.tree";
 import type { ICompareMode } from "./compare";
 import type { ILogViewEditor } from "./log-view-editor";
+import type { HubTab } from "./tools-hub-editor";
 
 /**
  * IPageCollection — `app.pages`
@@ -108,6 +109,9 @@ export interface IPageCollection {
 
     /** Show an MCP Inspector page, optionally with a pre-filled URL. */
     showMcpInspectorPage(options?: { url?: string }): Promise<void>;
+
+    /** Show the Tools & Editors hub, optionally selecting a tab. */
+    showToolsHubPage(options?: { tab?: HubTab }): Promise<void>;
 
     /** Show a browser page, optionally with a profile, Tor mode, or URL. */
     showBrowserPage(options?: {
