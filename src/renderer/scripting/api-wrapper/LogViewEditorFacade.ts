@@ -104,7 +104,9 @@ export class LogViewEditorFacade implements IAiVisible {
         const dialogIds: string[] = [];
 
         for (const raw of entries) {
-            const normalized = normalizeUiPushEntry(raw);
+            // strictTypes: reject a guessed entry type instead of rendering a blank entry and
+            // reporting success. The ui_push tool keeps its lenient behaviour unchanged.
+            const normalized = normalizeUiPushEntry(raw, { strictTypes: true });
             if (!normalized) continue;
             if (normalized.isDialog) {
                 const entryId = this.editor.addDialogEntryNonBlocking(

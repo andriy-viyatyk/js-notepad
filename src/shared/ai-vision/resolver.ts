@@ -108,11 +108,21 @@ export async function resolveCall(root: unknown, request: ICallRequest, seenKind
                     if (descriptor && !member?.writable) {
                         return errorAt(path, walked, current, seenKinds, hintMode, `"${name}" is not writable on ${descriptor.kind}.`, true);
                     }
+                    // MCP clients parse `value` as JSON, so an agent that means to write *text* that
+                    // happens to be JSON cannot get a string through: whatever it sends arrives here
+                    // already parsed into an object. Telling it to "stringify first" is advice it
+                    // cannot follow — the client just parses the result again. So when the property
+                    // currently holds a string and an object or array arrives, serialize it rather
+                    // than failing. Verified against a `call`-only agent (EPIC-087, US-1324), which
+                    // hit exactly this dead end trying to fill a JSON grid page.
+                    let valueToAssign = request.value;
+                    const incomingIsStructured = typeof valueToAssign === "object" && valueToAssign !== null;
+                    if (incomingIsStructured && typeof (current as Record<string, unknown>)[name] === "string") {
+                        valueToAssign = JSON.stringify(valueToAssign, null, 2);
+                    }
                     try {
-                        (current as Record<string, unknown>)[name] = request.value;
+                        (current as Record<string, unknown>)[name] = valueToAssign;
                     } catch (error) {
-                        // MCP clients parse `value` as JSON, so an agent that meant to write text often
-                        // sends an object or array. Say so — the setter's own error rarely does.
                         const valueType = Array.isArray(request.value) ? "array" : typeof request.value;
                         return errorAt(path, walked, current, seenKinds, hintMode,
                             `Assigning ${valueType} to "${name}" failed: ${errMessage(error)}. If the property holds text, pass "value" as a string (JSON.stringify structured data first).`);

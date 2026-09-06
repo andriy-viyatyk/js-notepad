@@ -329,9 +329,17 @@ report `false` and `null` while that model is still lazy and absent. `toggleSide
 current panel, then flips only the model's `open` state; it never calls `toggleNavigator()` and
 therefore cannot create an Explorer as a side effect. This node deliberately has no `close` action:
 individual panel header controls remain with their owning editors because Pattern A and Pattern B
-editors have different hide/dispose lifecycles. The node owns only the three curated sidebar shell
-elements (`secondary-views-container`, `secondary-views-stack`, and `secondary-views-splitter`) and
-their `highlight(name, message?)` surface; editor-specific panel roots remain editor-owned.
+editors have different hide/dispose lifecycles. The node exposes the four curated sidebar shell
+elements (`page-nav-panel`, `secondary-views-container`, `secondary-views-stack`, and
+`secondary-views-splitter`) and their `highlight(name, message?)` surface. It also provides
+optional live child nodes for the fixed aliases `explorer`, `search`, `boards`, `git`,
+`notebookCategories`, `notebookTags`, `rest`, `archive`, and `fileHistory`. A child exists only
+while its registered panel is present on that page; its `id` remains the registered panel ID and
+its `ownerEditorId` identifies the contributing editor instance. Specialized Explorer, Search,
+Boards, and Git children expose copied state, model-backed actions, and curated panel elements.
+The remaining known panel types expose the generic node contract until their specialized projections
+are added. Dynamic board-secondary children are indexed by their exact registered IDs. Enumeration
+and lookup read existing page state only and never create a sidebar or an absent panel.
 
 ## 10. Existing Secondary Editors
 

@@ -47,8 +47,36 @@ export interface NormalizedUiPushEntry {
     readonly isDialog: boolean;
 }
 
-/** Normalize one ui_push-compatible entry, preserving its established validation rules. */
-export function normalizeUiPushEntry(raw: unknown): NormalizedUiPushEntry | undefined {
+/** The log levels the guide documents. Anything else under `log.` is a typo, not a level. */
+const KNOWN_LOG_TYPES = new Set(["log.text", "log.info", "log.warn", "log.error", "log.success"]);
+
+/** The rich output entry types the guide documents. */
+const KNOWN_OUTPUT_TYPES = new Set([
+    "output.text", "output.markdown", "output.mermaid", "output.grid", "output.progress",
+]);
+
+/** Every entry type a caller may legitimately push, for the strict path's error message. */
+function knownEntryTypes(): string {
+    return [...KNOWN_LOG_TYPES, ...KNOWN_OUTPUT_TYPES, ...Object.keys(DIALOG_SPECS)].join(", ");
+}
+
+/**
+ * Normalize one ui_push-compatible entry, preserving its established validation rules.
+ *
+ * `strictTypes` rejects an entry type that is not one of the documented ones. The `ui_push` tool
+ * does **not** pass it, so that tool's behaviour is unchanged; `pages.logView.push` does.
+ *
+ * The reason is a real failure, observed in US-1324's acceptance run: a Haiku agent guessed the
+ * types `"markdown"` and `"dialog"` instead of `"output.markdown"` and `"input.confirm"`. The
+ * lenient fall-through accepted all three, rendered them as **empty** entries, and returned ids —
+ * so the agent reported success while the user saw three blank lines. Validation only ever ran for
+ * types beginning `input.`, so a guessed type skipped it entirely. A wrong type must fail loudly
+ * and name the alternatives.
+ */
+export function normalizeUiPushEntry(
+    raw: unknown,
+    options: { readonly strictTypes?: boolean } = {},
+): NormalizedUiPushEntry | undefined {
     const entry = typeof raw === "string"
         ? { type: "log.info", text: raw }
         : raw && typeof raw === "object" && !Array.isArray(raw)
@@ -58,6 +86,16 @@ export function normalizeUiPushEntry(raw: unknown): NormalizedUiPushEntry | unde
 
     const { type, ...fields } = entry;
     if (typeof type !== "string") return undefined;
+
+    if (options.strictTypes
+        && !KNOWN_LOG_TYPES.has(type)
+        && !KNOWN_OUTPUT_TYPES.has(type)
+        && !(type in DIALOG_SPECS)) {
+        throw new UiPushValidationError(
+            `Unknown entry type '${type}'. Valid types: ${knownEntryTypes()}. `
+            + `A plain string is shorthand for log.info.`,
+        );
+    }
 
     if (type.startsWith("input.")) {
         const spec = DIALOG_SPECS[type];

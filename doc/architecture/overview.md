@@ -188,7 +188,7 @@ See [scripting.md](./scripting.md).
 - TypeScript transpilation via sucrase (lazy-loaded, type stripping only)
 - Full Node.js access for scripts; renderer UI frameworks are not part of the script context
 - API wrappers (AppWrapper, PageWrapper) provide safe, typed access
-- Editor facades (15 operation facades plus GenericEditorFacade) for typed current-editor operations;
+- Editor facades (21 operation facades plus GenericEditorFacade) for typed current-editor operations;
   narrow the union by `page.editor.id`
 - Auto-cleanup of event subscriptions on script completion
 - Monaco IntelliSense via `.d.ts` files
@@ -207,7 +207,7 @@ See [scripting.md](./scripting.md).
 - Multi-window support: all tools accept optional `windowIndex` parameter (defaults to first open window). `list_windows` tool runs in main process (no IPC) to discover windows and their status. `open_window` tool reopens closed windows with persisted pages.
 - Browser profile support: browser pages report `profileName` / `isIncognito` / `isTor` / active-tab `url` in page metadata (`url` omitted when the page is private to the user); `get_app_info` lists `browserProfiles` + `defaultBrowserProfile`; every `browser_*` tool accepts optional `pageId` / `profileName` to deterministically target a browser page — see [browser-editor.md](browser-editor.md) "Browser Automation (MCP)".
 - App-window automation: the `browser_*` tools also drive Persephone's own UI with `pageId: "app"` (snapshot/click/type/press_key/screenshot/evaluate the tab strip, sidebar, dialogs, and active editor) — explicit-only (never resolved by fallback), no registration (the calling window's own webContents is the target), behind the same `mcp.browser-tools.enabled` gate; see [browser-editor.md](browser-editor.md) "App-Window Target".
-- Log View integration: `ui_push` tool pushes log entries, dialogs, and output items to a managed Log View page. Tracks an "active MCP log page" per window (auto-creates on first call, reuses on subsequent calls). Dialog entries block until user responds (infinite IPC timeout). This is the recommended output channel for AI agents.
+- Log View integration: `ui_push` remains the blocking MCP output tool, while `pages.logView` exposes the same managed `mcp-ui-log` page through the renderer object model. Its `push()` path is non-blocking and returns dialog IDs for later `dialogResult()` reads; inline dialogs are answered by the user in Log View. Script `ui` output and agent output therefore share one MCP Log page.
 - MCP resources & `read_guide` tool: focused guides (`assets/mcp-res-*.md`) exposed as MCP resources (`persephone://guides/*`) and also available via the `read_guide` tool (for clients that cannot read MCP resources, e.g. Claude Desktop). Guides cover: `overview` (start-here mental model + task→tool→guide routing), `ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`, `browser` (targeting resolution, snapshot/ref lifecycle, waiting), plus `persephone://guides/full` (concatenated). Every guide carries an "Errors & verification" section describing what failures actually look like in tool responses. Tool descriptions warn agents to read guides before using structured editors or dialogs.
 - MCP validation: `api/mcp/ui-push.ts` validates dialog entries (known properties, required fields) and `output.grid` content (must be string, valid JSON array). Returns descriptive errors with correct usage examples to guide AI agents.
 - Opt-in via `mcp.enabled` setting — server starts/stops dynamically based on setting changes

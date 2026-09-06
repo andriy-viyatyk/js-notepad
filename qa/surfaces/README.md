@@ -30,6 +30,8 @@ Two things these files are for:
 | [editors/media.md](editors/media.md) | Image and video/audio editor elements, facades, media state, and dialogs | EPIC-086 (US-1314) |
 | [editors/diff.md](editors/diff.md) | File-diff revision state, controls, and compare-mode pairs | EPIC-086 (US-1315) |
 | [editors/graph.md](editors/graph.md) | Graph editor chrome, canvas boundary, panels, state, and menus | EPIC-086 (US-1316) |
+| [editors/data.md](editors/data.md) | Grid, notebook, REST client, env vars, archive and the Log View output channel | EPIC-087 (US-1318 to US-1322) |
+| [panels.md](panels.md) | Sidebar panel nodes under `page.panels`, Folder View and Git Tree | EPIC-087 (US-1323) |
 | [menus.md](menus.md) | Popup and context menus, the `menus` node | EPIC-084 (US-1299) |
 | [windows.md](windows.md) | Multiple windows, open and closed, and the redistributed application facts | EPIC-085 (US-1303) |
 
@@ -37,7 +39,7 @@ Two things these files are for:
 Settings catalog (US-1306) are tests S.7 onward in that file, because they are all the same screen.
 
 The `editors/` subfolder arrived with EPIC-086, which covered the text-and-preview family in five
-files. More arrive with each surface epic: the data editors, boards, the browser.
+files, and grew with EPIC-087's data editors. More arrive with each surface epic: boards, the browser.
 
 ## Running them
 

@@ -1,3 +1,69 @@
+## EPIC-087 - The data editors through `call`, and the retirement of `ui_push`
+
+Completed 2026-09-06. [Epic document](EPIC-087.md). Epic 4 of 7 in the
+[agent transparency roadmap](../agent-transparency-roadmap.md). `ui_push` is now **retirable** -
+every capability exercised live through `call` first - but nothing was deleted; EPIC-090 does that
+behind the call-only flag.
+
+**Where EPIC-086 annotated, this epic built.** That epic inherited thirteen facade classes and
+mostly added `elements` to them. Here six of the eight surfaces had no facade at all: a REST page,
+an env-vars page, an archive, a Folder View and a Git Tree all answered `pages[i].editor` with an id,
+a name, and nothing an agent could act on. Grid and notebook had facades with no `elements`. So the
+epic is mostly new surface area: eight facades, curated page-scoped element lists for each, and
+individual sidebar panel nodes under `page.panels`, which previously reported that a panel was open
+and nothing whatever about its contents.
+
+**The headline was `ui_push`, and it is the one replacement that deliberately behaves differently
+from the tool it replaces.** `ui_push` blocks until every dialog it raised is answered.
+`pages.logView.push` returns immediately with the dialog ids, raises `attention` while an answer is
+outstanding, and hands the answer back through `dialogResult(id)`. That is not a shortcut taken for
+convenience: Log View dialogs are inline *page entries*, so the `pending` + `dialogs[0]` mechanism
+that rescues every other blocking call in the app cannot reach them, and giving `call` an infinite
+timeout for one path would wreck error reporting for the other thirty. Both paths exist side by side
+until EPIC-090, which is when the change gets its second opinion.
+
+**One design decision was written wrong and had to be rewritten mid-epic.** Decision 7 originally
+said secrets are never returned - names and presence only, values as a redaction marker. Verifying
+that against the REST client killed it: `rest-client` is a content-host editor, so `pages[i].content`
+already returns the raw `.rest.json` with its URL tokens, `Authorization` values and body, one path
+segment away on the same node. A facade redacting those fields would have protected nothing while
+telling the agent and the user's `$help` that a protection existed - a stated guarantee the system
+does not honour, which is the same error EPIC-086 caught in the `open_url` premise and refused to
+ship. The decision now separates the two halves, which are not symmetric: *accepting* a secret is
+always forbidden, because an argument is written into the MCP transcript where the secret was not
+before; *returning* one is only a boundary where a boundary actually exists. US-1321 then asked that
+question again, separately, for env vars and archives - and got different answers, which is the point.
+
+**Three defects were caught only by running the app**, and each would have passed a green build:
+UIKit views *delete* `data-name` when a later `update()` omits the `name` prop, so three declared
+controls were named on mount and stripped on the first re-render; the highlight overlay rings only
+the first match unless `all: true` is passed, so six controls promising "once per note" would have
+rung one arbitrary note; and an archive click handler was *reimplemented* rather than moved, taking
+the directory branch for every item and dropping a selection update.
+
+**The acceptance run produced two more, neither of them descriptor work.** `call` could not assign
+JSON text at all - MCP clients parse `value` as JSON, so the error message's advice to "stringify
+first" was impossible to follow, and any agent trying to fill a JSON grid page was in a dead end.
+And `pages.logView.push` silently accepted a *guessed* entry type, rendering a blank entry and
+returning an id, so the agent reported success while the user saw nothing. The first run also showed
+why the channel was unfindable: it described itself as "the get-or-created MCP Log View writer and
+dialog read-back surface", which is true and says nothing about what it is for. Reworded to lead with
+purpose and pointed at from the root node - and run 3's agent named that hint as the reason it
+succeeded. Log: [qa/runs/2026-09-06-epic-087-data-surfaces.md](../../qa/runs/2026-09-06-epic-087-data-surfaces.md).
+
+- [x] [US-1318: The grid surface](../tasks/US-1318-grid-surface/README.md)
+- [x] [US-1319: The notebook surface](../tasks/US-1319-notebook-surface/README.md)
+- [x] [US-1320: The REST client surface](../tasks/US-1320-rest-client-surface/README.md)
+- [x] [US-1321: Env vars and archive](../tasks/US-1321-env-vars-and-archive/README.md)
+- [x] [US-1322: Log View, `pages.logView`, and the `ui_push` replacement path](../tasks/US-1322-log-view-surface/README.md)
+- [x] [US-1323: Folder View, Git Tree, and the Explorer sidebar panels](../tasks/US-1323-navigation-surfaces/README.md)
+- [x] [US-1324: Acceptance run and the retirable `ui_push`](../tasks/US-1324-data-surface-acceptance/README.md)
+
+**Needs user check** (two items, both recorded in the epic document with reproductions): the REST /
+env-vars page-level secret boundary, which would have to cover `content` and the facade together and
+is the user's decision to make; and a pre-existing `pages.openFile()` bug where a directory path
+leaves a ghost "Empty" page that the tab strip renders but the object model does not contain.
+
 ## EPIC-086 — The page node redesign, and the text-and-preview editor family through `call`
 
 Completed 2026-09-06. [Epic document](EPIC-086.md). Epic 3 of 7 in the

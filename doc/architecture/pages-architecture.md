@@ -374,8 +374,14 @@ Some pages are **singletons** — they should exist as a single instance and be 
 
 | ID | Editor | Purpose |
 |----|--------|---------|
-| `mcp-ui-log` | `log-view` | MCP `ui_push` log — shared between MCP handler and script execution |
+| `mcp-ui-log` | `log-view` | MCP Log page — shared by `ui_push`, script `ui`, and the `pages.logView` object-model facade |
 | `mcp-server-log` | `log-view` | MCP server incoming request log — logs every incoming MCP command with method, params, result, error, duration. Capped at 200 entries. Opened by clicking the MCP indicator in the title bar. |
+
+The `pages.logView` collection property is the non-blocking object-model path to `mcp-ui-log`.
+It reuses the page's `LogViewEditor` and accepts the same normalized entry forms as `ui_push`,
+but returns from `push()` immediately with entry and dialog IDs. Inline dialogs remain visible in
+Log View for the user to answer; `dialogResult(id)` distinguishes an unresolved dialog from its
+resolved entry. The `ui_push` tool remains available and retains its blocking dialog behavior.
 
 ### Standalone singleton pages
 

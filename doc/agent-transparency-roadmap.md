@@ -62,7 +62,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 | 1 | **EPIC-084** — Attention, `dialogs`, `menus`, elements/highlight protocol | Cross-cutting infrastructure; the shell header strip as the protocol's first consumer | — (adds only) |
 | 2 | **EPIC-085** ✅ — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions — **all marked retirable 2026-09-05** |
 | 3 | **EPIC-086** ✅ — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content` — **all marked retirable 2026-09-06**. `open_url` is **not** marked; see the note below |
-| 4 | EPIC-087 — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer, git tree | `ui_push` (becomes the Log View page's node) |
+| 4 | **EPIC-087** ✅ — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer/sidebar panels, folder view, git tree | `ui_push` — **marked retirable 2026-09-06** |
 | 5 | EPIC-088 — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` |
 | 6 | EPIC-089 — Browser | `pages[i].editor`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
 | 7 | EPIC-090 — Consolidation | Call-only flag, full QA re-run on Haiku and Codex, deletion, guide rewrite | `execute_script`, `read_guide`, and everything still standing |
@@ -113,7 +113,7 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `create_page` | **retirable** — `pages.addEditorPage(editor, language, title)`, with `addEmptyPage()`, `addDrawPage(dataUrl)`, `openLinks(links)` and `openFile(path)` for the other page kinds | 086 ✅ |
 | `get_page_content`, `set_page_content` | **retirable** — `pages[i].content`, read and assigned | 086 ✅ |
 | `open_url` | `pages.openUrlInBrowserTab(url, options)` today; the planned unified `pages.openUrl` does not exist — **not retirable**, and wholly EPIC-089's, not 086's. See *The `open_url` correction* below | 089 |
-| `ui_push` | `pages.logView.push(...)` (well-known page) | 087 |
+| `ui_push` | **retirable** — `pages.logView.push(entries)` on the well-known page, plus `dialogResult(id)` for answers; **non-blocking**, unlike the tool | 087 ✅ |
 | `create_board`, `open_board`, `board_refresh` | `boards.create/open`, `boards.refresh()` | 088 |
 | `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` | `toolsets.*`, `toolsets.*` | 088 |
 | `browser_*` | `pages[i].editor.snapshot/click/type/...`; the same members on board/HTML facades and on `window.ui` for the app window | 089 |
@@ -139,6 +139,33 @@ a Haiku agent with `call` alone passed the epic's acceptance scenario
 
 Epic 3 also **added** surfaces that replace no tool: a facade for video and for file diff, both of
 which had none, and `pages.compare` for compare mode.
+
+**EPIC-087 marked `ui_push` retirable (2026-09-06)**, on the same standard: every capability was
+exercised live through `call` first — all five log levels, the three text outputs, `output.grid` in
+both JSON and CSV form, `output.progress`, all six `input.*` types through the *shared* validation
+table, and `windows[i].pages.logView.push(...)` against a real second window — and a Haiku agent
+with `call` alone found the channel and used it
+([qa/runs/2026-09-06-epic-087-data-surfaces.md](../qa/runs/2026-09-06-epic-087-data-surfaces.md)).
+
+**One replacement deliberately differs from the tool it replaces.** `ui_push` blocks until every
+dialog is answered; `pages.logView.push` returns immediately with the dialog ids, raises `attention`
+while any answer is outstanding, and hands the answer back through `dialogResult(id)`. That is not a
+shortcut: Log View dialogs are inline *page entries*, so the `pending` + `dialogs[0]` mechanism that
+rescues every other blocking call cannot reach them, and giving `call` an infinite timeout for one
+path would break error reporting for the other thirty. Both paths exist side by side until EPIC-090,
+which is when the change gets its second opinion.
+
+Epic 4 also **added** surfaces that replace no tool: facades for the REST client, env vars, archive,
+Folder View and Git Tree — none of which had one — and individual sidebar panel nodes under
+`page.panels`, which previously reported that a panel was open and nothing about its contents.
+
+The acceptance run also produced two fixes that were **not** descriptor work, and are worth
+remembering because both were invisible until a weak model tried the surface. `call` could not
+assign JSON text at all: MCP clients parse `value` as JSON, so the error message's advice to
+"stringify first" was impossible to follow, and any agent filling a JSON grid page was in a dead
+end. And `pages.logView.push` silently accepted a *guessed* entry type, rendering a blank entry and
+returning an id, so the agent reported success while the user saw nothing — a silent success, which
+is the failure class this roadmap exists to remove.
 
 ### The `open_url` correction (2026-09-06)
 

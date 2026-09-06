@@ -41,6 +41,7 @@ await page.tab.highlight("page-tab");
 ```
 
 The operation-bearing ids are `monaco`, `grid-json`, `grid-csv`, `grid-jsonl`, `notebook-view`,
+`rest-client`, `env-vars-view`, `archive-view`, `log-view`, `category-view`, `git-tree`,
 `link-view`, `md-view`, `svg-view`, `html-view`, `mermaid-view`, `graph-view`, `draw-view`,
 `browser-view`, `mcp-view`, `image-view`, `video-view`, and `file-diff`. Each facade also exposes
 its registry `name`.
@@ -84,6 +85,12 @@ narrowed:
 - `video-view`: video/audio source and playback state, playback controls, next-track and
   visualizer settings, and VLC handoff.
 - `file-diff`: selected original/modified revisions, staged-state detection, and read-only state.
+- `rest-client`: REST requests, the selected response, request organization, and sending requests.
+- `env-vars-view`: environment-variable namespaces, profiles, values, and encryption state.
+- `archive-view`: archive entries, selection, entry opening, and extraction.
+- `log-view`: Log View entries, non-blocking output/dialog pushes, dialog results, and timestamps.
+- `category-view`: Folder View provider state, listing, category navigation, and refresh.
+- `git-tree`: repository history, changes, refs, ahead/behind state, and changed-file navigation.
 
 The `html` value on `md-view` and `html-view`, and the `svg` value on `svg-view`, are `undefined`
 when their backing preview host is not mounted; use each facade's `viewMounted` property to tell
@@ -91,6 +98,74 @@ that state apart from genuinely empty content. Mermaid's `svgUrl` is different b
 means its state-backed diagram has not rendered yet or rendered with an error.
 
 Every facade's `$help` describes access through `page.editor` and gives its id-narrowing example.
+
+### Data editor facades
+
+The Grid facade is shared by JSON, CSV, and JSONL pages. It exposes copied `rows` and `columns`,
+row counts, search/filter/sort/selection state, hidden columns, and CSV options. Use `editCell`,
+`addRows`, `deleteRows`, `addColumns`, `deleteColumns`, `setSearch`, and `clearSearch`; CSV pages
+also support `setCsvDelimiter` and `setCsvWithColumns`. Data-changing methods are caution-marked
+in the `call` tree.
+
+The Notebook facade exposes copied notes, categories, tags, counts, filters, expanded-note state,
+and parse errors. It supports adding, removing, and updating notes, comments, categories, tags,
+language, and embedded editor, as well as search and category/tag filtering. Notebook sidebar
+panels are available separately through `page.panels.notebookCategories` and
+`page.panels.notebookTags`.
+
+The REST facade exposes copied request and response snapshots, including the URL, headers, body,
+and response body. It can select, add, rename, move, and remove requests, change request metadata
+and header/form keys, and send the selected request. It deliberately does not accept password,
+token, header-value, body-value, or form-value arguments. The `.rest.json` text remains available
+through `page.content`, so this facade does not claim to redact values that are already in that
+text; `send()` uses the request's actual headers and body and can contact a real service.
+
+The environment-variable facade exposes parsed namespaces, profiles, variable names and values,
+plus parse/encryption state. It can select namespaces and profiles, add or remove them, and open
+the existing encryption dialog without accepting or returning its password. Values are not
+redacted after unlock because the plaintext is already present in the page content. The separate
+`app.boardVars` service remains the value-capable store for board environment variables.
+
+### Archive, Folder View, and Git Tree facades
+
+The Archive facade lists copied entry metadata, opens an archive-relative entry, and extracts the
+archive to a directory. Extraction writes to disk and retains the archive's path-safety checks.
+The Folder View facade lists copied items, opens items or categories, reports the provider and
+current selection, and refreshes the listing. The Git Tree facade reports copied commits, changes,
+refs, and ahead/behind counts; it can refresh, load more history, open a changed path in File Diff,
+and reveal a branch, remote branch, or tag. Git commit, checkout, stage, and push operations are
+not facade methods.
+
+All of these surfaces expose a curated `elements` inventory to the `call` tree. Each element has a
+purpose and live `visible` state; `highlight(name, message?)` activates the owning page and points
+at the matching control. Repeated controls may highlight more than one mounted row, and the
+highlight result reports both the number found and the number drawn.
+
+## `page.panels`
+
+`page.panels` describes the sidebar belonging to this page. `items` lists rendered panels in order,
+with each panel's `id`, `label`, owner, and `expanded` state. The node also exposes `isOpen`,
+`width`, `expand(panelId)`, `toggleSidebar()`, `elements`, and `highlight(...)`.
+
+Use the named child nodes when present: `explorer`, `search`, `boards`, `git`,
+`notebookCategories`, `notebookTags`, `rest`, `archive`, and `fileHistory`. Explorer, Search,
+Boards, and Git provide state and model-backed actions; other panels expose their live identity,
+state, elements, and available close operation. A child is `undefined` when its panel is not
+currently rendered.
+
+```javascript
+const panels = page.panels;
+console.log(panels.items.map(panel => `${panel.id}: ${panel.label}`));
+if (panels.explorer) {
+    console.log(await panels.explorer.listItems());
+    panels.explorer.openSearch();
+}
+await panels.highlight("secondary-views-container", "This page's sidebar");
+```
+
+Panel access is page-scoped, so the same panel id on two pages resolves to the correct page. A
+bare id can be expanded; when multiple editor instances contribute that id, use `items` and the
+owner id to distinguish them.
 
 ### Video facade (`video-view`)
 

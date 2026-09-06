@@ -106,6 +106,15 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Script-facing page wrapper and current-editor facade factory (read-only discriminated facade union with a GenericEditorFacade fallback) | `/src/renderer/scripting/api-wrapper/PageWrapper.ts`, `/src/renderer/scripting/api-wrapper/GenericEditorFacade.ts` |
 | Video/audio editor facade (model state, live media state, playback and source actions) | `/src/renderer/scripting/api-wrapper/VideoEditorFacade.ts` |
 | File Diff editor facade (revision identity and shared text controls) | `/src/renderer/scripting/api-wrapper/FileDiffEditorFacade.ts` |
+| REST client editor facade (collection, selected request, response, send; no member accepts a header/body value) | `/src/renderer/scripting/api-wrapper/RestClientEditorFacade.ts` |
+| Env vars editor facade (namespaces, profiles, variables, lock status; a locked file returns no variables) | `/src/renderer/scripting/api-wrapper/EnvVarsEditorFacade.ts` |
+| Archive editor facade (entry listing, open, cautioned extract) | `/src/renderer/scripting/api-wrapper/ArchiveEditorFacade.ts` |
+| Log View editor facade — the agent output channel (`push`, `dialogResult`), reachable as `pages.logView` | `/src/renderer/scripting/api-wrapper/LogViewEditorFacade.ts` |
+| Singleton Log View lookup shared by `ui_push`, `pages.logView` and the script `ui` global | `/src/renderer/api/mcp/log-view-access.ts` |
+| `ui_push` dialog specs and validation, shared by the tool and the `pages.logView.push` path | `/src/renderer/api/mcp/ui-push-validation.ts` |
+| Folder View editor facade (current root, capped item list) | `/src/renderer/scripting/api-wrapper/FolderViewEditorFacade.ts` |
+| Git Tree editor facade (read-mostly: bounded history, refs, changes; no repository mutation) | `/src/renderer/scripting/api-wrapper/GitTreeEditorFacade.ts` |
+| Sidebar panel nodes under `page.panels` (live children; reading never provisions a panel) | `/src/renderer/scripting/ai-vision/page-panels.ts` |
 | Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
 | Monaco setup (languages, theme, keybindings, compiler and IntelliSense configuration; construction is delegated to the shared hosts) | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors; embeddable editors expose `BodyView`) | `/src/renderer/editors/base/editorRegistry.ts`    |

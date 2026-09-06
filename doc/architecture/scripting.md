@@ -479,6 +479,12 @@ an operation facade still return a `GenericEditorFacade` with their `id` and dis
 | `page.editor` | `ImageEditorFacade` | `ImageEditor` | `savePngToFile()` |
 | `page.editor` | `VideoEditorFacade` | `VideoEditor` | source/player state, live media state, playback, playlist, and visualizer actions |
 | `page.editor` | `FileDiffEditorFacade` | `FileDiffEditor` | selected revisions, staged-state and read-only projection |
+| `page.editor` | `ArchiveEditorFacade` | `ArchiveEditor` | archive entry snapshots, open entry, extract |
+| `page.editor` | `EnvVarsEditorFacade` | `EnvVarsEditor` | namespace/profile state and model-backed variable-store actions |
+| `page.editor` | `FolderViewEditorFacade` | `CategoryEditorModel` | provider/listing snapshots, category navigation, refresh |
+| `page.editor` | `GitTreeEditorFacade` | `GitTreeEditorModel` | bounded history, changes/ref snapshots, refresh, open change |
+| `page.editor` | `LogViewEditorFacade` | `LogViewEditor` | entry snapshots, non-blocking push, dialog read-back, clear |
+| `page.editor` | `RestClientEditorFacade` | `RestClientEditor` | request/response snapshots, request metadata actions, send |
 | `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade | `id`, `name` only |
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
@@ -494,6 +500,13 @@ shared projection in `/src/renderer/editors/base/editor-switch-options.ts`.
 projection identifies both pages and their file paths; `enter(pageId)` and `exit(pageId)` accept
 either side and throw diagnostics when grouping, comparability, or active compare state is missing.
 Its two page-scoped controls are implemented by `/src/renderer/scripting/ai-vision/page-compare.ts`.
+
+`pages.logView` is the page-collection node for the fixed `mcp-ui-log` Log View. Reading it
+get-or-creates and focuses that well-known page, then returns the same `LogViewEditorFacade` used
+by a `log-view` page's `page.editor`. `push(entries)` renders entries immediately and returns
+entry/dialog IDs; it does not wait for inline dialog answers. `dialogResult(id)` reports whether an
+inline dialog is unresolved or resolved, while the user answers it in the Log View page. The
+existing `ui_push` MCP tool remains available for callers that require its blocking behavior.
 
 The Mermaid, SVG, and Image editors expose `savePngToFile(filePath)` — they rasterise their
 rendered output to PNG and write it to disk. This is the same capability used by each editor's
@@ -577,6 +590,13 @@ page wrapper. Each item reports the bare registered panel id, its current label,
 editor instance `editorId`, the owning editor kind `editorKind`, and whether that rendered
 instance is expanded. Board-prefix labels are resolved from the owning board's current
 declarations (`title`, then view id, then `"View"`).
+
+The node also exposes optional live children for the addressable panel aliases `explorer`, `search`,
+`boards`, `git`, `notebookCategories`, `notebookTags`, `rest`, `archive`, and `fileHistory`.
+Children are returned only when the corresponding panel is currently contributed to that page;
+their `state`, curated `elements`, and model-backed actions are supplied by the owning panel
+model. Dynamic board-secondary panel IDs remain discoverable by their exact registered IDs. Panel
+child enumeration is side-effect free: it does not create the sidebar or an absent Explorer.
 
 `panels.expand(panelId)` accepts bare ids only. If duplicate owners contribute the same bare id,
 the first rendered owner is selected, while each item's `editorId` identifies the distinct owner;
@@ -845,7 +865,13 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `app.d.ts` | `IApp` — root application interface |
 | `page.d.ts` | `IPage`, `IPageInfo` — page/tab interface |
 | `pages.d.ts` | `IPageCollection` — pages management |
-| `page-panels.d.ts` | `IPagePanel`, `IPagePanels` — live page sidebar panel surface |
+| `page-panels.d.ts` | `IPagePanel`, `IPagePanels`, and panel child nodes — live page sidebar panel surface |
+| `archive-editor.d.ts` | `IArchiveEditor` — archive entries and extraction |
+| `env-vars-editor.d.ts` | `IEnvVarsEditor` — environment-variable state and actions |
+| `folder-view-editor.d.ts` | `IFolderViewEditor` — provider-backed folder navigation |
+| `git-tree-editor.d.ts` | `IGitTreeEditor` — Git history, refs, and changes |
+| `log-view-editor.d.ts` | `ILogViewEditor` — Log View entries and non-blocking output |
+| `rest-client-editor.d.ts` | `IRestClientEditor` — REST request/response surface |
 | `window.d.ts` | `IWindow`, `IMenuBar` — window and Menu Bar controls |
 | `common.d.ts` | `IDisposable`, `IEvent`, `Language`, `EditorView` |
 | `boards.d.ts` | `IBoards` — `app.boards` board lifecycle + published-catalog operations |

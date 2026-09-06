@@ -2,9 +2,10 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-09-06
 **Started:** 2026-09-06
+**Completed:** 2026-09-06
 **Roadmap:** [agent-transparency-roadmap.md](../agent-transparency-roadmap.md), epic 4 of 7
 
 ## Overview
@@ -270,13 +271,13 @@ branch keeps its `upcoming-v4.0.24` name; renaming it is the user's to do.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1318](../tasks/US-1318-grid-surface/README.md) | The grid surface — elements, search/sort/filter state, and the CSV and column options popups | Planned |
-| [US-1319](../tasks/US-1319-notebook-surface/README.md) | The notebook surface — cells, execution state, and the toolbar | Planned |
-| [US-1320](../tasks/US-1320-rest-client-surface/README.md) | The REST client surface — collection, request, response, variables, and send | Planned |
-| [US-1321](../tasks/US-1321-env-vars-and-archive/README.md) | Env vars and archive — two new facades, with the secret and extraction rules | Planned |
-| [US-1322](../tasks/US-1322-log-view-surface/README.md) | Log View — `pages.logView`, a `log-view` facade, non-blocking `push`, and the `ui_push` replacement path | Planned |
-| [US-1323](../tasks/US-1323-navigation-surfaces/README.md) | Folder View, Git Tree, and the Explorer/Search/Boards sidebar panels | Planned |
-| [US-1324](../tasks/US-1324-data-surface-acceptance/README.md) | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/data.md` and `qa/surfaces/panels.md`; `ui_push` marked retirable | Planned |
+| [US-1318](../tasks/US-1318-grid-surface/README.md) | The grid surface — elements, search/sort/filter state, and the CSV and column options popups | Reviewed |
+| [US-1319](../tasks/US-1319-notebook-surface/README.md) | The notebook surface — cells, execution state, and the toolbar | Reviewed |
+| [US-1320](../tasks/US-1320-rest-client-surface/README.md) | The REST client surface — collection, request, response, variables, and send | Reviewed |
+| [US-1321](../tasks/US-1321-env-vars-and-archive/README.md) | Env vars and archive — two new facades, with the secret and extraction rules | Reviewed |
+| [US-1322](../tasks/US-1322-log-view-surface/README.md) | Log View — `pages.logView`, a `log-view` facade, non-blocking `push`, and the `ui_push` replacement path | Reviewed |
+| [US-1323](../tasks/US-1323-navigation-surfaces/README.md) | Folder View, Git Tree, and the Explorer/Search/Boards sidebar panels | Reviewed |
+| [US-1324](../tasks/US-1324-data-surface-acceptance/README.md) | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/data.md` and `qa/surfaces/panels.md`; `ui_push` marked retirable | Reviewed |
 
 US-1318 through US-1323 are independent of one another and can be reordered. US-1322 is the largest
 and the only one with a design problem rather than an inventory problem; it is placed fifth so that
@@ -364,6 +365,42 @@ Stop the epic and record why, rather than pushing through, if any of these appea
    meant.
 
 ## Notes
+
+### 2026-09-06 — the epic, and what the acceptance run changed
+
+Seven tasks in one overnight run: Codex implemented from reviewed plans, `apply_patch` only, and no
+encoding damage in any of them. Each surface was checked live through `call` before its commit.
+
+**The plan reviews paid for themselves again.** Every task had at least one defect that would have
+shipped: a fabricated descriptor snippet citing a `kind` that does not exist; an absent-value rule
+keyed on row count, which would have made a legitimately empty grid answer `undefined` to every
+question; a `updateColumn` that reused a *view component's* validation path (abort criterion 1); a
+`setCsvWithColumns(true)` that would silently invert on the second call because the model exposes
+only a toggle; a required `INote.editor` over a model field that is optional; and — the largest —
+a whole redaction design for the REST client that protected nothing.
+
+**Three defects were caught only by running the thing.** They are the argument for live checks over
+green builds:
+
+- **US-1318:** UIKit views *delete* `data-name` when a later `update()` omits the `name` prop, so
+  three declared CSV controls were named on mount and stripped on the first re-render. Green build,
+  three elements that could never resolve.
+- **US-1319:** the highlight overlay rings only the *first* match unless `all: true` is passed, so
+  six controls whose purpose text promised "once per note" would have rung one arbitrary note.
+- **US-1321:** the archive click handler was *reimplemented* rather than moved, taking the directory
+  branch for every item and dropping the sidebar's selection update.
+
+**And two by the acceptance run**, neither of them descriptor work — see
+[qa/runs/2026-09-06-epic-087-data-surfaces.md](../../qa/runs/2026-09-06-epic-087-data-surfaces.md).
+`call` could not assign JSON text at all, because MCP clients parse `value` as JSON and the error
+message's advice to "stringify first" was therefore impossible to follow. And `pages.logView.push`
+silently accepted a guessed entry type, rendering a blank entry and returning an id — the agent
+reported success, the user saw nothing. Both fixed.
+
+**`ui_push` is marked retirable**, every row of its capability table exercised live rather than
+reasoned from the routing code, including `windows[1].pages.logView.push(...)` against a real second
+window. Nothing was deleted; deletion stays EPIC-090's.
+
 
 ### 2026-09-06 — epic created
 

@@ -420,9 +420,22 @@ operation facade use `GenericEditorFacade`, which exposes only identity metadata
 | `page.editor` | `ImageEditorFacade` | `ImageEditor` |
 | `page.editor` | `VideoEditorFacade` | `VideoEditor` |
 | `page.editor` | `FileDiffEditorFacade` | `FileDiffEditor` |
+| `page.editor` | `ArchiveEditorFacade` | `ArchiveEditor` |
+| `page.editor` | `EnvVarsEditorFacade` | `EnvVarsEditor` |
+| `page.editor` | `FolderViewEditorFacade` | `CategoryEditorModel` |
+| `page.editor` | `GitTreeEditorFacade` | `GitTreeEditorModel` |
+| `page.editor` | `LogViewEditorFacade` | `LogViewEditor` |
+| `page.editor` | `RestClientEditorFacade` | `RestClientEditor` |
 | `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade |
 
 Facades live in `/src/renderer/scripting/api-wrapper/`. Interfaces in `/src/renderer/api/types/*.d.ts`.
+
+The structured-data and navigation facades expose copied model snapshots and model-owned actions;
+they do not inspect mounted views or hand out live state arrays. Grid, Notebook, REST Client,
+Environment Variables, Archive, Folder View, Git Tree, and Log View also publish curated
+`elements` and `highlight(name, message?)` descriptors where the surface has addressable controls.
+The Log View facade is also available as the `pages.logView` collection node, which points at the
+fixed `mcp-ui-log` page and supports non-blocking output plus dialog read-back.
 
 `page.editor` is a read-only discriminated facade union. Use `page.editorSwitches.switchTo(id)` to
 change editors; the operation uses the same merged option projection as the toolbar and verifies

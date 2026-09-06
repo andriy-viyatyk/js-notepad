@@ -32,7 +32,7 @@ export interface AiRootOptions {
 export const RESERVED_ROOT_NAMES: readonly string[] = ["windows", "main", "guides", "tools", "script", "pipe"];
 
 const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
-    { name: "pages", kind: "property", summary: "All open pages (tabs) in this window; index by position or page id." },
+    { name: "pages", kind: "property", summary: "All open pages (tabs) in this window; index by position or page id. Also holds pages.logView — the channel for showing the user output or asking them a question." },
     { name: "page", kind: "property", summary: "The active page (same as the `page` global in scripts)." },
     { name: "helpSearch", kind: "method", signature: "helpSearch(query: string, limit = 20)", summary: "Search every hint/help text in the tree; returns paths with the matching line. Use when you know what you want but not where it lives." },
     { name: "version", kind: "property", summary: "Persephone version string." },
@@ -62,6 +62,8 @@ This is Persephone's live object model. Every path here has the same name in scr
 
 Common paths:
   pages                       list open pages
+  pages.logView.push([...])   SHOW the user output (markdown, a grid, mermaid, code, progress) or
+                              ASK them a question — the agent's output channel; see its $help
   page.content                text of the active page (assign with "value")
   pages["<id>"].content       text of a specific page
   pages[0].editorSwitches.switchTo("grid-json")  switch the page, then use pages[0].editor.addRows(5)

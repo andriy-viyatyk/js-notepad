@@ -59,6 +59,40 @@ function panelLabel(model: EditorModel, panelId: string): string {
     return secondaryViewRegistry.get(panelId)?.label ?? panelId;
 }
 
+/**
+ * How many refs of each kind `summarize()` shows before falling back to a count.
+ *
+ * `summarize()` is what an agent receives merely for navigating to the git panel, and a real
+ * repository has hundreds of branches and tags — this repo answered with about 170 of them before
+ * the cap, on every read. The full lists stay on the node's `refs` member for a caller that wants
+ * them; this is the at-a-glance view.
+ */
+const REF_SAMPLE_LIMIT = 15;
+
+function sampleRefs(values: readonly string[]): Record<string, unknown> {
+    return values.length > REF_SAMPLE_LIMIT
+        ? { count: values.length, sample: values.slice(0, REF_SAMPLE_LIMIT), truncated: true }
+        : { count: values.length, sample: [...values], truncated: false };
+}
+
+function summarizeRefs(refs: {
+    /** Optional in `GitRefs` — a detached or freshly initialised repo may have no current ref. */
+    current?: string;
+    localBranches: readonly string[];
+    remotes: readonly string[];
+    remoteBranches: readonly string[];
+    tags: readonly string[];
+}): Record<string, unknown> {
+    return {
+        current: refs.current,
+        remotes: [...refs.remotes],
+        localBranches: sampleRefs(refs.localBranches),
+        remoteBranches: sampleRefs(refs.remoteBranches),
+        tags: sampleRefs(refs.tags),
+        note: "Counts with a capped sample; read the panel's refs member for the full lists.",
+    };
+}
+
 function panelState(record: RenderedPanel): Record<string, unknown> {
     if (record.model instanceof ExplorerEditor) {
         if (record.panelId === "search") {
@@ -90,7 +124,11 @@ function panelState(record: RenderedPanel): Record<string, unknown> {
         return {
             kind: "git", activeTab: state.gitPanelTab ?? "changes", branch: changes.branch,
             staged: changes.staged.map(change => ({ ...change })), unstaged: changes.unstaged.map(change => ({ ...change })),
-            refs: { current: refs.current, localBranches: [...refs.localBranches], remotes: [...refs.remotes], remoteBranches: [...refs.remoteBranches], tags: [...refs.tags] },
+            // Counts plus a capped sample, not the whole ref database. summarize() is what an agent
+            // gets merely for *navigating* to this node, and a real repository has hundreds of
+            // branches and tags — this one answered with ~170 before the cap. The full lists stay
+            // available on the `refs` member for a caller that actually wants them.
+            refs: summarizeRefs(refs),
             aheadBehind: { ...record.model.branches.state.get().aheadBehind },
         };
     }
@@ -129,12 +167,12 @@ function panelElements(kind: ReturnType<typeof panelKind>): readonly IAiElementD
         ["git-branches-sort-alpha", "Switch Git ref ordering."], ["git-panel-header-actions", "The Git panel header action host."], ["git-panel-refresh", "Refresh Git model projections."],
         ["git-panel-close", "Close the Git panel/editor through its model lifecycle."], ["git-panel-repo-name", "The Git repository label."], ["git-changes", "The Changes view root."],
         ["git-changes-unstaged", "The unstaged changes list."], ["git-changes-staged", "The staged changes list."], ["git-changes-toolbar", "The Changes toolbar."],
-        ["git-changes-${label.toLowerCase()}", "A repeated changed-file control; it does not identify a path or row."], ["git-commit", "Locate Commit; no facade commit action is attached."],
+        ["git-changes-file", "A repeated changed-file control; it does not identify a path or row.", '[data-name="git-changes-unstaged"], [data-name="git-changes-staged"]'], ["git-commit", "Locate Commit; no facade commit action is attached."],
         ["git-stage", "Locate Stage; no facade stage action is attached."], ["git-unstage", "Locate Unstage; no facade unstage action is attached."], ["git-changes-splitter", "The Changes panel splitter."],
         ["git-branches-tree", "The data-driven branch tree."], ["git-tags-tree", "The data-driven tag tree."],
     ] as const;
-    const source: readonly (readonly [string, string])[] = kind === "explorer" ? explorer : kind === "search" ? search : kind === "boards" ? boards : kind === "git" ? git : [];
-    return source.map(([name, purpose]) => ({ name, purpose }));
+    const source: readonly (readonly [string, string, string?])[] = kind === "explorer" ? explorer : kind === "search" ? search : kind === "boards" ? boards : kind === "git" ? git : [];
+    return source.map(([name, purpose, selector]) => ({ name, purpose, ...(selector ? { selector } : {}) }));
 }
 
 function panelSpecificMembers(kind: ReturnType<typeof panelKind>): readonly IAiMember[] {

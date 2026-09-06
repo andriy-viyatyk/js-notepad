@@ -28,7 +28,7 @@ const PAGES_MEMBERS: readonly IAiMember[] = [
     { name: "openLinks", kind: "method", signature: "openLinks(links: (string | ILink)[], title?)", summary: "New links page listing the given URLs/paths." },
     { name: "openDiff", kind: "method", signature: "openDiff({ firstPath, secondPath })", summary: "Open a file compare page." },
     { name: "compare", kind: "property", node: true, summary: "Inspect active compare pairs and enter or exit compare mode for a grouped pair." },
-    { name: "logView", kind: "property", node: true, summary: "The get-or-created MCP Log View writer and dialog read-back surface." },
+    { name: "logView", kind: "property", node: true, summary: "SHOW THE USER SOMETHING, or ASK THEM A QUESTION: the agent's output channel. push() renders log lines, markdown, mermaid diagrams, grids, code and progress bars into a Log View page, and raises the six interactive dialog types. Use it instead of building a page by hand." },
     { name: "showAboutPage", kind: "method", signature: "showAboutPage()", summary: "Show the About page." },
     { name: "showSettingsPage", kind: "method", signature: "showSettingsPage()", summary: "Show Settings." },
     { name: "showMcpInspectorPage", kind: "method", signature: "showMcpInspectorPage(options?: { url? })", summary: "Show the MCP inspector page." },
@@ -54,8 +54,13 @@ or openFile(path). openDiff({ firstPath, secondPath }) remains the path-based en
 opens/groups pages and enters compare mode. Inspect pages.compare.pairs for explicit left/right
 page identity, use pages.compare.enter(pageId) or exit(pageId) for compare mode, and highlight
 compare-root or compare-exit through pages.compare.elements. Compare elements live in the active
-pair's left page slot. Read pages.logView for the fixed MCP Log View writer and dialog read-back;
-scripts also have the global ui facade. Reading pages.logView creates and focuses that page.
+pair's left page slot.
+To SHOW the user something or ASK them a question, use pages.logView — not a hand-built page. One
+pages.logView.push([...]) call renders log lines, markdown, mermaid diagrams, grids (JSON or CSV),
+code blocks and progress bars, and raises the six input.* dialog types. push() returns immediately
+with the ids of any dialogs it created; the user answers them in the page and you read the answer
+with pages.logView.dialogResult(id). Reading pages.logView creates and focuses that page; scripts
+also have the global ui facade for the same channel.
 `;
 
 /**
@@ -88,7 +93,7 @@ export class PageCollectionWrapper implements IAiVisible {
         const activeId = this.pages.activePage?.id;
         const children: IAiChild[] = [
             { segment: ".compare", kind: this.compare.aiVision.kind, summary: "active compare pairs and compare-mode controls" },
-            { segment: ".logView", kind: "LogViewEditor", summary: "fixed MCP Log View writer and dialog read-back surface" },
+            { segment: ".logView", kind: "LogViewEditor", summary: "show the user output or ask them a question — the agent's output channel" },
         ];
         children.push(...this.all.map((page, i) => {
             const restricted = page.aiVision.restricted?.();

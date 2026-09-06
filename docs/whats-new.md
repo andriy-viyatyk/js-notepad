@@ -30,6 +30,21 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Data and navigation surfaces are now available through `call`** — Grid, Notebook, REST,
+  environment-variable, Archive, Log View, Folder View, and Git Tree pages expose their useful
+  state and actions through `page.editor`. Their curated on-screen controls can be discovered with
+  `elements` and pointed out with `highlight(...)`; page sidebar panels are also addressable through
+  `page.panels`.
+
+- **Scripts and agents share one MCP Log page** — A script's `ui.log(...)` output and an agent's
+  log output now appear together in the same **MCP Log** page. Agents can use the non-blocking
+  `pages.logView.push(...)` path and poll `dialogResult(...)` for inline answers; the existing
+  `ui_push` tool remains available.
+
+- **REST and environment-variable surfaces reflect the page text** — Their agent-facing views
+  expose values already present in the page content; they do not claim an additional redaction
+  boundary. Treat credentials and environment-variable values in those pages as sensitive.
+
 - **AI agents and scripts can navigate Persephone's live object model** — The MCP `call` tool and
   scripting API `app.call()` can discover pages, editor facades, and application services by path,
   invoke methods, and update writable properties. MCP callers can also target a specific window;

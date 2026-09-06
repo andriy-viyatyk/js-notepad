@@ -232,6 +232,12 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── html-editor.d.ts    # IHtmlEditor
 │       ├── mermaid-editor.d.ts # IMermaidEditor
 │       ├── graph-editor.d.ts  # IGraphEditor, IGraphNode, IGraphComponent, IGraphSearchResult
+│       ├── rest-client-editor.d.ts # IRestClientEditor — REST request/response surface
+│       ├── env-vars-editor.d.ts # IEnvVarsEditor — environment-variable state and actions
+│       ├── archive-editor.d.ts # IArchiveEditor — archive entries and extraction
+│       ├── folder-view-editor.d.ts # IFolderViewEditor — provider-backed folder navigation
+│       ├── git-tree-editor.d.ts # IGitTreeEditor — Git history, refs, and changes
+│       ├── log-view-editor.d.ts # ILogViewEditor — Log View entries and non-blocking output
 │       ├── events.d.ts       # IEventChannel, IBaseEvent, IContextMenuEvent, MenuItem, IFileTarget
 │       ├── io.d.ts            # IIoNamespace — script `io` global (providers, transformers, tree providers, createPipe)
 │       ├── io.provider.d.ts  # IProvider, IProviderStat, IProviderDescriptor
