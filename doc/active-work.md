@@ -8,7 +8,14 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-*(no active epic)*
+- **EPIC-090** — [Consolidation: the call-only flag, the two-model gate, and the deletion of thirty-two tools](epics/EPIC-090.md)
+  - [ ] [US-1343: The `call("")` overview — optional `path` and a high-level area map](tasks/US-1343-call-overview/README.md)
+  - [ ] [US-1344: `script.execute(code)` — the renderer half of gated scripting, replacing `execute_script`](tasks/US-1344-script-execute/README.md)
+  - [ ] [US-1345: Retire the `read_guide` tool: resources stay, operational prose moves into `$help`](tasks/US-1345-guide-prose-to-help/README.md)
+  - [ ] [US-1346: The `PERSEPHONE_MCP_CALL_ONLY` flag, and the `waitForNavigation` documentation duty](tasks/US-1346-call-only-flag/README.md)
+  - [ ] [US-1347: Rewrite the QA suite for `call`: every scenario starts from a bare call](tasks/US-1347-qa-suite-for-call/README.md)
+  - [ ] [US-1348: The gate — the Haiku pass and the Codex pass, logged in `qa/runs/`](tasks/US-1348-two-model-gate/README.md)
+  - [ ] [US-1349: Delete the thirty-two tools, the highlight recipe, the per-tool QA files; rewrite the manifest instructions](tasks/US-1349-deletion/README.md)
 
 ## Planned
 
