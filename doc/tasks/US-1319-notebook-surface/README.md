@@ -9,6 +9,14 @@ Give the `notebook-view` editor facade a page-scoped, curated `elements` list wi
 to the user. Preserve the existing facade identity metadata and dashboard/epic links; this document
 is a plan only and does not implement the facade, UI changes, typings, or generated assets.
 
+**Status: Implemented 2026-09-06** (review deferred to epic close, per the epic model).
+
+Live verification found one defect, fixed by hand: the highlight overlay rings only the *first*
+match unless `all: true` is passed (`assets/agent/ui-highlight.js:281`), so the six repeated note
+controls would have rung one arbitrary note while their purpose text promised every note. The
+facade now passes `highlightOptions: { all: true }`; `highlight("note-delete")` on a two-note
+notebook returns `count: 2, highlighted: 2`.
+
 ## Background
 
 `src/renderer/scripting/api-wrapper/NotebookEditorFacade.ts:5-19` currently declares the notebook
@@ -96,13 +104,13 @@ existing spelling and existing `data-type` behavior. Structural names remain omi
 | `notebook-expanded-content` | Omit | Structural expanded-note content host; `ExpandedNoteView.ts:145-148` contains the active nested editor. |
 | `notebook-expanded-toolbar` | Omit | Structural expanded-note metadata toolbar; `ExpandedNoteView.ts:115-118` lays out category, tags, date, title, and collapse controls. |
 | `notebook-expanded-editor-toolbar` | Omit | Structural host for the nested note-editor toolbar; `ExpandedNoteView.ts:140-144` only contains `NoteItemToolbarView`. |
-| `note-delete` | Curate as repeated | Delete the note row that owns this button. `NoteItemView.ts:87-93` creates it once per `NoteItemView`; it is not a singleton. `visible: true` means at least one mounted note row exposes it; targeted deletion uses `deleteNote(id)`. |
-| `note-expand` | Curate as repeated | Expand the note row that owns this button. `NoteItemView.ts:80-86` binds the note ID in each row; `visible` means at least one mounted row exposes it, never that a selector identifies a particular note. Use `expandNote(id)` for targeting. |
-| `note-language` | Curate as repeated | Open the language chooser for the owning note; `NoteItemToolbarView.ts:179-189` creates one language button per note editor toolbar. `visible` means at least one mounted note toolbar has it. Targeted changes use `updateNoteLanguage(id, language)`. |
+| `note-delete` | Curate as repeated | Delete the note row that owns this button. `NoteItemView.ts:87-93` creates it once per `NoteItemView`; it is not a singleton. Highlighting rings all mounted instances, and the highlight result's `count` reports how many; `visible` means at least one mounted note row exposes it. Targeted deletion uses `deleteNote(id)`. |
+| `note-expand` | Curate as repeated | Expand the note row that owns this button. `NoteItemView.ts:80-86` binds the note ID in each row; highlighting rings all mounted instances, and the result's `count` reports how many. `visible` means at least one mounted row exposes it, never that a selector identifies a particular note. Use `expandNote(id)` for targeting. |
+| `note-language` | Curate as repeated | Open the language chooser for the owning note; `NoteItemToolbarView.ts:179-189` creates one language button per note editor toolbar. Highlighting rings all mounted instances, and the result's `count` reports how many; `visible` means at least one mounted note toolbar has it. Targeted changes use `updateNoteLanguage(id, language)`. |
 | `note-language-menu` | Omit | A transient menu root is named in `NoteItemToolbarView.ts:192-216`, but it is portaled to `document.body` by `openMenu()` and has no page identity. Declaring it with the required page-scoped selector would be false for notebook pages. Language changes remain available through the model-backed action. |
-| `note-editor-switch` | Curate as repeated/conditional | Select the embedded editor for the owning note; `NoteItemToolbarView.ts:150-177` creates it only when switch options exist. It can occur once per note, so `visible` means at least one matching toolbar has options. Targeted changes use `updateNoteEditor(id, editor)`. |
-| `note-run-script` | Curate as repeated/conditional | Run the owning script note or its selection; `NoteItemToolbarView.ts:101-132` creates it only for script languages and once per eligible note toolbar. `visible` means at least one eligible toolbar is mounted. No facade action is added for it; see the execution decision below. |
-| `note-run-all-script` | Curate as repeated/conditional | Run all content for the owning script note when that note has a selection; `NoteItemToolbarView.ts:134-147` creates it per eligible selected note. `visible` means at least one such toolbar is mounted. No facade action is added for it; see the execution decision below. |
+| `note-editor-switch` | Curate as repeated/conditional | Select the embedded editor for the owning note; `NoteItemToolbarView.ts:150-177` creates it only when switch options exist. It can occur once per note, so highlighting rings all mounted instances and the result's `count` reports how many; `visible` means at least one matching toolbar has options. Targeted changes use `updateNoteEditor(id, editor)`. |
+| `note-run-script` | Curate as repeated/conditional | Run the owning script note or its selection; `NoteItemToolbarView.ts:101-132` creates it only for script languages and once per eligible note toolbar. Highlighting rings all mounted instances, and the result's `count` reports how many; `visible` means at least one eligible toolbar is mounted. No facade action is added for it; see the execution decision below. |
+| `note-run-all-script` | Curate as repeated/conditional | Run all content for the owning script note when that note has a selection; `NoteItemToolbarView.ts:134-147` creates it per eligible selected note. Highlighting rings all mounted instances, and the result's `count` reports how many; `visible` means at least one such toolbar is mounted. No facade action is added for it; see the execution decision below. |
 
 The final list therefore has 11 entries: five singleton/conditional page-surface controls
 (`notebook-breadcrumb`, `notebook-search`, `notebook-search-clear`, `notebook-add-note`, and
@@ -114,9 +122,10 @@ per-note controls deliberately omitted from this selector contract. No existing 
 
 The repeated-note warning is part of `NOTEBOOK_ELEMENTS` purpose text and `$help`, not an
 implementation detail. A single `[data-name="note-delete"]` selector matches every matching note
-row, so it must never be described as a way to identify or activate one note. `highlight` is a
-visual inventory operation and may highlight all matching repeated controls; all targeted mutations
-continue to take an explicit note ID through the facade.
+row. The highlight implementation queries all matches and rings every match, returning the number
+of rings as `count` (`assets/agent/ui-highlight.js:261-314`), so highlighting a repeated control is
+an honest inventory operation rather than a silent choice of one note. It cannot single out one
+note; all targeted mutations therefore continue to take an explicit note ID through the facade.
 
 The two sidebar roots and their child list/tree names are intentionally cross-referenced to
 `page.panels`. `NotebookEditor.adoptHost()` registers `notebook-categories` and `notebook-tags`
@@ -187,12 +196,15 @@ the established unscoped fallback used by `TextEditorFacade`; the facade's data 
 actions still follow the detached-host contract below.
 
 Update `NOTEBOOK_EDITOR_HELP` to name the 11 controls, explain that repeated note controls report
-whether at least one note instance is mounted, identify `notebook-search-clear` and
+whether at least one note instance is mounted, that `highlight` rings all mounted matches and its
+result `count` reports the number, and identify `notebook-search-clear` and
 `notebook-expanded-collapse` as conditional, and state that `note-editor-switch`,
 `note-run-script`, and `note-run-all-script` are per-note conditional controls. The help must point
 to `page.panels` for the Categories and Tags secondary views, say that no execution-status property
 exists, document that note actions require an explicit ID, and describe detached/empty value
-semantics and copied arrays.
+semantics and copied arrays. It must also say that opening `note-language` raises the application
+popup menu exposed as `menus[0]`; inspect and action that menu through the root `menus` node, or use
+the model-backed `updateNoteLanguage(id, language)` action for a targeted change.
 
 ### 3. Expose complete, copied notebook state
 
@@ -217,7 +229,9 @@ projection below. `filteredNotes` is derived by iterating `state.filteredCount` 
 | `error: string \| undefined` | Read `state.error` (`NotebookEditor.ts:38-39,303-338`). A successfully attached notebook returns `undefined`; a parse failure returns the actual message; detached returns `undefined`. |
 
 Extend `INote` so the snapshot reports what the note rows and embedded toolbar display, while keeping
-the existing flattened `content` string:
+the existing flattened `content` string. `language` is required because `NoteContent.language` is
+required at `src/renderer/editors/notebook/notebookTypes.ts:12-16`; `editor` is intentionally
+optional because `NoteContent.editor` is optional there:
 
 The current public note shape is:
 
@@ -239,7 +253,7 @@ export interface INote {
     readonly title: string;
     readonly content: string;
     readonly language: string;
-    readonly editor: string;
+    readonly editor?: string;
     readonly category: string;
     readonly tags: readonly string[];
     readonly comment?: string;
@@ -248,12 +262,20 @@ export interface INote {
 }
 ```
 
-`mapNote()` in `NotebookEditorFacade.ts:88-97` must copy `tags` and return a new object with these
-fields from `NoteItem` (`notebookTypes.ts:22-33`). `notes` and `filteredNotes` must each create fresh
-arrays. `categories` and `tags` must use spread copies. Do not expose `NotebookEditor.notes`,
+`mapNote()` in `NotebookEditorFacade.ts:88-97` must read `language` from `note.content.language`
+and optional `editor` from `note.content.editor`, while it already flattens
+`note.content.content` into the public `content` field. It must copy `tags` and return a new object
+with these fields from `NoteItem` (`notebookTypes.ts:22-33`). An implementation that reads
+`note.language` or `note.editor` would return `undefined` for the nested values despite passing
+typecheck. `notes` and `filteredNotes` must each create fresh arrays. `categories` and `tags` must
+use spread copies. Do not expose `NotebookEditor.notes`,
 `filteredNotes`, `state.categories`, `state.tags`, or `data.state` directly, and do not return a
 live `NoteItem` or its nested tags array. The public values are snapshots, matching the copy
 contract already used by `GridEditorFacade.rows`.
+
+The empty `expandedNoteId` conversion is deliberate normalization of the model's sentinel into a
+genuine absence; it is not substituting `""` for an absent value. The attached empty-notebook state
+continues to report real empty strings for search and selection fields.
 
 Do not add `running`, `executionResult`, `selectedText`, `hasSelection`, or `contentHeight` to the
 notebook facade. No such notebook-level execution state exists; nested selection is only maintained
@@ -289,6 +311,12 @@ new actions directly to methods that the existing UI calls; no action may query 
 | `setSelectedTag(tag): void` | Add direct forwarding to `NotebookEditor.setSelectedTag()` (`NotebookEditor.ts:486-491`), used by the breadcrumb and tags panel. | None; changes the visible filter only. |
 | `expandNote(id): void` | Add direct forwarding to `NotebookEditor.expandNote()` (`NotebookEditor.ts:664-668`), the row button's callback. | None; changes the visible UI only. |
 | `collapseNote(): void` | Add direct forwarding to `NotebookEditor.collapseNote()` (`NotebookEditor.ts:670-674`), the expanded overlay button's callback. | None; changes the visible UI only. |
+
+Although `NotebookEditor.deleteNote()` is declared `async`, the facade keeps its existing `void`
+signature because the `skipConfirm = true` path has no `await`: after the guard it deletes and
+publishes synchronously through `NotebookEditor.ts:648-662`. Therefore an immediate read of
+`notesCount` after `deleteNote(id)` observes the completed deletion. If that path gains an await,
+the facade must return the promise instead of retaining `void`.
 
 Do not expose `setExpandedPanel()` from the notebook facade. `NotebookBodyView.ts:202-209` receives
 the sidebar's `panelExpanded` event and then calls that method; the user-facing panel switch is
@@ -342,7 +370,9 @@ page-scoped `provide`/`highlight` members. `PageWrapper.ts:52-70` remains unchan
 - **Repeated per-note selectors:** `[data-name="note-delete"]`, `[data-name="note-expand"]`,
   `[data-name="note-language"]`, `[data-name="note-editor-switch"]`, and the two run selectors
   match multiple note instances. Their purpose text must say “once per note”/“at least one”; no
-  targeted facade action may infer a note ID from such a selector.
+  targeted facade action may infer a note ID from such a selector. The highlight overlay rings all
+  matches and returns their number as `count` (`assets/agent/ui-highlight.js:261-314`), so this is
+  safe for inventory/highlight but not for identifying one note.
 - **Transient language menu:** `note-language-menu` is mounted in the body portal and lacks a page
   identity. It is omitted rather than advertising a selector that page scoping cannot resolve.
 - **Sidebar ownership:** `notebook-categories-secondary-view`, `notebook-tags-secondary-view`,
@@ -360,6 +390,9 @@ page-scoped `provide`/`highlight` members. `PageWrapper.ts:52-70` remains unchan
   `null`, or `undefined` as a stand-in for absence.
 - **Mutable snapshots:** Every array and note object is recreated per getter call. Tags are copied
   at the nested level; no model collection or `NoteItem` is handed to a script.
+- **Additive note shape:** The five added `INote` fields are additive to the existing script-facing
+  snapshot shape, not a breaking removal or rename. The user-facing release note belongs in
+  `docs/whats-new.md` under `Version 5.0.0 (Upcoming)` when EPIC-087 closes, not in US-1319.
 - **Execution state and actions:** The only nested selection state is in a live
   `NoteEditorModel`; notebook state has no running/result field. Script-note run actions are
   omitted because they would require view-owned selection or an unmounted nested model. If a
