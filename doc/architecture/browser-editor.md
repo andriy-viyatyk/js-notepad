@@ -291,7 +291,7 @@ the host's `state.version`. It is mounted in both `BlankPageLinksView` and `Book
 | `src/renderer/editors/browser/BrowserTorModel.ts` | Renderer | Per-page Tor partition IDs, proxy arming, daemon listeners/reconnect, and cleanup |
 | `src/renderer/editors/browser/BrowserWebviewModel.ts` | Renderer | Webview refs, `browser:event` IPC handling, navigation updates, find-in-page, keyboard shortcuts |
 | `src/renderer/editors/browser/webview-context-menu.ts` | Renderer | Browser webview context-menu construction and bounded DOM/SVG/resource probes |
-| `src/renderer/editors/browser/BrowserTargetModel.ts` | Renderer | Automation adapter sub-model — implements `IBrowserTarget` for MCP tools |
+| `src/renderer/editors/browser/BrowserTargetModel.ts` | Renderer | Automation adapter sub-model — implements `IBrowserTarget` for Object Model call paths |
 | `src/renderer/editors/browser/BrowserTabsPanel.ts` | Renderer | Native left-side internal tabs panel with compact floating preview and drag-to-reorder |
 | `src/renderer/editors/browser/BrowserBookmarks.ts` | Renderer | Wraps TextFileModel + LinkEditor for bookmark file I/O |
 | `src/renderer/editors/browser/BookmarksDrawer.ts` | Renderer | Native sliding overlay drawer rendering the Link Editor for bookmarks |
@@ -301,7 +301,7 @@ the host's `state.version`. It is mounted in both `BlankPageLinksView` and `Book
 | `src/renderer/editors/browser/browser-search-history.ts` | Renderer | Per-profile persistent search history storage (file-based) |
 | `src/renderer/editors/browser/TorStatusOverlay.ts` | Renderer | Native Tor connection overlay with spinner, log, reconnect button |
 | `src/renderer/editors/browser/network-log-links.ts` | Renderer | Network log → ILink[] conversion for Show Resources |
-| `src/renderer/automation/commands.ts` | Renderer | Playwright-compatible browser_* MCP command handlers |
+| `src/renderer/automation/commands.ts` | Renderer | Legacy parameter/target adapter beside the shared call-path operations |
 | `src/renderer/automation/operations.ts` | Renderer | Shared target-neutral snapshot, navigation, locator/input, waiting, screenshot, network, and inner-tab operations |
 | `src/renderer/automation/ref.ts` | Renderer | Host-scoped accessibility refs and iframe CDP-session maps |
 | `src/renderer/automation/snapshot.ts` | Renderer | Accessibility tree → YAML formatter for automation snapshots |
@@ -985,4 +985,3 @@ Additionally, `LinkViewModel.onGetLinkMenuItems` is an optional callback that al
 10. **DRM / Widevine CDM.** The app uses [Castlabs Electron (ECS)](https://github.com/castlabs/electron-releases) — a fork with Widevine DRM support. At startup, `components.whenReady()` in `main-setup.ts` ensures the CDM is downloaded. Production builds require VMP signing via Castlabs EVS (`scripts/vmp-sign.mjs`). Without VMP signing, DRM works on test pages but not on Netflix/Disney+.
 
 11. **MCP navigation must use a two-phase wait.** After calling `target.navigate()` / `target.back()`, the native view starts the webview navigation asynchronously. A single `readyState === 'complete'` check will see the *old* page still loaded and return immediately. Always use Phase 1 (wait for URL change or `readyState` non-complete) followed by Phase 2 (wait for `readyState === 'complete'`). See the "Navigation Race Condition" note in the Browser Automation section above.
-

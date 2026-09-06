@@ -10,13 +10,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Breaking Changes
 
-- **The 32 retired MCP tools were removed:** `execute_script`, `list_pages`, `get_active_page`,
+- **The MCP manifest is now two tools, down from 34:** `call` and `execute_tool` are the only
+  default tools. The 32 retired tools were removed: `execute_script`, `list_pages`, `get_active_page`,
   `get_app_info`, `get_page_content`, `set_page_content`, `open_url`, `create_page`, `ui_push`,
   `list_windows`, `open_window`, `create_board`, `open_board`, `board_refresh`, all 14
   `browser_*` tools, and `read_guide`, plus `search_tools`, `refresh_toolset`, and
-  `create_toolset`. The `call` tool replaces these capabilities through live object-model paths.
-  `execute_tool` remains available in the default manifest, and all guide resources remain
-  available through their `persephone://guides/*` URIs.
+  `create_toolset`. The deleted app-control capabilities are now reachable through `call` paths;
+  start with `call` and no path for an overview of every area. All twelve focused guide resources
+  and `persephone://guides/full` remain available by URI.
 - **The old `as*()` editor methods are removed** from the scripting API and the MCP `call` tree. A
   page has exactly one editor at a time, so the editor's operations now live directly on
   `page.editor` — narrow on `page.editor.id` before calling `page.editor.addRows(5)`. Check which
@@ -25,9 +26,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
   through `page.editorSwitches.switchTo("grid-json")`, which also lists the editors compatible with
   the page (`page.editorSwitches.options`) — the same list the toolbar's switch widget shows.
 - **The "Enable browser interaction" setting is gone.** Browser automation is always available to
-  a connected agent now, and the fifteen browser tools no longer need to be switched on. The
+  a connected agent now, and the fourteen browser tools no longer need to be switched on. The
   setting never protected as much as its wording suggested: it gated only the `browser_*` tools, not
-  the `call` or `execute_script` paths, so an agent could already drive the browser with it turned
+  the `call` or `script.execute` paths, so an agent could already drive the browser with it turned
   off. What actually protects your private browsing is unchanged — **your own incognito and Tor
   pages remain unreadable to an agent**, and only a private page the agent opened itself is
   available to it. A leftover `mcp.browser-tools.enabled` line in your settings file is harmless and
@@ -70,6 +71,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **Activating a page by id reports a bad id instead of doing nothing** — a script or agent that
   passed a stale or mistyped page id used to get silence and the previous page, and could go on to
   act on the wrong page. It now says which page ids are open.
+
+- **Searching with `call` no longer opens the MCP Log page** — Looking up a path with
+  `helpSearch(...)` now remains read-only. The MCP Log page is created only when an agent writes
+  output through `pages.logView.push(...)`.
 
 - **Link Editor highlights follow auto-advanced tracks again** — When a media player advances to the next link automatically, the selected item in the Collections and Tags panels now follows the new track and remains highlighted.
 
@@ -116,8 +121,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Scripts and agents share one MCP Log page** — A script's `ui.log(...)` output and an agent's
   log output now appear together in the same **MCP Log** page. Agents can use the non-blocking
-  `pages.logView.push(...)` path and poll `dialogResult(...)` for inline answers; the existing
-  `ui_push` tool remains available.
+  `pages.logView.push(...)` path and poll `dialogResult(...)` for inline answers; the retired
+  `ui_push` tool is no longer available.
 
 - **REST and environment-variable surfaces reflect the page text** — Their agent-facing views
   expose values already present in the page content; they do not claim an additional redaction

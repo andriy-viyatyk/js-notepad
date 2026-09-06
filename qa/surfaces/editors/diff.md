@@ -16,7 +16,7 @@ pickers have initialized.
 **Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
 **Verify:** `id` is `file-diff`; `from` and `to` identify the actual revisions shown by the diff;
-and `readOnly` agrees with whether `to.kind` is `unstaged`. No `execute_script` is needed.
+and `readOnly` agrees with whether `to.kind` is `unstaged`. No scripting is needed.
 
 ## Test D.2 — file-diff controls and panel cross-reference
 
@@ -52,7 +52,7 @@ either member; failed `enter()` calls throw diagnostics that distinguish missing
 comparability and name the resolved page ids; failed `exit()` calls throw a diagnostic for the
 missing/inactive pair; the compare elements become visible only while the pair is in compare mode;
 and leaving compare removes the compare surface. The inspection answers which pages are compared
-without `execute_script`.
+without scripting.
 
 ## Test D.4 — compare highlight scope from the right page
 

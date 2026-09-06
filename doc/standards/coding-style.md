@@ -290,7 +290,7 @@ The agent highlight overlay carries its own literal colors and is exempt from th
 reasons, both intrinsic rather than incidental:
 
 - It is a **standalone injectable asset**, not part of the renderer bundle. The same file is
-  pasted into `browser_evaluate` to run inside board frames and browser pages, where no Persephone
+  passed to the target's `evaluate(...)` call path to run inside board frames and browser pages, where no Persephone
   module graph exists — it cannot import `theme/color` in the contexts it must work in.
 - Its accent look is a **fixed identity, not a theme surface**. A callout styled to match the
   surrounding theme is indistinguishable from Persephone's own UI, and the user must be able to

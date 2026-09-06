@@ -2,7 +2,7 @@
 
 The surface an agent hits when the app stops and asks the user something. Before EPIC-084 this was
 the app's worst blind spot: a `call` that opened a dialog simply stalled, and recovery needed
-`browser_snapshot` + `browser_click` on `pageId: "app"`.
+an app-window snapshot and click (the `browser_*` tools of the time; `window.screen.*` now).
 
 What to watch across all of these: **does the agent recover without ever asking to see a
 screenshot?** The attention block is supposed to tell it what is open and which path answers it.
@@ -91,7 +91,7 @@ three, and `cancel()` dismissed it.
 
 ## Test D.5: Native OS dialog is reported, never driven
 **Preparation:** Needs a human. Open a native file dialog and leave it up — e.g. via
-`execute_script` with `void app.fs.showOpenDialog({ title: "test" })` (do not await it)
+`script.execute("void app.fs.showOpenDialog({ title: 'test' })")` (do not await it)
 **Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
 
 **Request:** "What version is this, and is anything blocking the app?"

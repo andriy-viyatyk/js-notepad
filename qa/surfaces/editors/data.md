@@ -142,7 +142,7 @@ navigates the page to that entry's content — the same result as clicking the e
 because both go through one model path. Confirm `extractTo` carries a caution naming the disk
 write, and that no member takes a password.
 
-## Test D.9: Log View — the `ui_push` replacement, without dialogs
+## Test D.9: Log View — the replacement for the retired `ui_push` tool, without dialogs
 
 **Preparation:** None; `pages.logView` creates its page.
 
@@ -183,15 +183,15 @@ truthy.
 
 **Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
 
-**Call:** `pages.logView.push([{ type: "input.select", title: "x", bogusProp: 1 }])`. Then call the
-`ui_push` tool with a plain string.
+**Call:** `pages.logView.push([{ type: "input.select", title: "x", bogusProp: 1 }])`. Then push a
+plain string through the same path.
 
 **Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 
-**Verify:** The malformed dialog is rejected before any entry is created, with the same worked
-usage string the `ui_push` tool has always returned — the validation table is shared, not
-duplicated. `ui_push` still works and writes to the same Log View page, because this epic added a
-replacement path and removed nothing. Confirm a script's `ui.info(...)` also lands on that page:
+**Verify:** The malformed dialog is rejected before any entry is created, with the worked usage
+string the validation table produces — that table is shared, not duplicated. (The `ui_push` tool it
+was shared with was deleted in EPIC-090; the path and its validation are what remain.) Confirm a
+script's `ui.info(...)` also lands on that page:
 before EPIC-087 a script and an agent could write to two different Log Views.
 
 ## Test D.12: Log View in a second window

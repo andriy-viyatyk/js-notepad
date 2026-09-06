@@ -13,7 +13,7 @@ correctly refuses a disabled item rather than reporting success.
 Test agent: `mcp-test-agent-call` (Haiku, `call` only).
 
 Opening a popup for a test needs a real right-click. From the runner side, dispatch one with
-`execute_script`:
+`script.execute`:
 
 ```javascript
 const el = document.querySelector('[data-name="page-tab"][data-active]');
@@ -47,7 +47,7 @@ offered
 
 **Expected:** `menus[0].click("Copy File Path")`
 **Verify:** the clipboard actually holds the path — the callback must really run, not just the
-menu close. Check with `execute_script`: `require("electron").clipboard.readText()`. And
+menu close. Check with `script.execute('require("electron").clipboard.readText()')`. And
 `menus` must have no children afterwards, because a leaf click closes the popup exactly as a user
 click does
 **Watch for:** an agent that calls `close()` and then reports the action done. Dismissing without

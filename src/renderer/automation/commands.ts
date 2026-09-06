@@ -95,7 +95,7 @@ async function getTarget(
                     `The active page is a browser in ${mode} mode, so Persephone's own UI (pageId: "app") `
                     + "cannot be automated right now: app-window commands capture or return a snapshot of the "
                     + "whole window, which would expose that private session. Activate a different page first "
-                    + "— list_pages to choose one, then execute_script with app.pages.showPage(pageId) — and retry."
+                    + "— read `pages` to choose one, then call `pages.showPage(pageId)` — and retry."
                 } };
             }
         }
@@ -127,7 +127,7 @@ async function getTarget(
         targetPage = (activePage && matches(activePage) ? activePage : null)
             ?? pages.find(matches) ?? null;
         if (!targetPage) {
-            return { error: { code: -32602, message: `No browser page with profile '${profileName || "default"}'. Use the 'open_url' tool with profileName to open one.` } };
+            return { error: { code: -32602, message: `No browser page with profile '${profileName || "default"}'. Call pages.showBrowserPage({ profileName }) or pages.openUrlInBrowserTab(url, { profileName }) to open one.` } };
         }
     } else {
         targetPage = isAutomatable(activePage) ? activePage ?? null : null;
@@ -146,7 +146,7 @@ async function getTarget(
     }
 
     if (!isBrowserEditor(editor)) {
-        return { error: { code: -32602, message: "No automatable page open. Use the 'open_url' tool to open a browser page, or open a board." } };
+        return { error: { code: -32602, message: "No automatable page open. Call pages.openUrlInBrowserTab(url) to open a browser page, or open a board." } };
     }
 
     if (targetPage !== activePage) pagesModel.showPage(targetPage.id);

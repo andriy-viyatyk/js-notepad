@@ -539,7 +539,7 @@ if it exists. **Reading never creates it** — the facade's host-backed state re
 until the page exists, and only a write (`push`, `clear`, `toggleTimestamps`) get-or-creates and
 focuses it. That asymmetry is deliberate: `helpSearch` walks every `node: true` property and every
 declared child, and `logView` is both, so a get-or-create getter made every `helpSearch(...)` open
-and focus the Log View page as a side effect of a search (US-1351). `push(entries)` renders entries immediately and returns
+and focus the Log View page as a side effect of a search. `push(entries)` renders entries immediately and returns
 entry/dialog IDs; it does not wait for inline dialog answers. `dialogResult(id)` reports whether an
 inline dialog is unresolved or resolved, while the user answers it in the Log View page. The
 The `pages.logView.push` call path remains available for agents and returns immediately; `dialogResult()` reports whether the user has answered an inline dialog.
@@ -1102,5 +1102,4 @@ Scripts have full Node.js access. This is by design for power users, but means:
 - Scripts can execute any Node.js code
 
 This is appropriate for a developer tool where the user writes/controls the scripts.
-
 

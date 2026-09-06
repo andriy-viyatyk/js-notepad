@@ -124,7 +124,7 @@ adjacent adapter uses `react-dom/client` to mount it. Global styles are installe
 ├── editors/          # ALL editor implementations (lazy-loaded)
 ├── content/          # Content delivery — providers, transformers, pipes
 ├── scripting/        # Script execution engine and API wrappers
-├── automation/       # Browser automation — Playwright-compatible MCP tools
+├── automation/       # Path-based browser-like automation, CDP, input, snapshots
 ├── uikit/            # Standalone component library (canonical home for primitives)
 ├── components/       # Persephone-coupled views/models (icons, page-manager, file-search, tree-provider, file lists, git-tree)
 ├── core/             # State primitives and utilities
@@ -141,7 +141,7 @@ adjacent adapter uses `react-dom/client` to mount it. Global styles are installe
 | **editors/** | File type handling, content editing | `registry.ts`, `text/`, `grid/`, `browser/`, etc. |
 | **content/** | Content I/O pipeline — providers, transformers, pipes | `ContentPipe.ts`, `parsers.ts`, `resolvers.ts`, `providers/`, `transformers/` |
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
-| **automation/** | Shared browser-like operations and Playwright-compatible MCP tools, CDP, input, host-scoped refs | `operations.ts`, `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
+| **automation/** | Shared browser-like operations, CDP, input, and host-scoped refs for Object Model call paths | `operations.ts`, `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
 | **uikit/** | Standalone reusable framework-free component library built from `VanillaView` classes and native DOM builders | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `DataGrid/` (the av-grid boundary), … — see `uikit/index.ts` and `uikit/CLAUDE.md` |
 | **components/** | Persephone-coupled components and native views only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/` |
 | **core/** | State primitives, utilities | `state/` (TOneState, TModel), `utils/` |
@@ -156,7 +156,7 @@ adjacent adapter uses `react-dom/client` to mount it. Global styles are installe
 5. **`content/`** implements the I/O pipeline — imports `core/`, `api/types/`
 6. **`editors/`** implement page types — import `core/`, `uikit/`, `components/`, `api/`, `content/`
 7. **`scripting/`** wraps `api/`, `editors/`, and `content/` for safe script access
-8. **`automation/`** implements browser MCP tools — imports `api/`, `editors/`, `ipc/`; loaded via dynamic import from the renderer MCP command registry
+8. **`automation/`** implements the browser-like operations used by Object Model call paths — imports `api/`, `editors/`, `ipc/`; loaded by the renderer's automation facades
 9. **`ui/`** orchestrates everything — imports all layers
 10. Lower layers must NOT import from higher layers
 
@@ -199,6 +199,7 @@ See [scripting.md](./scripting.md).
 - Protocol: MCP over HTTP at `http://127.0.0.1:{port}/mcp` (default port 7865)
 - Main process: `mcp-http-server.ts` accepts connections using `@modelcontextprotocol/sdk`; the client instructions, 13 guide resources, and the two advertised tools live under `main/mcp/` as data plus one generic registrar.
 - Renderer process: the thin MCP IPC shell delegates through `api/mcp/command-registry.ts` to `call` and retained `execute_tool` handlers; the generic transport also serves the internal `board_call` bridge.
+- The default manifest advertises `call` and `execute_tool`. Setting `PERSEPHONE_MCP_CALL_ONLY` to `1`, `true`, or `yes` (case-insensitive) advertises only `call`; the value is read by the main process at server creation.
 - The `call` MCP tool is routed in main: `main` and `windows[i]` are resolved against main-process descriptors, while the remainder is forwarded to the selected renderer and resolved against its AiVision root. Main-process script evaluation is a separately settings-gated branch (`Settings → MCP Server → Allow main-process scripts`); `AppWrapper.call()` does not provide that branch.
 - MCP `call` result shaping is general-purpose: when any resolved member returns `{ type: "image", data, mimeType }` or `{ image: { data, mimeType }, ...metadata }`, the main-process adapter emits metadata as text plus a native MCP image content block. The capability is not specific to browser screenshots.
 - Renderer `call` results can carry a leading attention block for open renderer dialogs and popup menus. If the action itself opens a blocking renderer dialog, the call returns a pending result while the action continues; a subsequent `call` can inspect `dialogs[i]` and use its adapter's `click(button)` or `cancel()` path. Popup menus are exposed as `menus[0]` with read-only item snapshots and `click(label)` / `close()` actions.
@@ -348,5 +349,4 @@ Every editor follows the same pattern:
 - [Pages Architecture](./pages-architecture.md) — Pages lifecycle and submodels
 - [Context Menu](./context-menu.md) — Context menu event flow, bubbling, and EventChannel integration
 - [Trait System](./trait-system.md) — Drag-and-drop type negotiation, TraitRegistry, native HTML5 DnD patterns
-
 

@@ -4,7 +4,7 @@ import { APP_WINDOW_CDP_KEY } from "../../ipc/api-types";
 
 /**
  * `IBrowserTarget` adapter for Persephone's OWN main window (US-810), letting the
- * existing `browser_*` MCP automation tools drive the app's own UI — page
+ * automation command set drive the app's own UI through `window.screen` — page
  * tabs, sidebar, toolbars, dialogs, and the active editor. Selected explicitly via
  * `pageId: "app"` (never by fallback — see `getTarget` in commands.ts).
  *
@@ -20,18 +20,18 @@ import { APP_WINDOW_CDP_KEY } from "../../ipc/api-types";
  *    (`document.execCommand`), same approach as the board target.
  * Navigation and tab methods throw a clear error (the dispatcher turns it into a
  * JSON-RPC error): the app window has no browser-style navigation or tabs — opening
- * and switching Persephone pages is done via `list_pages` / `execute_script`
- * (`app.pages`), not synthetic navigation.
+ * and switching Persephone pages is done via the `pages` node (`pages`,
+ * `pages.showPage(id)`), not synthetic navigation.
  *
  * Exposed as a module-level singleton — there is exactly one app UI per renderer, and
  * the sentinel key resolves to whichever window handled the MCP command.
  */
 const NAV_MSG =
     "Navigation is not supported on the app window (pageId: \"app\") — it is Persephone's own UI, " +
-    "not a browser page. To open or switch pages, use list_pages / execute_script (app.pages).";
+    "not a browser page. To open or switch pages, read `pages` and call `pages.showPage(pageId)`.";
 const TAB_MSG =
     "Tabs are not supported on the app window (pageId: \"app\"). Persephone's page tabs are not " +
-    "browser tabs — list them with list_pages and switch with execute_script (app.pages.showPage).";
+    "browser tabs — read `pages` to list them and `pages.showPage(pageId)` to switch.";
 
 class AppTargetModel implements IBrowserTarget {
     get id(): string {

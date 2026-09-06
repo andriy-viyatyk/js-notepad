@@ -299,21 +299,23 @@ The agent will use `script.execute` to read the active page content, transform i
 
 Ask: *"Analyze the JSON in the active page and ask me before making changes"*
 
-The agent will use `pages.logView.push` to log status messages and show an interactive confirmation dialog in the Log View:
+The agent will use the `pages.logView.push` call path to log status messages and show an interactive confirmation dialog in the Log View:
 
 ```
-pages.logView.push({ entries: [
+pages.logView.push([
     "Analyzing JSON structure...",
     { type: "log.success", text: "Found 42 records" },
     { type: "input.confirm", message: "Apply formatting to all records?" }
-] })
+])
 ```
 
-The tool blocks until you click a button. See the [ui API reference](./api/ui-log.md#mcp-pages.logView.push-tool) for all entry types and dialog options.
+The call returns immediately with dialog IDs; read `pages.logView.dialogResult(id)` to check when
+the user has answered. See the [ui API reference](./api/ui-log.md#log-view-output) for all entry
+types and dialog options.
 
 ### Advanced scripting
 
-The `script.execute` tool gives AI access to the full [Scripting API](scripting.md):
+The `script.execute` call path gives AI access to the full [Scripting API](scripting.md):
 
 - **`page`** — Active page: content, language, editor, grouped output
 - **`app.pages`** — All pages: create, open, close, navigate
@@ -338,6 +340,4 @@ The `script.execute` tool gives AI access to the full [Scripting API](scripting.
 **Tool calls timing out?**
 - The server has a 30-second timeout for script execution
 - Long-running scripts may need to be broken into smaller steps
-- `pages.logView.push` calls with dialog entries have no timeout — they block until the user responds
-
-
+- `pages.logView.push` calls with dialog entries return immediately; poll `dialogResult(id)` until the user responds

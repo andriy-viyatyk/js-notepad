@@ -11,7 +11,7 @@ page in a locked-down, cross-origin `<iframe>` and injects a single bridge objec
 > implementing (or substantially changing) the board, REPLACE this file with documentation
 > of _this_ board** — so a future agent asked to fix or extend it has instant context
 > instead of re-reading all the code. The full generic reference below stays available any
-> time via the **`read_guide("boards")`** MCP tool and the bundled Demo board, so it's safe
+> time via the **`persephone://guides/boards`** MCP resource and the bundled Demo board, so it's safe
 > to trim it out of this per-board file.
 >
 > Keep the rewritten file **short and board-specific**:
@@ -20,12 +20,12 @@ page in a locked-down, cross-origin `<iframe>` and injects a single bridge objec
 >   backend scripts under `scripts/` (one line each), and any vendored libraries in `lib/`
 >   (name + version + why).
 > - **Key files** — a one-line map of the files that matter.
-> - **Run & test** — how to open it, how to reload after edits (`board_refresh`), and any
+> - **Run & test** — how to open it, how to reload after edits (`pages[i].editor.reload()`), and any
 >   manual test steps or sample inputs.
 > - **Gotchas** — non-obvious decisions and constraints (CSP/offline workarounds, library
 >   quirks, why something is done a certain way) — the things that would trip up the next agent.
 > - **Reference** — keep a short pointer to the canonical Persephone board docs (below /
->   `read_guide("boards")`) for the `persephone.*` bridge API; don't re-document it here.
+>   `persephone://guides/boards`) for the `persephone.*` bridge API; don't re-document it here.
 
 ## Board identity: `board-manifest.json`
 
@@ -675,7 +675,7 @@ manifest change is this, not a broken manifest.
 Once the user has opened this board in Persephone, an agent can drive it with
 `pages[pageId].editor` to test and debug it:
 
-- `list_pages` → find this board (`editor: "board-view"`, with its `selectedBoard`)
+- `call` at `pages` → find this board (`editor: "board-view"`, with its `selectedBoard`)
   and read its `pageId`.
 - `pages[pageId].editor.snapshot()` → read the page's accessibility tree (element refs).
 - `pages[pageId].editor.click/type/pressKey/evaluate(...)` → interact, using refs from

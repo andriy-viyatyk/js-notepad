@@ -50,7 +50,7 @@ opened from a discoverable provider when possible. Obtain all page ids without c
 **Start:** The runner's first operation is `call` with no `path`; the agent must use the returned overview before choosing a branch.
 
 **Call:** Read each `pages[id].editor` identity, `source`, `format`, `playerState`, `pageMuted`,
-`canPlayNext`, `shuffle`, `visualizerEffect`, and `summarize()` without `execute_script`.
+`canPlayNext`, `shuffle`, `visualizerEffect`, and `summarize()` without scripting.
 
 **Overview route:** `PASS | PARTIAL | FAIL` — `overview → <paths in call order>`; wrong paths: `none` or `<every incorrect path, in order>`.
 

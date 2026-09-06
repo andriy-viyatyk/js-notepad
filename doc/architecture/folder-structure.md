@@ -21,8 +21,8 @@ persephone/
 │   ├── build.rs
 │   └── Cargo.toml
 ├── scripts/                # Build scripts
-│   ├── dev.mjs             # Dev orchestrator (npm start) — Vite renderer dev server + HMR, watch-builds main/preload/preload-webview/board-shim/search-worker, launches Electron with restart-on-change
-│   ├── build-prod.mjs      # Vite production build (main, preload, preload-webview, renderer, board-shim, search-worker)
+│   ├── dev.mjs             # Dev orchestrator (npm start) — Vite renderer dev server + HMR, Node-targeted main build, watch-builds main/preload/preload-webview/board-shim/search-worker, launches Electron with restart-on-change
+│   ├── build-prod.mjs      # Vite production build — Node-targeted main plus preload, preload-webview, renderer, board-shim, search-worker
 │   └── vmp-sign.mjs        # electron-builder afterPack hook for Widevine VMP signing
 ├── assets/                 # Static assets
 │   ├── editor-types/       # GENERATED — Vite plugin auto-copies .d.ts files from src/renderer/api/types/ (never hand-edit)
@@ -38,7 +38,7 @@ persephone/
 │   ├── mcp-res-links.md    # MCP resource: links editor JSON format
 │   ├── mcp-res-boards.md   # MCP resource: boards guide (create/open lifecycle, bridge, testing)
 │   ├── mcp-res-tools.md    # MCP resource: Agent Tools registry guide (manifest format, stdin/stdout contract, .env, self-repair)
-│   ├── mcp-res-browser.md  # MCP resource: browser_* automation guide (targeting resolution, snapshot/ref lifecycle, waiting)
+│   ├── mcp-res-browser.md  # MCP resource: call-path browser automation guide (targeting resolution, snapshot/ref lifecycle, waiting)
 │   ├── mcp-res-ui.md       # MCP resource: Persephone's own interface — element purposes, data-name selectors, highlight recipe
 │   ├── mcp-res-ui-editors.md # MCP resource: editor catalog for explaining the app's capabilities to the user
 │   ├── agent/              # Standalone modules injected into a page by an agent (not part of the renderer bundle)
@@ -80,8 +80,7 @@ persephone/
 │                           #   markdown, mermaid-theme, split, sortablejs, tippy, dialog
 │                           #   (av-grid, the default grid, is in the catalog with NO skin —
 │                           #    it reads the --p-* contract itself)
-├── qa/                     # MCP QA suites, split between tool-oriented and surface-oriented tests
-│   ├── mcp-test-*.md       # Tests grouped by MCP tool
+├── qa/                     # MCP QA suite organized by application surface
 │   ├── surfaces/           # Tests grouped by the application surface under test
 │   │   └── editors/        # Manual call-only checks for editor facades and controls
 │   └── runs/               # Recorded test-agent runs
@@ -646,7 +645,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   │   ├── BoardWebview.ts            # Locked-down cross-origin <iframe src="board://<host>/index.html"> (no sandbox attr); brokers the MessagePort bridge handshake + ui.log reset
 │   │   ├── BoardsTreeView.ts         # Reusable native boards tree (single-root + multi-root; folder-compacted; click / trailing / context-menu slots)
 │   │   ├── boards-tree-build.ts      # Pure builder: board path list → compacted folder/board node tree
-│   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
+│   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for Object Model call paths)
 │   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one; Custom Editor fields (fileMasks/folderMasks/editorPriority/editorName) + matcher/accessor helpers
 │   │   ├── custom-editor-registry.ts # Reactive mask → trusted-board map; board-editor:<root> virtual ids; resolveEditorIdForFile (merges built-in + board at file-open); isBoardEditorId
 │   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
@@ -740,7 +739,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── page-compare.ts  # pages.compare pair projection and controls
 │       └── elements.ts      # Curated element visibility and highlight protocol
 │
-├── automation/             # Browser Automation (Playwright-compatible MCP tools)
+├── automation/             # Browser-like automation used by Object Model call paths
 │   ├── types.ts            # IBrowserTarget interface
 │   ├── CdpSession.ts       # CDP session wrapper (IPC to main process debugger)
 │   ├── snapshot.ts         # Accessibility snapshot (main frame + iframes, overlay detection)
@@ -748,7 +747,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── operations.ts       # Shared target-neutral automation operations used by commands and facades
 │   ├── ref.ts              # Per-host ref/frame-session stores and ref resolution
 │   ├── AppTargetModel.ts   # Automation adapter (IBrowserTarget) for the app's own UI (pageId "app")
-│   └── commands.ts         # browser_* MCP command handlers
+│   └── commands.ts         # Legacy parameter/target adapter retained beside the shared operations
 │
 ├── uikit/                  # UIKit — standalone component library
 │   │                       # Canonical home for reusable primitives. Must not import from
@@ -913,7 +912,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── sdk.ts              # Lazy MCP SDK + zod loader (loadSdk / requireSdk)
 │   ├── tool-results.ts     # Response → MCP content mappers (text, page content with image, screenshot)
 │   ├── types.ts            # IMcpToolDef and friends
-│   ├── tools/              # The tools themselves, as data — one module per group (window, page, board, agent, browser, guide)
+│   ├── tools/              # Advertised tool definitions — call and optional execute_tool
 │   └── ai-vision/          # Main-process AiVision roots, service descriptors, and gated main scripting
 ├── browser-service.ts      # Browser page support (webview management and tracked native message boxes)
 ├── browser-registration.ts # Default browser registration
@@ -929,7 +928,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 ├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and the board bridge's execute(); whole-tree kill via taskkill; jobs carry an optional caller-chosen name + a getJobsBySinkIds query (board job re-association)
 ├── board-protocol-service.ts # board:// scheme handler — host→board-root registry; serves board files + CSP; injects --p-* palette, boot context, and the bridge shim into served HTML
 ├── board-bridge.ts         # Per-board MessagePort bridge — execute(), page-scoped call(), dialogs/readFile/writeFile, openRawLink/notify, theme push; busy-owner job retention (a busy board's jobs survive its unload, reaped on final teardown/page close/crash)
-├── cdp-service.ts          # CDP session service for browser_* automation — attaches the debugger to webContents; board frames registered/resolved by their ?v= nonce
+├── cdp-service.ts          # CDP session service for call-path automation — attaches the debugger to webContents; board frames registered/resolved by their ?v= nonce
 ├── mneme-service.ts        # Mneme concerns on top of sidecar-process: port/config wiring and MnemeStatus broadcasts for the knowledge-base service
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout; exports getSnipToolPath for clip-service)
 ├── clip-service.ts         # Windows file-clipboard (CF_HDROP) read/write via the snip exe's clipboard subcommands — Explorer copy/paste interop; degrades to empty result when the exe is missing
