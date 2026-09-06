@@ -8,7 +8,14 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-*(no active epic)*
+- **EPIC-089** — [The browser and the app window through `call`, and the retirement of fifteen tools](epics/EPIC-089.md)
+  - [ ] [US-1334: Per-host ref stores, and the automation command bodies made callable from a facade](tasks/US-1334-ref-lifecycle/README.md)
+  - [ ] [US-1335: The browser page surface — refs, the six missing capabilities, and the chrome/content split](tasks/US-1335-browser-page-surface/README.md)
+  - [ ] [US-1336: The board page host — the same member set on the board facade](tasks/US-1336-board-page-automation/README.md)
+  - [ ] [US-1337: `window.screen` — Persephone's own window as an automation host](tasks/US-1337-window-screen-node/README.md)
+  - [ ] [US-1338: `pages.openUrlInBrowserTab` as `open_url`'s replacement, and `pages.openUrl`](tasks/US-1338-page-open-url/README.md)
+  - [ ] [US-1339: Delete the `mcp.browser-tools.enabled` setting and its guide instructions](tasks/US-1339-retire-browser-setting/README.md)
+  - [ ] [US-1340: Acceptance run on Haiku; the browser surface file; fifteen tools marked retirable](tasks/US-1340-browser-acceptance/README.md)
 
 ## Planned
 
