@@ -35,7 +35,14 @@ function mainConfig(devServerUrl) {
         configFile: false,
         mode: "development",
         resolve: { conditions: ["node"] },
+        // Mark this as a Node build. Without it Vite treats the main process as a browser
+        // bundle and statically replaces every `process.env` with `{}`, so main-process
+        // environment reads silently become undefined and `{ ...process.env }` spreads to
+        // nothing — which stripped the parent environment from every spawned child process.
+        // Found by EPIC-090's gate, where PERSEPHONE_MCP_CALL_ONLY could never turn on.
+        ssr: { target: "node" },
         build: {
+            ssr: true,
             outDir: ".vite/build",
             emptyOutDir: false,
             minify: false,
