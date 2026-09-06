@@ -132,12 +132,24 @@ export class BrowserEditorFacade implements IAiVisible {
         };
     }
 
+    /**
+     * The ACTIVE TAB's live values, which is what the member summaries promise. `state.url` and
+     * `state.pageTitle` track the page-level address bar and go stale after an in-page navigation
+     * — click a link and they still name the previous document, so an agent that reads `url` to
+     * confirm a click concludes, wrongly, that the click did nothing. Found by EPIC-090's gate run,
+     * where a Haiku agent reported exactly that. `state.*` remains the fallback for a page with no
+     * tab record yet.
+     */
     get url(): string | undefined {
-        return this.model.state.get().url || undefined;
+        const state = this.model.state.get();
+        const tab = state.tabs.find(t => t.id === state.activeTabId);
+        return tab?.url || state.url || undefined;
     }
 
     get title(): string | undefined {
-        return this.model.state.get().pageTitle || undefined;
+        const state = this.model.state.get();
+        const tab = state.tabs.find(t => t.id === state.activeTabId);
+        return tab?.pageTitle || state.pageTitle || undefined;
     }
 
     navigate(url: string): void {
