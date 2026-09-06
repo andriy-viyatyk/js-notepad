@@ -1,3 +1,72 @@
+## EPIC-088 - Boards and tools through `call`, and the retirement of seven tools
+
+Completed 2026-09-06. [Epic document](EPIC-088.md). Epic 5 of 7 in the
+[agent transparency roadmap](../agent-transparency-roadmap.md). Six of its seven tools are now
+**retirable**; `execute_tool` is deliberately **not**, and that withholding is the most interesting
+thing in the epic. Nothing was deleted; EPIC-090 does that behind the call-only flag.
+
+**Where the previous epics exposed state, this one exposed action.** EPIC-086 and EPIC-087 described
+what was on screen and what the user could read. Here most of the surface is something an agent can
+*do* - create a board, register a toolset, run a tool, reindex a knowledge root - and every one of
+those has a trust boundary attached. The descriptor work was the easy half; the hard half was making
+sure no path could grant a privilege that today requires a user's click. It cannot: nothing trusts a
+board, nothing registers a toolset, and `createToolset` raises the user's own dialog through the
+attention protocol and reports the declined branch honestly.
+
+**The epic corrected its own plan three times before writing code**, each time because the roadmap's
+one-line entry disagreed with the source. The root name is `tools`, not `toolsets`, because
+`ai-vision/root.ts` had reserved exactly that name since EPIC-083. `board_refresh` became
+`pages[i].editor.reload()` rather than `boards.refresh()`, because the tool is page-scoped in every
+detail and a namespace member would have had to invent "which board". And `create_board` /
+`open_board` turned out to be **already answered** by existing `boards` members - what the namespace
+actually lacked was *enumeration*, since all fourteen of its members took a root path and nothing
+could produce one. `boards.list()` is the real content of that retirement.
+
+**Two defects were found that no build could have caught**, both in the shared `call` machinery
+rather than in any descriptor, and both now standing rules for the rest of the roadmap:
+
+- **A key set to `undefined` reaches an agent as `null`.** The first `boards.list()` run returned
+  `installed: null` and `name: null` - exactly the falsy stand-in decision 9 forbids. Absent
+  optionals must be *omitted*, not assigned.
+- **`MAX_DEPTH` in the result shaper was 4**, which truncated every tool's `inputSchema` to
+  `{ note: "depth limit" }`. An agent could read a tool's description but not learn how to call it,
+  making the replacement strictly worse than the `search_tools` it replaces. Raised to 8.
+
+**The acceptance run passed with no wrong turns** - the first surface epic to manage that. A Haiku
+agent with `call` alone and no guides listed the machine's boards, opened one, reloaded it, and read
+a tool's full argument list, discovering `boards` and `tools` from the root hint alone
+([qa/runs/2026-09-06-epic-088-boards-and-tools.md](../../qa/runs/2026-09-06-epic-088-boards-and-tools.md)).
+It never used `tools.search()`, reaching the arguments through the toolset collection instead -
+worth remembering at EPIC-090, because an agent asked about tools reaches for a *list* first.
+
+**`execute_tool` stayed unmarked because the honest test could not be run.** Its rows need a tool
+that actually executes, and every registered toolset on this machine calls a live company service
+with the user's credentials; the alternative, registering a scratch toolset, needs a click on the
+"Register this toolset?" dialog. That click was not taken - an agent answering its own trust prompt
+would defeat the property the epic exists to protect, and a marking bought that way would be
+worthless. One user call finishes it; the reproduction is in the epic's Needs user check.
+
+The epic also **closed a pre-existing privilege hole**: `command` and `args` were writable on the
+MCP Inspector facade, so an agent could set a command line of its own choosing and call `connect()`,
+spawning a process with the user's privileges and no dialog. Both setters are gone.
+
+And it **added surfaces that replace no tool**: facades for the board page, Board Info, the toolset
+editor, the Tools hub, and Mneme config and root - none of which had one - the panel state the MCP
+Inspector facade never reported, and the two page openers (`pages.showToolsHubPage`,
+`pages.showMnemeConfigPage`) that existed on the model but had never been declared, so an agent
+could not open either screen.
+
+| Task | Title |
+|------|-------|
+| US-1325 | The board page surface - trust states, toolbar, secondary views, and `reload()` |
+| US-1326 | The `boards` node completes - enumeration of installed, trusted and open boards |
+| US-1327 | The Board Info surface - install, version, and the board-vars question |
+| US-1328 | The `tools` root node - search, execute, toolsets, refresh, registration prompt |
+| US-1329 | The toolset editor and the Tools hub |
+| US-1330 | The MCP Inspector surface - elements, panels, and the removed stdio setters |
+| US-1331 | Mneme config and Mneme root |
+| US-1332 | Acceptance run on Haiku; the two `qa/surfaces/` files; six tools marked retirable |
+
 ## EPIC-087 - The data editors through `call`, and the retirement of `ui_push`
 
 Completed 2026-09-06. [Epic document](EPIC-087.md). Epic 4 of 7 in the

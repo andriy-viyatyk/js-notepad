@@ -2,9 +2,10 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-09-06
 **Started:** 2026-09-06
+**Completed:** 2026-09-06
 **Roadmap:** [agent-transparency-roadmap.md](../agent-transparency-roadmap.md), epic 5 of 7
 
 ## Overview
@@ -263,14 +264,14 @@ paths are proven, and the tools themselves are not touched.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1325](../tasks/US-1325-board-page-surface/README.md) | The board page surface — trust states, toolbar, secondary views, and `reload()` | Implemented |
-| [US-1326](../tasks/US-1326-boards-enumeration/README.md) | The `boards` node completes — enumeration of installed, trusted and open boards | Implemented |
-| [US-1327](../tasks/US-1327-board-info-surface/README.md) | The Board Info surface — install, version, screenshots, and the board-vars question | Implemented |
-| [US-1328](../tasks/US-1328-tools-root-node/README.md) | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Implemented |
-| [US-1329](../tasks/US-1329-toolset-and-tools-hub/README.md) | The toolset editor and the Tools hub | Implemented |
-| [US-1330](../tasks/US-1330-mcp-inspector-surface/README.md) | The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels | Implemented |
-| [US-1331](../tasks/US-1331-mneme-surfaces/README.md) | Mneme config and Mneme root | Implemented |
-| [US-1332](../tasks/US-1332-boards-tools-acceptance/README.md) | Acceptance run on Haiku; the two `qa/surfaces/` files; six tools marked retirable, `execute_tool` withheld | Implemented |
+| [US-1325](../tasks/US-1325-board-page-surface/README.md) | The board page surface — trust states, toolbar, secondary views, and `reload()` | Reviewed |
+| [US-1326](../tasks/US-1326-boards-enumeration/README.md) | The `boards` node completes — enumeration of installed, trusted and open boards | Reviewed |
+| [US-1327](../tasks/US-1327-board-info-surface/README.md) | The Board Info surface — install, version, screenshots, and the board-vars question | Reviewed |
+| [US-1328](../tasks/US-1328-tools-root-node/README.md) | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Reviewed |
+| [US-1329](../tasks/US-1329-toolset-and-tools-hub/README.md) | The toolset editor and the Tools hub | Reviewed |
+| [US-1330](../tasks/US-1330-mcp-inspector-surface/README.md) | The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels | Reviewed |
+| [US-1331](../tasks/US-1331-mneme-surfaces/README.md) | Mneme config and Mneme root | Reviewed |
+| [US-1332](../tasks/US-1332-boards-tools-acceptance/README.md) | Acceptance run on Haiku; the two `qa/surfaces/` files; six tools marked retirable, `execute_tool` withheld | Reviewed |
 
 US-1325 → US-1327 (boards) and US-1328 → US-1329 (tools) are two independent chains; US-1330 and
 US-1331 are independent of both. US-1332 closes and is the gate for every retirement marking.
