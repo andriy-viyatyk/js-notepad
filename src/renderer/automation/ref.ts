@@ -14,15 +14,15 @@ import { errMessage } from "../../shared/utils";
 // ── Frame Session Map ───────────────────────────────────────────────
 
 /**
- * Map from frame index to CDP sessionId.
- * Populated by snapshot.ts buildSnapshot() during each snapshot generation.
- * Used by resolveRef() and callOnRef() to target the correct iframe session.
+ * Map from CDP registration key to frame-index maps. Each snapshot replaces the map for the
+ * host that produced it, while maps for other browser tabs, board frames, and the app window stay
+ * available for refs minted by those hosts.
  */
-let frameSessionMap = new Map<number, string>();
+const frameSessionMaps = new Map<string, Map<number, string>>();
 
 /** Update the frame session map. Called by buildSnapshot() after attaching to iframes. */
-export function setFrameSessions(map: Map<number, string>): void {
-    frameSessionMap = map;
+export function setFrameSessions(registrationKey: string, map: Map<number, string>): void {
+    frameSessionMaps.set(registrationKey, map);
 }
 
 // ── Ref Parsing ─────────────────────────────────────────────────────
@@ -57,6 +57,27 @@ export function parseRef(ref: string): ParsedRef {
     return { frameIndex: null, backendNodeId };
 }
 
+function getFrameSessionId(cdp: CdpSession, ref: string, frameIndex: number): string {
+    const frameSessionMap = frameSessionMaps.get(cdp.registrationKey);
+    if (!frameSessionMap) {
+        throw new Error(
+            `No frame-session map is available for ref "${ref}" on this host. `
+            + "Take a snapshot on this host before using iframe refs.",
+        );
+    }
+
+    const sessionId = frameSessionMap.get(frameIndex);
+    if (sessionId) return sessionId;
+
+    const frameCount = frameSessionMap.size;
+    const frameLabel = frameCount === 1 ? "frame" : "frames";
+    throw new Error(
+        `Ref "${ref}" names frame ${frameIndex}, but the last snapshot of this host had `
+        + `${frameCount} ${frameLabel}. The iframe may have been removed — re-take the snapshot `
+        + "and use a ref from it.",
+    );
+}
+
 // ── Ref Resolution ──────────────────────────────────────────────────
 
 /**
@@ -66,7 +87,7 @@ export function parseRef(ref: string): ParsedRef {
  */
 export async function resolveRef(cdp: CdpSession, ref: string): Promise<string> {
     const { frameIndex, backendNodeId } = parseRef(ref);
-    const sessionId = frameIndex !== null ? frameSessionMap.get(frameIndex) : undefined;
+    const sessionId = frameIndex !== null ? getFrameSessionId(cdp, ref, frameIndex) : undefined;
 
     try {
         const { object } = await cdp.send("DOM.resolveNode", { backendNodeId }, sessionId);
@@ -107,7 +128,7 @@ export async function callOnRef(
     returnByValue = false,
 ): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const { frameIndex } = parseRef(ref);
-    const sessionId = frameIndex !== null ? frameSessionMap.get(frameIndex) : undefined;
+    const sessionId = frameIndex !== null ? getFrameSessionId(cdp, ref, frameIndex) : undefined;
     const objectId = await resolveRef(cdp, ref);
 
     // A ref is a backendDOMNodeId, and a StaticText node's id backs a DOM *text* node — which has

@@ -353,7 +353,7 @@ themselves are **not** touched.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1334](../tasks/US-1334-ref-lifecycle/README.md) | Per-host ref stores, and the automation command bodies made callable from a facade | Planned |
+| [US-1334](../tasks/US-1334-ref-lifecycle/README.md) | Per-host ref stores, and the automation command bodies made callable from a facade | Implemented |
 | [US-1335](../tasks/US-1335-browser-page-surface/README.md) | The browser page surface — refs, the six missing capabilities, and the chrome/content split | Planned |
 | [US-1336](../tasks/US-1336-board-page-automation/README.md) | The board page host — the same member set on the board facade, with the readiness gate | Planned |
 | [US-1337](../tasks/US-1337-window-screen-node/README.md) | `window.screen` — Persephone's own window as an automation host, and its privacy rule | Planned |

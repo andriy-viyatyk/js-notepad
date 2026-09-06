@@ -64,7 +64,7 @@ export async function buildSnapshot(cdp: CdpSession): Promise<string> {
     // 2. Discover iframe targets
     const iframeTargets = await getIframeTargets(cdp);
     if (iframeTargets.length === 0) {
-        setFrameSessions(new Map());
+        setFrameSessions(cdp.registrationKey, new Map());
         return mainLines;
     }
 
@@ -91,7 +91,7 @@ export async function buildSnapshot(cdp: CdpSession): Promise<string> {
     }
 
     // Update frameSessionMap for ref resolution
-    setFrameSessions(sessionMap);
+    setFrameSessions(cdp.registrationKey, sessionMap);
 
     if (iframeSnapshots.length === 0) return mainLines;
 

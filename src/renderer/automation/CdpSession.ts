@@ -10,6 +10,11 @@ const { ipcRenderer } = require("electron");
 export class CdpSession {
     constructor(private readonly regKey: string) {}
 
+    /** Exact registration key used by the main-process CDP router. */
+    get registrationKey(): string {
+        return this.regKey;
+    }
+
     async attach(): Promise<boolean> {
         return ipcRenderer.invoke(BrowserChannel.cdpAttach, this.regKey);
     }

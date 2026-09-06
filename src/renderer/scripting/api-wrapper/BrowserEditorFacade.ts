@@ -1,7 +1,15 @@
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
-import { CdpSession } from "../../automation/CdpSession";
-import { pressKey, typeText } from "../../automation/input";
-import { buildSnapshot } from "../../automation/snapshot";
+import {
+    clickElement,
+    ensureTargetReady,
+    evaluateInTarget,
+    pressKeyOnTarget,
+    resolveElementLocator,
+    selectOption,
+    snapshot,
+    typeTextInto,
+    waitFor,
+} from "../../automation/operations";
 import type { IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 /** Options for targeting a specific browser tab. */
@@ -108,7 +116,8 @@ export class BrowserEditorFacade implements IAiVisible {
 
     /** Run JavaScript in the page and return the result. */
     async evaluate(expression: string, options?: TabOption): Promise<unknown> {
-        return this.cdp(options?.tabId).evaluate(expression);
+        await ensureTargetReady(this.model.target);
+        return evaluateInTarget(this.model.target, expression, options?.tabId);
     }
 
     /**
@@ -117,7 +126,8 @@ export class BrowserEditorFacade implements IAiVisible {
      * Each interactive element has a ref (e.g., ref=e52) usable for targeting.
      */
     async snapshot(options?: TabOption): Promise<string> {
-        return buildSnapshot(this.cdp(options?.tabId));
+        await ensureTargetReady(this.model.target);
+        return snapshot(this.model.target, options?.tabId, { overlayHint: false });
     }
 
     // =====================================================================
@@ -171,35 +181,35 @@ export class BrowserEditorFacade implements IAiVisible {
 
     /** Get textContent of an element. Returns null if not found. */
     async getText(selector: string, options?: TabOption): Promise<string | null> {
-        return this.cdp(options?.tabId).evaluate(
+        return this.model.target.cdp(options?.tabId).evaluate(
             `document.querySelector(${JSON.stringify(selector)})?.textContent ?? null`,
         );
     }
 
     /** Get the value of an input/textarea/select. Returns null if not found. */
     async getValue(selector: string, options?: TabOption): Promise<string | null> {
-        return this.cdp(options?.tabId).evaluate(
+        return this.model.target.cdp(options?.tabId).evaluate(
             `document.querySelector(${JSON.stringify(selector)})?.value ?? null`,
         );
     }
 
     /** Get an attribute value. Returns null if element or attribute not found. */
     async getAttribute(selector: string, attribute: string, options?: TabOption): Promise<string | null> {
-        return this.cdp(options?.tabId).evaluate(
+        return this.model.target.cdp(options?.tabId).evaluate(
             `document.querySelector(${JSON.stringify(selector)})?.getAttribute(${JSON.stringify(attribute)}) ?? null`,
         );
     }
 
     /** Get innerHTML of an element. Returns null if not found. */
     async getHtml(selector: string, options?: TabOption): Promise<string | null> {
-        return this.cdp(options?.tabId).evaluate(
+        return this.model.target.cdp(options?.tabId).evaluate(
             `document.querySelector(${JSON.stringify(selector)})?.innerHTML ?? null`,
         );
     }
 
     /** Check if an element exists on the page. */
     async exists(selector: string, options?: TabOption): Promise<boolean> {
-        return this.cdp(options?.tabId).evaluate(
+        return this.model.target.cdp(options?.tabId).evaluate(
             `!!document.querySelector(${JSON.stringify(selector)})`,
         );
     }
@@ -210,35 +220,30 @@ export class BrowserEditorFacade implements IAiVisible {
 
     /** Click an element. Throws if not found. */
     async click(selector: string, options?: TabOption): Promise<void> {
-        const s = JSON.stringify(selector);
-        await this.cdp(options?.tabId).evaluate(`(() => {
-            const el = document.querySelector(${s});
-            if (!el) throw new Error('Element not found: ' + ${s});
-            el.scrollIntoView({ block: 'center' });
-            el.click();
-        })()`);
+        await ensureTargetReady(this.model.target);
+        await clickElement(this.model.target, resolveElementLocator(selector), options?.tabId);
     }
 
     /** Type text into an input/textarea/contentEditable. Clears existing value first. Throws if not found. */
     async type(selector: string, text: string, options?: TabOption & { slowly?: boolean; submit?: boolean }): Promise<void> {
-        await typeText(this.model.target, { selector, text, slowly: options?.slowly, submit: options?.submit });
+        await ensureTargetReady(this.model.target);
+        // US-1335 owns forwarding options.tabId; preserve current active-tab behavior here.
+        await typeTextInto(this.model.target, resolveElementLocator(selector), text, {
+            slowly: options?.slowly,
+            submit: options?.submit,
+        });
     }
 
     /** Select an option in a <select> element by value. Throws if not found. */
     async select(selector: string, value: string, options?: TabOption): Promise<void> {
-        const s = JSON.stringify(selector);
-        await this.cdp(options?.tabId).evaluate(`(() => {
-            const el = document.querySelector(${s});
-            if (!el) throw new Error('Element not found: ' + ${s});
-            el.value = ${JSON.stringify(value)};
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-        })()`);
+        await ensureTargetReady(this.model.target);
+        await selectOption(this.model.target, resolveElementLocator(selector), value, options?.tabId);
     }
 
     /** Check a checkbox or radio button. Throws if not found. */
     async check(selector: string, options?: TabOption): Promise<void> {
         const s = JSON.stringify(selector);
-        await this.cdp(options?.tabId).evaluate(`(() => {
+        await this.model.target.cdp(options?.tabId).evaluate(`(() => {
             const el = document.querySelector(${s});
             if (!el) throw new Error('Element not found: ' + ${s});
             if (!el.checked) {
@@ -251,7 +256,7 @@ export class BrowserEditorFacade implements IAiVisible {
     /** Uncheck a checkbox. Throws if not found. */
     async uncheck(selector: string, options?: TabOption): Promise<void> {
         const s = JSON.stringify(selector);
-        await this.cdp(options?.tabId).evaluate(`(() => {
+        await this.model.target.cdp(options?.tabId).evaluate(`(() => {
             const el = document.querySelector(${s});
             if (!el) throw new Error('Element not found: ' + ${s});
             if (el.checked) {
@@ -264,7 +269,7 @@ export class BrowserEditorFacade implements IAiVisible {
     /** Clear the value of an input/textarea. Throws if not found. */
     async clear(selector: string, options?: TabOption): Promise<void> {
         const s = JSON.stringify(selector);
-        await this.cdp(options?.tabId).evaluate(`(() => {
+        await this.model.target.cdp(options?.tabId).evaluate(`(() => {
             const el = document.querySelector(${s});
             if (!el) throw new Error('Element not found: ' + ${s});
             el.focus();
@@ -284,20 +289,12 @@ export class BrowserEditorFacade implements IAiVisible {
      */
     async waitForSelector(selector: string, options?: WaitOption): Promise<void> {
         const timeout = options?.timeout ?? 30000;
-        const s = JSON.stringify(selector);
-        await this.cdp(options?.tabId).evaluate(`new Promise((resolve, reject) => {
-            if (document.querySelector(${s})) { resolve(true); return; }
-            const start = Date.now();
-            const check = () => {
-                if (document.querySelector(${s})) { resolve(true); return; }
-                if (Date.now() - start > ${timeout}) {
-                    reject(new Error('Timeout waiting for selector: ' + ${s}));
-                    return;
-                }
-                requestAnimationFrame(check);
-            };
-            requestAnimationFrame(check);
-        })`);
+        await ensureTargetReady(this.model.target);
+        await waitFor(this.model.target, {
+            mode: { kind: "selector", selector: resolveElementLocator(selector).selector },
+            timeout,
+            tabId: options?.tabId,
+        });
     }
 
     /**
@@ -306,7 +303,7 @@ export class BrowserEditorFacade implements IAiVisible {
      */
     async waitForNavigation(options?: WaitOption): Promise<void> {
         const timeout = options?.timeout ?? 30000;
-        await this.cdp(options?.tabId).evaluate(`new Promise((resolve, reject) => {
+        await this.model.target.cdp(options?.tabId).evaluate(`new Promise((resolve, reject) => {
             if (document.readyState === 'complete') { resolve(true); return; }
             const start = Date.now();
             const check = () => {
@@ -331,13 +328,7 @@ export class BrowserEditorFacade implements IAiVisible {
      * Supports compound keys: "Control+a", "Shift+Enter", "Control+Shift+Delete".
      */
     async pressKey(key: string, options?: TabOption): Promise<void> {
-        await pressKey(this.cdp(options?.tabId), key);
-    }
-
-    /** Get a CDP session for a tab. Defaults to active tab. */
-    private cdp(tabId?: string): CdpSession {
-        const state = this.model.state.get();
-        const targetTab = tabId || state.activeTabId;
-        return new CdpSession(`${this.model.id}/${targetTab}`);
+        await ensureTargetReady(this.model.target);
+        await pressKeyOnTarget(this.model.target, key, options?.tabId);
     }
 }
