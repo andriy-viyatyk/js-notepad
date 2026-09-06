@@ -533,9 +533,13 @@ projection identifies both pages and their file paths; `enter(pageId)` and `exit
 either side and throw diagnostics when grouping, comparability, or active compare state is missing.
 Its two page-scoped controls are implemented by `/src/renderer/scripting/ai-vision/page-compare.ts`.
 
-`pages.logView` is the page-collection node for the fixed `mcp-ui-log` Log View. Reading it
-get-or-creates and focuses that well-known page, then returns the same `LogViewEditorFacade` used
-by a `log-view` page's `page.editor`. `push(entries)` renders entries immediately and returns
+`pages.logView` is the page-collection node for the fixed `mcp-ui-log` Log View. It returns the
+same `LogViewEditorFacade` used by a `log-view` page's `page.editor`, resolving the well-known page
+if it exists. **Reading never creates it** — the facade's host-backed state reads as `undefined`
+until the page exists, and only a write (`push`, `clear`, `toggleTimestamps`) get-or-creates and
+focuses it. That asymmetry is deliberate: `helpSearch` walks every `node: true` property and every
+declared child, and `logView` is both, so a get-or-create getter made every `helpSearch(...)` open
+and focus the Log View page as a side effect of a search (US-1351). `push(entries)` renders entries immediately and returns
 entry/dialog IDs; it does not wait for inline dialog answers. `dialogResult(id)` reports whether an
 inline dialog is unresolved or resolved, while the user answers it in the Log View page. The
 existing `ui_push` MCP tool remains available for callers that require its blocking behavior.

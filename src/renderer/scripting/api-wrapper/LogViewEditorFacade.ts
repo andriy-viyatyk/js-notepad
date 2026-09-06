@@ -52,14 +52,30 @@ The curated elements are page-scoped. Prefix selectors log-dialog-button and log
 `;
 
 export class LogViewEditorFacade implements IAiVisible {
+    private readonly resolveEditor: () => LogViewEditor | undefined;
+
+    /**
+     * `editor` is either the concrete host of a `log-view` page (`pages[i].editor`) or, for the
+     * fixed MCP Log View reached as `pages.logView`, a resolver that finds the page WITHOUT
+     * creating it plus an `ensure` that creates it. Reading must never open a page: `helpSearch`
+     * walks every `node: true` property and declared child, and `logView` is both, so a
+     * get-or-create getter here made every search open and focus the Log View.
+     */
     constructor(
-        private readonly editor: LogViewEditor,
+        editor: LogViewEditor | (() => LogViewEditor | undefined),
         readonly id: "log-view",
         readonly name: string,
-    ) {}
+        private readonly ensure?: () => LogViewEditor,
+    ) {
+        this.resolveEditor = typeof editor === "function" ? editor : () => editor;
+    }
+
+    private get editor(): LogViewEditor | undefined {
+        return this.resolveEditor();
+    }
 
     get aiVision(): IAiVisionDescriptor {
-        const pageId = this.editor.page?.id;
+        const pageId = this.editor?.page?.id;
         const elements = createElements(LOG_VIEW_ELEMENTS, ui.highlightElement.bind(ui), {
             scopeSelector: pageId ? pageScopeSelector(pageId) : undefined,
             beforeHighlight: pageId
@@ -80,7 +96,7 @@ export class LogViewEditorFacade implements IAiVisible {
                 name: this.name,
                 entryCount: this.entryCount,
                 error: this.error,
-                hasUnresolvedDialogs: this.editor.hasUnresolvedDialogs(),
+                hasUnresolvedDialogs: this.isAttached() ? this.editor.hasUnresolvedDialogs() : undefined,
             }),
         };
     }
@@ -145,10 +161,16 @@ export class LogViewEditorFacade implements IAiVisible {
     }
 
     private isAttached(): boolean {
-        return this.editor.page !== null;
+        const editor = this.editor;
+        return !!editor && editor.page !== null;
     }
 
+    /**
+     * A write may bring the page into existence; a read may not. `ensure` is present only for the
+     * fixed MCP Log View, so `pages[i].editor` on a real log-view page behaves exactly as before.
+     */
     private requireAttached(action: string): void {
+        if (!this.isAttached()) this.ensure?.();
         if (!this.isAttached()) {
             throw new Error(`Log View ${action} unavailable: no page host attached.`);
         }

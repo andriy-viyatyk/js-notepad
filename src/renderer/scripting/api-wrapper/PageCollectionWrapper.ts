@@ -6,7 +6,7 @@ import type { ILink } from "../../api/types/io.tree";
 import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 import { CompareModeNode } from "../ai-vision/page-compare";
 import { LogViewEditorFacade } from "./LogViewEditorFacade";
-import { getOrCreateMcpLogViewEditor } from "../../api/mcp/log-view-access";
+import { getMcpLogViewEditor, getOrCreateMcpLogViewEditor } from "../../api/mcp/log-view-access";
 import type { HubTab } from "../../api/types/tools-hub-editor";
 import {
     validateBrowserOpenInput,
@@ -75,8 +75,9 @@ To SHOW the user something or ASK them a question, use pages.logView — not a h
 pages.logView.push([...]) call renders log lines, markdown, mermaid diagrams, grids (JSON or CSV),
 code blocks and progress bars, and raises the six input.* dialog types. push() returns immediately
 with the ids of any dialogs it created; the user answers them in the page and you read the answer
-with pages.logView.dialogResult(id). Reading pages.logView creates and focuses that page; scripts
-also have the global ui facade for the same channel.
+with pages.logView.dialogResult(id). Reading pages.logView never opens a page: its state
+reads as undefined until one exists, and push() creates and focuses it. Scripts also have the
+global ui facade for the same channel.
 For opening a plain web page or search query, use pages.openUrlInBrowserTab(url, options); it accepts
 any non-empty string and returns a browser page id before the document necessarily loads. Await
 pages[pageId].editor.waitFor({ selector }) (waitForNavigation() may return at once) before
@@ -138,7 +139,8 @@ export class PageCollectionWrapper implements IAiVisible {
     }
 
     get logView(): LogViewEditorFacade {
-        return new LogViewEditorFacade(getOrCreateMcpLogViewEditor(), "log-view", "Log View");
+        // Reading resolves; only a write creates the page. See LogViewEditorFacade's constructor.
+        return new LogViewEditorFacade(getMcpLogViewEditor, "log-view", "Log View", getOrCreateMcpLogViewEditor);
     }
 
     private wrap(page: PageModel | null | undefined): PageWrapper | undefined {
