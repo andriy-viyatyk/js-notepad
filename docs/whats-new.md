@@ -34,6 +34,21 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Boards and Agent Tools are now available through `call`** — Board pages, Board Info, the toolset
+  editor, the Tools & Editors hub, the MCP Inspector's Tools/Resources/Prompts panels, and the Mneme
+  configuration and root pages all expose their state and actions through `page.editor`, with
+  curated on-screen controls discoverable via `elements` and `highlight(...)`.
+- **`boards.list()` answers "which boards do I have?"** — a single local inventory of every trusted
+  and installed board, whether an update is available, and which are open right now. It makes no
+  network call and changes nothing.
+- **A new `tools` node exposes the Agent Tools registry** — search registered tools, inspect a
+  toolset's manifest, refresh after editing one, and scaffold a new one. Registering a toolset still
+  requires your confirmation, exactly as before: an agent can create the folder but can never grant
+  itself the right to run its scripts.
+- **The Tools & Editors hub and the Mneme configuration page can now be opened by an agent** —
+  `pages.showToolsHubPage()` and `pages.showMnemeConfigPage()`, which previously existed internally
+  but were not reachable.
+
 - **Data and navigation surfaces are now available through `call`** — Grid, Notebook, REST,
   environment-variable, Archive, Log View, Folder View, and Git Tree pages expose their useful
   state and actions through `page.editor`. Their curated on-screen controls can be discovered with

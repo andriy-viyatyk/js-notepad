@@ -270,7 +270,7 @@ paths are proven, and the tools themselves are not touched.
 | [US-1329](../tasks/US-1329-toolset-and-tools-hub/README.md) | The toolset editor and the Tools hub | Implemented |
 | [US-1330](../tasks/US-1330-mcp-inspector-surface/README.md) | The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels | Implemented |
 | [US-1331](../tasks/US-1331-mneme-surfaces/README.md) | Mneme config and Mneme root | Implemented |
-| US-1332 | Acceptance run on Haiku; `qa/surfaces/editors/boards.md` and `qa/surfaces/tools.md`; seven tools marked retirable | Planned |
+| [US-1332](../tasks/US-1332-boards-tools-acceptance/README.md) | Acceptance run on Haiku; the two `qa/surfaces/` files; six tools marked retirable, `execute_tool` withheld | Implemented |
 
 US-1325 → US-1327 (boards) and US-1328 → US-1329 (tools) are two independent chains; US-1330 and
 US-1331 are independent of both. US-1332 closes and is the gate for every retirement marking.
@@ -365,6 +365,24 @@ Stop the epic and record why, rather than pushing through, if any of these appea
    radius wider than a descriptor task, and it predates this epic. Worth deciding alongside
    EPIC-087's Needs-user-check 1 (the REST page-level boundary), since both are the same question:
    where does the boundary live when the value is already reachable by another path?
+
+2. **`execute_tool`'s retirement marking is withheld pending one call from you (US-1332).** The
+   replacement `tools.execute(toolId, args)` is implemented and behaves correctly on everything that
+   could be tested: it throws on an unknown id with the valid list and spawns no process, and the
+   legacy tool still returns its structured `ok:false` unchanged. What could **not** be verified is a
+   tool actually running through the path, because all three registered toolsets on this machine call
+   live company services with your credentials (two return PHI), and registering a harmless scratch
+   toolset needs a click on the "Register this toolset?" dialog.
+   **Assumption taken:** that click was deliberately not taken — an agent answering its own trust
+   prompt would defeat the property this epic spent its effort defending, and a marking bought that
+   way would be worthless.
+   **To finish it:** run any tool you are comfortable running, e.g.
+   `call path: "tools.execute" args: ["<toolset>/<tool>", { … }]`, and check the result carries
+   `ok`, `logs`, `durationMs` and — on a failure — `error`, `exitCode`, `stderr` and `toolsetRoot`.
+   If it matches `execute_tool`, mark its row retirable in the roadmap. A scaffolded, unregistered
+   probe toolset is already at
+   `%TEMP%\claude\C--projects-persephone b49c25-e41e-4c5b-b3a8-2bb110bdfc80\scratchpad	oolsets\epic088-probe`
+   with an `echo.js` example tool, if you would rather register that than use a real one.
 
 ## Notes
 

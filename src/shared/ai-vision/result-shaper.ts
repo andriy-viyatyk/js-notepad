@@ -8,7 +8,17 @@ import { getAiVision } from "./types";
  */
 
 export const DEFAULT_MAX_LENGTH = 20_000;
-const MAX_DEPTH = 4;
+/**
+ * Depth cap for PLAIN data only. It is not what stops an agent seeing internal state — the
+ * descriptor check and the `isPlainObject` guard below do that at every depth, so anything this
+ * cap truncates is already user-authored JSON. Four was too shallow to carry a JSON Schema
+ * through a list: `tools.search()` returns tool definitions whose `inputSchema.properties.<arg>`
+ * sits at depth five, so every argument list came back as `{ note: "depth limit" }` and an agent
+ * could read a tool's description but not learn how to call it (found in US-1332's live check
+ * against `search_tools`, which returns the schema in full). Size is bounded by `maxLength` and
+ * `MAX_ARRAY_ITEMS` rather than by this.
+ */
+const MAX_DEPTH = 8;
 const MAX_ARRAY_ITEMS = 500;
 
 export interface IShapedResult {

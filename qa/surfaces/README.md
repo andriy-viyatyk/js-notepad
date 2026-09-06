@@ -32,6 +32,8 @@ Two things these files are for:
 | [editors/graph.md](editors/graph.md) | Graph editor chrome, canvas boundary, panels, state, and menus | EPIC-086 (US-1316) |
 | [editors/data.md](editors/data.md) | Grid, notebook, REST client, env vars, archive and the Log View output channel | EPIC-087 (US-1318 to US-1322) |
 | [panels.md](panels.md) | Sidebar panel nodes under `page.panels`, Folder View and Git Tree | EPIC-087 (US-1323) |
+| [editors/boards.md](editors/boards.md) | The board page, Board Info, and the `boards` node's local enumeration | EPIC-088 (US-1325 to US-1327) |
+| [tools.md](tools.md) | Agent Tools, the toolset editor, Tools hub, MCP Inspector and Mneme | EPIC-088 (US-1328 to US-1331) |
 | [menus.md](menus.md) | Popup and context menus, the `menus` node | EPIC-084 (US-1299) |
 | [windows.md](windows.md) | Multiple windows, open and closed, and the redistributed application facts | EPIC-085 (US-1303) |
 
@@ -39,7 +41,8 @@ Two things these files are for:
 Settings catalog (US-1306) are tests S.7 onward in that file, because they are all the same screen.
 
 The `editors/` subfolder arrived with EPIC-086, which covered the text-and-preview family in five
-files, and grew with EPIC-087's data editors. More arrive with each surface epic: boards, the browser.
+files, and grew with EPIC-087's data editors and EPIC-088's boards. One surface epic remains: the
+browser.
 
 ## Running them
 

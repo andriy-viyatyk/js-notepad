@@ -63,7 +63,7 @@ consumer, and the descriptor is the source of truth for which names exist.
 | 2 | **EPIC-085** ✅ — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions — **all marked retirable 2026-09-05** |
 | 3 | **EPIC-086** ✅ — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content` — **all marked retirable 2026-09-06**. `open_url` is **not** marked; see the note below |
 | 4 | **EPIC-087** ✅ — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer/sidebar panels, folder view, git tree | `ui_push` — **marked retirable 2026-09-06** |
-| 5 | EPIC-088 — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` |
+| 5 | **EPIC-088** ✅ — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `search_tools` — **all marked retirable 2026-09-06**. `execute_tool` is **not** marked; see the note below |
 | 6 | EPIC-089 — Browser | `pages[i].editor`, and the same surface on board/HTML pages and the app window | all `browser_*` (15 tools) and the `mcp.browser-tools.enabled` setting |
 | 7 | EPIC-090 — Consolidation | Call-only flag, full QA re-run on Haiku and Codex, deletion, guide rewrite | `execute_script`, `read_guide`, and everything still standing |
 
@@ -114,8 +114,9 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `get_page_content`, `set_page_content` | **retirable** — `pages[i].content`, read and assigned | 086 ✅ |
 | `open_url` | `pages.openUrlInBrowserTab(url, options)` today; the planned unified `pages.openUrl` does not exist — **not retirable**, and wholly EPIC-089's, not 086's. See *The `open_url` correction* below | 089 |
 | `ui_push` | **retirable** — `pages.logView.push(entries)` on the well-known page, plus `dialogResult(id)` for answers; **non-blocking**, unlike the tool | 087 ✅ |
-| `create_board`, `open_board`, `board_refresh` | `boards.create/open`, `boards.refresh()` | 088 |
-| `create_toolset`, `refresh_toolset`, `execute_tool`, `search_tools` | `toolsets.*`, `toolsets.*` | 088 |
+| `create_board`, `open_board`, `board_refresh` | **retirable** — `boards.createBoard`/`createDemoBoard`/`openBoard` (already existed; the epic added `boards.list()`, without which no root could be discovered), and `pages[i].editor.reload()` on the board facade. The planned `boards.create/open` spelling and `boards.refresh()` were **not** adopted — see the note below | 088 ✅ |
+| `create_toolset`, `refresh_toolset`, `search_tools` | **retirable** — `tools.createToolset`, `tools.toolsets.refresh()`, `tools.search()` under a new root `tools` node (not `toolsets` — see below) | 088 ✅ |
+| `execute_tool` | `tools.execute(toolId, args)` exists and refuses an unknown id, but is **not marked**: its rows could not be exercised without spending the user's credentials on a live service or clicking the toolset trust dialog as the agent | 088 |
 | `browser_*` | `pages[i].editor.snapshot/click/type/...`; the same members on board/HTML facades and on `window.ui` for the app window | 089 |
 | `execute_script` | `script.execute(code)` — the renderer analogue of `main.script.execute` | 090 |
 | `read_guide` | MCP resources stay (`persephone://guides/*`); prose moves into `$help` | 090 |
@@ -166,6 +167,52 @@ assign JSON text at all: MCP clients parse `value` as JSON, so the error message
 end. And `pages.logView.push` silently accepted a *guessed* entry type, rendering a blank entry and
 returning an id, so the agent reported success while the user saw nothing — a silent success, which
 is the failure class this roadmap exists to remove.
+
+**EPIC-088 marked six more retirable (2026-09-06)**, on the same standard, and withheld one. Every
+row was exercised live through `call` first, and a Haiku agent with `call` alone passed the epic's
+scenario with **no wrong turns** — the first surface epic to produce none
+([qa/runs/2026-09-06-epic-088-boards-and-tools.md](../qa/runs/2026-09-06-epic-088-boards-and-tools.md)).
+
+`execute_tool` is **withheld**, and the reason is worth stating because it is not a defect in the
+replacement. `tools.execute` exists and behaves correctly on the paths that could be tested. But its
+three capability rows — run by id, the success shape, the failure shape — need a tool that can
+actually be run, and on this machine every registered toolset calls a live company service with the
+user's credentials (two of them return PHI). The alternative, registering a scratch toolset, needs a
+click on the "Register this toolset?" dialog. **That click was not taken.** An agent answering its
+own trust prompt would defeat exactly the property this epic exists to protect, and a marking bought
+that way would be worthless. So the row stays unmarked until a human runs one tool through the path,
+which is a single `call`.
+
+Two spelling deviations from the table above, both decided against the code rather than the plan:
+
+- The root node is **`tools`**, not `toolsets`. `ai-vision/root.ts` has reserved the name `tools`
+  since EPIC-083 specifically so this epic could claim it, and the user-facing feature is called
+  Agent Tools. Taking `toolsets` would have left a reserved-but-dead name at the root.
+- `board_refresh` became **`pages[i].editor.reload()`**, not `boards.refresh()`. The tool is
+  page-scoped in every detail — a `pageId` argument, an active-board default, and a frame-ready wait
+  — so a `boards`-level member would have had to invent "which board".
+
+And two facts about the boards half that the table hid: `create_board` and `open_board` were
+**already answered** by existing `boards` members, so no aliases were added; what `boards` actually
+lacked was **enumeration**, since all fourteen of its members took a root path and nothing could
+produce one. `boards.list()` is the real content of that retirement.
+
+Epic 5 also **added** surfaces that replace no tool: facades for the board page, Board Info, the
+toolset editor, the Tools hub, and Mneme config and root — none of which had one — the panel state
+the MCP Inspector facade never reported, and the two page openers (`pages.showToolsHubPage`,
+`pages.showMnemeConfigPage`) that existed on the model but had never been declared, so an agent
+could not open either screen.
+
+It also closed a privilege hole that predated it: `command` and `args` were **writable** on the MCP
+Inspector facade, so an agent could set a command line of its own choosing and call `connect()`,
+spawning a process with the user's privileges and no dialog. Both setters are gone; `url` stays.
+
+Two `call`-wide fixes came out of the run, neither of them descriptor work. **`MAX_DEPTH` in the
+result shaper was 4**, which truncated every tool's `inputSchema` to `{ note: "depth limit" }` — an
+agent could read a tool's description but not learn how to call it, making the replacement strictly
+worse than `search_tools`. And **a key set to `undefined` reaches an agent as `null`** across the
+MCP boundary, so absent optionals must be *omitted*, not assigned. Both are general to every surface
+and now apply to the rest of the roadmap.
 
 ### The `open_url` correction (2026-09-06)
 
