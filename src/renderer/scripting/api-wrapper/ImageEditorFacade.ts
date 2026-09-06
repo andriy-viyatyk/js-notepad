@@ -74,14 +74,23 @@ export class ImageEditorFacade implements IAiVisible {
     }
 
     saveOriginal(): Promise<void> {
+        this.requireImageSource("saveOriginal");
         return this.editor.saveOriginal();
     }
 
     openInDrawingEditor(): Promise<void> {
+        this.requireImageSource("openInDrawingEditor");
         return this.editor.openInDrawingEditor();
     }
 
     copyImageToClipboard(): Promise<void> {
         return copyImageToClipboard(this.editor);
+    }
+
+    private requireImageSource(member: "saveOriginal" | "openInDrawingEditor"): void {
+        const { url } = this.editor.state.get();
+        if (!this.editor.pipe && !url) {
+            throw new Error(`Image editor action unavailable: ${member} requires an image pipe or URL.`);
+        }
     }
 }

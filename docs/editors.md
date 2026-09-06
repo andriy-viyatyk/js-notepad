@@ -136,6 +136,10 @@ When you open an audio-only file (`.mp3`, `.wav`, `.aac`, `.flac`, `.m4a`, `.wma
 | `visualizer-effect` | `bars` | Active audio visualizer effect (`bars`, `circular`, `none`). Persisted automatically when you switch effects. |
 | `audio-shuffle` | `false` | Whether shuffle mode is enabled for audio playback. Persisted automatically when you toggle the Shuffle button. |
 
+**Scripting:** `const player = page.editor` — when `player.id === "video-view"`, scripts can read
+playback state and use `submitUrl`, `play`, `pause`, `seek`, `toggleMute`, `playNext`, and the
+visualizer/VLC actions. See the [editor API reference](./api/page.md#editor-facades).
+
 ## Image Viewer
 
 For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — opens automatically:
@@ -278,6 +282,10 @@ Compare two files side-by-side using Monaco's built-in diff viewer:
 - Navigate between changes
 
 See [Tabs & Navigation](./tabs-and-navigation.md) for more on tab grouping.
+
+**Scripting:** Use `app.pages.compare.pairs` to inspect active pairs, then
+`app.pages.compare.enter(pageId)` or `exit(pageId)` to control compare mode. See the
+[page API reference](./api/page.md#apppagescompare).
 
 ## Todo Lists
 
@@ -803,6 +811,10 @@ The **Run Script** toolbar button does not appear on the Git Diff editor — run
 **Persistence:** The selected From/To pair is saved with the tab and restored on the next app start or when the tab is re-opened via drag-and-drop between windows.
 
 **Error state:** If the file is not inside a git repo, or git is unavailable, the editor shows an explanatory message with a **Switch to Text Editor** button. The **Git Diff** switch button is also hidden for those files.
+
+**Scripting:** `const diff = page.editor` — when `diff.id === "file-diff"`, scripts can inspect
+the selected `from` and `to` revisions, `hasStaged`, and `readOnly`. These values may be
+`undefined` while repository state is loading. See the [editor API reference](./api/page.md#editor-facades).
 
 ## Git Integration Setting
 

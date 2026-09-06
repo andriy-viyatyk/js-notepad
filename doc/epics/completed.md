@@ -1,3 +1,64 @@
+## EPIC-086 — The page node redesign, and the text-and-preview editor family through `call`
+
+Completed 2026-09-06. [Epic document](EPIC-086.md). Epic 3 of 7 in the
+[agent transparency roadmap](../agent-transparency-roadmap.md). `create_page`, `get_page_content`
+and `set_page_content` are now **retirable** — every path exercised live through `call` first — but
+nothing was deleted; EPIC-090 does that behind the call-only flag.
+
+**The epic began by changing the shape of the page node, and that was the right call.** `pages[i]`
+carried thirteen `as*()` methods, the fossil of a single-text-host architecture Persephone no longer
+has: the page's main model *is* the editor model now, so `asGrid()` was a redundant segment in front
+of the thing the agent wanted. US-1310 replaced it with `page.editor` as the current facade, a
+discriminated union on `id`, plus `editorSwitches`, `tab` and `panels` — the structure a user would
+name if asked to describe a page. There were no scripts to protect, so nothing was kept for
+compatibility, and the release became **5.0.0** to say so.
+
+**Three surfaces had no facade at all.** Video and file diff were real editors `PageWrapper` never
+mapped, and compare is not an editor but a *mode* over a pair of pages. Video and file diff got
+ordinary facades; compare went to `pages.compare`, where a property of a pair belongs. All three
+now answer the questions the epic set them: what is playing, which revisions this diff is between,
+which pages are being compared.
+
+**The recurring defect across all seven tasks was silent success, and it had five faces.** A getter
+returning `false` for "no host attached", which asserts "not encrypted". A getter returning `""`
+for "I cannot see the document", indistinguishable from an empty document. `enterCompareMode`
+returning a bare `false` for two unrelated causes, so an agent could not tell "group these first"
+from "these cannot be compared". Editor actions hitting an `else { return; }` and resolving as
+though they had worked. And an `elements` list that would have declared selectors for canvas-drawn
+graph nodes and for DOM inside a sandboxed iframe — controls that can never be found, reported with
+`found: true`. Every one was caught in plan review or `/review` and fixed; the rule that came out of
+it is uniform across the family: **state getters return `undefined` when their backing model or view
+is not attached, and actions throw a diagnostic naming the missing precondition.**
+
+**The plan reviews paid for themselves in every task.** Five plans, five defects that would have
+shipped, including a fabricated code snippet citing a `FACADE_FOR_EDITOR` key (`"text-editor"`) that
+does not exist, and a live-media bridge built on a `data-part` DOM query — which would have worked,
+and then failed silently the first time a view was refactored. It was replaced with the repository's
+own view-to-model handoff pattern (`setMediaElement`, after `setContainer` and
+`setEditorOverlayRef`), which deleted the format branch and the page-scoping question along with it.
+
+**Two corrections were made to documents above this epic.** The editor-family table's control counts
+were first-pass estimates — image was 9 and is 3, video was 14 and is 10 — because structural roots,
+status labels, transient menu roots and generated native media controls are evidence of a render
+tree, not curated controls. And the roadmap said this epic retires "`open_url` for non-browser
+targets"; it has **no** non-browser branch, so there was nothing here to replace and the tool moved
+wholly to EPIC-089. Principle 3 is the only reason that did not ship as a promise.
+
+**Left for the user** — six items in the epic document's *Needs user check* section, none blocking.
+The most consequential: `strictNullChecks` is off, so the epic's central invariant is unenforceable
+by the compiler and rests on review discipline. One facade had already drifted (`html` declared
+`string`, returned `string | undefined`, `.d.ts` said `html?: string`, all green).
+
+**Acceptance:** Haiku with `call` as its only tool passed the epic's scenario with two markdown
+pages open — enumerated the page's capabilities from `page.editor`, and rang the correct page's
+control. One finding acted on: the markdown `$help` never said the preview re-renders automatically,
+so the agent spent two `helpSearch` calls hunting a refresh control that does not exist.
+Log: [qa/runs/2026-09-06-epic-086-editor-surfaces.md](../../qa/runs/2026-09-06-epic-086-editor-surfaces.md).
+
+**Tasks:** US-1310 (page node redesign), US-1311 (page-scoped elements), US-1312 (Monaco/text),
+US-1313 (preview family), US-1314 (media), US-1315 (diff and compare), US-1316 (graph),
+US-1317 (acceptance and retirable tools).
+
 ## EPIC-085 — The application shell through `call`: windows, Menu Bar, sidebar panels, Settings
 
 Completed 2026-09-05. [Epic document](EPIC-085.md). Epic 2 of 7 in the

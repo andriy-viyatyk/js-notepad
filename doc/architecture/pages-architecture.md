@@ -216,6 +216,12 @@ graph TD
 
 **Public interface:** [`/src/renderer/api/types/pages.d.ts`](../../src/renderer/api/types/pages.d.ts) — `IPageCollection` and `IPageInfo`
 
+Compare mode is a layout state over a grouped pair of text-file pages. The path-based
+`openDiff({ firstPath, secondPath })` operation groups the pages and enters compare mode; the
+script-facing `pages.compare` node reports active left/right pairs and provides validated
+`enter(pageId)` / `exit(pageId)` operations. Its curated compare controls are scoped to the left
+page slot, where the compare surface is mounted.
+
 ---
 
 ## 4. Internal Submodel Architecture

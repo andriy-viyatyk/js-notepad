@@ -97,12 +97,15 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Settings AiVision descriptor (catalog sections/keys, lifecycle-aware highlighting, browser-profile projections, and call-only self-severing guards) | `/src/renderer/scripting/ai-vision/namespaces/settings.ts` |
 | Page sidebar-panels AiVision node (live panel projection, bare-ID expansion, sidebar state/actions, and curated elements) | `/src/renderer/scripting/ai-vision/page-panels.ts` |
 | Page editor-switches AiVision node (current editor, toolbar-identical options, verified switching, and switch control elements) | `/src/renderer/scripting/ai-vision/page-editor-switches.ts` |
+| Page compare-mode AiVision node (active pairs, enter/exit actions, and page-scoped compare controls) | `/src/renderer/scripting/ai-vision/page-compare.ts` |
 | Curated element visibility and named highlight protocol | `/src/renderer/scripting/ai-vision/elements.ts`, `/src/renderer/scripting/ai-vision/namespaces/ui.ts` |
 | TypeScript transpilation | `/src/renderer/scripting/transpile.ts`            |
 | Async worker (renderer)  | `/src/renderer/scripting/worker/WorkerRunner.ts`  |
 | Async worker (main)      | `/src/main/worker-host.ts`                        |
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
 | Script-facing page wrapper and current-editor facade factory (read-only discriminated facade union with a GenericEditorFacade fallback) | `/src/renderer/scripting/api-wrapper/PageWrapper.ts`, `/src/renderer/scripting/api-wrapper/GenericEditorFacade.ts` |
+| Video/audio editor facade (model state, live media state, playback and source actions) | `/src/renderer/scripting/api-wrapper/VideoEditorFacade.ts` |
+| File Diff editor facade (revision identity and shared text controls) | `/src/renderer/scripting/api-wrapper/FileDiffEditorFacade.ts` |
 | Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
 | Monaco setup (languages, theme, keybindings, compiler and IntelliSense configuration; construction is delegated to the shared hosts) | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry (definitions + lazy module cache; `createEditor` and its sync twin `createEditorSync` — the sync path exists because `attachEditorToPage` sits under sync scripting APIs and reads the cache warmed by `preloadContentHostModules()` at registration; modules construct with `id: ""` and only a real `instanceId` is stamped; optional `EditorModule.newEditorModel(filePath)` is the file-open factory for standalone editors; embeddable editors expose `BodyView`) | `/src/renderer/editors/base/editorRegistry.ts`    |

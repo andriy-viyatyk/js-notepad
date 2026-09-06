@@ -2,9 +2,10 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-09-05
 **Started:** 2026-09-05
+**Completed:** 2026-09-06
 **Roadmap:** [agent-transparency-roadmap.md](../agent-transparency-roadmap.md), epic 3 of 7
 
 ## Overview
@@ -184,14 +185,14 @@ both with `found: true` — EPIC-085's *silent success* finding, waiting in a ne
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-1310 | The page node redesign — `page.editor` as the current facade, `editorSwitches`, removal of `as*()` from wrapper, typings, guides and docs | Reviewed |
-| [US-1311](../tasks/US-1311-page-scoped-elements/README.md) | Page-scoped selectors (`data-page-id`), activate-then-highlight, `page.tab`, proven on the Monaco editor's toolbar | Implemented |
-| [US-1312](../tasks/US-1312-monaco-text-surface/README.md) | The Monaco/text surface — toolbar, script panel, encryption and find/replace controls | Planned |
-| [US-1313](../tasks/US-1313-preview-family/README.md) | The preview family — markdown, HTML, SVG and mermaid | Planned |
-| [US-1314](../tasks/US-1314-media-surfaces/README.md) | Media — the image surface, and a new video facade | Planned |
-| [US-1315](../tasks/US-1315-diff-and-compare/README.md) | Diff — the file-diff facade, and compare mode on `pages` | Planned |
-| [US-1316](../tasks/US-1316-graph-surface/README.md) | The graph surface — toolbar, detail and legend panels, expansion settings | Planned |
-| [US-1317](../tasks/US-1317-editor-surface-acceptance/README.md) | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/*.md`; three tools marked retirable (`open_url` corrected, not marked) | Implemented |
+| [US-1310](../tasks/US-1310-page-node-redesign/README.md) | The page node redesign — `page.editor` as the current facade, `editorSwitches`, removal of `as*()` from wrapper, typings, guides and docs | Reviewed |
+| [US-1311](../tasks/US-1311-page-scoped-elements/README.md) | Page-scoped selectors (`data-page-id`), activate-then-highlight, `page.tab`, proven on the Monaco editor's toolbar | Reviewed |
+| [US-1312](../tasks/US-1312-monaco-text-surface/README.md) | The Monaco/text surface — toolbar, script panel, encryption and find/replace controls | Reviewed |
+| [US-1313](../tasks/US-1313-preview-family/README.md) | The preview family — markdown, HTML, SVG and mermaid | Reviewed |
+| [US-1314](../tasks/US-1314-media-surfaces/README.md) | Media — the image surface, and a new video facade | Reviewed |
+| [US-1315](../tasks/US-1315-diff-and-compare/README.md) | Diff — the file-diff facade, and compare mode on `pages` | Reviewed |
+| [US-1316](../tasks/US-1316-graph-surface/README.md) | The graph surface — toolbar, detail and legend panels, expansion settings | Reviewed |
+| [US-1317](../tasks/US-1317-editor-surface-acceptance/README.md) | Acceptance run on Haiku via `mcp-test-agent-call`; `qa/surfaces/editors/*.md`; three tools marked retirable (`open_url` corrected, not marked) | Reviewed |
 
 US-1310 comes first and is the largest: it touches every facade's help text, the `.d.ts` typings in
 `assets/editor-types/` and `src/renderer/api/types/`, `docs/api/page.md`, `docs/scripting.md`, the
@@ -249,6 +250,16 @@ can be re-verified rather than rediscovered.
    verified directly through `call` during implementation but were not put in front of a Haiku
    agent. **Assumption taken:** the full five-file Haiku sweep is EPIC-090's, where the call-only
    flag makes it the real gate.
+
+6. **`strictNullChecks` is off, so this epic's central invariant is unenforceable by the compiler.**
+   `tsconfig.json` sets `noImplicitAny` but not `strict`, so a getter declared `: string` may return
+   `undefined` and `npm run typecheck` passes. That is exactly how `MarkdownEditorFacade.html` came
+   to declare `string` while returning `string | undefined` and while its canonical `.d.ts` said
+   `html?: string` — three statements, two of them wrong, all green. Caught and fixed by hand here.
+   **Assumption taken:** not this epic's problem to solve; turning on `strictNullChecks` across the
+   codebase is a large, separate decision that is yours. But every "returns `undefined` when
+   unavailable" member added by EPIC-086 rests on review discipline rather than on the compiler, and
+   the next epic that adds facades inherits that exposure. Worth a task if you want it enforced.
 
 ## Notes
 

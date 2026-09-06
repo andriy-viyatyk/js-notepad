@@ -8,16 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-086** — [The text-and-preview editor family through `call`](epics/EPIC-086.md)
-  — epic 3 of the [agent transparency roadmap](agent-transparency-roadmap.md)
-  - [x] [US-1310: The page node redesign](tasks/US-1310-page-node-redesign/README.md) — `page.editor`, `editorSwitches`, removal of `as*()` (breaking; version 5.0.0)
-  - [ ] [US-1311: Page-scoped element selectors](tasks/US-1311-page-scoped-elements/README.md) — `data-page-id`, activate-then-highlight, `page.tab`
-  - [ ] [US-1312: The Monaco/text surface](tasks/US-1312-monaco-text-surface/README.md) — toolbar, script panel, encryption, native find/replace
-  - [ ] [US-1313: The preview family](tasks/US-1313-preview-family/README.md) — markdown, HTML, SVG, mermaid; the iframe boundary
-  - [ ] [US-1314: Media](tasks/US-1314-media-surfaces/README.md) — the image surface, and a new video facade
-  - [ ] [US-1315: Diff](tasks/US-1315-diff-and-compare/README.md) — the file-diff facade, and compare mode on `pages`
-  - [ ] [US-1316: The graph surface](tasks/US-1316-graph-surface/README.md) — toolbar, detail and legend panels, expansion settings
-  - [ ] [US-1317: Acceptance run and retirable tools](tasks/US-1317-editor-surface-acceptance/README.md) — Haiku gate, `qa/surfaces/editors/*.md`, three tools marked retirable
+*(no active epic)*
 
 ## Planned
 

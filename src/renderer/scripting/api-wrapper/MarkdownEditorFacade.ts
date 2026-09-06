@@ -18,7 +18,7 @@ const MARKDOWN_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "id", kind: "property", summary: "The concrete current editor id." },
     { name: "name", kind: "property", summary: "The editor's registry display name." },
     { name: "viewMounted", kind: "property", summary: "True if the markdown preview container is mounted in the DOM." },
-    { name: "html", kind: "property", summary: "The rendered HTML content from the preview container. Empty if view is not mounted." },
+    { name: "html", kind: "property", summary: "The rendered HTML content from the preview container, or undefined when the rendered view is not mounted." },
     { name: "compactMode", kind: "property", summary: "Whether compact spacing and typography are enabled." },
     { name: "searchVisible", kind: "property", summary: "Whether the Markdown find bar is open." },
     { name: "searchText", kind: "property", summary: "The current Markdown find text." },
@@ -89,7 +89,7 @@ export class MarkdownEditorFacade implements IAiVisible {
         return this.editor.viewMounted;
     }
 
-    get html(): string {
+    get html(): string | undefined {
         return this.editor.containerInnerHtml;
     }
 

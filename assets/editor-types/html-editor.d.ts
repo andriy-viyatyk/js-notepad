@@ -21,8 +21,10 @@ export interface IHtmlEditor {
     }[];
     /** Highlight one curated host-chrome control by name. */
     highlight(name: string, message?: string): Promise<IHighlightResult>;
-    /** The HTML source content. */
-    readonly html: string;
+    /** True if the HTML preview content host is attached. */
+    readonly viewMounted: boolean;
+    /** The HTML source content, or undefined when the rendered view is not mounted. */
+    readonly html?: string;
     readonly capturing: boolean;
 
     savePngToFile(filePath: string): Promise<string>;

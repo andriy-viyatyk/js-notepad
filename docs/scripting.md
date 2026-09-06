@@ -52,6 +52,10 @@ page.language = "json";
 // Get/set editor type
 await page.editorSwitches.switchTo("grid-json");  // Switch to grid view
 
+// Inspect or point at this page's tab
+console.log(page.tab.title, page.tab.modified);
+await page.tab.highlight("page-tab");
+
 // Custom data storage
 page.data.myValue = 123;
 ```
@@ -70,6 +74,29 @@ await page.editorSwitches.switchTo("monaco");
 ```
 
 Facades are stateless wrappers — nothing needs to be released. Event subscriptions made via `app.events` are still auto-unsubscribed when the script completes. See the [page API reference](./api/page.md#editor-facades) for the full list and detailed documentation.
+
+The same `page.editor` surface is available for the Video Player (`video-view`) and File Diff
+(`file-diff`) editors. Video scripts can inspect playback state or control playback; File Diff
+scripts can inspect the selected revisions and whether the modified side is read-only. Values that
+depend on a mounted editor or repository initialization may be `undefined` until that state is
+ready. The rendered `html` values on Markdown and HTML previews and the `svg` value on SVG previews
+are likewise `undefined` when their backing host is unavailable; their `viewMounted` properties
+distinguish that state from genuinely empty content. Mermaid's state-backed `svgUrl` uses `""`
+while it is loading or after a render error.
+
+For two grouped, comparable pages, compare mode is available from the pages collection:
+
+```javascript
+const pair = app.pages.compare.pairs[0];
+if (pair) {
+    app.pages.compare.enter(pair.leftPageId);
+    // ...inspect or update the compared pages...
+    app.pages.compare.exit(pair.rightPageId);
+}
+```
+
+`app.pages.compare.enter()` and `exit()` accept either page ID in the pair and report an error when
+the pair is missing, not comparable, or not currently in compare mode.
 
 ## Grouped Pages (Output)
 

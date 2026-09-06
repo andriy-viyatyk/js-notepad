@@ -16,7 +16,8 @@ const SVG_ELEMENTS = [
 const SVG_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "id", kind: "property", summary: "The concrete current editor id." },
     { name: "name", kind: "property", summary: "The editor's registry display name." },
-    { name: "svg", kind: "property", summary: "The SVG source content." },
+    { name: "viewMounted", kind: "property", summary: "True if the SVG preview content host is attached." },
+    { name: "svg", kind: "property", summary: "The SVG source content, or undefined when the rendered view is not mounted." },
     { name: "savePngToFile", kind: "method", signature: "savePngToFile(filePath: string): Promise<string>", summary: "Rasterise the SVG to PNG (1x scale) and write it to filePath. Parent directories are created as needed. Returns the written path.", caution: "writes a PNG and may overwrite the target" },
     { name: "openInDrawingEditor", kind: "method", signature: "openInDrawingEditor(): Promise<void>", summary: "Open the SVG as an image in a new Drawing Editor page.", caution: "opens a new Drawing Editor page" },
     { name: "copyImageToClipboard", kind: "method", signature: "copyImageToClipboard(): Promise<void>", summary: "Rasterise the SVG and copy it as a PNG to the clipboard.", caution: "writes rendered image data to the clipboard" },
@@ -56,12 +57,16 @@ export class SvgEditorFacade implements IAiVisible {
             help: SVG_EDITOR_HELP,
             elements: SVG_ELEMENTS,
             provide: elements.provide,
-            summarize: () => ({ kind: "SvgEditor", id: this.id, name: this.name, svgLength: this.svg.length }),
+            summarize: () => ({ kind: "SvgEditor", id: this.id, name: this.name, svgLength: this.svg?.length }),
         };
     }
 
-    get svg(): string {
-        return this.editor.host?.state.get().content ?? "";
+    get viewMounted(): boolean {
+        return this.editor.host !== null;
+    }
+
+    get svg(): string | undefined {
+        return this.editor.host?.state.get().content;
     }
 
     /** Render the SVG to PNG and write it to `filePath`. Returns the path. */

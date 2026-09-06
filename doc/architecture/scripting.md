@@ -23,7 +23,7 @@ ScriptRunner.run(script, page?, language?)
     │       │     ├── PageCollectionWrapper  ← wraps `app.pages`
     │       │     └── Events proxy ← wraps `app.events` (auto-tracks subscriptions)
     │       ├── page = PageWrapper      ← wraps `page` global
-    │       │     └── Editor facades (13 operation + generic)  ← page.editor
+    │       │     └── Editor facades (15 operation + generic)  ← page.editor
     │       ├── io = IoNamespace        ← wraps `io` global (providers, pipes, events)
     │       ├── ai = AiNamespace        ← wraps `ai` global (ClaudeSession)
     │       ├── ui getter (lazy, stack-based on globalThis)
@@ -87,6 +87,8 @@ interface IPage {
     readonly editor: IEditorFacade;
     // Toolbar switch projection and editor-switch operation
     readonly editorSwitches: IPageEditorSwitches;
+    // Page-tab identity and tab actions
+    readonly tab: IPageTab;
 
     // Script-local data storage (persists across runs within same session)
     data: Record<string, any>;
@@ -475,6 +477,8 @@ an operation facade still return a `GenericEditorFacade` with their `id` and dis
 | `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
 | `page.editor` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
 | `page.editor` | `ImageEditorFacade` | `ImageEditor` | `savePngToFile()` |
+| `page.editor` | `VideoEditorFacade` | `VideoEditor` | source/player state, live media state, playback, playlist, and visualizer actions |
+| `page.editor` | `FileDiffEditorFacade` | `FileDiffEditor` | selected revisions, staged-state and read-only projection |
 | `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade | `id`, `name` only |
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
@@ -485,6 +489,11 @@ list is what the toolbar offers, including compatible editors and board/install 
 accepts any registered editor id and verifies that the awaited switch actually changed the main
 editor. Its implementation is `/src/renderer/scripting/ai-vision/page-editor-switches.ts`, using the
 shared projection in `/src/renderer/editors/base/editor-switch-options.ts`.
+
+`pages.compare` is the page-collection node for active side-by-side compare pairs. Its `pairs`
+projection identifies both pages and their file paths; `enter(pageId)` and `exit(pageId)` accept
+either side and throw diagnostics when grouping, comparability, or active compare state is missing.
+Its two page-scoped controls are implemented by `/src/renderer/scripting/ai-vision/page-compare.ts`.
 
 The Mermaid, SVG, and Image editors expose `savePngToFile(filePath)` — they rasterise their
 rendered output to PNG and write it to disk. This is the same capability used by each editor's
@@ -850,6 +859,9 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `html-editor.d.ts` | `IHtmlEditor` |
 | `mermaid-editor.d.ts` | `IMermaidEditor` |
 | `graph-editor.d.ts` | `IGraphEditor`, `IGraphNode`, `IGraphComponent`, `IGraphSearchResult` |
+| `video-editor.d.ts` | `IVideoEditor` |
+| `file-diff-editor.d.ts` | `IFileDiffEditor` |
+| `compare.d.ts` | `ICompareMode`, `IComparePair` |
 | `browser-editor.d.ts` | `IBrowserEditor` — browser page operations |
 | `ui.d.ts` | `IUserInterface`, `ITextDialogOptions`, `ITextDialogResult`, `IHighlightOptions`, `IHighlightResult` — dialogs, notifications, and element highlights |
 | `ui-log.d.ts` | `IUiLog`, `IUiDialog`, `IUiShow`, `IProgress`, `IGrid`, `IGridColumn`, `IDialogResult`, `IStyledTextBuilder`, `IStyledLogBuilder` — Log View UI facade |
@@ -883,6 +895,8 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
     ├── MermaidEditorFacade.ts   # Mermaid diagram (read-only + savePngToFile)
     ├── GraphEditorFacade.ts     # Graph query/analysis (read-only, designed for MCP)
     ├── ImageEditorFacade.ts     # Image viewer (savePngToFile)
+    ├── VideoEditorFacade.ts     # Video/audio playback and media state
+    ├── FileDiffEditorFacade.ts  # File Diff revision state
     ├── BrowserEditorFacade.ts   # Browser page operations
     ├── McpInspectorFacade.ts    # MCP Inspector connection & troubleshooting
     ├── UiFacade.ts              # Log View UI (logging + dialogs + output)
@@ -892,6 +906,9 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
     ├── Markdown.ts              # Markdown helper class (returned by ui.show.markdown)
     ├── Mermaid.ts               # Mermaid helper class (returned by ui.show.mermaid)
     └── StyledTextBuilder.ts     # Fluent styled text builder + styledText() factory
+
+/src/renderer/scripting/ai-vision/
+└── page-compare.ts              # pages.compare pair projection and controls
 
 /src/renderer/api/types/
 ├── index.d.ts                   # Global: app, page, ui
@@ -910,6 +927,9 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
 ├── html-editor.d.ts             # IHtmlEditor
 ├── mermaid-editor.d.ts          # IMermaidEditor
 ├── graph-editor.d.ts            # IGraphEditor, IGraphNode, IGraphComponent, IGraphSearchResult
+├── video-editor.d.ts             # IVideoEditor
+├── file-diff-editor.d.ts         # IFileDiffEditor
+├── compare.d.ts                  # ICompareMode, IComparePair
 └── browser-editor.d.ts          # IBrowserEditor
 ```
 

@@ -117,6 +117,9 @@ app.pages.pinTab(pageId)          // Pin a tab
 app.pages.unpinTab(pageId)        // Unpin a tab
 app.pages.moveTab(fromId, toId)   // Reorder tabs
 await app.pages.openDiff({ firstPath, secondPath })  // Diff view
+app.pages.compare.pairs           // Active compare pairs with left/right page ids and paths
+app.pages.compare.enter(pageId)   // Enter compare mode for either member of a grouped pair
+app.pages.compare.exit(pageId)    // Leave compare mode for either member
 await app.pages.showBrowserPage({ url })              // Open browser tab
 await app.pages.openUrlInBrowserTab(url)              // Open URL in browser — returns the page id
 await app.pages.navigatePageTo(pageId, filePath, { revealLine, highlightText })
@@ -337,6 +340,42 @@ page.editor.savePngToFile("D:/tmp/photo.png");
 To simply *look at* an image page, you usually don't need a script at all: `get_page_content`
 returns the rendered PNG directly as an image block in the tool result. `savePngToFile` remains
 the way to put the image on disk (or to read one that is too large to inline).
+
+### `page.editor` when `id === "video-view"` — Video/audio facade
+
+```javascript
+const media = page.editor;
+media.source                 // Submitted source, or undefined before one is loaded
+media.format                 // "mp4", "m3u8", or "audio"
+media.playerState            // Loading/playback/error state
+media.mediaMounted           // Whether a live media element is attached
+media.currentTime            // Live position, or undefined before mount
+await media.submitUrl(source)
+await media.play()
+media.pause()
+media.seek(seconds)
+media.toggleMute()
+await media.playNext()
+media.toggleShuffle()
+media.setVisualizerEffect("bars")
+await media.openInVlc()
+```
+
+Live media getters are undefined before a media element is mounted. Playback, source, playlist,
+and VLC actions can affect an open page that is not currently visible; use them deliberately.
+
+### `page.editor` when `id === "file-diff"` — File Diff facade
+
+```javascript
+const diff = page.editor;
+diff.from       // Selected original revision, or undefined while loading
+diff.to         // Selected modified revision, or undefined while loading
+diff.hasStaged  // Whether staged changes were detected, or undefined while loading
+diff.readOnly   // Whether the selected modified revision is not the working tree
+```
+
+The revision picker controls are exposed through `diff.elements`; the File History sidebar is
+available through `page.panels`, not duplicated in the editor facade.
 
 ### `page.editor` when `id === "draw-view"`
 

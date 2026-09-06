@@ -160,6 +160,9 @@ export class VideoEditorFacade implements IAiVisible {
     }
 
     submitUrl(text: string): Promise<void> {
+        if (!text.trim()) {
+            throw new Error("Video editor action unavailable: submitUrl requires a non-empty URL, path, or cURL request.");
+        }
         return this.editor.submitUrl(text);
     }
 
@@ -183,6 +186,9 @@ export class VideoEditorFacade implements IAiVisible {
     }
 
     playNext(): Promise<void> {
+        if (!this.editor.canPlayNext) {
+            throw new Error("Video editor action unavailable: playNext requires canPlayNext to be true for a source provider and next track.");
+        }
         return this.editor.playNext();
     }
 
@@ -195,6 +201,9 @@ export class VideoEditorFacade implements IAiVisible {
     }
 
     openInVlc(): Promise<void> {
+        if (!this.source) {
+            throw new Error("Video editor action unavailable: openInVlc requires a submitted URL.");
+        }
         return this.editor.openInVlc();
     }
 

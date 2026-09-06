@@ -34,6 +34,8 @@ Mermaid preview facade with controls text-compare-left, mermaid-theme, mermaid-o
 mermaid-convert-excalidraw, mermaid-save, and mermaid-copy. The Save Image native file dialog is
 opened by mermaid-save. mermaid-open-draw opens a Drawing Editor page; conversion opens an
 Excalidraw page and can notify when the diagram is image-only or falls back to an image. The
+svgUrl is "" while loading or after an error, meaning the diagram is not yet rendered; this is
+deliberate because it is state-backed, unlike the optional source getters on the other preview facades.
 page-tab popup menu exposes Save, Save As..., Rename, Show in File Explorer, Copy File Path,
 Decrypt, Encrypt or Change Password, and Make Unencrypted. Rename File, Unsaved Changes, and
 password dialogs are transient and are accessed through dialogs. elements.visible reports DOM

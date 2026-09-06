@@ -16,7 +16,8 @@ const HTML_ELEMENTS = [
 const HTML_EDITOR_MEMBERS: readonly IAiMember[] = [
     { name: "id", kind: "property", summary: "The concrete current editor id." },
     { name: "name", kind: "property", summary: "The editor's registry display name." },
-    { name: "html", kind: "property", summary: "The HTML source content." },
+    { name: "viewMounted", kind: "property", summary: "True if the HTML preview content host is attached." },
+    { name: "html", kind: "property", summary: "The HTML source content, or undefined when the rendered view is not mounted." },
     { name: "capturing", kind: "property", summary: "Whether an HTML preview image capture is in progress." },
     { name: "savePngToFile", kind: "method", signature: "savePngToFile(filePath: string): Promise<string>", summary: "Capture the rendered HTML preview and write it as a PNG to filePath.", caution: "writes a PNG and may overwrite the target" },
     { name: "copyImageToClipboard", kind: "method", signature: "copyImageToClipboard(): Promise<void>", summary: "Capture the rendered HTML preview and copy it as a PNG.", caution: "writes rendered image data to the clipboard" },
@@ -61,14 +62,18 @@ export class HtmlEditorFacade implements IAiVisible {
             provide: elements.provide,
             summarize: () => ({
                 kind: "HtmlEditor", id: this.id, name: this.name,
-                htmlLength: this.html.length,
+                htmlLength: this.html?.length,
                 capturing: this.capturing,
             }),
         };
     }
 
-    get html(): string {
-        return this.editor.host?.state.get().content ?? "";
+    get viewMounted(): boolean {
+        return this.editor.host !== null;
+    }
+
+    get html(): string | undefined {
+        return this.editor.host?.state.get().content;
     }
 
     get capturing(): boolean {

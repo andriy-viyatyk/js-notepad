@@ -21,8 +21,10 @@ export interface ISvgEditor {
     }[];
     /** Highlight one curated preview control by name. */
     highlight(name: string, message?: string): Promise<IHighlightResult>;
-    /** The SVG source content. */
-    readonly svg: string;
+    /** True if the SVG preview content host is attached. */
+    readonly viewMounted: boolean;
+    /** The SVG source content, or undefined when the rendered view is not mounted. */
+    readonly svg?: string;
 
     /**
      * Rasterise the SVG to PNG (1× scale) and write it to `filePath`. Parent

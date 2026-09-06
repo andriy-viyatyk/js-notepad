@@ -418,6 +418,8 @@ operation facade use `GenericEditorFacade`, which exposes only identity metadata
 | `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` |
 | `page.editor` | `McpInspectorFacade` | `McpInspectorEditorModel` |
 | `page.editor` | `ImageEditorFacade` | `ImageEditor` |
+| `page.editor` | `VideoEditorFacade` | `VideoEditor` |
+| `page.editor` | `FileDiffEditorFacade` | `FileDiffEditor` |
 | `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade |
 
 Facades live in `/src/renderer/scripting/api-wrapper/`. Interfaces in `/src/renderer/api/types/*.d.ts`.

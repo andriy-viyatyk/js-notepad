@@ -83,6 +83,7 @@ persephone/
 ├── qa/                     # MCP QA suites, split between tool-oriented and surface-oriented tests
 │   ├── mcp-test-*.md       # Tests grouped by MCP tool
 │   ├── surfaces/           # Tests grouped by the application surface under test
+│   │   └── editors/        # Manual call-only checks for editor facades and controls
 │   └── runs/               # Recorded test-agent runs
 ├── patches/                # Dependency patches (patch-package)
 ├── .mcp.json               # MCP server config for Claude Code (points to MCP HTTP server)
@@ -709,6 +710,8 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── HtmlEditorFacade.ts     # IHtmlEditor facade
 │       ├── MermaidEditorFacade.ts  # IMermaidEditor facade
 │       ├── GraphEditorFacade.ts   # IGraphEditor facade (graph query/analysis, designed for MCP)
+│       ├── VideoEditorFacade.ts    # IVideoEditor facade (playback and media state)
+│       ├── FileDiffEditorFacade.ts # IFileDiffEditor facade (revision state)
 │       ├── UiFacade.ts             # Log View UI (logging + dialogs + output)
 │       ├── Progress.ts            # Progress helper class (returned by ui.show.progress)
 │       ├── Grid.ts                # Grid helper class (returned by ui.show.grid)
@@ -719,6 +722,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   └── ai-vision/           # Renderer AiVision root, call/attention entry points, and descriptors
 │       ├── dialogs/         # ViewId-keyed adapters for renderer dialogs
 │       ├── menus/           # Popup-menu adapter and indexed menus node
+│       ├── page-compare.ts  # pages.compare pair projection and controls
 │       └── elements.ts      # Curated element visibility and highlight protocol
 │
 ├── automation/             # Browser Automation (Playwright-compatible MCP tools)

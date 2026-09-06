@@ -183,8 +183,8 @@ export class MarkdownEditor extends TextHostEditorModel<
 
     // ── Facade-only accessors ─────────────────────────────────────
 
-    get containerInnerHtml(): string {
-        return this._containerRef?.innerHTML ?? "";
+    get containerInnerHtml(): string | undefined {
+        return this._containerRef?.innerHTML;
     }
 
     get viewMounted(): boolean {

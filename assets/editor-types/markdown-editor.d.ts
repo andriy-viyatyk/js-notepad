@@ -26,8 +26,8 @@ export interface IMarkdownEditor {
     /** True if the markdown preview container is mounted in the DOM. */
     readonly viewMounted: boolean;
 
-    /** The rendered HTML content from the preview container. Empty if view is not mounted. */
-    readonly html: string;
+    /** The rendered HTML content, or undefined when the rendered view is not mounted. */
+    readonly html?: string;
 
     readonly compactMode: boolean;
     readonly searchVisible: boolean;
