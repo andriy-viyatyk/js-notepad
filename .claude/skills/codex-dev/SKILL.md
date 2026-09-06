@@ -177,6 +177,35 @@ The `threadId` comes back in the result's `structuredContent.threadId`. Record t
 and keep it through step 3. If you lose it, `codex exec resume --last` is the fallback, but
 a lost thread means Codex re-reads the codebase — wasteful, though only of the cheap budget.
 
+## When the MCP call aborts but Codex keeps working
+
+`mcp__codex__codex` and `codex-reply` abort after **30 idle minutes** without progress. Codex does
+not stop — it keeps working and its final message is simply lost to you. Do **not** resend the
+prompt (that starts a second, duplicate run). Instead use the two scripts in
+`.claude/skills/codex-dev/scripts/`, which read the rollout log directly:
+
+```
+# block until the thread's open turn ends (task_complete / turn_aborted), then print the final message
+python .claude/skills/codex-dev/scripts/codex-wait.py --thread <threadId>     # run in the background
+
+# status + last agent message(s) of a thread, any time
+python .claude/skills/codex-dev/scripts/codex-last.py --thread <threadId>     # -n 3, --full, --subagents
+python .claude/skills/codex-dev/scripts/codex-last.py --list                  # recent threads with status
+```
+
+- The rollout log has a definitive end marker: `event_msg/task_complete` carrying
+  `last_agent_message` (or `turn_aborted`). `codex-wait.py` returns on that, so there is no need to
+  guess from silence. Exit 0 = complete (final message printed), 3 = aborted, 2 = stalled (no log
+  growth — including the thread's sub-agent logs — for `--idle` seconds, default 240), 4 = `--timeout`.
+- It watches file **size**, never mtime: Windows does not update mtime while Codex holds the handle,
+  so an mtime-based watcher fires early.
+- Always pass `--thread`. Without it the newest top-level thread is used, which may be a QA or
+  sub-agent thread rather than yours. If the abort lost the id, `codex-last.py --list` shows it.
+- Run `codex-wait.py` with `run_in_background` and continue with other work; the notification
+  brings the final message. Then proceed exactly as if the MCP call had returned it.
+- `codex-last.py` also shows the thread's context usage (`context: n / window`), which tells you
+  whether thread A can still take the correction round or needs the escape hatch above.
+
 Codex streams progress as `codex/event` notifications while it works. Those do **not**
 enter your context — only the final message does. That is precisely why the output contract
 is the whole game: a thirty-minute Codex investigation costs you exactly the ten lines you
