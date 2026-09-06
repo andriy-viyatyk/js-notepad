@@ -100,6 +100,7 @@ class ResultItemView extends VanillaView<ResultItemViewProps> {
 
     public constructor(props: ResultItemViewProps) {
         super(props, createPanelElement({ direction: "column", gap: "xs" }));
+        this.root.dataset.type = "mcp-tool-result-item";
         (this.root as ResultItemViewRoot).view = this;
     }
 
@@ -119,7 +120,10 @@ class ResultItemView extends VanillaView<ResultItemViewProps> {
 
     private renderItem(props: ResultItemViewProps): void {
         const { item, isError } = props;
+        // Only an item that hosts a Monaco editor grows to fill the RESULT panel; an image or a
+        // resource link keeps its natural size, so a one-line link never claims half the panel.
         if (item.type === "text") {
+            this.root.dataset.grow = "true";
             const textView = this.child(new TextResultView({ text: item.text, isError }));
             this.textViews.add(textView);
             this.root.append(textView.root);
@@ -137,9 +141,13 @@ class ResultItemView extends VanillaView<ResultItemViewProps> {
             return;
         }
         if (item.type === "resource") {
-            const resourcePanel = createPanelElement({ direction: "column", gap: "xs" });
+            const hasText = !!item.resource.text;
+            const resourcePanel = createPanelElement(hasText
+                ? { direction: "column", gap: "xs", flex: true, minHeight: 0, overflow: "hidden" }
+                : { direction: "column", gap: "xs" });
             resourcePanel.append(createTextElement(item.resource.uri, { size: "xs", color: "primary" }));
             if (item.resource.text) {
+                this.root.dataset.grow = "true";
                 const textView = this.child(new TextResultView({ text: item.resource.text }));
                 this.textViews.add(textView);
                 resourcePanel.append(textView.root);
@@ -159,6 +167,7 @@ class ResultItemView extends VanillaView<ResultItemViewProps> {
     private disposeContent(): void {
         this.textViews.forEach((view) => { this.releaseChild(view); });
         this.textViews.clear();
+        delete this.root.dataset.grow;
         this.root.replaceChildren();
     }
 }

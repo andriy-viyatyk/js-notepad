@@ -8,4 +8,16 @@
     [data-type="mcp-server-info"] a {
         color: inherit;
     }
+
+    /*
+     * A tool result item that hosts a Monaco editor fills the RESULT panel. Without this the item
+     * is flex: 0 1 auto, its editor host resolves height: 100% against an auto-height parent, and
+     * the editor collapses to TextResultView's 40px floor while the panel above it stays empty.
+     * Several text items share the space evenly; image and resource-link items keep natural size.
+     */
+    [data-type="mcp-tool-result-item"][data-grow="true"] {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow: hidden;
+    }
 }

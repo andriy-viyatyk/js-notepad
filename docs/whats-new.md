@@ -32,6 +32,11 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Bug Fixes
 
+- **The MCP Inspector's result editor now fills the RESULT panel** — calling a tool from the Inspector
+  showed its result in an editor about 40 pixels tall, with the rest of the RESULT panel left empty,
+  no matter how much room the panel had or how long the result was. The editor now fills the panel
+  and follows it as you drag the splitter.
+
 - **HTML Preview no longer goes blank in installed builds** — HTML that uses browser history methods to manage its own tabs could render in development but show a blank preview in a packaged installation. The preview now remains visible.
 
 - **The Tor info button no longer appears on ordinary browser pages** — a "Tor connection info"
