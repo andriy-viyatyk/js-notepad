@@ -10,6 +10,12 @@ import { pageTools } from "./tools/page-tools";
 import { createToolContext } from "./tools/params";
 import { windowTools } from "./tools/window-tools";
 
+// Enabled values are 1, true, and yes (case-insensitive); unset/empty and 0, false, and no are disabled.
+function isMcpCallOnlyEnabled(value: string | undefined): boolean {
+    const normalizedValue = value?.trim().toLowerCase();
+    return normalizedValue === "1" || normalizedValue === "true" || normalizedValue === "yes";
+}
+
 /**
  * Creates a new McpServer — one per session, as the SDK requires one transport per
  * server. Tools are data (see `tools/`); this assembles the complete group list for
@@ -20,15 +26,17 @@ export function createMcpServer(): McpServerInstance {
     const server = new McpServer(getServerInfo(), { instructions: SERVER_INSTRUCTIONS });
 
     const ctx = createToolContext(z);
-    const groups = [
-        callTools(ctx),
-        windowTools(ctx),
-        pageTools(ctx),
-        boardTools(ctx),
-        agentTools(ctx),
-        browserTools(ctx),
-        guideTools(ctx),
-    ];
+    const groups = isMcpCallOnlyEnabled(process.env.PERSEPHONE_MCP_CALL_ONLY)
+        ? [callTools(ctx)]
+        : [
+            callTools(ctx),
+            windowTools(ctx),
+            pageTools(ctx),
+            boardTools(ctx),
+            agentTools(ctx),
+            browserTools(ctx),
+            guideTools(ctx),
+        ];
     for (const group of groups) {
         registerTools(server, group);
     }

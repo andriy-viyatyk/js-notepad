@@ -30,6 +30,24 @@ Release notes and changelog for Persephone (formerly js-notepad).
   and arguments; this prevents an agent from starting an arbitrary process with the user's
   privileges.
 
+### For agent integrations
+
+- **The `PERSEPHONE_MCP_CALL_ONLY` migration flag can limit the MCP tool manifest.** When set to
+  `1`, `true`, or `yes` (case-insensitive), a newly initialized MCP session registers only the
+  `call` tool. The flag is off by default, and unset, empty, `0`, `false`, `no`, or any other value
+  leaves the complete manifest enabled. Focused guide resources and
+  `persephone://guides/full` remain available in both modes. Set the flag before launch, for
+  example:
+
+  ```powershell
+  $env:PERSEPHONE_MCP_CALL_ONLY = "1"
+  npm start
+  ```
+
+  Changing the flag requires restarting the Persephone process; after the restart, initialize a
+  new MCP session to receive the changed tool manifest. Reconnecting alone does not change a
+  running process.
+
 ### Bug Fixes
 
 - **The MCP Inspector's result editor now fills the RESULT panel** — calling a tool from the Inspector

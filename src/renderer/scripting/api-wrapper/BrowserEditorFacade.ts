@@ -85,7 +85,11 @@ metadata plus an inline image block through call. Transient menus, drawers, dial
 downloads, and popup actions are not part of the default curated elements list; use the chrome control
 that opens them first. snapshot() reports a field's role, accessible name and ref but never its
 value — verified for password and ordinary text inputs alike — so read a value with getValue() or
-evaluate() when you actually need it.`;
+evaluate() when you actually need it.
+waitForNavigation() waits for the document loaded RIGHT NOW to finish loading (document.readyState
+=== complete). It is not a navigation detector: if the old document is still in place and already
+complete, it returns at once. After pages.openUrlInBrowserTab(...), or for an SPA, prefer
+waitFor({ selector }) or waitFor({ text }).`;
 
 /**
  * Safe facade around BrowserEditorModel for script access.

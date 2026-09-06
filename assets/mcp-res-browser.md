@@ -157,8 +157,7 @@ the app window can use the UI highlight facilities.
 
 ## Navigation, input, and privacy
 
-Navigation, opener readiness, and the two-phase wait behavior are owned by the existing browser
-members; inspect `pages[i].editor.$help` and the `waitForNavigation` member summary before acting.
+`waitForNavigation()` waits for the document loaded RIGHT NOW to finish loading (`document.readyState === complete`). It is not a navigation detector: if the old document is still in place and already complete, it returns at once. After `pages.openUrlInBrowserTab(...)`, or for an SPA, prefer `waitFor({ selector })` or `waitFor({ text })`.
 
 For browser and board inputs, use `type` for ordinary fields; it clears the old value and
 dispatches the input/change events needed by frameworks. In the app window, prefer

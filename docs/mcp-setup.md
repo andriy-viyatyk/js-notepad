@@ -48,6 +48,25 @@ In ChatGPT settings → MCP Servers → Add:
 gemini --mcp-server http://127.0.0.1:7865/mcp
 ```
 
+## Call-only tool manifest
+
+For migration or QA work, set `PERSEPHONE_MCP_CALL_ONLY` before launching Persephone to register
+only the `call` tool. The enabled values are `1`, `true`, and `yes` (case-insensitive); unset,
+empty, `0`, `false`, `no`, and any other value leave the normal tool manifest enabled. Focused
+guide resources and `persephone://guides/full` remain available in either mode.
+
+In PowerShell, launch the development app with:
+
+```powershell
+$env:PERSEPHONE_MCP_CALL_ONLY = "1"
+npm start
+```
+
+For an installed build, launch it from a shell or shortcut that carries the same environment
+variable. Changing the variable requires restarting the Persephone process. After the restart,
+initialize a new MCP session to see only `call`; reconnecting alone does not change a running
+process, and the guide resources remain available.
+
 ## Available Tools
 
 | Tool | Description |
