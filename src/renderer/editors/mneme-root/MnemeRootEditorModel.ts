@@ -283,6 +283,9 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
 
     /** Update the search mode; takes effect on the next `runSearch()`. */
     setMode(mode: MnemeSearchMode): void {
+        if (mode !== "text" && mode !== "vector" && mode !== "hybrid") {
+            throw new Error(`Invalid Mneme search mode ${JSON.stringify(mode)}; expected text, vector, or hybrid.`);
+        }
         this.state.update((s) => { s.searchMode = mode; });
     }
 

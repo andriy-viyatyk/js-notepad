@@ -28,6 +28,8 @@ import type { IBoardEditor } from "./board-editor";
 import type { IBoardInfoEditor } from "./board-info-editor";
 import type { IToolsetEditor } from "./toolset-editor";
 import type { IToolsHubEditor } from "./tools-hub-editor";
+import type { IMnemeConfigEditor } from "./mneme-config-editor";
+import type { IMnemeRootEditor } from "./mneme-root-editor";
 
 /** The operation-bearing editor ids represented by the facade union. */
 export type IFacadeEditorId =
@@ -36,7 +38,8 @@ export type IFacadeEditorId =
     | "notebook-view" | "rest-client" | "env-vars-view" | "archive-view" | "link-view" | "md-view" | "svg-view" | "html-view"
     | "mermaid-view" | "graph-view" | "draw-view" | "browser-view" | "mcp-view" | "image-view" | "video-view" | "file-diff" | "log-view"
     | "category-view" | "git-tree"
-    | "board-view" | `board-editor:${string}` | "board-info" | "toolset-view" | "tools-hub-view";
+    | "board-view" | `board-editor:${string}` | "board-info" | "toolset-view" | "tools-hub-view"
+    | "mneme-config" | "mneme-root";
 
 /** Built-in editors without an operation facade, plus runtime custom board ids. */
 export type IGenericEditorId = Exclude<EditorView, IFacadeEditorId>
@@ -47,7 +50,8 @@ export type IEditorFacade =
     | IMarkdownEditor | ISvgEditor | IHtmlEditor | IMermaidEditor | IGraphEditor
     | IDrawEditor | IMcpInspectorEditor | IImageEditor | IVideoEditor | IFileDiffEditor | ILogViewEditor
     | IFolderViewEditor | IGitTreeEditor | IGenericEditor
-    | IBoardEditor | IBoardInfoEditor | IToolsetEditor | IToolsHubEditor;
+    | IBoardEditor | IBoardInfoEditor | IToolsetEditor | IToolsHubEditor
+    | IMnemeConfigEditor | IMnemeRootEditor;
 
 /**
  * IPage — represents a page (tab) in the current window.

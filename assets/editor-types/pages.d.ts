@@ -110,6 +110,9 @@ export interface IPageCollection {
     /** Show an MCP Inspector page, optionally with a pre-filled URL. */
     showMcpInspectorPage(options?: { url?: string }): Promise<void>;
 
+    /** Show the Mneme configuration page. */
+    showMnemeConfigPage(): Promise<void>;
+
     /** Show the Tools & Editors hub, optionally selecting a tab. */
     showToolsHubPage(options?: { tab?: HubTab }): Promise<void>;
 

@@ -56,10 +56,14 @@ import { BoardEditorFacade } from "./BoardEditorFacade";
 import { BoardInfoEditorFacade } from "./BoardInfoEditorFacade";
 import { ToolsetEditorFacade } from "./ToolsetEditorFacade";
 import { ToolsHubEditorFacade } from "./ToolsHubEditorFacade";
+import { MnemeConfigEditorFacade } from "./MnemeConfigEditorFacade";
+import { MnemeRootEditorFacade } from "./MnemeRootEditorFacade";
 import type { CategoryEditorModel } from "../../editors/category/CategoryEditorModel";
 import type { GitTreeEditorModel } from "../../editors/git-tree/GitTreeEditorModel";
 import type { ToolsetEditorModel } from "../../editors/toolset/ToolsetEditorModel";
 import type { ToolsHubEditor } from "../../editors/tools-hub/ToolsHubEditor";
+import type { MnemeConfigEditorModel } from "../../editors/mneme-config/MnemeConfigEditorModel";
+import type { MnemeRootEditorModel } from "../../editors/mneme-root/MnemeRootEditorModel";
 
 type EditorOrHost = EditorModel | TextFileModel;
 type EditorFacade =
@@ -69,7 +73,8 @@ type EditorFacade =
     | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
     | EnvVarsEditorFacade | ArchiveEditorFacade
     | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | BoardEditorFacade
-    | BoardInfoEditorFacade | ToolsetEditorFacade | ToolsHubEditorFacade | GenericEditorFacade;
+    | BoardInfoEditorFacade | ToolsetEditorFacade | ToolsHubEditorFacade
+    | MnemeConfigEditorFacade | MnemeRootEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const BOARD_FACADE_FACTORY: EditorFacadeFactory = (editor, id, name) =>
@@ -106,6 +111,8 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "board-info": BOARD_INFO_FACADE_FACTORY,
     "toolset-view": (editor, id, name) => new ToolsetEditorFacade(editor as ToolsetEditorModel, id as "toolset-view", name),
     "tools-hub-view": (editor, id, name) => new ToolsHubEditorFacade(editor as ToolsHubEditor, id as "tools-hub-view", name),
+    "mneme-config": (editor, id, name) => new MnemeConfigEditorFacade(editor as MnemeConfigEditorModel, id as "mneme-config", name),
+    "mneme-root": (editor, id, name) => new MnemeRootEditorFacade(editor as MnemeRootEditorModel, id as "mneme-root", name),
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [

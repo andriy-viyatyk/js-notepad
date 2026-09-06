@@ -269,7 +269,7 @@ paths are proven, and the tools themselves are not touched.
 | [US-1328](../tasks/US-1328-tools-root-node/README.md) | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Implemented |
 | [US-1329](../tasks/US-1329-toolset-and-tools-hub/README.md) | The toolset editor and the Tools hub | Implemented |
 | [US-1330](../tasks/US-1330-mcp-inspector-surface/README.md) | The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels | Implemented |
-| US-1331 | Mneme config and Mneme root | Planned |
+| [US-1331](../tasks/US-1331-mneme-surfaces/README.md) | Mneme config and Mneme root | Implemented |
 | US-1332 | Acceptance run on Haiku; `qa/surfaces/editors/boards.md` and `qa/surfaces/tools.md`; seven tools marked retirable | Planned |
 
 US-1325 → US-1327 (boards) and US-1328 → US-1329 (tools) are two independent chains; US-1330 and

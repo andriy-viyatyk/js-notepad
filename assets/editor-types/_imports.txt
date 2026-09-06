@@ -34,6 +34,8 @@ markdown-editor.d.ts
 mcp-inspector-editor.d.ts
 menu-folders.d.ts
 mermaid-editor.d.ts
+mneme-config-editor.d.ts
+mneme-root-editor.d.ts
 notebook-editor.d.ts
 page-editor-switches.d.ts
 page-panels.d.ts
