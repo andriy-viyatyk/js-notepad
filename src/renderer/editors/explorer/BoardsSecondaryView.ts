@@ -6,7 +6,6 @@ import { toolsTrust } from "../../api/tools/tools-trust";
 import { registeredTools } from "../../api/tools/registered-tools";
 import { createLinkData } from "../../../shared/link-data";
 import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
-import { openToolset } from "../../content/persephone-toolset-link";
 import { showCreateBoardDialog } from "../../ui/dialogs/CreateBoardDialog";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import { fpBasename, fpNormalizeForCompare } from "../../core/utils/file-path";
@@ -28,14 +27,13 @@ import {
     type SideBarPanelHeaderHandle,
 } from "../../ui/secondary-views/SideBarPanelHeaderView";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
-import type { ExplorerEditor } from "./ExplorerEditorModel";
+import type { ExplorerEditor, ExplorerBoardsTab } from "./ExplorerEditorModel";
 import { BoardsTreeView } from "../board/BoardsTreeView";
 import { ToolsTreeView } from "../tools/ToolsTreeView";
 import { isBoardRootBusy, subscribeBusyBoardRoots } from "../board/busy-boards";
 import "../../uikit/Button/Button.css";
 import "../../uikit/SegmentedControl/SegmentedControl.css";
 
-type BoardTab = "boards" | "tools";
 type BodyView = BoardsTreeView | ToolsTreeView | BoardsEmptyBodyView;
 
 class BoardsEmptyBodyView extends VanillaView<{
@@ -107,7 +105,6 @@ class BoardsEmptyBodyView extends VanillaView<{
 
 export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps> {
     private model: ExplorerEditor;
-    private tab: BoardTab = "boards";
     private header: SideBarPanelHeaderHandle | undefined;
     private closeButton: IconButtonView | undefined;
     private switchBar: HTMLDivElement | undefined;
@@ -154,6 +151,10 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
         this.updateSwitchBar();
 
         this.bind(this.model.state, (state) => state.rootPath, () => this.refreshBody());
+        this.bind(this.model.boardsTabState, (state) => state.value, () => {
+            this.segmentedControl?.update(this.segmentedProps());
+            this.refreshBody();
+        });
         this.own(boardTrust.subscribePaths(() => this.refreshBody()));
         this.own(registeredTools.subscribeToolsets(() => this.refreshBody()));
         this.own(subscribeBusyBoardRoots(() => this.refreshBody()));
@@ -205,11 +206,9 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
         return {
             name: "boards-tools-switch",
             size: "sm" as const,
-            value: this.tab,
+            value: this.model.boardsTab,
             onChange: (value: string) => {
-                this.tab = value as BoardTab;
-                this.updateSwitchBar();
-                this.refreshBody();
+                this.model.setBoardsTab(value as ExplorerBoardsTab);
             },
             items: [
                 { value: "boards", label: "Boards" },
@@ -250,7 +249,7 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
         if (!switchBar || !segmentedControl) return;
 
         switchBar.replaceChildren(segmentedControl.root);
-        if (this.tab === "boards" && this.splitButton) switchBar.append(this.splitButton.root);
+        if (this.model.boardsTab === "boards" && this.splitButton) switchBar.append(this.splitButton.root);
 
         if (this.props.expanded !== false) {
             const bodyRoot = this.body?.root;
@@ -263,10 +262,10 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
 
     private refreshBody(): void {
         const rootPath = this.model.rootPath;
-        const boards = this.filteredBoards(rootPath);
-        const toolsets = this.filteredToolsets(rootPath);
+        const boards = this.model.listBoards();
+        const toolsets = this.model.listToolsets();
 
-        if (this.tab === "boards") {
+        if (this.model.boardsTab === "boards") {
             this.pruneBusyIndicators(boards);
             if (boards.length === 0) this.ensureEmptyBody();
             else this.ensureBoardsBody(boards, rootPath);
@@ -277,32 +276,12 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
         this.updateSwitchBar();
     }
 
-    private filteredBoards(rootPath: string): string[] {
-        if (!rootPath) return [];
-        const rootKey = fpNormalizeForCompare(rootPath);
-        return boardTrust.listPaths().filter((path) => {
-            const key = fpNormalizeForCompare(path);
-            return key === rootKey || key.startsWith(rootKey + "/");
-        });
-    }
-
-    private filteredToolsets(rootPath: string): Array<{ root: string; name: string }> {
-        if (!rootPath) return [];
-        const rootKey = fpNormalizeForCompare(rootPath);
-        return registeredTools.toolsets
-            .filter((toolset) => {
-                const key = fpNormalizeForCompare(toolset.root);
-                return key === rootKey || key.startsWith(rootKey + "/");
-            })
-            .map((toolset) => ({ root: toolset.root, name: toolset.name }));
-    }
-
     private ensureBoardsBody(boards: string[], rootPath: string): void {
         const props = {
             name: "explorer-boards",
             boards,
             baseRoot: rootPath,
-            onOpenBoard: (root: string) => this.openBoard(root),
+            onOpenBoard: (root: string) => this.model.openBoard(root),
             renderTrailing: (root: string): Node | undefined => this.renderTrailing(root),
             getBoardContextMenu: (root: string) => this.getBoardContextMenu(root),
         };
@@ -318,7 +297,7 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
             name: "explorer-tools",
             toolsets,
             baseRoot: rootPath,
-            onOpenToolset: (root: string) => this.openToolsetInPage(root),
+            onOpenToolset: (root: string) => { void this.model.openToolset(root); },
             getContextMenu: (root: string) => this.getToolsetContextMenu(root),
             emptyMessage: "No registered tools under this folder.",
         };
@@ -380,18 +359,6 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
         this.busyIndicators.clear();
     }
 
-    private openToolsetInPage(root: string): void {
-        openToolset(root, { pageId: this.model.page?.id ?? "", sourceId: "explorer" });
-    }
-
-    private openBoard(root: string): void {
-        app.events.openRawLink.sendAsync(createLinkData(encodePersephoneBoardLink(root), {
-            pageId: this.model.page?.id ?? "",
-            sourceId: "explorer",
-            explorerRoot: this.model.rootPath,
-        }));
-    }
-
     private openBoardInNewTab(root: string): void {
         app.events.openRawLink.sendAsync(createLinkData(encodePersephoneBoardLink(root), {
             sourceId: "explorer",
@@ -405,7 +372,7 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
             template: "board-template",
             defaultFolder: this.model.rootPath,
         });
-        if (root) this.openBoard(root);
+        if (root) this.model.openBoard(root);
     }
 
     private async createDemoBoard(): Promise<void> {
@@ -415,7 +382,7 @@ export default class BoardsSecondaryView extends VanillaView<SecondaryViewProps>
             defaultName: "Demo",
             defaultFolder: this.model.rootPath,
         });
-        if (root) this.openBoard(root);
+        if (root) this.model.openBoard(root);
     }
 
     private getBoardContextMenu(root: string): MenuItem[] {

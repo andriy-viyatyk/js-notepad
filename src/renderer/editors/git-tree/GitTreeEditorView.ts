@@ -139,7 +139,6 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
     private activeBottomView: CommitInfoPanelView | CommitDiffPanelView | undefined;
     private activeBottomTab: "commit" | "diff" | undefined;
 
-    private selectedHash: string | undefined;
     private containerHeight = 0;
     private loading = false;
     private gitOk = true;
@@ -218,6 +217,7 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
         this.bind(this.model.state, selectEditorSurface, this.syncEditorState);
         this.bind(this.model.gitTree.state, selectGitTreeSurface, this.syncGitTreeSurface);
         this.bind(this.model.branches.state, selectToolbarState, this.syncToolbarState);
+        this.bind(this.model.selectionState, (state) => state.selectedHash, this.syncSelectedCommit);
     }
 
     protected onUpdate(props: { model: EditorModel }): void {
@@ -361,8 +361,8 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
     private gitTreeProps() {
         return {
             model: this.model.gitTree,
-            selectedHash: this.selectedHash,
-            onSelectCommit: this.handleSelectCommit,
+            selectedHash: this.model.selectedCommitHash,
+            onSelectCommit: this.model.selectCommit,
             initialColumnLayout: this.columnLayout,
             onColumnLayoutChange: this.model.setColumnLayout,
             getContextMenuItems: this.getContextMenuItems,
@@ -484,13 +484,13 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
             return {
                 repoRoot: this.repoRoot,
                 gitTree: this.model.gitTree,
-                selectedHash: this.selectedHash,
+                selectedHash: this.model.selectedCommitHash,
             } satisfies CommitInfoPanelProps;
         }
         return {
             repoRoot: this.repoRoot,
             gitTree: this.model.gitTree,
-            selectedHash: this.selectedHash,
+            selectedHash: this.model.selectedCommitHash,
             listWidth: this.commitDiffListWidth ?? DEFAULT_DIFF_LIST_W,
             onListWidthChange: this.model.setCommitDiffListWidth,
         } satisfies CommitDiffPanelProps;
@@ -526,8 +526,8 @@ export class GitTreeEditorView extends VanillaView<{ model: EditorModel }> {
         return this.containerHeight > 0 ? Math.round(this.containerHeight * 0.8) : Infinity;
     }
 
-    private readonly handleSelectCommit = (hash: string): void => {
-        this.selectedHash = hash;
+    private readonly syncSelectedCommit = (): void => {
+        this.gitTreeView?.update(this.gitTreeProps());
         if (this.activeBottomView && this.activeBottomTab === "commit") {
             (this.activeBottomView as CommitInfoPanelView).update(this.bottomViewProps("commit"));
         } else if (this.activeBottomView) {

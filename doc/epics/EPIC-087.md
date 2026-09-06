@@ -351,6 +351,18 @@ Stop the epic and record why, rather than pushing through, if any of these appea
 1. **REST page-level secret boundary (US-1320):** Live verification found that a `rest-client`
    page's `content` returns the full `.rest.json`, including `"url": "https://api.example.com/v1/me?token=SECRETQUERY"`, `"Authorization"` with value `"Bearer SECRETHEADER"`, and `"body": "pw=SECRETBODY"`. The assumption for US-1320 is that the facade exposes what the user sees and claims no protection it cannot enforce; no member accepts a secret value. A genuine boundary would have to be page-level, covering `content` and the facade together with the `restricted()` treatment private browser pages get; that user-owned blast-radius decision is deliberately not invented here.
 
+2. **`pages.openFile()` on a directory leaves a ghost page (pre-existing, not this epic's).** Found
+   while verifying US-1323. Given a folder path, `openFile` returns `null` and leaves a page titled
+   "Empty" that the tab strip renders but the object model does not contain: `pages` listed four
+   pages while the DOM showed five tabs, and `activePageId` named a page `pages[<id>]` could not
+   resolve. **Confirmed pre-existing** by stashing US-1323's entire diff and reproducing it on a
+   clean tree, so it is neither a regression nor caused by the Folder View refactor.
+   **Assumption taken:** out of scope here — it is a `pages` lifecycle bug, not a descriptor one,
+   and inventing a fix inside a surface epic would hide it. It deserves its own small task; the
+   reproduction is `pages.openFile("C:/projects/persephone/doc/epics")`. Worth deciding whether
+   opening a folder should give a Folder View page at all, since that is plainly what the caller
+   meant.
+
 ## Notes
 
 ### 2026-09-06 — epic created

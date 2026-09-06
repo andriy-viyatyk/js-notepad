@@ -1,6 +1,4 @@
-import { app } from "../../api/app";
 import { guard } from "../../core/utils/guard";
-import { createLinkData } from "../../../shared/link-data";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import { VanillaView } from "../../uikit/shared/vanilla-view";
@@ -14,21 +12,11 @@ import { fpBasename } from "../../core/utils/file-path";
 import type { ExplorerEditor } from "./ExplorerEditorModel";
 
 function createFileSearchView(model: ExplorerEditor): FileSearchView {
-    const pageId = model.page?.id ?? "";
     return new FileSearchView({
         folder: model.rootPath,
         state: model.searchState,
         onStateChange: model.setSearchState,
-        onResultClick: (filePath, lineNumber) => {
-            model.setSelectedHref(filePath);
-            void app.events.openRawLink.sendAsync(createLinkData(filePath, {
-                pageId,
-                ...(lineNumber ? {
-                    revealLine: lineNumber,
-                    highlightText: model.searchState?.query,
-                } : undefined),
-            }));
-        },
+        onResultClick: (filePath, lineNumber) => { void model.openSearchResult(filePath, lineNumber); },
     });
 }
 

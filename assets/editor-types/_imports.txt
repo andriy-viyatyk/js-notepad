@@ -12,8 +12,10 @@ editors.d.ts
 env-vars-editor.d.ts
 events.d.ts
 file-diff-editor.d.ts
+folder-view-editor.d.ts
 fs.d.ts
 generic-editor.d.ts
+git-tree-editor.d.ts
 graph-editor.d.ts
 grid-editor.d.ts
 html-editor.d.ts

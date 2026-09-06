@@ -48,6 +48,10 @@ import { VideoEditorFacade } from "./VideoEditorFacade";
 import { FileDiffEditorFacade } from "./FileDiffEditorFacade";
 import { LogViewEditorFacade } from "./LogViewEditorFacade";
 import type { LogViewEditor } from "../../editors/log-view/LogViewEditor";
+import { FolderViewEditorFacade } from "./FolderViewEditorFacade";
+import { GitTreeEditorFacade } from "./GitTreeEditorFacade";
+import type { CategoryEditorModel } from "../../editors/category/CategoryEditorModel";
+import type { GitTreeEditorModel } from "../../editors/git-tree/GitTreeEditorModel";
 
 type EditorOrHost = EditorModel | TextFileModel;
 type EditorFacade =
@@ -56,7 +60,7 @@ type EditorFacade =
     | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
     | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
     | EnvVarsEditorFacade | ArchiveEditorFacade
-    | LogViewEditorFacade | GenericEditorFacade;
+    | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
@@ -81,6 +85,8 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "video-view": (editor, id, name) => new VideoEditorFacade(editor as unknown as VideoEditor, id, name),
     "file-diff": (editor, id, name) => new FileDiffEditorFacade(editor as FileDiffEditor, id, name),
     "log-view": (editor, id, name) => new LogViewEditorFacade(editor as LogViewEditor, id as "log-view", name),
+    "category-view": (editor, id, name) => new FolderViewEditorFacade(editor as CategoryEditorModel, id as "category-view", name),
+    "git-tree": (editor, id, name) => new GitTreeEditorFacade(editor as GitTreeEditorModel, id as "git-tree", name),
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [

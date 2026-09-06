@@ -1,14 +1,8 @@
-import { app } from "../../api/app";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import type {
-    ICategorySegment,
     ITreeProvider,
     ITreeProviderItem,
 } from "../../api/types/io.tree";
-import { createLinkData } from "../../../shared/link-data";
-import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
-import type { TOneState } from "../../core/state/state";
-import type { NavigationState } from "../base/navigation-state";
 import type { EditorModel } from "../base/EditorModel";
 import { PageToolbarView, type PageToolbarViewProps } from "../base/PageToolbarView";
 import { BreadcrumbView } from "../../uikit/Breadcrumb/BreadcrumbView";
@@ -24,47 +18,14 @@ import {
     type CategoryViewMode,
     type CategoryViewProps,
 } from "../../components/tree-provider/CategoryViewModel";
-import { LinkEditor } from "../link-editor/LinkEditor";
 import { LinksListView } from "../link-editor/LinksListView";
 import type { LinksListProps } from "../link-editor/LinksList";
 import { LinksTilesView } from "../link-editor/LinksTilesView";
 import type { LinksTilesProps } from "../link-editor/LinksTiles";
-import { ExplorerEditor } from "../explorer";
-import { ArchiveEditor } from "../archive";
-import { CategoryEditorModel } from "./CategoryEditorModel";
+import { CategoryEditorModel, type CategoryTreeProviderHostEditor } from "./CategoryEditorModel";
 import { folderViewModeService } from "./FolderViewModeService";
 import "../../uikit/Panel/Panel.css";
 import "../../uikit/Text/Text.css";
-
-interface ITreeProviderHost {
-    treeProvider: ITreeProvider | null;
-    selectionState: TOneState<NavigationState>;
-}
-
-type TreeProviderHostEditor = EditorModel & ITreeProviderHost;
-
-function isTreeProviderHost(editor: EditorModel): editor is TreeProviderHostEditor {
-    return (
-        editor instanceof LinkEditor ||
-        editor instanceof ExplorerEditor ||
-        editor instanceof ArchiveEditor
-    );
-}
-
-function findTreeProviderHost(
-    secondaryViews: EditorModel[],
-    type: string,
-    sourceUrl: string,
-): TreeProviderHostEditor | null {
-    for (const editor of secondaryViews) {
-        if (!isTreeProviderHost(editor)) continue;
-        const tp = editor.treeProvider;
-        if (tp && tp.type === type && tp.sourceUrl === sourceUrl) {
-            return editor;
-        }
-    }
-    return null;
-}
 
 function requireCategoryModel(model: EditorModel): CategoryEditorModel {
     if (!(model instanceof CategoryEditorModel)) {
@@ -80,7 +41,7 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     private categoryView: CategoryViewImpl | undefined;
     private messagePanel: HTMLDivElement | undefined;
     private searchHost: HTMLDivElement | undefined;
-    private host: TreeProviderHostEditor | null = null;
+    private host: CategoryTreeProviderHostEditor | null = null;
     private selectedHref: string | null = null;
     private observedPage: IPageHost | null = null;
     private pageStateUnsub: (() => void) | undefined;
@@ -151,18 +112,14 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     private syncSurface(): void {
-        const link = this.model.decodedLink;
-        const page = this.model.page;
-        const host = page && link
-            ? findTreeProviderHost(page.panelEditors, link.type, link.url)
-            : null;
+        const host = this.model.providerHost;
         if (host !== this.host) {
             this.host = host;
             this.rebindHostSelection(host);
         }
 
         const provider = host?.treeProvider ?? null;
-        this.syncViewModeLoad(this.model.categoryPath);
+        this.syncViewModeLoad(this.model.categoryPath ?? "");
         if (!provider) {
             this.releaseCategorySurface();
             this.releaseBreadcrumb();
@@ -196,7 +153,7 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
             if (
                 this.inert
                 || generation !== this.viewModeGeneration
-                || categoryPath !== this.model.categoryPath
+                || categoryPath !== (this.model.categoryPath ?? "")
             ) return;
             this.viewMode = viewMode;
             const provider = this.host?.treeProvider;
@@ -209,7 +166,7 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
             name: "category-breadcrumb",
             rootLabel: provider.displayName,
             value: this.breadcrumbValue(provider),
-            onChange: this.handleBreadcrumbChange,
+            onChange: (value: string) => { void this.model.openCategory(value); },
             separators: "/",
             size: "sm" as const,
             clipStart: true,
@@ -272,7 +229,7 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     private categoryViewProps(provider: ITreeProvider): CategoryViewProps {
         return {
             provider,
-            category: this.model.categoryPath,
+            category: this.model.categoryPath ?? "",
             viewMode: this.viewMode,
             onViewModeChange: this.handleViewModeChange,
             selectedHref: this.selectedHref ?? undefined,
@@ -286,12 +243,12 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     private breadcrumbValue(provider: ITreeProvider): string {
-        return provider.getCategorySegments(this.model.categoryPath)
+        return provider.getCategorySegments(this.model.categoryPath ?? "")
             .map((segment) => segment.label)
             .join("/");
     }
 
-    private rebindHostSelection(host: TreeProviderHostEditor | null): void {
+    private rebindHostSelection(host: CategoryTreeProviderHostEditor | null): void {
         this.hostSelectionUnsub?.();
         this.hostSelectionUnsub = undefined;
         if (!host) {
@@ -312,7 +269,7 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     private readonly handleViewModeChange = (mode: CategoryViewMode): void => {
-        const categoryPath = this.model.categoryPath;
+        const categoryPath = this.model.categoryPath ?? "";
         this.viewMode = mode;
         const provider = this.host?.treeProvider;
         if (provider) this.categoryView?.update(this.categoryViewProps(provider));
@@ -320,37 +277,11 @@ export class CategoryEditorView extends VanillaView<{ model: EditorModel }> {
     };
 
     private readonly handleSelect = (item: ITreeProviderItem): void => {
-        this.host?.selectionState.update((state) => { state.selectedHref = item.href; });
+        this.model.selectItem(item);
     };
 
     private readonly handleNavigate = (item: ITreeProviderItem): void => {
-        this.host?.selectionState.update((state) => { state.selectedHref = item.href; });
-        const provider = this.host?.treeProvider;
-        const url = provider?.getNavigationUrl(item) ?? item.href;
-        const pageId = this.model.id;
-        void app.events.openRawLink.sendAsync(createLinkData(url, {
-            pageId,
-            sourceId: this.host?.id,
-        }));
-    };
-
-    private readonly handleBreadcrumbChange = (value: string): void => {
-        const provider = this.host?.treeProvider;
-        if (!provider) return;
-        const segments: ICategorySegment[] = provider.getCategorySegments(this.model.categoryPath);
-        const count = value ? value.split("/").length : 0;
-        const targetCategory = count === 0
-            ? provider.rootPath
-            : segments[count - 1].category;
-        const url = encodeCategoryLink({
-            type: provider.type,
-            url: provider.sourceUrl,
-            category: targetCategory,
-        });
-        void app.events.openRawLink.sendAsync(createLinkData(url, {
-            pageId: this.model.id,
-            sourceId: this.host?.id,
-        }));
+        void this.model.openItem(item);
     };
 
     private readonly getItemId = (item: ITreeProviderItem): string => item.href;

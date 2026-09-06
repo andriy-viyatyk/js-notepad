@@ -1,18 +1,8 @@
-import { app } from "../../api/app";
 import { ContextMenuEvent } from "../../api/events/events";
-import { registeredTools } from "../../api/tools/registered-tools";
-import { toolsTrust } from "../../api/tools/tools-trust";
-import { readToolsManifest, TOOLS_MANIFEST_FILE } from "../../api/tools/tools-manifest";
-import { createLinkData } from "../../../shared/link-data";
-import { encodeGitTreeLink } from "../../content/git-tree-link";
-import { encodeMnemeFolderLink } from "../../content/mneme-folder-link";
-import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
-import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
-import { openToolset } from "../../content/persephone-toolset-link";
+import { TOOLS_MANIFEST_FILE } from "../../api/tools/tools-manifest";
 import { openWithDefaultApp } from "../../content/open-with-default-app";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
-import { showRegisterToolsetDialog } from "../../ui/dialogs/RegisterToolsetDialog";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import {
     createSideBarPanelHeader,
@@ -249,40 +239,11 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
         const current = this.model.selectionState.get().selectedHref;
         if (current?.toLowerCase() === item.href.toLowerCase()) return;
         this.model.setSelectedHref(item.href);
-        const rootPath = this.model.rootPath;
-        const url = item.target === "git-tree" || item.target === "mneme-root"
-            ? encodeCategoryLink({ type: "file", url: rootPath, category: item.href })
-            : (this.provider?.getNavigationUrl(item) ?? item.href);
-        void app.events.openRawLink.sendAsync(createLinkData(url, {
-            pageId: this.model.page?.id ?? "",
-            sourceId: "explorer",
-        }));
+        void this.model.openItem(item);
     };
 
     private readonly handleItemDoubleClick = (item: ITreeProviderItem): void => {
         void openWithDefaultApp(item.href);
-    };
-
-    private readonly openToolsetFromManifest = async (toolsetRoot: string): Promise<void> => {
-        await toolsTrust.load();
-        if (!toolsTrust.isTrusted(toolsetRoot)) {
-            const manifest = await readToolsManifest(toolsetRoot);
-            const ok = await showRegisterToolsetDialog({
-                toolsetName: manifest?.name ?? fpBasename(toolsetRoot),
-                toolsetRoot,
-                tools: (manifest?.tools ?? []).map((tool) => ({
-                    name: tool.name,
-                    description: tool.description,
-                })),
-            });
-            if (!ok) return;
-            await toolsTrust.trust(toolsetRoot);
-            await registeredTools.refresh();
-        }
-        openToolset(toolsetRoot, {
-            pageId: this.model.page?.id ?? "",
-            sourceId: "explorer",
-        });
     };
 
     private readonly renderTrailingAction = (item: ITreeProviderItem): Node | undefined => {
@@ -299,14 +260,7 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
                 onClick = (event) => {
                     event.stopPropagation();
                     const boardRoot = fpDirname(item.href);
-                    void app.events.openRawLink.sendAsync(createLinkData(
-                        encodePersephoneBoardLink(boardRoot),
-                        {
-                            pageId: this.model.page?.id ?? "",
-                            sourceId: "explorer",
-                            explorerRoot: this.model.rootPath,
-                        },
-                    ));
+                    this.model.openBoard(boardRoot);
                 };
             } else if (base === TOOLS_MANIFEST_FILE) {
                 icon = "tools";
@@ -314,7 +268,7 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
                 title = "Open Toolset";
                 onClick = (event) => {
                     event.stopPropagation();
-                    void this.openToolsetFromManifest(fpDirname(item.href));
+                    void this.model.openToolset(fpDirname(item.href));
                 };
             }
         } else if (item.target === "git-tree") {
@@ -323,20 +277,14 @@ export default class ExplorerSecondaryView extends VanillaView<SecondaryViewProp
             title = "Open Git Tree";
             onClick = (event) => {
                 event.stopPropagation();
-                void app.events.openRawLink.sendAsync(createLinkData(
-                    encodeGitTreeLink(fpDirname(item.href)),
-                    { pageId: this.model.page?.id ?? "", sourceId: "explorer" },
-                ));
+                this.model.openGitTree(fpDirname(item.href));
             };
         } else if (item.target === "mneme-root") {
             name = "explorer-open-mneme";
             title = "Open Mneme Root";
             onClick = (event) => {
                 event.stopPropagation();
-                void app.events.openRawLink.sendAsync(createLinkData(
-                    encodeMnemeFolderLink(fpDirname(item.href)),
-                    { pageId: this.model.page?.id ?? "", sourceId: "explorer" },
-                ));
+                this.model.openMneme(fpDirname(item.href));
             };
             return this.getTrailingButton(item.href, name, title, "memory", onClick);
         }

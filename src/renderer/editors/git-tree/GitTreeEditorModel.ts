@@ -2,6 +2,7 @@ import {
     EditorModel,
     type EditorStateBase,
 } from "../base/EditorModel";
+import { TOneState } from "../../core/state/state";
 import { GitIcon } from "../../theme/icons";
 import { GitTreeModel, GitChangesModel, GitBranchesModel, type GitColumnLayout, type GitRefNodeKind } from "../../components/git-tree";
 import type { IPageHost } from "../../api/pages/IPageHost";
@@ -56,6 +57,10 @@ export interface GitTreeEditorState extends EditorStateBase {
     branchesAlphabetical?: boolean;
 }
 
+export interface GitTreeSelectionState {
+    selectedHash?: string;
+}
+
 /** Basename of a repo top-level path (folder name), or "Git" when empty.
  *  Shared by the tab title (`initFromRepoRoot`) and the `repoName` getter. */
 function repoFolderName(repoRoot: string): string {
@@ -104,6 +109,9 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
 
     /** Submodel: repository refs for the "Branches & Tags" secondary panel (US-634). */
     readonly branches = new GitBranchesModel();
+
+    /** Selection shared by the Git Tree view, its detail panels, and the facade. */
+    readonly selectionState = new TOneState<GitTreeSelectionState>({});
 
     /** Auto-refresh watcher on the repo root (US-624). Recursively watches the
      *  working tree — which includes `.git` — so edits, staging, commits, and
@@ -189,6 +197,19 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         return repoFolderName(this.state.get().repoRoot);
     }
 
+    get selectedCommitHash(): string | undefined {
+        return this.selectionState.get().selectedHash;
+    }
+
+    get selectedCommit() {
+        const hash = this.selectedCommitHash;
+        return hash ? this.gitTree.state.get().commits.find(commit => commit.hash === hash) : undefined;
+    }
+
+    selectCommit(hash: string): void {
+        this.selectionState.update((state) => { state.selectedHash = hash; });
+    }
+
     /** Persist the commit grid's column layout (width + order) into editor state
      *  so it round-trips through the page descriptor (US-623). Bound so the view
      *  can pass it straight to `<GitTree onColumnLayoutChange>`. */
@@ -244,6 +265,30 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     revealRef = (refName: string | undefined, kind: GitRefNodeKind | undefined): void => {
         if (!refName || !kind || !this.isTreeVisible()) return;
         this.gitTree.revealRef(refName, kind);
+    };
+
+    /** Strict facade path for ref reveal. The UI path above intentionally remains a
+     * non-throwing callback because refs can outlive the mounted grid. */
+    revealRefForFacade = (refName: string, kind: GitRefNodeKind): void => {
+        const repoRoot = this.state.get().repoRoot;
+        if (!this.page) throw new Error("Git revealRef unavailable: no page host attached.");
+        if (!repoRoot) throw new Error("Git revealRef unavailable: no repository is loaded.");
+        if (!this.isTreeVisible()) throw new Error("Git revealRef unavailable: the Git Tree is not the page's main editor.");
+        const refs = this.branches.state.get().refs;
+        const available = kind === "branch"
+            ? refs.localBranches.includes(refName)
+            : kind === "remote-branch"
+                ? refs.remoteBranches.includes(refName)
+                : refs.tags.includes(refName);
+        if (!available) throw new Error(`Git revealRef unavailable: no ${kind} ref named ${JSON.stringify(refName)}.`);
+        if (!this.gitTree.state.get().gitOk) throw new Error("Git revealRef unavailable: Git is not available.");
+        this.gitTree.revealRef(refName, kind);
+    };
+
+    loadMoreForFacade = async (): Promise<void> => {
+        if (!this.page) throw new Error("Git loadMore unavailable: no page host attached.");
+        if (!this.state.get().repoRoot) throw new Error("Git loadMore unavailable: no repository is loaded.");
+        await this.gitTree.loadMore();
     };
 
     /** Switch HEAD to a branch / remote branch / commit / tag (US-636). No
@@ -309,6 +354,7 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */
     initFromRepoRoot(repoRoot: string): void {
         const folder = repoFolderName(repoRoot);
+        this.selectionState.set({});
         this.state.update((s) => {
             s.repoRoot = repoRoot;
             s.title = `${folder} — Git`;

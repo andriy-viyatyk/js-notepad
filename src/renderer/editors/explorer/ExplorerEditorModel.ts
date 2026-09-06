@@ -1,17 +1,31 @@
 import { TComponentState, TOneState } from "../../core/state/state";
+import { app } from "../../api/app";
 import {
     EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence";
-import type { ITreeProvider } from "../../api/types/io.tree";
+import type { ILink, ITreeProvider, ITreeProviderItem } from "../../api/types/io.tree";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import type { FileSearchState } from "../../components/file-search";
 import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
-import { fpDirname } from "../../core/utils/file-path";
+import { fpBasename, fpDirname } from "../../core/utils/file-path";
 import { createFolderIconElement } from "../../components/icons/icon-elements";
+import { createLinkData } from "../../../shared/link-data";
+import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
+import { encodeGitTreeLink } from "../../content/git-tree-link";
+import { encodeMnemeFolderLink } from "../../content/mneme-folder-link";
+import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
+import { openToolset as openToolsetLink } from "../../content/persephone-toolset-link";
+import { boardTrust } from "../../api/board-trust";
+import { toolsTrust } from "../../api/tools/tools-trust";
+import { registeredTools } from "../../api/tools/registered-tools";
+import { readToolsManifest } from "../../api/tools/tools-manifest";
+import { showRegisterToolsetDialog } from "../../ui/dialogs/RegisterToolsetDialog";
+
+export type ExplorerBoardsTab = "boards" | "tools";
 
 export interface ExplorerEditorState extends EditorStateBase {
     type: "fileExplorer";
@@ -64,6 +78,9 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
      *  `revealItem(selectedHref)` after the panel is available. */
     readonly revealVersion = new TOneState({ version: 0 });
 
+    /** Model-owned Boards/Tools segment, shared by the panel and panel facade. */
+    readonly boardsTabState = new TOneState<{ value: ExplorerBoardsTab }>({ value: "boards" });
+
     /** Search panel state. When defined, the search panel is visible. */
     searchState: FileSearchState | undefined = undefined;
 
@@ -81,10 +98,39 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         return this.state.get().rootPath;
     }
 
+    async listItems(): Promise<ILink[] | undefined> {
+        if (!this.page || !this.treeProvider || !this.rootPath) return undefined;
+        const items = await this.treeProvider.list(this.rootPath);
+        return items.slice(0, 200).map(item => ({ ...item, tags: [...item.tags] }));
+    }
+
     // ── Selection ────────────────────────────────────────────────────
 
     setSelectedHref(href: string | null): void {
         this.selectionState.update((s) => { s.selectedHref = href; });
+    }
+
+    async openItem(item: ITreeProviderItem): Promise<void> {
+        if (!this.page || !this.treeProvider) throw new Error("Explorer action unavailable: no provider is attached.");
+        const current = this.selectionState.get().selectedHref;
+        if (current?.toLowerCase() === item.href.toLowerCase()) return;
+        this.setSelectedHref(item.href);
+        const url = item.target === "git-tree" || item.target === "mneme-root"
+            ? encodeCategoryLink({ type: "file", url: this.rootPath, category: item.href })
+            : this.treeProvider.getNavigationUrl(item);
+        await app.events.openRawLink.sendAsync(createLinkData(url, {
+            pageId: this.page.id,
+            sourceId: "explorer",
+        }));
+    }
+
+    revealItem(href: string): void {
+        if (!this.page) throw new Error("Explorer reveal unavailable: no page host attached.");
+        if (!this.secondaryView?.includes("explorer")) throw new Error("Explorer reveal unavailable: the Explorer panel is not present.");
+        if (this.page.activePanelId !== "explorer") throw new Error("Explorer reveal unavailable: the Explorer panel is not active.");
+        if (!this.treeProvider) throw new Error("Explorer reveal unavailable: no provider is attached.");
+        this.setSelectedHref(href);
+        this.revealVersion.update((s) => { s.version++; });
     }
 
     // ── Tree state ───────────────────────────────────────────────────
@@ -136,6 +182,18 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         this.searchState = state;
     };
 
+    async openSearchResult(path: string, lineNumber?: number): Promise<void> {
+        if (!this.page) throw new Error("Search action unavailable: no page host attached.");
+        this.setSelectedHref(path);
+        await app.events.openRawLink.sendAsync(createLinkData(path, {
+            pageId: this.page.id,
+            ...(lineNumber ? {
+                revealLine: lineNumber,
+                highlightText: this.searchState?.query,
+            } : undefined),
+        }));
+    }
+
     // ── Boards ─────────────────────────────────────────────────────────
 
     openBoards(): void {
@@ -148,6 +206,80 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         this.state.update((s) => { s.boardsOpen = false; });
         this.secondaryView = this.composeSecondaryView();
         this.page?.expandPanel("explorer");
+    }
+
+    get boardsTab(): ExplorerBoardsTab { return this.boardsTabState.get().value; }
+
+    setBoardsTab(value: ExplorerBoardsTab): void {
+        this.boardsTabState.update((state) => { state.value = value; });
+    }
+
+    listBoards(): string[] {
+        if (!this.rootPath) return [];
+        const rootKey = this.rootPath.replace(/\\/g, "/").toLowerCase();
+        return boardTrust.listPaths()
+            .filter(path => {
+                const key = path.replace(/\\/g, "/").toLowerCase();
+                return key === rootKey || key.startsWith(rootKey + "/");
+            })
+            .slice();
+    }
+
+    listToolsets(): Array<{ root: string; name: string }> {
+        if (!this.rootPath) return [];
+        const rootKey = this.rootPath.replace(/\\/g, "/").toLowerCase();
+        return registeredTools.toolsets
+            .filter(toolset => {
+                const key = toolset.root.replace(/\\/g, "/").toLowerCase();
+                return key === rootKey || key.startsWith(rootKey + "/");
+            })
+            .map(toolset => ({ root: toolset.root, name: toolset.name }));
+    }
+
+    openBoard(root: string): void {
+        const page = this.page;
+        if (!page) throw new Error("Explorer action unavailable: no page host attached.");
+        void app.events.openRawLink.sendAsync(createLinkData(encodePersephoneBoardLink(root), {
+            pageId: page.id,
+            sourceId: "explorer",
+            explorerRoot: this.rootPath,
+        }));
+    }
+
+    async openToolset(root: string): Promise<void> {
+        const page = this.page;
+        if (!page) throw new Error("Explorer action unavailable: no page host attached.");
+        await toolsTrust.load();
+        if (!toolsTrust.isTrusted(root)) {
+            const manifest = await readToolsManifest(root);
+            const ok = await showRegisterToolsetDialog({
+                toolsetName: manifest?.name ?? fpBasename(root),
+                toolsetRoot: root,
+                tools: (manifest?.tools ?? []).map(tool => ({ name: tool.name, description: tool.description })),
+            });
+            if (!ok) return;
+            await toolsTrust.trust(root);
+            await registeredTools.refresh();
+        }
+        openToolsetLink(root, { pageId: page.id, sourceId: "explorer" });
+    }
+
+    openGitTree(root: string): void {
+        const page = this.page;
+        if (!page) throw new Error("Explorer action unavailable: no page host attached.");
+        void app.events.openRawLink.sendAsync(createLinkData(encodeGitTreeLink(root), {
+            pageId: page.id,
+            sourceId: "explorer",
+        }));
+    }
+
+    openMneme(root: string): void {
+        const page = this.page;
+        if (!page) throw new Error("Explorer action unavailable: no page host attached.");
+        void app.events.openRawLink.sendAsync(createLinkData(encodeMnemeFolderLink(root), {
+            pageId: page.id,
+            sourceId: "explorer",
+        }));
     }
 
     // ── Root navigation ──────────────────────────────────────────────
