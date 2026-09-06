@@ -5,6 +5,8 @@ import { EditorView } from "../../../shared/types";
 import type { ILink } from "../../api/types/io.tree";
 import type { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 import { CompareModeNode } from "../ai-vision/page-compare";
+import { LogViewEditorFacade } from "./LogViewEditorFacade";
+import { getOrCreateMcpLogViewEditor } from "../../api/mcp/log-view-access";
 
 // AiVision (EPIC-083): the kind-level description of this wrapper. Kept next to the members it
 // describes so a new method and its descriptor entry land in the same diff.
@@ -26,6 +28,7 @@ const PAGES_MEMBERS: readonly IAiMember[] = [
     { name: "openLinks", kind: "method", signature: "openLinks(links: (string | ILink)[], title?)", summary: "New links page listing the given URLs/paths." },
     { name: "openDiff", kind: "method", signature: "openDiff({ firstPath, secondPath })", summary: "Open a file compare page." },
     { name: "compare", kind: "property", node: true, summary: "Inspect active compare pairs and enter or exit compare mode for a grouped pair." },
+    { name: "logView", kind: "property", node: true, summary: "The get-or-created MCP Log View writer and dialog read-back surface." },
     { name: "showAboutPage", kind: "method", signature: "showAboutPage()", summary: "Show the About page." },
     { name: "showSettingsPage", kind: "method", signature: "showSettingsPage()", summary: "Show Settings." },
     { name: "showMcpInspectorPage", kind: "method", signature: "showMcpInspectorPage(options?: { url? })", summary: "Show the MCP inspector page." },
@@ -51,7 +54,8 @@ or openFile(path). openDiff({ firstPath, secondPath }) remains the path-based en
 opens/groups pages and enters compare mode. Inspect pages.compare.pairs for explicit left/right
 page identity, use pages.compare.enter(pageId) or exit(pageId) for compare mode, and highlight
 compare-root or compare-exit through pages.compare.elements. Compare elements live in the active
-pair's left page slot.
+pair's left page slot. Read pages.logView for the fixed MCP Log View writer and dialog read-back;
+scripts also have the global ui facade. Reading pages.logView creates and focuses that page.
 `;
 
 /**
@@ -84,6 +88,7 @@ export class PageCollectionWrapper implements IAiVisible {
         const activeId = this.pages.activePage?.id;
         const children: IAiChild[] = [
             { segment: ".compare", kind: this.compare.aiVision.kind, summary: "active compare pairs and compare-mode controls" },
+            { segment: ".logView", kind: "LogViewEditor", summary: "fixed MCP Log View writer and dialog read-back surface" },
         ];
         children.push(...this.all.map((page, i) => {
             const restricted = page.aiVision.restricted?.();
@@ -100,6 +105,10 @@ export class PageCollectionWrapper implements IAiVisible {
 
     get compare(): CompareModeNode {
         return new CompareModeNode(this.pages);
+    }
+
+    get logView(): LogViewEditorFacade {
+        return new LogViewEditorFacade(getOrCreateMcpLogViewEditor(), "log-view", "Log View");
     }
 
     private wrap(page: PageModel | null | undefined): PageWrapper | undefined {

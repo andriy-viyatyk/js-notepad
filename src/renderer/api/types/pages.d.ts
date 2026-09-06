@@ -2,6 +2,7 @@ import type { EditorView } from "./common";
 import type { IPage } from "./page";
 import type { ILink } from "./io.tree";
 import type { ICompareMode } from "./compare";
+import type { ILogViewEditor } from "./log-view-editor";
 
 /**
  * IPageCollection — `app.pages`
@@ -31,6 +32,8 @@ export interface IPageCollection {
     readonly groupedPage: IPage | undefined;
     /** Active compare-mode pairs and compare-mode controls. */
     readonly compare: ICompareMode;
+    /** The fixed MCP Log View writer and inline-dialog read-back surface. */
+    readonly logView: ILogViewEditor;
 
     /** Find a page by its ID. */
     findPage(pageId: string): IPage | undefined;

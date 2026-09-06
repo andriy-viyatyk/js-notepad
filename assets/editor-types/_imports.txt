@@ -25,6 +25,7 @@ io.provider.d.ts
 io.transformer.d.ts
 io.tree.d.ts
 link-editor.d.ts
+log-view-editor.d.ts
 markdown-editor.d.ts
 mcp-inspector-editor.d.ts
 menu-folders.d.ts

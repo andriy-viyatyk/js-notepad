@@ -5,7 +5,7 @@ import { PageWrapper } from "./api-wrapper/PageWrapper";
 import { UiFacade } from "./api-wrapper/UiFacade";
 import { styledText } from "./api-wrapper/StyledTextBuilder";
 import { resolveLibraryModule } from "./library-require";
-import { LogViewEditor } from "../editors/log-view";
+import { getOrCreateMcpLogViewEditor } from "../api/mcp/log-view-access";
 import { fpResolve } from "../core/utils/file-path";
 import { createIoNamespace } from "./api-wrapper/IoNamespace";
 import { createAiNamespace } from "./api-wrapper/AiNamespace";
@@ -192,63 +192,18 @@ export class ScriptContext {
 // UI Facade Initialization
 // =============================================================================
 
-function formatLogTitle(): string {
-    const now = new Date();
-    const date = now.toISOString().slice(0, 10);
-    const time = now.toTimeString().slice(0, 5);
-    return `${date} ${time}.log.jsonl`;
-}
-
 function initializeUiFacade(
     page: EditorOrHost | undefined,
     _releaseList: Array<() => void>,
     outputFlags: ScriptOutputFlags,
     isMcp = false,
 ): { facade: UiFacade; pageId: string } {
-    let logEditor: LogViewEditor;
-    let logPageId: string;
-    let isExisting = false;
+    const wasPresent = !!pagesModel.findPage("mcp-ui-log");
+    const logEditor = getOrCreateMcpLogViewEditor();
+    const logPageId = logEditor.page?.id ?? "mcp-ui-log";
 
-    if (isMcp) {
-        const existing = pagesModel.findPage("mcp-ui-log");
-        if (existing?.mainEditorInstance instanceof LogViewEditor) {
-            logEditor = existing.mainEditorInstance;
-            logPageId = existing.id;
-            isExisting = true;
-        } else {
-            const newPage = pagesModel.addEditorPage("log-view", "jsonl", "MCP Log");
-            const editor = newPage.mainEditorInstance;
-            if (!(editor instanceof LogViewEditor)) {
-                throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
-            }
-            logEditor = editor;
-            logPageId = newPage.id;
-        }
-    } else if (page) {
-        const pageId = page.page?.id ?? page.id;
-        const grouped = pagesModel.getGroupedPage(pageId);
-        if (grouped?.mainEditorInstance instanceof LogViewEditor) {
-            logEditor = grouped.mainEditorInstance;
-            logPageId = grouped.id;
-            isExisting = true;
-        } else {
-            const newPage = pagesModel.addEditorPage("log-view", "jsonl", formatLogTitle());
-            const editor = newPage.mainEditorInstance;
-            if (!(editor instanceof LogViewEditor)) {
-                throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
-            }
-            logEditor = editor;
-            logPageId = newPage.id;
-            pagesModel.groupTabs(pageId, logPageId, false);
-        }
-    } else {
-        const newPage = pagesModel.addEditorPage("log-view", "jsonl", formatLogTitle());
-        const editor = newPage.mainEditorInstance;
-        if (!(editor instanceof LogViewEditor)) {
-            throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
-        }
-        logEditor = editor;
-        logPageId = newPage.id;
+    if (page && !wasPresent) {
+        pagesModel.groupTabs(page.page?.id ?? page.id, logPageId, false);
     }
 
     // SF2 + LV9 — acquireViewModelSync + releaseList.push retire entirely
@@ -256,7 +211,7 @@ function initializeUiFacade(
 
     outputFlags.groupedContentWritten = true;
 
-    if (isExisting) {
+    if (wasPresent) {
         logEditor.addEntry("log.info", "");
     }
 

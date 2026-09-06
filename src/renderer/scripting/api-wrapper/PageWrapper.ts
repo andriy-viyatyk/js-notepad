@@ -46,6 +46,8 @@ import { SvgEditorFacade } from "./SvgEditorFacade";
 import { TextEditorFacade } from "./TextEditorFacade";
 import { VideoEditorFacade } from "./VideoEditorFacade";
 import { FileDiffEditorFacade } from "./FileDiffEditorFacade";
+import { LogViewEditorFacade } from "./LogViewEditorFacade";
+import type { LogViewEditor } from "../../editors/log-view/LogViewEditor";
 
 type EditorOrHost = EditorModel | TextFileModel;
 type EditorFacade =
@@ -54,7 +56,7 @@ type EditorFacade =
     | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
     | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
     | EnvVarsEditorFacade | ArchiveEditorFacade
-    | GenericEditorFacade;
+    | LogViewEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
@@ -78,6 +80,7 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "image-view": (editor, id, name) => new ImageEditorFacade(editor as unknown as ImageEditor, id, name),
     "video-view": (editor, id, name) => new VideoEditorFacade(editor as unknown as VideoEditor, id, name),
     "file-diff": (editor, id, name) => new FileDiffEditorFacade(editor as FileDiffEditor, id, name),
+    "log-view": (editor, id, name) => new LogViewEditorFacade(editor as LogViewEditor, id as "log-view", name),
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [

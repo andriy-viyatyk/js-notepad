@@ -291,7 +291,7 @@ export class PagesLifecycleModel {
         return this.addPage(wrap(editorModel));
     };
 
-    requireWellKnownPage = async (id: string): Promise<PageModel> => {
+    requireWellKnownPage = (id: string): PageModel => {
         const existing = this.model.query.findPage(id);
         if (existing) {
             this.model.navigation.showPage(id);

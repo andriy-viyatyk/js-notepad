@@ -134,16 +134,27 @@ collection rather than of one member. So:
 
 **Half of this already exists and is simply invisible.** `UiFacade`
 (`scripting/api-wrapper/UiFacade.ts:25,51-56,70`) already wraps a `LogViewEditor` and offers
-`log`, `info`, `warn`, `error`, `success`, `text` and `dialog` to scripts as `app.ui.log`, with the
-page lifecycle — recreate the facade if the user closed the log page — handled in
-`ScriptContext.ts:96-107`, and a published typing (`api/types/ui-log.d.ts`, `IUiLog`). It is
-unreachable from `call` for one reason: `scripting/ai-vision/namespaces/ui.ts` describes `app.ui` but
-its member list (lines 25-35) has no `log` entry, and the tree enumerates only what a descriptor
-declares (roadmap principle 1 — nothing is discovered by reflection). So US-1322 is largely
-*declaring* an existing surface rather than building one, and it must reuse `UiFacade` and the
-`ScriptContext` lifecycle rather than write a second implementation that can drift from it.
-Declaring `app.ui.log` is part of the task; `pages.logView` is the page-oriented entry point beside
-it, and the two resolve to the same editor.
+`log`, `info`, `warn`, `error`, `success`, `text` and `dialog`, with a recreate-if-closed lifecycle
+in `ScriptContext.ts:95-119` and a published typing (`api/types/ui-log.d.ts`, `IUiLog`). So US-1322
+is largely *declaring* an existing writer rather than building one, and it must reuse `UiFacade`
+and that lifecycle rather than write a second implementation that can drift from it.
+
+**Corrected 2026-09-06, during US-1322's review.** This paragraph originally said `UiFacade` is
+exposed "to scripts as `app.ui.log`" and that the task should declare that member. Both were wrong,
+and the investigation caught it. `UiFacade` is published as the script **global `ui`**
+(`api/types/index.d.ts:16-25`); `app.ui` is a different object — the modal `UserInterface` from
+`api/ui.ts` (`AppWrapper.ts:45-105`) — and it has no `log` member on the runtime object at all, so
+there was nothing to declare. Adding one was then rejected on its own merits: it would make three
+names for one surface, and `app.ui.log` corresponds to nothing the user sees, failing EPIC-086's
+test that the agent's structure should match the user's. **`pages.logView` is the single path the
+tree exposes**, the script global `ui` keeps working unchanged, and the `ui` namespace's `$help`
+gains one sentence pointing at `pages.logView`.
+
+The same investigation found a genuine pre-existing bug in scope for the task: in MCP mode
+`initializeUiFacade()` (`ScriptContext.ts:202-224`) creates a Log View page with a **random id**,
+while `ui_push` uses `requireWellKnownPage("mcp-ui-log")` — so a script's `ui.log(...)` and an
+agent's `ui_push` can write to two different Log View pages. US-1322 unifies both on the well-known
+page, which is a deliberate, user-visible behaviour change.
 
 **Why `push` returns immediately.** `ui_push` can block forever by design: its manifest entry
 returns `timeoutMs: 0` when any entry type starts with `input.`, and the handler awaits

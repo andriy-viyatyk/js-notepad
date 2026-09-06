@@ -5,7 +5,12 @@ import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
 import { tryParseJson } from "../../core/utils/parse-utils";
 import { debounce, errMessage } from "../../../shared/utils";
-import type { LogEntry, StyledText } from "./logTypes";
+import {
+    isDialogEntry,
+    isDialogResolved,
+    type LogEntry,
+    type StyledText,
+} from "./logTypes";
 
 export type LogQueueEvent =
     | { type: "focus" }
@@ -25,6 +30,18 @@ export type LogRenderChange =
  */
 interface LogViewSettings {
     showTimestamps?: boolean;
+}
+
+function copyLogValue(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(copyLogValue);
+    if (value && typeof value === "object") {
+        const copy: Record<string, unknown> = {};
+        for (const [key, nestedValue] of Object.entries(value)) {
+            copy[key] = copyLogValue(nestedValue);
+        }
+        return copy;
+    }
+    return value;
 }
 
 export interface LogViewEditorState extends EditorStateBase {
@@ -356,14 +373,29 @@ export class LogViewEditor extends TextHostEditorModel<LogViewEditorState, void,
         return entry;
     }
 
-    /** Add a dialog entry and return a Promise that resolves when the user responds. */
-    addDialogEntry(type: string, fields: Record<string, unknown>): Promise<LogEntry> {
+    /** Register a dialog entry and its resolver for the public dialog APIs. */
+    private registerDialogEntry(type: string, fields: Record<string, unknown>): {
+        entry: LogEntry;
+        promise: Promise<LogEntry>;
+    } {
         const entry = this.addEntry(type, fields);
         // LV5 — replaces today's forceScrollVersion bump.
         this.typedQueue.send({ type: "scrollToBottom" });
-        return new Promise<LogEntry>((resolve) => {
+        const promise = new Promise<LogEntry>((resolve) => {
             this.pendingDialogs.set(entry.id, { resolve });
         });
+        return { entry, promise };
+    }
+
+    /** Add a dialog entry and return a Promise that resolves when the user responds. */
+    addDialogEntry(type: string, fields: Record<string, unknown>): Promise<LogEntry> {
+        return this.registerDialogEntry(type, fields).promise;
+    }
+
+    addDialogEntryNonBlocking(type: string, fields: Record<string, unknown>): string {
+        const { entry, promise } = this.registerDialogEntry(type, fields);
+        void promise;
+        return entry.id;
     }
 
     /** Resolve a pending dialog. Sets `button` on the flat entry and resolves the Promise with full entry. */
@@ -468,6 +500,22 @@ export class LogViewEditor extends TextHostEditorModel<LogViewEditorState, void,
 
     getEntryAt(index: number): LogEntry | undefined {
         return this.entries[index];
+    }
+
+    /** Return deep copies of the parsed entries; callers cannot mutate model state. */
+    getEntriesSnapshot(): LogEntry[] {
+        return this.entries.map((entry) => copyLogValue(entry) as LogEntry);
+    }
+
+    /** Return a deep copy of one parsed entry, if it still exists. */
+    getEntrySnapshotById(id: string): LogEntry | undefined {
+        const entry = this.entries.find((item) => item.id === id);
+        return entry ? copyLogValue(entry) as LogEntry : undefined;
+    }
+
+    /** Whether parsed in-memory entries contain an unanswered inline dialog. */
+    hasUnresolvedDialogs(): boolean {
+        return this.entries.some((entry) => isDialogEntry(entry) && !isDialogResolved(entry));
     }
 
     // ── Height cache (view virtualization — preserves across remounts) ──

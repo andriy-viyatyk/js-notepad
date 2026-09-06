@@ -1,5 +1,8 @@
 import { errMessage } from "../../../shared/utils";
 import type { ICallRequest, ICallResult } from "../../../shared/ai-vision/resolver";
+import { pagesModel } from "../../api/pages";
+import { LogViewEditor } from "../../editors/log-view";
+import { isDialogEntry } from "../../editors/log-view/logTypes";
 import { dialogsState } from "../../ui/dialogs/DialogsView";
 import { getVisibleAppPopupMenu } from "../../ui/dialogs/poppers/showPopupMenu";
 import { DialogsNode, type DialogAdapter } from "./dialogs";
@@ -108,10 +111,28 @@ export function collectAttention(): { text: string } | undefined {
         const sections = dialogsState.get().map((_, index) => formatDialog(dialogsNode, index));
         const popup = getVisibleAppPopupMenu();
         if (popup) sections.push(formatPopup(menusNode));
+        sections.push(...collectLogViewAttention());
         return sections.length ? { text: sections.join("\n\n") } : undefined;
     } catch (error) {
         return { text: `Attention is required, but the visible UI could not be inspected: ${errMessage(error, "unknown inspection error")}.` };
     }
+}
+
+/** Scan parsed Log View model state; inline dialogs are not entries in dialogsState. */
+function collectLogViewAttention(): string[] {
+    const sections: string[] = [];
+    for (const page of pagesModel.pages) {
+        const editor = page.mainEditorInstance;
+        if (!(editor instanceof LogViewEditor) || !editor.hasUnresolvedDialogs()) continue;
+        for (const entry of editor.getEntriesSnapshot()) {
+            if (!isDialogEntry(entry) || entry.button !== undefined) continue;
+            sections.push([
+                `An inline Log View dialog is unanswered on page ${JSON.stringify(page.title)} (id ${JSON.stringify(page.id)}): dialog ${JSON.stringify(entry.id)} of type ${JSON.stringify(entry.type)}.`,
+                `Wait for the user in the Log View page, then read pages.logView.dialogResult(${JSON.stringify(entry.id)}). The agent cannot answer this dialog.`,
+            ].join(" "));
+        }
+    }
+    return sections;
 }
 
 function formatDialog(dialogsNode: DialogsNode, index: number): string {
