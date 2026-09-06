@@ -25,12 +25,10 @@ function requireGraphModel(model: EditorModel): GraphEditor {
 
 interface GraphToolbarProps {
     model: GraphEditor;
-    getCanvas: () => HTMLCanvasElement | null;
 }
 
 class GraphToolbarView extends VanillaView<GraphToolbarProps> {
     private model: GraphEditor;
-    private readonly getCanvas: () => HTMLCanvasElement | null;
     private readonly drawIcon = createIconComponentElement(DrawIcon);
     private openDrawButton: IconButtonView | undefined;
     private copyImageButton: IconButtonView | undefined;
@@ -38,7 +36,6 @@ class GraphToolbarView extends VanillaView<GraphToolbarProps> {
     public constructor(props: GraphToolbarProps) {
         super(props, createContentsRoot());
         this.model = props.model;
-        this.getCanvas = props.getCanvas;
     }
 
     protected onMount(): void {
@@ -47,6 +44,8 @@ class GraphToolbarView extends VanillaView<GraphToolbarProps> {
         this.root.append(this.openDrawButton.root, this.copyImageButton.root);
         this.openDrawButton.mount();
         this.copyImageButton.mount();
+        this.bind(this.model.state, (state) => state.loading || state.error.length > 0, this.updateImageAvailability);
+        this.updateImageAvailability(this.model.state.get().loading || this.model.state.get().error.length > 0);
     }
 
     protected onUpdate(props: GraphToolbarProps): void {
@@ -81,25 +80,16 @@ class GraphToolbarView extends VanillaView<GraphToolbarProps> {
     }
 
     private readonly openInDraw = (): void => {
-        const canvas = this.getCanvas();
-        if (!canvas) return;
-        const dataUrl = canvas.toDataURL("image/png");
-        const json = buildExcalidrawJsonWithImage(dataUrl, "image/png", canvas.width, canvas.height);
-        const host = this.model.host;
-        const title = (host?.state.get().title ?? "Graph").replace(/\.fg\.json$/i, "") + ".excalidraw";
-        pagesModel.addEditorPage("draw-view", "json", title, json);
+        void this.model.openInDrawingEditor();
     };
 
     private readonly copyImage = (): void => {
-        const canvas = this.getCanvas();
-        if (!canvas) return;
-        canvas.toBlob((blob) => {
-            if (blob) {
-                navigator.clipboard.write([
-                    new ClipboardItem({ "image/png": blob }),
-                ]);
-            }
-        }, "image/png");
+        void this.model.copyImageToClipboard();
+    };
+
+    private readonly updateImageAvailability = (hidden: boolean): void => {
+        if (this.openDrawButton) this.openDrawButton.root.hidden = hidden;
+        if (this.copyImageButton) this.copyImageButton.root.hidden = hidden;
     };
 }
 
@@ -155,10 +145,7 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
     protected onMount(): void {
         const model = requireGraphModel(this.props.model);
         const body = this.child(new GraphBodyView({ model, canvasRefSetter: this.setCanvas }));
-        const toolbar = this.child(new GraphToolbarView({
-            model,
-            getCanvas: this.getCanvas,
-        }));
+        const toolbar = this.child(new GraphToolbarView({ model }));
         const footer = this.child(new GraphFooterView({ model }));
         const chrome = this.child(new TextChromeView({
             model: this.props.model,
@@ -172,6 +159,10 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
         this.toolbar = toolbar;
         this.footer = footer;
         this.chrome = chrome;
+        model.setImageActions({
+            openInDrawingEditor: this.openInDrawingEditor,
+            copyImageToClipboard: this.copyImageToClipboard,
+        });
         this.root.append(body.root, toolbar.root, footer.root, chrome.root);
         body.mount();
         toolbar.mount();
@@ -185,7 +176,7 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
             throw new Error("Graph view received a different model instance.");
         }
         this.body?.update({ model, canvasRefSetter: this.setCanvas });
-        this.toolbar?.update({ model, getCanvas: this.getCanvas });
+        this.toolbar?.update({ model });
         this.footer?.update({ model });
         this.chrome?.update({
             model: props.model,
@@ -196,6 +187,7 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     protected onDispose(): void {
+        this.model?.setImageActions(null);
         this.canvas = null;
         this.model = undefined;
         this.body = undefined;
@@ -204,10 +196,36 @@ export class GraphEditorView extends VanillaView<{ model: EditorModel }> {
         this.chrome = undefined;
     }
 
-    private readonly getCanvas = (): HTMLCanvasElement | null => this.canvas;
-
     private readonly setCanvas = (canvas: HTMLCanvasElement | null): void => {
         this.canvas = canvas;
+    };
+
+    private readonly openInDrawingEditor = async (): Promise<void> => {
+        const model = this.model;
+        const canvas = this.canvas;
+        if (!model || !canvas) {
+            throw new Error("Graph image action unavailable: graph canvas is not mounted");
+        }
+        const dataUrl = canvas.toDataURL("image/png");
+        const json = buildExcalidrawJsonWithImage(dataUrl, "image/png", canvas.width, canvas.height);
+        const title = (model.host?.state.get().title ?? "Graph").replace(/\.fg\.json$/i, "") + ".excalidraw";
+        pagesModel.addEditorPage("draw-view", "json", title, json);
+    };
+
+    private readonly copyImageToClipboard = async (): Promise<void> => {
+        const canvas = this.canvas;
+        if (!canvas) {
+            throw new Error("Graph image action unavailable: graph canvas is not mounted");
+        }
+        const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((value) => {
+                if (value) resolve(value);
+                else reject(new Error("Graph image action unavailable: canvas export failed"));
+            }, "image/png");
+        });
+        await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+        ]);
     };
 }
 

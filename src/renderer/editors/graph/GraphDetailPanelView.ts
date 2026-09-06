@@ -33,6 +33,11 @@ const DEFAULT_HEIGHT = 300;
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
 const MAX_PERCENT = 0.9;
+const DETAIL_TAB_NAMES: Record<"info" | "properties" | "links", string> = {
+    info: "graph-detail-tab-info",
+    properties: "graph-detail-tab-properties",
+    links: "graph-detail-tab-links",
+};
 
 export interface GraphDetailPanelProps {
     nodes: GraphNode[];
@@ -240,10 +245,11 @@ export class GraphDetailPanelView extends VanillaView<GraphDetailPanelProps> {
     private appliedLinksSignature: { linksTabActive: boolean; nodeId: string | undefined; linkedNodes: GraphNode[] } | undefined;
 
     public constructor(props: GraphDetailPanelProps) {
-        super(props, createPanelElement({ direction: "column", minWidth: 0 }));
+        super(props, createPanelElement({ name: "graph-detail-panel", direction: "column", minWidth: 0 }));
         this.root.classList.add("graph-detail-panel");
         this.driver = createComponentModelDriver(props, GraphDetailModel, defaultGraphDetailState);
         this.header.className = "graph-detail-header";
+        this.header.dataset.name = "graph-detail-toggle";
         this.headerTitle.className = "graph-detail-title";
         this.headerChevron.className = "graph-detail-chevron";
         this.header.append(this.headerTitle, this.headerChevron);
@@ -368,10 +374,11 @@ class DetailBodyView extends VanillaView<DetailBodyProps> {
         super(props, createPanelElement({ direction: "column", minWidth: 0, minHeight: 0, overflow: "hidden", position: "relative", width: props.size.width, height: props.size.height }));
         this.root.classList.add("graph-detail-body");
         this.contentHost.classList.add("graph-detail-content");
-        for (const tab of ["info", "properties", "links"]) {
+        for (const tab of ["info", "properties", "links"] as const) {
             const button = document.createElement("button");
             button.type = "button";
             button.className = "graph-detail-tab";
+            button.dataset.name = DETAIL_TAB_NAMES[tab];
             button.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
             this.tabButtons.set(tab, button);
             this.tabs.append(button);

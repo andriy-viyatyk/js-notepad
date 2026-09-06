@@ -3,7 +3,7 @@
 Epic: [EPIC-086](../../epics/EPIC-086.md) - Task 7 of 8 in the page node redesign and the
 text-and-preview editor family.
 
-Status: Planned; investigation complete, implementation not started.
+Status: Implemented.
 
 ## Goal
 

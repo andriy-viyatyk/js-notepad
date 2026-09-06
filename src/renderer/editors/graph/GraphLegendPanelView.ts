@@ -17,6 +17,11 @@ import "./GraphLegendPanel.css";
 const ALL_SHAPES: NodeShape[] = ["circle", "square", "diamond", "triangle", "star", "hexagon"];
 const ALL_LEVELS = [1, 2, 3, 4, 5];
 type LegendTab = "level" | "shape" | "selection";
+const LEGEND_TAB_NAMES: Record<"selection" | "level" | "shape", string> = {
+    selection: "graph-legend-tab-selection",
+    level: "graph-legend-tab-level",
+    shape: "graph-legend-tab-shape",
+};
 type SelectionFilter = "" | "selected" | "not-selected" | "selected-with-children";
 
 export interface GraphLegendPanelProps {
@@ -268,6 +273,7 @@ class LegendNormalView extends VanillaView<LegendNormalProps> {
             const button = document.createElement("button");
             button.className = "graph-legend-tab";
             button.type = "button";
+            button.dataset.name = LEGEND_TAB_NAMES[tab];
             button.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
             this.tabButtons.set(tab, button);
             tabs.append(button);
@@ -440,6 +446,8 @@ export class GraphLegendPanelView extends VanillaView<GraphLegendPanelProps> {
         this.editor = props.editor;
         this.root.className = "graph-legend";
         this.header.className = "graph-legend-header";
+        this.root.dataset.name = "graph-legend-panel";
+        this.header.dataset.name = "graph-legend-toggle";
         const title = document.createElement("span");
         title.className = "graph-legend-title";
         title.textContent = "Legend";

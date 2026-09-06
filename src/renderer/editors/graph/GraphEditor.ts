@@ -21,6 +21,7 @@ import {
     openNodeLink,
 } from "./types";
 import { showAppPopupMenu } from "../../ui/dialogs/poppers/showPopupMenu";
+import { errMessage } from "../../../shared/utils";
 import {
     buildNodeContextMenu,
     buildEmptyAreaContextMenu,
@@ -42,6 +43,11 @@ interface GraphViewSettings {
 }
 
 export type TooltipInfo = GraphTooltipInfo;
+
+export interface GraphImageActions {
+    readonly openInDrawingEditor: () => Promise<void>;
+    readonly copyImageToClipboard: () => Promise<void>;
+}
 
 export interface GraphEditorState extends EditorStateBase {
     // HS1 — rides host.editorSettings["graph-view"]. Bounded boolean.
@@ -106,6 +112,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
     isPopupOpen = false;
     /** Set by GraphLegendPanel to handle "Highlight" action from selection menu. */
     onHighlightSelection: (() => void) | null = null;
+    private imageActions: GraphImageActions | null = null;
 
     // ── Timers + parse-loop guard ───────────────────────────────────────
     private _parseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -172,10 +179,30 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
         clearTimeout(this._parseTimer);
         this._parseTimer = undefined;
         this.tooltipModel.dispose();
+        this.imageActions = null;
     }
 
     focus(): void {
         this.typedQueue.send({ type: "focus" });
+    }
+
+    /** Attach image actions owned by the mounted graph view. */
+    setImageActions(actions: GraphImageActions | null): void {
+        this.imageActions = actions;
+    }
+
+    openInDrawingEditor(): Promise<void> {
+        if (!this.imageActions) {
+            throw new Error("Graph image action unavailable: graph view is not mounted");
+        }
+        return this.imageActions.openInDrawingEditor();
+    }
+
+    copyImageToClipboard(): Promise<void> {
+        if (!this.imageActions) {
+            throw new Error("Graph image action unavailable: graph view is not mounted");
+        }
+        return this.imageActions.copyImageToClipboard();
     }
 
     // ── Host adoption ───────────────────────────────────────────────────
@@ -820,7 +847,7 @@ export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, Gra
             this.refreshSelectedNodes();
         } catch (e) {
             this.state.update((s) => {
-                s.error = e.message || "Invalid JSON";
+                s.error = errMessage(e, "Invalid JSON");
                 s.loading = false;
             });
         }

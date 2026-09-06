@@ -30,6 +30,11 @@ import "./GraphBody.css";
 
 type ToolbarPanel = "closed" | "settings" | "expansion" | "results";
 const MAX_DISPLAYED_RESULTS = 100;
+const GRAPH_PANEL_TAB_NAMES: Record<"settings" | "expansion" | "results", string> = {
+    settings: "graph-panel-physics",
+    expansion: "graph-panel-expansion",
+    results: "graph-panel-results",
+};
 
 interface GraphBodyProps {
     model: GraphEditor;
@@ -399,6 +404,7 @@ class GraphContentView extends VanillaView<GraphContentProps> {
         this.tooltipHost.style.display = "contents";
         this.selectionInfo.className = "graph-body-selection-info";
         this.selectionInfo.type = "button";
+        this.selectionInfo.dataset.name = "graph-selection-menu";
         this.searchInfo.className = "graph-body-search-info";
 
         this.settingsButton = new IconButtonView({ name: "graph-settings", size: "sm", icon: "settings", onClick: () => props.setToolbarPanel(props.bodyState.toolbarPanel === "settings" ? "closed" : "settings"), title: "Force tuning" });
@@ -414,6 +420,7 @@ class GraphContentView extends VanillaView<GraphContentProps> {
             const button = document.createElement("button");
             button.type = "button";
             button.className = "graph-body-tab";
+            button.dataset.name = GRAPH_PANEL_TAB_NAMES[tab];
             button.textContent = tab === "settings" ? "Physics" : tab === "expansion" ? "Expansion" : "Results";
             this.tabButtons.set(tab, button);
             this.tabs.append(button);
@@ -744,7 +751,10 @@ export class GraphBodyView extends VanillaView<GraphBodyProps> {
         this.projection = projection;
         this.errorText.textContent = projection.error;
         this.errorPanel.hidden = !projection.error;
-        const key = projection.loading ? "loading" : "content";
+        // Keep loaded graph chrome out of the DOM while the parser reports an error. The error
+        // panel is rendered beside this branch, but visibility discovery must not find stale
+        // controls underneath it.
+        const key = projection.loading || projection.error ? "loading" : "content";
         let created: LoadingView | GraphContentView | undefined;
         this.branchSwap.set(key, (branch) => {
             const view = branch === "loading" ? new LoadingView() : new GraphContentView(this.contentProps());
