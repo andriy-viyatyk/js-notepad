@@ -6,8 +6,10 @@ import { toolsNode } from "./namespaces/tools";
 import type { AppWrapper } from "../api-wrapper/AppWrapper";
 import type { PageCollectionWrapper } from "../api-wrapper/PageCollectionWrapper";
 import type { PageWrapper } from "../api-wrapper/PageWrapper";
+import { scriptRunner } from "../ScriptRunner";
+import { resolveRendererScriptEditor } from "../renderer-script-target";
 import { helpSearch, IHelpSearchHit } from "../../../shared/ai-vision/help-search";
-import { IAiChild, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
+import { IAiChild, IAiMember, IAiVisible, IAiVisionDescriptor } from "../../../shared/ai-vision/types";
 
 export interface AiRootOptions {
     /** Page supplied by a live script or by a Board owner lookup. */
@@ -27,7 +29,7 @@ export interface AiRootOptions {
 
 /**
  * Names still reserved at the root: served by the main process (`windows`, `main`) or owned by
- * later tasks (`guides`, `script`, `pipe`). Kept here for declaration consumers; the main-side
+ * later tasks (`guides`, `pipe`). Kept here for declaration consumers; the main-side
  * handler routes the first two before forwarding.
  */
 export const RESERVED_ROOT_NAMES: readonly string[] = ["windows", "main", "guides", "script", "pipe"];
@@ -56,11 +58,44 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     // hint is complete. See RESERVED_ROOT_NAMES.
     { name: "windows", kind: "property", summary: "All Persephone windows (open and closed). windows[i] is one window; prefix any path with windows[i]. to target it — without the prefix you are talking to the main window." },
     { name: "main", kind: "property", summary: "Main-process diagnostics and settings-gated scripting; process-wide, never windows[i].main." },
+    { name: "script", kind: "property", node: true, summary: "Execute JavaScript or TypeScript in the renderer with the user's privileges." },
 ];
+
+const SCRIPT_EXECUTION_CAUTION = "runs arbitrary renderer code with the user's privileges; it can read and write files, spawn processes, access the network, and affect the app";
+
+const SCRIPT_MEMBERS: readonly IAiMember[] = [
+    { name: "execute", kind: "method", signature: "execute(code, pageId?, language?)", summary: "Execute JavaScript or TypeScript in the renderer and return the result with captured console logs.", caution: SCRIPT_EXECUTION_CAUTION },
+];
+
+const SCRIPT_HELP = `
+script.execute(code, pageId?, language?) runs code in the renderer execution context. The available
+script globals are app, page, io, and ai; app exposes application services, and page is the selected
+page's script global. If pageId is omitted, execution targets the active page; pass a page id to
+target that page explicitly. language is optional and may be "javascript" or "typescript"; TypeScript
+is transpiled without type checking.
+
+The last expression is returned as text. The result always contains text, language, isError, and
+consoleLogs. console.log, console.info, console.warn, and console.error are captured in consoleLogs.
+Errors return isError: true and include the error message and stack text. Side effects performed
+before an error or timeout remain performed.
+
+This is full-privilege renderer/Node.js execution with no sandbox. Code can read and write files,
+spawn processes, access the network, and change the application. require() is context-bound, but
+otherwise has full Node.js access. A renderer bridge request waits up to 30 seconds; a timeout does
+not cancel JavaScript that is already running. A newly opened blocking renderer dialog may instead
+return pending with an attention instruction; answer it and re-read the relevant state.
+
+The call resolver may cut long result text or a console argument at maxLength (20,000 by default).
+Raise call's maxLength to return the rest. For detailed API operations, use the app and page paths
+and their descendants; use helpSearch when you need to discover another path. This help is the
+execution contract for script.execute. The separate main.script.execute path runs settings-gated
+main-process code.
+`.trim();
 
 const ROOT_OVERVIEW = `
 pages - open pages/tabs and the agent output channel; e.g. pages.logView.push([...])
 page - the active page and its editor; e.g. page.content
+script - execute renderer JavaScript or TypeScript; e.g. script.execute("1 + 1")
 helpSearch - find matching hint/help lines and paths; e.g. helpSearch("add rows")
 settings - read or persist application configuration; e.g. settings.theme
 fs - read/write files, directories, and OS file integration; e.g. fs.read("path")
@@ -78,11 +113,12 @@ recent - access recently opened file paths; e.g. recent.files
 downloads - inspect and manage download entries; e.g. downloads.downloads
 menuFolders - inspect configured sidebar folders; e.g. menuFolders.folders
 windows - inspect open/closed application windows; e.g. windows[0].status
-main - process-wide diagnostics and gated scripting; e.g. main.runtime`.trim();
+main - process-wide diagnostics and gated scripting; e.g. main.runtime
+`.trim();
 
 const ROOT_HELP = `
 This is Persephone's live object model. Every path here has the same name in scripts
-(execute_script): "pages[0].content" is "app.pages.all[0].content" there.
+(script.execute(code)): "pages[0].content" is "app.pages.all[0].content" there.
 
 Common paths:
   pages.logView.push([...])   SHOW the user output (markdown, a grid, mermaid, code, progress) or
@@ -95,6 +131,8 @@ Common paths:
   tools.toolsets.refresh()    refresh the whole registered-tool registry
   tools.createToolset         scaffold a toolset and offer the existing user registration prompt
   pages[0].tab.highlight("tab-language")  point the user at one page's tab control ("where is …?", "show me …")
+  script.execute(code)        run renderer JavaScript or TypeScript; see script.$help
+  main.script.execute(code)   run the separate settings-gated main-process scripting path
   <path>.$help                long-form help for any node
 
 Rules: arguments for the last segment go in "args" (a JSON array); assignments go in "value";
@@ -118,6 +156,7 @@ export class AiRoot implements IAiVisible {
 
     private readonly dialogsNode = new DialogsNode();
     private readonly menusNode = new MenusNode();
+    private readonly scriptNode = new ScriptNode();
 
     get pages(): PageCollectionWrapper {
         return this.app.pages;
@@ -147,6 +186,7 @@ export class AiRoot implements IAiVisible {
     get recent() { return this.app.recent; }
     get downloads() { return this.app.downloads; }
     get menuFolders() { return this.app.menuFolders; }
+    get script(): ScriptNode { return this.scriptNode; }
 
     get aiVision(): IAiVisionDescriptor {
         return {
@@ -171,5 +211,24 @@ export class AiRoot implements IAiVisible {
             children.push({ segment: ".page", kind: "Page", summary: `active: "${active.title}" (${active.editor.id})`, ...(restricted ? { restricted } : {}) });
         }
         return children;
+    }
+}
+
+class ScriptNode implements IAiVisible {
+    execute(code: string, pageId?: string, language?: string) {
+        if (typeof code !== "string" || !code) {
+            throw new Error("Missing or invalid 'script' parameter");
+        }
+        const editor = resolveRendererScriptEditor(pageId);
+        return scriptRunner.runWithCapture(code, editor, language);
+    }
+
+    get aiVision(): IAiVisionDescriptor {
+        return {
+            kind: "Script",
+            summary: "Renderer script execution in the context where app, page, and editor facades live.",
+            members: SCRIPT_MEMBERS,
+            help: SCRIPT_HELP,
+        };
     }
 }

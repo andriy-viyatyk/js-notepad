@@ -1,4 +1,5 @@
 import { scriptRunner } from "../../scripting/ScriptRunner";
+import { resolveRendererScriptEditor } from "../../scripting/renderer-script-target";
 import { editorRegistry } from "../../editors/base/editorRegistry";
 import { isBoardEditorId } from "../../editors/board/custom-editor-registry";
 import { fpJoin } from "../../core/utils/file-path";
@@ -102,11 +103,8 @@ export async function handleExecuteScript(params: McpParams): Promise<McpRespons
 
     const pageId = asString(params?.pageId);
     const language = asString(params?.language);
-    const page = pageId ? pagesModel.findPage(pageId) : pagesModel.activePage;
-    // scriptRunner expects a legacy EditorModel; unwrap adapter or pass undefined.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const editor = page?.mainEditor as any;
-    const result = await scriptRunner.runWithCapture(script, editor ?? undefined, language);
+    const editor = resolveRendererScriptEditor(pageId);
+    const result = await scriptRunner.runWithCapture(script, editor, language);
     return { result: { text: result.text, language: result.language, isError: result.isError, consoleLogs: result.consoleLogs } };
 }
 
