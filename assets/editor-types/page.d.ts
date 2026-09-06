@@ -24,6 +24,7 @@ import type { IPagePanels } from "./page-panels";
 import type { IPageTab } from "./page-tab";
 import type { IFolderViewEditor } from "./folder-view-editor";
 import type { IGitTreeEditor } from "./git-tree-editor";
+import type { IBoardEditor } from "./board-editor";
 
 /** The operation-bearing editor ids represented by the facade union. */
 export type IFacadeEditorId =
@@ -31,7 +32,8 @@ export type IFacadeEditorId =
     | "grid-json" | "grid-csv" | "grid-jsonl"
     | "notebook-view" | "rest-client" | "env-vars-view" | "archive-view" | "link-view" | "md-view" | "svg-view" | "html-view"
     | "mermaid-view" | "graph-view" | "draw-view" | "browser-view" | "mcp-view" | "image-view" | "video-view" | "file-diff" | "log-view"
-    | "category-view" | "git-tree";
+    | "category-view" | "git-tree"
+    | "board-view" | `board-editor:${string}`;
 
 /** Built-in editors without an operation facade, plus runtime custom board ids. */
 export type IGenericEditorId = Exclude<EditorView, IFacadeEditorId>
@@ -41,7 +43,8 @@ export type IEditorFacade =
     | ITextEditor | IGridEditor | INotebookEditor | IRestClientEditor | IEnvVarsEditor | IArchiveEditor | ILinkEditor | IBrowserEditor
     | IMarkdownEditor | ISvgEditor | IHtmlEditor | IMermaidEditor | IGraphEditor
     | IDrawEditor | IMcpInspectorEditor | IImageEditor | IVideoEditor | IFileDiffEditor | ILogViewEditor
-    | IFolderViewEditor | IGitTreeEditor | IGenericEditor;
+    | IFolderViewEditor | IGitTreeEditor | IGenericEditor
+    | IBoardEditor;
 
 /**
  * IPage — represents a page (tab) in the current window.

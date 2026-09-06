@@ -2,7 +2,8 @@ import { pagesModel } from "../../api/pages";
 import { editorRegistry } from "../../editors/base/editorRegistry";
 import type { EditorModel } from "../../editors/base/EditorModel";
 import { isTextFileModel, type TextFileModel } from "../../editors/text/TextEditorModel";
-import { customEditorRegistry } from "../../editors/board/custom-editor-registry";
+import { customEditorRegistry, isBoardEditorId } from "../../editors/board/custom-editor-registry";
+import type { BoardEditorModel } from "../../editors/board/BoardEditorModel";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import { NotebookEditor } from "../../editors/notebook/NotebookEditor";
@@ -50,6 +51,7 @@ import { LogViewEditorFacade } from "./LogViewEditorFacade";
 import type { LogViewEditor } from "../../editors/log-view/LogViewEditor";
 import { FolderViewEditorFacade } from "./FolderViewEditorFacade";
 import { GitTreeEditorFacade } from "./GitTreeEditorFacade";
+import { BoardEditorFacade } from "./BoardEditorFacade";
 import type { CategoryEditorModel } from "../../editors/category/CategoryEditorModel";
 import type { GitTreeEditorModel } from "../../editors/git-tree/GitTreeEditorModel";
 
@@ -60,8 +62,11 @@ type EditorFacade =
     | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
     | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
     | EnvVarsEditorFacade | ArchiveEditorFacade
-    | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | GenericEditorFacade;
+    | LogViewEditorFacade | FolderViewEditorFacade | GitTreeEditorFacade | BoardEditorFacade | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
+
+const BOARD_FACADE_FACTORY: EditorFacadeFactory = (editor, id, name) =>
+    new BoardEditorFacade(editor as BoardEditorModel, id as "board-view" | `board-editor:${string}`, name);
 
 const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "monaco": (editor, id, name) => new TextEditorFacade(editor as MonacoEditor, id, name),
@@ -87,6 +92,7 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "log-view": (editor, id, name) => new LogViewEditorFacade(editor as LogViewEditor, id as "log-view", name),
     "category-view": (editor, id, name) => new FolderViewEditorFacade(editor as CategoryEditorModel, id as "category-view", name),
     "git-tree": (editor, id, name) => new GitTreeEditorFacade(editor as GitTreeEditorModel, id as "git-tree", name),
+    "board-view": BOARD_FACADE_FACTORY,
 };
 
 const PAGE_MEMBERS: readonly IAiMember[] = [
@@ -170,7 +176,10 @@ export class PageWrapper implements IAiVisible {
             ?? customEditorRegistry.entries.find((entry) => entry.editorId === id)?.name
             ?? id;
         const editor = this.mainEditor;
-        const factory = editor ? FACADE_FOR_EDITOR[id] : undefined;
+        const factory = editor
+            ? FACADE_FOR_EDITOR[id]
+                ?? (isBoardEditorId(id) ? BOARD_FACADE_FACTORY : undefined)
+            : undefined;
         return factory ? factory(editor, id, name) : new GenericEditorFacade(id, name);
     }
 

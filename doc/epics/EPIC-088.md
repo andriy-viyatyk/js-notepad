@@ -263,7 +263,7 @@ paths are proven, and the tools themselves are not touched.
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-1325 | The board page surface — trust states, toolbar, secondary views, and `reload()` | Planned |
+| [US-1325](../tasks/US-1325-board-page-surface/README.md) | The board page surface — trust states, toolbar, secondary views, and `reload()` | Implemented |
 | US-1326 | The `boards` node completes — enumeration of installed, trusted and open boards | Planned |
 | US-1327 | The Board Info surface — install, version, screenshots, and the board-vars question | Planned |
 | US-1328 | The `tools` root node — search, execute, toolsets, refresh, and the registration prompt | Planned |

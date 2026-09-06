@@ -55,7 +55,7 @@ export async function handleBoardRefresh(params: McpParams): Promise<McpResponse
         return { error: { code: -32602, message: `Page ${page.id} is not a board page.` } };
     }
     const board = editor as BoardEditorModel;
-    const ready = board.waitForFrameLoad();
-    board.reloadBoard();
-    return { result: { refreshed: true, pageId: page.id, frameReady: await ready } };
+    // One ordering, one waiter, shared with pages[i].editor.reload() — see US-1325.
+    const frameReady = await board.reloadAndWait();
+    return { result: { refreshed: true, pageId: page.id, frameReady } };
 }

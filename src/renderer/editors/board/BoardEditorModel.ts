@@ -10,7 +10,7 @@ import { createPipeFromDescriptor } from "../../content/registry";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { boardEditorId } from "./custom-editor-registry";
-import { isBoardFolder, normalizeSecondaryViews, readBoardManifest, readBoardSecondaryViews, type SecondaryViewDecl } from "./board-manifest";
+import { isBoardFolder, normalizeSecondaryViews, readBoardManifest, readBoardSecondaryViews, type BoardManifest, type SecondaryViewDecl } from "./board-manifest";
 import { boardSecondaryPanelId } from "./board-secondary";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { createBoardGlyphElement } from "./board-glyph-element";
@@ -548,6 +548,19 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         const boardRoot = this.state.get().boardRoot;
         if (boardRoot) invalidateBoardIcon(boardRoot);
         this.state.update((s) => { s.reloadToken++; });
+    }
+
+    /** Wait for the next attachable main board frame after a model-owned reload. */
+    reloadAndWait(): Promise<boolean> {
+        const frameReady = this.waitForFrameLoad(BOARD_CDP_TAB);
+        this.reloadBoard();
+        return frameReady;
+    }
+
+    /** Read the current board manifest through the board model's path authority. */
+    readManifestForFacade(): Promise<BoardManifest | null> {
+        const boardRoot = this.state.get().boardRoot;
+        return boardRoot ? readBoardManifest(boardRoot) : Promise.resolve(null);
     }
 
     /** Absolute path to the board's `ui.log` (for the open-log action), or undefined

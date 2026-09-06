@@ -38,6 +38,7 @@ export class UntrustedBoardView extends VanillaView<UntrustedBoardViewProps> {
         this.pathElement = pathElement;
         const trustButton = this.child(new ButtonView({
             variant: "primary",
+            name: "board-trust",
             onClick: () => void this.props.onTrust(),
             children: "Trust board",
         }));

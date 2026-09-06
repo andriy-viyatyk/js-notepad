@@ -1,6 +1,7 @@
 ai.d.ts
 app.d.ts
 archive-editor.d.ts
+board-editor.d.ts
 board-vars.d.ts
 boards.d.ts
 browser-editor.d.ts
