@@ -58,30 +58,42 @@ const ROOT_MEMBERS: IAiVisionDescriptor["members"] = [
     { name: "main", kind: "property", summary: "Main-process diagnostics and settings-gated scripting; process-wide, never windows[i].main." },
 ];
 
+const ROOT_OVERVIEW = `
+pages - open pages/tabs and the agent output channel; e.g. pages.logView.push([...])
+page - the active page and its editor; e.g. page.content
+helpSearch - find matching hint/help lines and paths; e.g. helpSearch("add rows")
+settings - read or persist application configuration; e.g. settings.theme
+fs - read/write files, directories, and OS file integration; e.g. fs.read("path")
+ui - dialogs, notifications, progress, locks, and curated controls; e.g. ui.elements
+dialogs - inspect and answer open renderer dialogs; e.g. dialogs[0].buttons
+menus - inspect and act on the open popup menu; e.g. menus[0].items
+shell - URLs, screen capture, encryption, and runtime/update services; e.g. shell.version
+window - this window's state, sidebar, zoom, and multi-window actions; e.g. window.zoomLevel
+proc - spawn and manage child processes; no safe example - inspect its cautioned member below
+boards - local boards and their lifecycle/catalog operations; e.g. boards.list()
+tools - search/execute registered Agent Tools and inspect toolsets; e.g. tools.search()
+boardVars - administer board environment variables and secrets; no safe example - inspect its cautioned members below
+editors - inspect available editors and file-language matches; e.g. editors.getAll()
+recent - access recently opened file paths; e.g. recent.files
+downloads - inspect and manage download entries; e.g. downloads.downloads
+menuFolders - inspect configured sidebar folders; e.g. menuFolders.folders
+windows - inspect open/closed application windows; e.g. windows[0].status
+main - process-wide diagnostics and gated scripting; e.g. main.runtime`.trim();
+
 const ROOT_HELP = `
 This is Persephone's live object model. Every path here has the same name in scripts
 (execute_script): "pages[0].content" is "app.pages.all[0].content" there.
 
 Common paths:
-  pages                       list open pages
   pages.logView.push([...])   SHOW the user output (markdown, a grid, mermaid, code, progress) or
                               ASK them a question — the agent's output channel; see its $help
-  page.content                text of the active page (assign with "value")
   pages["<id>"].content       text of a specific page
   pages[0].editorSwitches.switchTo("grid-json")  switch the page, then use pages[0].editor.addRows(5)
-  dialogs[0].click("OK")   answer the first open renderer dialog (or use dialogs[0].cancel())
-  menus[0].items           inspect the open popup menu, including nested items
-  menus[0].click("Parent > Child")
-  menus[0].close()          dismiss the open popup menu
   pages.showPage("<id>")      activate a page
-  helpSearch("add rows")      find where something lives
-  main                        main-process diagnostics and gated scripting
-  tools.search                search registered Agent Tools (use args for query and maxResults)
   tools.execute               execute a registered tool (use args for tool id and JSON arguments)
   tools.toolsets              inspect current registered toolsets, including invalid and shadowed entries
   tools.toolsets.refresh()    refresh the whole registered-tool registry
   tools.createToolset         scaffold a toolset and offer the existing user registration prompt
-  ui.elements                 curated shell controls with live visibility, purpose, and selectors
   pages[0].tab.highlight("tab-language")  point the user at one page's tab control ("where is …?", "show me …")
   <path>.$help                long-form help for any node
 
@@ -141,6 +153,7 @@ export class AiRoot implements IAiVisible {
             kind: "Persephone",
             summary: "the root of the object model — a developer notepad with tabbed pages, specialized editors and scripting.",
             members: ROOT_MEMBERS,
+            overview: ROOT_OVERVIEW,
             help: ROOT_HELP,
             children: () => this.children(),
             ...(this.options.restricted ? { restricted: this.options.restricted } : {}),

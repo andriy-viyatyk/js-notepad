@@ -101,10 +101,10 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
         {
             name: "call",
             description: [
-                "Persephone (developer notepad: tabbed pages, editors, scripting) — read or act on its live object model by PATH. Start with path \"\" to see the top-level entries; every result comes with a hint listing what is under it, so you can discover everything from here without any guide.",
+                "Persephone (developer notepad: tabbed pages, editors, scripting) — read or act on its live object model by PATH. Start with no path to see the overview; every result comes with a hint listing what is under it, so you can discover everything from here without any guide.",
                 "",
                 "Examples:",
-                "  path: \"\"                                → top-level entries",
+                "  (no path)                               → the overview: every top-level area, what it is for, and an example path",
                 "  path: \"pages\"                           → open pages (tabs), each with an index and id",
                 "  path: \"page.content\"                    → text of the active page",
                 "  path: \"pages[0].content\", value: \"...\" → replace a page's text",
@@ -121,7 +121,7 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                 "Paths use the same names as the scripting API (execute_script). Put method arguments in `args` and assignments in `value`; the path itself takes only short JSON literals like pages[2] or pages[\"id\"]. An unknown member returns the valid member list instead of failing.",
             ].join("\n"),
             schema: {
-                path: z.string().describe("Path into the object model, e.g. \"\", \"pages\", \"pages[0].content\", \"pages[\\\"<id>\\\"].editor.rows\", \"page.$help\"."),
+                path: z.string().optional().describe("Path into the object model; omit for the overview."),
                 args: z.array(z.unknown()).optional().describe("Arguments for the last segment when it is a method (JSON array). Use this for strings with quotes/newlines or any non-trivial value."),
                 value: z.unknown().optional().describe("Assign this value to the property named by the last segment (e.g. page.content). Mutually exclusive with args."),
                 hints: z.enum(["auto", "always", "never"]).optional().describe("auto (default): the member list for each kind of object is sent once per session, live children always; always: repeat member lists; never: no hints."),

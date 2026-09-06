@@ -61,6 +61,8 @@ export interface IAiVisionDescriptor {
     readonly summary: string;
     /** Static members the agent may name in a path. Never produced by reflection. */
     readonly members: readonly IAiMember[];
+    /** Compact first-step map emitted by the empty-path hint and root `$help`, when present. */
+    readonly overview?: string;
     /** Long-form guidance returned for `<path>.$help`. */
     readonly help?: string | (() => string);
     /** Dynamic children that exist right now. Must be cheap and side-effect free. */

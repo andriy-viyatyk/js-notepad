@@ -50,6 +50,7 @@ export function buildHint(
     const children = descriptor.children?.() ?? [];
     const childrenText = formatChildren(path, children);
     if (childrenText) parts.push(childrenText);
+    if (path === "" && descriptor.overview) parts.push(descriptor.overview);
     if (includeMembers) {
         const membersText = formatMembers(descriptor.members);
         if (membersText) parts.push(membersText);
@@ -61,6 +62,7 @@ export function buildHint(
 /** The full `$help` rendering: long-form help, then members, then live children. */
 export function buildHelp(path: string, descriptor: IAiVisionDescriptor): string {
     const parts: string[] = [`${descriptor.kind} — ${descriptor.summary}`];
+    if (descriptor.overview) parts.push(descriptor.overview);
     const help = typeof descriptor.help === "function" ? descriptor.help() : descriptor.help;
     if (help) parts.push(help.trim());
     const membersText = formatMembers(descriptor.members);
