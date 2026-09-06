@@ -6,6 +6,7 @@ import { customEditorRegistry } from "../../editors/board/custom-editor-registry
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import { NotebookEditor } from "../../editors/notebook/NotebookEditor";
+import { RestClientEditor } from "../../editors/rest-client/RestClientEditor";
 import { LinkEditor } from "../../editors/link-editor/LinkEditor";
 import { MarkdownEditor } from "../../editors/markdown/MarkdownEditor";
 import { SvgEditor } from "../../editors/svg/SvgEditor";
@@ -33,6 +34,7 @@ import { MarkdownEditorFacade } from "./MarkdownEditorFacade";
 import { McpInspectorFacade } from "./McpInspectorFacade";
 import { MermaidEditorFacade } from "./MermaidEditorFacade";
 import { NotebookEditorFacade } from "./NotebookEditorFacade";
+import { RestClientEditorFacade } from "./RestClientEditorFacade";
 import { PageEditorSwitchesNode } from "../ai-vision/page-editor-switches";
 import { PagePanelsNode } from "../ai-vision/page-panels";
 import { PageTabNode } from "../ai-vision/page-tab";
@@ -46,7 +48,8 @@ type EditorFacade =
     | TextEditorFacade | GridEditorFacade | NotebookEditorFacade | LinkEditorFacade
     | MarkdownEditorFacade | SvgEditorFacade | HtmlEditorFacade | MermaidEditorFacade
     | GraphEditorFacade | DrawEditorFacade | BrowserEditorFacade | McpInspectorFacade
-    | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | GenericEditorFacade;
+    | ImageEditorFacade | VideoEditorFacade | FileDiffEditorFacade | RestClientEditorFacade
+    | GenericEditorFacade;
 type EditorFacadeFactory = (editor: EditorModel, id: string, name: string) => EditorFacade;
 
 const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
@@ -55,6 +58,7 @@ const FACADE_FOR_EDITOR: Record<string, EditorFacadeFactory> = {
     "grid-csv": (editor, id, name) => new GridEditorFacade(editor as GridEditor, id, name),
     "grid-jsonl": (editor, id, name) => new GridEditorFacade(editor as GridEditor, id, name),
     "notebook-view": (editor, id, name) => new NotebookEditorFacade(editor as NotebookEditor, id, name),
+    "rest-client": (editor, id, name) => new RestClientEditorFacade(editor as RestClientEditor, id as "rest-client", name),
     "link-view": (editor, id, name) => new LinkEditorFacade(editor as LinkEditor, id, name),
     "md-view": (editor, id, name) => new MarkdownEditorFacade(editor as MarkdownEditor, id, name),
     "svg-view": (editor, id, name) => new SvgEditorFacade(editor as SvgEditor, id, name),

@@ -35,6 +35,7 @@ page.d.ts
 pages.d.ts
 proc.d.ts
 recent.d.ts
+rest-client-editor.d.ts
 settings.d.ts
 shell.d.ts
 svg-editor.d.ts

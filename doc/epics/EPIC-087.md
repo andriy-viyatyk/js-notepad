@@ -70,8 +70,8 @@ nothing about what is in it. That is US-1323's third piece.
   **retirable**. Nothing is deleted; deletion is EPIC-090's.
 - The Explorer, Search and Boards sidebar panels are reachable as nodes under `page.panels`, not
   just as open/closed state.
-- Secrets stay unreadable: no member returns a stored environment secret, a REST authorization
-  header value, or an archive password.
+- No member *accepts* a secret value on any of these surfaces, and no surface claims a redaction it
+  cannot enforce — see decision 7, revised once the REST client showed the difference.
 - `qa/surfaces/editors/data.md` and `qa/surfaces/panels.md` exist and pass on Haiku with `call`
   alone.
 
@@ -188,15 +188,34 @@ a malformed dialog and hangs the Log View — the failure the tool's description
 about ("Incorrect fields will crash the dialog and cause a permanent hang") — would be a regression
 even though the tool's own tests would still pass.
 
-### 7. Secrets are never returned, on any of these surfaces
+### 7. No member *accepts* a secret; whether one may *return* a value depends on the page
 
-Three of the eight hold credentials: env vars (secret values), the REST client (authorization
-headers and stored variables), and archives (a password for an encrypted archive). The rule set in
-EPIC-086 Needs-user-check item 3 — a member that *accepts* a password writes it into MCP transcripts,
-and a member that *returns* one leaks it — applies to all three. These surfaces expose **names,
-presence and shape**; a value marked secret reads as a redaction marker, and no member takes a
-password argument. `restricted()` is used where a whole node must be withheld. Each task verifies
-against its own model which fields are actually secret rather than assuming.
+**Revised 2026-09-06, during US-1320's review**, after the original rule failed its first contact
+with the code. It read: "these surfaces expose names, presence and shape; a value marked secret
+reads as a redaction marker". Verifying that against the REST client showed it would have shipped a
+guarantee the system does not provide.
+
+The two halves are not symmetric, and separating them is the whole correction.
+
+**Accepting a secret is always forbidden.** A member that takes a password, token or header *value*
+as an argument writes that value into the `call` arguments and into the MCP transcript — a place the
+secret was not before. That is EPIC-086's encryption rule (Needs-user-check item 3) and it holds on
+every surface in this epic regardless of what is readable. So: no `setHeaderValue`, no `setBody`, no
+`updateRequest(id, Partial<…>)`, no password argument anywhere.
+
+**Returning a value is only a boundary where a boundary actually exists.** `rest-client` is
+registered `hasContentHost: true` (`register-editors.ts:160`), so `pages[i].content` returns the raw
+`.rest.json` — URL, `Authorization` value and body included. Verified live on a page with planted
+credentials (see Needs user check 1). A facade that redacted those fields would sit one path segment
+from the unredacted text on the *same node*, protecting nothing while telling the agent and the
+user's `$help` that a protection exists. A stated guarantee the system does not honour is worse than
+no guarantee — the same error EPIC-086 caught in the `open_url` premise and refused to ship.
+
+So each surface answers one question first: **is there a path beside this facade that already
+returns the value?** If yes, the facade exposes what the user sees and claims nothing. If no — a
+value that lives only in a model, never in page text — it may genuinely be withheld, and
+`restricted()` is used where a whole node must go. US-1321 asks this question of env vars and
+archives separately and records the answer; it must not assume the REST answer applies.
 
 ### 8. Writes and network calls carry `caution`
 
@@ -318,7 +337,8 @@ Stop the epic and record why, rather than pushing through, if any of these appea
 
 ## Needs user check
 
-*(none raised yet — items are added here as they arise, with enough context to re-verify)*
+1. **REST page-level secret boundary (US-1320):** Live verification found that a `rest-client`
+   page's `content` returns the full `.rest.json`, including `"url": "https://api.example.com/v1/me?token=SECRETQUERY"`, `"Authorization"` with value `"Bearer SECRETHEADER"`, and `"body": "pw=SECRETBODY"`. The assumption for US-1320 is that the facade exposes what the user sees and claims no protection it cannot enforce; no member accepts a secret value. A genuine boundary would have to be page-level, covering `content` and the facade together with the `restricted()` treatment private browser pages get; that user-owned blast-radius decision is deliberately not invented here.
 
 ## Notes
 
