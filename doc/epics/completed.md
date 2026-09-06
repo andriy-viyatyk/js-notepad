@@ -24,6 +24,12 @@ every registered toolset on this machine calls a live service with the user's cr
 registering a scratch one needs a click on a trust dialog an agent must not take on its own behalf.
 Principle 3 - *retire nothing until its replacement passes the same test* - held to the last row.
 
+**Follow-up, 2026-09-07 (US-1353): the last row closed and the count is 34 → 1.** The user ran a
+real tool through `tools.execute` against a registered toolset in a user project and all three
+capability rows checked out, so `execute_tool` was marked retirable and deleted, and the
+`PERSEPHONE_MCP_CALL_ONLY` flag went with it exactly as decision 2 anticipated. `call` is the whole
+manifest, with no flag needed to make it so.
+
 **`open_window` came within one investigation of joining it.** No closed window could be produced to
 reopen, and only reading `windowOnClose` revealed why: a closed window is retained solely when one
 of its pages is modified or pinned. Pinning a page made the test possible and the row passed on its

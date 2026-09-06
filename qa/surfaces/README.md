@@ -65,19 +65,18 @@ created. Only scenario-created non-pinned pages and tabs may be changed.
    codex mcp add persephone --url http://127.0.0.1:<mcp.port>/mcp
    ```
 
-   The skill restricts its own tools to `call`, so the Haiku pass simulates call-only regardless of
-   the server manifest and tests documentation/discovery.
+   The skill restricts its own tools to `call`, which is also the whole shipped manifest; the Haiku
+   pass tests documentation and discovery.
 
 2. **Run all surfaces.** For the EPIC-090 deletion gate, run the ten scenarios in `gate.md` once
    in the Haiku pass and once in the Codex pass. This is the compact all-surface capability sweep,
    not a request to run all roughly sixty historical scenarios twice. A separate UI-regression
    sweep may iterate every file in the surface index when requested, but it is not the deletion gate.
 
-3. **Codex setup.** Codex has no Persephone MCP server configured today. Launch Persephone with
-   `PERSEPHONE_MCP_CALL_ONLY=1`, then add `codex mcp add persephone --url
-   http://127.0.0.1:<mcp.port>/mcp`; the default port is `7865`. This is the only end-to-end
-   exercise of the genuinely reduced manifest. The environment is fixed at process start, so
-   changing the flag requires restarting Persephone before the Codex pass.
+3. **Codex setup.** Add the server with `codex mcp add persephone --url
+   http://127.0.0.1:<mcp.port>/mcp`; the default port is `7865`. The manifest is `call` alone
+   (US-1353 removed `execute_tool` and the `PERSEPHONE_MCP_CALL_ONLY` flag with it), so no
+   launch flag or restart is needed for a call-only pass.
 
 4. **Results.** `PASS` means the request succeeded with the expected surface result. `PARTIAL`
    means the goal was reached after wrong turns: record it as a finding, fix the relevant overview,

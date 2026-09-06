@@ -48,35 +48,17 @@ In ChatGPT settings → MCP Servers → Add:
 gemini --mcp-server http://127.0.0.1:7865/mcp
 ```
 
-## Call-only tool manifest
-
-For migration or QA work, set `PERSEPHONE_MCP_CALL_ONLY` before launching Persephone to register
-only the `call` tool. The enabled values are `1`, `true`, and `yes` (case-insensitive); unset,
-empty, `0`, `false`, `no`, and any other value leave the normal tool manifest enabled. Focused
-guide resources and `persephone://guides/full` remain available in either mode.
-
-In PowerShell, launch the development app with:
-
-```powershell
-$env:PERSEPHONE_MCP_CALL_ONLY = "1"
-npm start
-```
-
-For an installed build, launch it from a shell or shortcut that carries the same environment
-variable. Changing the variable requires restarting the Persephone process. After the restart,
-initialize a new MCP session to see only `call`; reconnecting alone does not change a running
-process, and the guide resources remain available.
-
 ## Available Tools
 
-The default manifest advertises two tools:
+The manifest advertises exactly one tool:
 
 | Tool | Description |
 |------|-------------|
 | **call** | Read or act on the live object model with a path. Start with no path for the overview; use `args` for method arguments, `value` for assignments, and `maxLength` to bound long strings. |
-| **execute_tool** | Run a registered Agent Tool by id discovered through `tools.search`; pass `args` matching its input schema. |
 
-With `PERSEPHONE_MCP_CALL_ONLY` enabled, only `call` is advertised. All guide resources remain available by URI.
+Everything Persephone can do is a path under `call` — pages, editors, windows, boards, settings,
+browser automation, Agent Tools, and scripting. The thirteen guide resources are separate from the
+tool manifest and remain available by URI.
 ### Discovering the application shell with `call`
 
 The `call` tool is the discoverable route for the live application shell. Start with an empty path
@@ -228,7 +210,7 @@ MCP resources are read-only documents that AI clients can discover and read to g
 | **Notebook Guide** | `persephone://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
 | **Links Guide** | `persephone://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
 | **Boards Guide** | `persephone://guides/boards` | Board authoring/automation reference — bridge API, theme contract, local vendoring, `pages[pageId].editor` testing. Read before building or opening a board. |
-| **Tools Guide** | `persephone://guides/tools` | Agent Tools registry — `tools.search`/`execute_tool`, the stdin-JSON + result-marker contract, `.env` secrets. Read before using `tools.search`/`execute_tool`. |
+| **Tools Guide** | `persephone://guides/tools` | Agent Tools registry — `tools.search`/`tools.execute`, the stdin-JSON + result-marker contract, `.env` secrets. Read before using them. |
 | **Browser Guide** | `persephone://guides/browser` | Browser automation in depth — `call` paths, snapshot format, ref lifecycle, waiting strategies, errors, and older-tool equivalents. |
 | **UI Guide** | `persephone://guides/ui` | Persephone's own interface — what each always-visible element is for, its stable selector, where Settings lives, and how to highlight an element on screen. Read when helping the user with the app itself. |
 | **UI Editors Guide** | `persephone://guides/ui-editors` | The editor catalog — what each editor is for, how the user opens it, what it can do. Read when explaining Persephone's capabilities to the user. |

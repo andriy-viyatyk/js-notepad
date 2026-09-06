@@ -367,7 +367,9 @@ Stop the epic and record why, rather than pushing through, if any of these appea
    EPIC-087's Needs-user-check 1 (the REST page-level boundary), since both are the same question:
    where does the boundary live when the value is already reachable by another path?
 
-2. **`execute_tool`'s retirement marking is withheld pending one call from you (US-1332).** The
+2. **`execute_tool`'s retirement marking is withheld pending one call from you (US-1332).**
+   **RESOLVED 2026-09-07 — the call was made and US-1353 marked the row and deleted the tool; see
+   EPIC-090 Needs user check 1 for the evidence.** The
    replacement `tools.execute(toolId, args)` is implemented and behaves correctly on everything that
    could be tested: it throws on an unknown id with the valid list and spawns no process, and the
    legacy tool still returns its structured `ok:false` unchanged. What could **not** be verified is a

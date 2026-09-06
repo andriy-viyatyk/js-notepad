@@ -26,7 +26,7 @@ Each tool has an id of the form `<toolset-name>/<tool-name>` (e.g. `azure-devops
 
 ### The registry is agent-facing
 
-Unlike most editors, the tools registry is used mostly *by AI agents over MCP*, not directly in the UI. Agents discover tools with `tools.search`, run them with `execute_tool` or `tools.execute`, and — when a tool fails — fix the script and retry. The Persephone UI is where **you** stay in control: registering, inspecting, and removing toolsets.
+Unlike most editors, the tools registry is used mostly *by AI agents over MCP*, not directly in the UI. Agents discover tools with `tools.search`, run them with `tools.execute`, and — when a tool fails — fix the script and retry. The Persephone UI is where **you** stay in control: registering, inspecting, and removing toolsets.
 
 ### Toolset trust gate
 
@@ -73,16 +73,17 @@ Opening a toolset shows a read-only **toolset view** with:
 
 ## Using tools from an AI agent (MCP)
 
-The registry exposes `execute_tool` directly in the default manifest. Discovery, refresh, and
-toolset creation are available through the `call` object-model paths:
+The whole registry is reached through `call` object-model paths — discovery, execution, refresh,
+and toolset creation:
 
 | Call path | Purpose |
 |-----------|---------|
 | `tools.search` | Discover registered tools and return complete definitions, including input schemas and required environment-variable names. |
 | `tools.toolsets.refresh` | Re-read edited manifests and scripts. |
 | `tools.createToolset` | Scaffold a toolset and show the user registration confirmation. |
+| `tools.execute` | Run a tool by id, with `args` matching its input schema. |
 
-Run a discovered tool with `execute_tool({ toolId, args })` or `tools.execute(toolId, args)`. Tool
+Run a discovered tool with `tools.execute(toolId, args)`. Tool
 arguments arrive on stdin as JSON; failures include stderr, exit code, and the toolset folder path
 so the agent can repair the tool and refresh the registry. These operations still run with the
 user's privileges and never bypass the registration gate.
@@ -123,7 +124,7 @@ page editor surfaces that let agents inspect the Tools & Editors hub and an indi
 
 ## Related
 
-- [MCP Server Setup](./mcp-setup.md) — enable the server so agents can use `tools.search` / `execute_tool`.
+- [MCP Server Setup](./mcp-setup.md) — enable the server so agents can use `tools.search` / `tools.execute`.
 - [Boards](./boards.md) — the sibling feature the tools registry mirrors (folder + manifest + trust gate), for building custom UIs instead of headless tools.
 - [Mneme Knowledge Base](./mneme.md) — the *knowledge* counterpart to the tools registry's *executable* memory.
 

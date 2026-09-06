@@ -1,6 +1,6 @@
 /**
  * Toolset trust / registration registry (EPIC-038 / US-801). A toolset's tools are run via
- * `execute_tool`, which is arbitrary RCE, so a toolset is only known + runnable once its
+ * `tools.execute`, which is arbitrary RCE, so a toolset is only known + runnable once its
  * folder has been registered here. Registration ≡ trust: this one list is both "the toolsets
  * Persephone knows about" and "the toolsets it is allowed to run" (like the boards registry).
  *

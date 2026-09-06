@@ -2,7 +2,7 @@
  * Registered-tools model (EPIC-038 / US-801). Enumerates the toolset folders registered in
  * `toolsTrust`, reads + validates each `tools-manifest.json`, and exposes a collision-resolved
  * flat list of tools (id = `<toolset-name>/<tool-name>`). Consumed by the MCP layer (US-803:
- * `tools.search` / `execute_tool` / `tools.toolsets.refresh`) and the management UI (US-805).
+ * `tools.search` / `tools.execute` / `tools.toolsets.refresh`) and the management UI (US-805).
  *
  * Deliberately does NOT watch the filesystem (US-801 T-C5): tool registration/editing happens
  * only during tool development, so a standing per-toolset watcher is unwanted background cost.
@@ -24,7 +24,7 @@ import {
 
 /** A single tool, resolved from a registered toolset and namespaced by toolset name. */
 export interface RegisteredTool {
-    /** `${toolsetName}/${tool.name}` — the id agents pass to `execute_tool`. */
+    /** `${toolsetName}/${tool.name}` — the id agents pass to `tools.execute`. */
     id: string;
     toolsetName: string;
     /** Absolute toolset folder path (the execute cwd in US-802). */

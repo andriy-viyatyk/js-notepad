@@ -63,9 +63,9 @@ consumer, and the descriptor is the source of truth for which names exist.
 | 2 | **EPIC-085** ✅ — Shell | Tab strip, Menu Bar, status indicators, sidebar panels, Settings editor, windows | `get_app_info`, `list_windows`, `open_window`, `list_pages`, `get_active_page`, the `ui` guide's highlight instructions — **all marked retirable 2026-09-05** |
 | 3 | **EPIC-086** ✅ — Text family | Monaco/text, compare, file diff, markdown, HTML, SVG, image, video, mermaid, graph | `create_page`, `get_page_content`, `set_page_content` — **all marked retirable 2026-09-06**. `open_url` is **not** marked; see the note below |
 | 4 | **EPIC-087** ✅ — Data editors | Grid, notebook, REST client, env vars, log view, archive, explorer/sidebar panels, folder view, git tree | `ui_push` — **marked retirable 2026-09-06** |
-| 5 | **EPIC-088** ✅ — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `search_tools` — **all marked retirable 2026-09-06**. `execute_tool` is **not** marked; see the note below |
+| 5 | **EPIC-088** ✅ — Boards and tools | Board, board info, toolset, tools hub, MCP inspector, Mneme config/root | `create_board`, `open_board`, `board_refresh`, `create_toolset`, `refresh_toolset`, `search_tools` — **all marked retirable 2026-09-06**. `execute_tool` followed on **2026-09-07** (US-1353), once a human ran a real tool through `tools.execute` |
 | 6 | **EPIC-089** ✅ — Browser | `pages[i].editor` on browser and board pages, and `window.screen` for the app window; HTML pages answered by the app-window snapshot | all `browser_*` (**14**, not 15) and `open_url` — **all marked retirable 2026-09-06**. The `mcp.browser-tools.enabled` setting was **deleted** |
-| 7 | **EPIC-090** ✅ — Consolidation | Call-only manifest, resource retention, and deletion gate | 32 retired tools removed; `call` and `execute_tool` remain as the default surface |
+| 7 | **EPIC-090** ✅ — Consolidation | Call-only manifest, resource retention, and deletion gate | 32 retired tools removed; `call` and `execute_tool` remained. **US-1353 (2026-09-07)** retired `execute_tool` too, and the `PERSEPHONE_MCP_CALL_ONLY` flag with it: the manifest is now `call` alone |
 
 Epics 2–5 are independent of each other once EPIC-084 lands and can be reordered by demand. The
 editor epics are smaller than their lists suggest: US-1291 already gave every editor a content
@@ -116,7 +116,7 @@ EPIC-089, and the browser guide's "enable browser tools first" instructions with
 | `ui_push` | **retirable** — `pages.logView.push(entries)` on the well-known page, plus `dialogResult(id)` for answers; **non-blocking**, unlike the tool | 087 ✅ |
 | `create_board`, `open_board`, `board_refresh` | **retirable** — `boards.createBoard`/`createDemoBoard`/`openBoard` (already existed; the epic added `boards.list()`, without which no root could be discovered), and `pages[i].editor.reload()` on the board facade. The planned `boards.create/open` spelling and `boards.refresh()` were **not** adopted — see the note below | 088 ✅ |
 | `create_toolset`, `refresh_toolset`, `search_tools` | **retirable** — `tools.createToolset`, `tools.toolsets.refresh()`, `tools.search()` under a new root `tools` node (not `toolsets` — see below) | 088 ✅ |
-| `execute_tool` | `tools.execute(toolId, args)` exists and refuses an unknown id, but is **not marked**: its rows could not be exercised without spending the user's credentials on a live service or clicking the toolset trust dialog as the agent | 088 |
+| `execute_tool` | **retirable** — `tools.execute(toolId, args)`. Withheld through 088 and 090 for lack of a runnable tool; **marked and deleted 2026-09-07** (US-1353) after the user ran one against a registered toolset in a user project | 088, deleted by US-1353 |
 | `browser_*` | **retirable** — `pages[i].editor.snapshot/click/type/...` on browser and board pages, and the same members on **`window.screen`** for the app window (not `window.ui` — see below) | 089 ✅ |
 | `execute_script` | **deleted** — `script.execute(code)`, the renderer analogue of `main.script.execute` | 090 ✅ |
 | `read_guide` | **deleted** — the `persephone://guides/*` resources stay, reachable by URI; prose moved into `$help` | 090 ✅ |
@@ -180,8 +180,19 @@ actually be run, and on this machine every registered toolset calls a live compa
 user's credentials (two of them return PHI). The alternative, registering a scratch toolset, needs a
 click on the "Register this toolset?" dialog. **That click was not taken.** An agent answering its
 own trust prompt would defeat exactly the property this epic exists to protect, and a marking bought
-that way would be worthless. So the row stays unmarked until a human runs one tool through the path,
+that way would be worthless. So the row stayed unmarked until a human ran one tool through the path,
 which is a single `call`.
+
+**That call was made on 2026-09-07, and the row is now marked and the tool deleted (US-1353).**
+The verification, run by the user on 2026-09-07, was a real tool run against a registered toolset
+in a user project, with human authorization, and it exercised all three capability rows.
+`tools.execute` with args `["<toolset>/<tool>", { … }]` returned `ok: true` with real result rows;
+parameter overrides passed in the same args object were honored; and a failure came back cleanly
+shaped when the tool script itself refused a statement — that refusal was the tool's own read-only
+guard, a false positive inside the tool script, not a Persephone defect. `tools.search` and the
+`tools` overview were exercised in the same session. Nothing about the toolset, the service it
+talks to, or the machine is recorded here, and nothing needs to be: the evidence is the shape of
+the three answers.
 
 Two spelling deviations from the table above, both decided against the code rather than the plan:
 
@@ -365,16 +376,17 @@ instructions, so the first thing a `call`-only agent sees was decided there. The
 ## EPIC-090 closing note (2026-09-06) — the roadmap is complete
 
 The gate passed on both model families and the deletion went ahead. **The manifest went from 34
-tools to 2**: `call`, and `execute_tool`. With `PERSEPHONE_MCP_CALL_ONLY` set it is **1** — `call`
-alone, which is the end state this document set out to reach. All 13 guide resources remain,
+tools to 2**: `call`, and `execute_tool`. With `PERSEPHONE_MCP_CALL_ONLY` set it was **1**. On
+2026-09-07 US-1353 retired `execute_tool` as well, so **the default manifest is 34 → 1** — `call`
+alone, which is the end state this document set out to reach, with no flag needed to get there. All 13 guide resources remain,
 reachable by URI; only the `read_guide` *tool* was deleted, because a resource costs an agent
 nothing until it reads one while a tool costs a slot in every session's manifest.
 
-**Two tools were kept, and both for the same reason.** `execute_tool`'s replacement `tools.execute`
-is implemented and correct on everything testable, but verifying it needs a human to run one real
-tool: every registered toolset on this machine calls a live service with the user's credentials, and
-registering a scratch one needs a click on a trust dialog that an agent must not take on its own
-behalf. `open_window` was nearly the second — it took a deliberate setup to produce a closed window
+**Two tools were kept at epic close, and both for the same reason.** `execute_tool`'s replacement
+`tools.execute` was implemented and correct on everything testable, but verifying it needed a human
+to run one real tool: every registered toolset on this machine calls a live service with the user's
+credentials, and registering a scratch one needs a click on a trust dialog that an agent must not
+take on its own behalf. **That run happened the next day and `execute_tool` went (US-1353).** `open_window` was nearly the second — it took a deliberate setup to produce a closed window
 at all — but a Haiku agent did reach `windows[i].open()` from a bare `call`, so it went. Principle 3
 held to the end: retire nothing until its replacement passes the same test.
 

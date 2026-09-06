@@ -10,7 +10,7 @@ export const TOOLS_MANIFEST_SCHEMA_VERSION = 1;
 /**
  * One tool declared by a toolset (EPIC-038 / US-801). Unlike the board manifest — which
  * carries descriptive metadata only — a tool declares **behavior**: the command to run and
- * how it is parameterized. `execute_tool` (US-802) is arbitrary RCE, so a toolset only runs
+ * how it is parameterized. `tools.execute` (US-802) is arbitrary RCE, so a toolset only runs
  * once its folder is trusted (see `tools-trust.ts`).
  */
 export interface ToolDef {

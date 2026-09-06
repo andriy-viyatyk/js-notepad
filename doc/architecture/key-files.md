@@ -269,8 +269,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | MCP HTTP transport (sessions, HTTP, lifecycle) | `/src/main/mcp-http-server.ts`  |
 | MCP server definition — instructions, guides, tools | `/src/main/mcp/`             |
 | Main-process AiVision roots and service descriptors, including the settings-gated main script node | `/src/main/mcp/ai-vision/` |
-| MCP tool definitions (the `call` tool and optional `execute_tool`, as data) | `/src/main/mcp/tools/` |
-| MCP server factory (manifest assembly, call-only environment gate, and retained guide resources) | `/src/main/mcp/server-factory.ts` |
+| MCP tool definitions (the `call` tool — the whole manifest — as data) | `/src/main/mcp/tools/` |
+| MCP server factory (manifest assembly and guide-resource registration) | `/src/main/mcp/server-factory.ts` |
 | MCP `call` routing and result formatting (renderer forwarding, timeout/attention handling, path prefixing, and native image content blocks) | `/src/main/mcp/tools/call-tools.ts`, `/src/main/mcp/renderer-bridge.ts` |
 | Per-window native dialog tracking and attention snapshots | `/src/main/native-dialog-tracker.ts` |
 | Audio/Video player editor view | `/src/renderer/editors/video/VideoView.ts` |
@@ -286,9 +286,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Agent highlight overlay (the ring + explanation card an agent draws on an element; dependency-free IIFE exposing `window.__persephoneHighlight`. Three constraints that are not guessable: it must live under a **directory** host because `app-asset://` maps the URL's *host* to a folder, so a top-level `assets/*.js` has no reachable URL; removal is **visibility-based**, since the Menu Bar is hidden with `display: none` rather than unmounted and a detach-only check left a ring floating over empty space the moment the user closed the menu; and the file is kept strictly ASCII because it is pasted between contexts and served by handlers that do not always declare a charset) | `/assets/agent/ui-highlight.js` |
 | Highlight API (`app.ui.highlightElement` / `clearHighlights`; fetches the overlay once via `app-asset://` and caches the loader promise, resetting it on failure so a failed load can retry) | `/src/renderer/api/ui.ts` |
 | Renderer MCP IPC shell (receives main-process commands, dispatches, times, logs, and returns results) | `/src/renderer/api/mcp-handler.ts` |
-| Renderer MCP command registry for `call`, `execute_tool`, and internal `board_call` | `/src/renderer/api/mcp/command-registry.ts` |
+| Renderer MCP command registry for `call` and the internal `board_call` | `/src/renderer/api/mcp/command-registry.ts` |
 | Renderer MCP `call` command and page-scoped Board call command | `/src/renderer/api/mcp/call-command.ts`, `/src/renderer/api/mcp/board-call-command.ts` |
-| Agent Tools handlers used by `tools.*` call paths and `execute_tool` | `/src/renderer/api/mcp/tool-commands.ts` |
+| Agent Tools handlers behind the `tools.*` call paths | `/src/renderer/api/mcp/tool-commands.ts` |
 | Renderer MCP request history and server-log page integration | `/src/renderer/api/mcp/request-log.ts` |
 | Browser automation commands (target resolution, private browser-page refusal, and active-private-page refusal for the explicit app-window target) | `/src/renderer/automation/commands.ts`             |
 | Shared browser-like automation operations (target-neutral snapshot, navigation, locator/input, wait, screenshot, network, and inner-tab behaviors) | `/src/renderer/automation/operations.ts` |
@@ -430,7 +430,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Toolset `.env` loader (`loadDotEnv` via Node `util.parseEnv`) | `/src/renderer/api/tools/dotenv.ts` |
 | Per-toolset execution log (self-rotating; `TOOLS_EXECUTION_LOG_FILE`) | `/src/renderer/api/tools/tool-log.ts` |
 | Toolset scaffold (`createToolset` call path — copy `tool-template`; trust-gated) | `/src/renderer/api/tools/tool-scaffold.ts` |
-| Agent Tools handlers used by `tools.*` call paths and `execute_tool` | `/src/renderer/api/mcp/tool-commands.ts` |
+| Agent Tools handlers behind the `tools.*` call paths | `/src/renderer/api/mcp/tool-commands.ts` |
 | `persephone-toolset://` link scheme (encode/decode + `openToolset`; parsed in `parsers.ts` → `target: "toolset-view"`) | `/src/renderer/content/persephone-toolset-link.ts` |
 | Per-toolset editor model (`toolset-view`; manifest info + tool list + open-log) | `/src/renderer/editors/toolset/ToolsetEditorModel.ts` |
 | Shared registered-toolsets tree (native `ToolsTreeView` + `buildToolsTree`) | `/src/renderer/editors/tools/ToolsTreeView.ts` |

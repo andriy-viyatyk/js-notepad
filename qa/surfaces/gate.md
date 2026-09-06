@@ -23,8 +23,8 @@ use the empty overview before choosing a branch.
   OS dialogs are reported and left for the user.
 - **Live targets:** Use only public, harmless pages (`https://example.com` and what it links to)
   or local scratch files. Never log in, spend credentials, or contact a company or private
-  service. `execute_tool` is excluded because it remains kept pending its unproven replacement;
-  it is hidden by the call-only flag but is not one of the 32 deleted tools.
+  service. `execute_tool` was excluded from this gate because it was still kept at the time; it
+  was retired separately in US-1353, once the user ran a real tool through `tools.execute`.
 
 ## Coverage ledger
 
@@ -42,7 +42,8 @@ use the empty overview before choosing a branch.
 | G.10 answer a documentation question with no guide tool | `read_guide` | 1 |
 | **Total** | **All 32 deleted tools** | **32** |
 
-Do not expand this gate for `execute_tool`.
+This gate covers the 32 tools EPIC-090 deleted. `execute_tool` was retired later, by US-1353, on
+the evidence of a human-run `tools.execute` rather than by an unattended scenario.
 
 ## Gate scenarios
 

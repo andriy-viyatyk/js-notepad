@@ -26,7 +26,7 @@ export const SERVER_INSTRUCTIONS = [
     "Run renderer code with `script.execute(code)`; use `main.script.execute(code)` only when enabled.",
     "For editor choices use `persephone://guides/pages` and `persephone://guides/ui-editors`; for notebook, links, or graph JSON use their format resources.",
     "For boards use `boards.*` and read `persephone://guides/boards` when authoring or reviewing one.",
-    "For Agent Tools, find registered tools with `tools.search()` and run one with `execute_tool`; `tools.execute(id, args)` is the same operation as a path and remains available when the manifest is reduced to call alone.",
+    "For Agent Tools, find registered tools with `tools.search()` and run one with `tools.execute(id, args)`.",
     "Use `persephone://guides/ui` for reference about the app's controls and `persephone://guides/browser` for browser automation details.",
 ].join("\n");
 

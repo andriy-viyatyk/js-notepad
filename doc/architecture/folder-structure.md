@@ -122,10 +122,10 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── pages.ts            # PagesModel singleton export
 │   ├── mcp-handler.ts      # Thin MCP IPC shell (receives commands from main, logs and returns results)
 │   ├── mcp/                # Renderer MCP command dispatch and focused command handlers
-│   │   ├── command-registry.ts # Built-in call, execute_tool, and board_call registry
+│   │   ├── command-registry.ts # Built-in call and board_call registry
 │   │   ├── call-command.ts  # Renderer-side MCP call command; creates a ScriptContext and resolves AiVision
 │   │   ├── board-call-command.ts # Page-scoped Board bridge calls; owner-page and trust checks
-│   │   ├── tool-commands.ts # Agent Tools handlers used by call and execute_tool
+│   │   ├── tool-commands.ts # Agent Tools handlers behind the tools.* call paths
 │   │   ├── request-log.ts   # Bounded MCP request history and server-log page integration
 │   │   └── types.ts         # Shared renderer MCP request/response types
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
@@ -912,7 +912,7 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   ├── sdk.ts              # Lazy MCP SDK + zod loader (loadSdk / requireSdk)
 │   ├── tool-results.ts     # Response → MCP content mappers (text, page content with image, screenshot)
 │   ├── types.ts            # IMcpToolDef and friends
-│   ├── tools/              # Advertised tool definitions — call and optional execute_tool
+│   ├── tools/              # Advertised tool definitions — call, the whole manifest
 │   └── ai-vision/          # Main-process AiVision roots, service descriptors, and gated main scripting
 ├── browser-service.ts      # Browser page support (webview management and tracked native message boxes)
 ├── browser-registration.ts # Default browser registration

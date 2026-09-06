@@ -23,11 +23,11 @@ export interface IMcpToolResult {
 }
 
 /**
- * A tool as data. The execute_tool definition is a pass-through to the renderer; the registrar
- * strips `windowIndex` from the args, forwards the rest as params under `method`
+ * A tool as data. A definition without a `handler` is a pass-through to the renderer: the
+ * registrar strips `windowIndex` from the args, forwards the rest as params under `method`
  * (defaulting to the tool's own name), and maps the response with `toResult`
  * (defaulting to `toToolResult`). Only tools that do real work in the main process
- * supply a `handler`.
+ * supply a `handler` — `call` is the one advertised tool and does.
  */
 export interface IMcpToolDef {
     name: string;

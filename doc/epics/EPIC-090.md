@@ -30,7 +30,7 @@ So the arithmetic of this epic is fixed before it starts:
 |---|---|
 | In the manifest today | **34** |
 | Deleted by this epic, if the gate passes | **32** |
-| Remaining, default manifest | **2** — `call`, `execute_tool` |
+| Remaining, default manifest | **2** — `call`, `execute_tool` (US-1353 later retired `execute_tool` too; see Needs user check 1) |
 | Remaining, with the call-only flag on | **1** — `call` |
 
 `execute_tool` survives not because it is useful but because **principle 3 applies to it exactly as
@@ -102,6 +102,10 @@ in their manifest can drop to the end state the roadmap describes, while a user 
 `execute_tool` keeps it. When `execute_tool`'s row is finally marked — one human `call` away, see
 Needs user check 1 — the flag becomes vestigial and can be deleted in the same change that deletes
 the tool. It is not deleted speculatively now.
+
+**2026-09-07 — that is what happened.** US-1353 retired `execute_tool` and deleted the flag in the
+same change, exactly as this decision anticipated. `isMcpCallOnlyEnabled` and the environment read
+are gone from `server-factory.ts`; the manifest is `call` alone with nothing to configure.
 
 ### 3. `execute_script` becomes `script.execute(code)` at the renderer root
 
@@ -205,7 +209,7 @@ held) **plus** a bare-`call` scenario in the re-run that reached the same capabi
 | Kept | Why |
 |---|---|
 | `call` | the endpoint |
-| `execute_tool` | replacement unproven — needs one human tool run (Needs user check 1). Hidden by the flag, not deleted |
+| `execute_tool` | replacement unproven at epic close — needed one human tool run (Needs user check 1). Hidden by the flag, not deleted. **Resolved 2026-09-07: retired by US-1353, and the flag with it** |
 
 Also deleted: the standalone highlight instructions in `assets/mcp-res-ui.md` (decision 4), and the
 six `qa/mcp-test-*.md` per-tool files (decision 5).
@@ -280,13 +284,19 @@ carried forward from earlier epics at the user's explicit request; items 3 onwar
    because all three registered toolsets on this machine call live company services with your
    credentials (two return PHI), and registering a scratch toolset needs a click on the "Register
    this toolset?" dialog that an agent must not take on your behalf.
-   **Assumption taken:** `execute_tool` is **not deleted**. It stays in the default manifest and is
-   hidden by `PERSEPHONE_MCP_CALL_ONLY` (decision 2).
-   **To finish it:** run any tool you are comfortable running —
-   `call path: "tools.execute" args: ["<toolset>/<tool>", { … }]` — and check the result carries
-   `ok`, `logs`, `durationMs`, and on failure `error`, `exitCode`, `stderr`, `toolsetRoot`. If it
-   matches `execute_tool`, mark the row retirable in the roadmap and delete the tool; the flag can go
-   with it.
+   **RESOLVED 2026-09-07 (US-1353).** The user ran the check. The verification, run by the user on 2026-09-07, was a real tool run against a registered toolset
+in a user project, with human authorization, and it exercised all three capability rows.
+`tools.execute` with args `["<toolset>/<tool>", { … }]` returned `ok: true` with real result rows;
+parameter overrides passed in the same args object were honored; and a failure came back cleanly
+shaped when the tool script itself refused a statement — that refusal was the tool's own read-only
+guard, a false positive inside the tool script, not a Persephone defect. `tools.search` and the
+`tools` overview were exercised in the same session. Nothing about the toolset, the service it
+talks to, or the machine is recorded here, and nothing needs to be: the evidence is the shape of
+the three answers.
+
+   `execute_tool` is deleted, `tools.execute` is the path, and the
+   `PERSEPHONE_MCP_CALL_ONLY` flag went with it — the manifest is `call` alone with nothing to
+   configure. This item needs nothing further.
 
 2. **`waitForNavigation()` — decided, not deferred.** (EPIC-089 Needs user check 1.) It stays a
    document-load wait; the two-phase wait stays inside `navigate()`. The full reasoning is decision 9

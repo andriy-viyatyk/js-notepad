@@ -3,7 +3,7 @@
 This folder is a **Persephone toolset**: a `tools-manifest.json` declaring one or more **tools**
 (parameterized scripts in any language), plus the scripts they run, an optional `.env` for
 secrets, and this guide. Once the toolset is **registered** (a user action), any MCP-connected
-agent discovers its tools with `search_tools` and runs them with `execute_tool` — so a recurring
+agent discovers its tools with `tools.search()` and runs them with `tools.execute(id, args)` — so a recurring
 external-system chore (read an Azure DevOps task, query a database, check an inbox, call a CLI) is
 debugged **once** and reused across sessions and agents. This folder *is* the persistent artifact.
 
@@ -22,7 +22,7 @@ the toolset and its tools:
   "tools": [
     {
       "name": "get_task",                         // tool id becomes "azure-devops/get_task"
-      "description": "Fetch a work item by id",   // shown by search_tools
+      "description": "Fetch a work item by id",   // shown by tools.search()
       "command": "python get_task.py",            // run with cwd = THIS folder
       "inputSchema": {                            // JSON Schema (MCP dialect) — optional
         "type": "object",
@@ -89,7 +89,7 @@ Write-Output ("##PERSEPHONE_RESULT##" + (@{ ok = $true; value = 42 } | ConvertTo
 Put secret **values** in a `.env` file in this folder (next to `tools-manifest.json`) and list only
 their **names** in each tool's `env[]`. Persephone parses `.env` and injects the values into the
 tool's process at run time, so scripts just read plain environment variables. `.env` values **never**
-travel through MCP — `search_tools` reports env var **names** only. A var set empty in `.env`
+travel through MCP — `tools.search()` reports env var **names** only. A var set empty in `.env`
 (`KEY=`) is passed to the child as an empty string, not removed.
 
 ```
@@ -103,18 +103,18 @@ someone else. `.env.example` documents the names without values.
 ## Edit → refresh → run (no auto-reload)
 
 Persephone does **not** watch this folder. After you edit the manifest or a script, call the
-**`refresh_toolset`** MCP tool to pick up the change (it returns a per-toolset summary — `name`,
+**`tools.toolsets.refresh()`** call path to pick up the change (it returns a per-toolset summary — `name`,
 `valid`, `errors`, `toolCount` — so you can confirm a manifest edit parsed), then re-run the tool.
 
 ## Self-repair — the core rule
 
-A registered tool that fails is a **bug to fix**, not an obstacle to route around. `execute_tool`
+A registered tool that fails is a **bug to fix**, not an obstacle to route around. `tools.execute`
 hands you the exact `stderr`, the `exitCode`, and this folder path — open the script here, fix it,
-`refresh_toolset`, and re-run. Every fix makes the tool more reliable for the next session; that is
+`tools.toolsets.refresh()`, and re-run. Every fix makes the tool more reliable for the next session; that is
 what makes the registry *memory*.
 
 ## Portability
 
 This folder is self-contained: copy it to another machine and register it there. Each tool's
-`requirements` field (surfaced by `search_tools`) tells you what to provision (a runtime version,
+`requirements` field (surfaced by `tools.search()`) tells you what to provision (a runtime version,
 packages, a CLI). Secrets travel only if you copy `.env` along with the folder.

@@ -14,9 +14,9 @@ Overview of all active and planned epics and tasks.
 
 - *(no epic)*
   - [ ] [US-1050: Add an unregister_toolset MCP tool](tasks/US-1050-unregister-toolset-tool/README.md)
-    — an enhancement, deferred by user decision (2026-08-29). **Its premise changed with EPIC-090:**
-    the manifest is now `call` + `execute_tool`, so this should become a `tools.unregisterToolset`
-    path rather than a thirty-fifth tool. Re-scope before starting.
+    — an enhancement, deferred by user decision (2026-08-29). **Its premise changed with EPIC-090
+    and again with US-1353:** the manifest is now `call` alone, so this should become a
+    `tools.unregisterToolset` path rather than a thirty-fifth tool. Re-scope before starting.
   - [ ] [US-1131: Close the remaining gaps in the VanillaView lifecycle lint rules](tasks/US-1131-vanillaview-lint-gaps/README.md)
     — tooling, not a defect: the guard itself shipped as US-1142 in EPIC-071 and this is the
     residue. Deferred by user decision (2026-08-29). It carries **five** clause candidates,

@@ -1,32 +1,23 @@
 import { getServerInfo, readGuideFile, resourceFiles, SERVER_INSTRUCTIONS } from "./manifest";
 import { registerTools } from "./register-tools";
 import { McpServerInstance, requireSdk } from "./sdk";
-import { agentTools } from "./tools/agent-tools";
 import { callTools } from "./tools/call-tools";
 import { createToolContext } from "./tools/params";
-
-// Enabled values are 1, true, and yes (case-insensitive); unset/empty and 0, false, and no are disabled.
-function isMcpCallOnlyEnabled(value: string | undefined): boolean {
-    const normalizedValue = value?.trim().toLowerCase();
-    return normalizedValue === "1" || normalizedValue === "true" || normalizedValue === "yes";
-}
 
 /**
  * Creates a new McpServer — one per session, as the SDK requires one transport per
  * server. Tools are data (see `tools/`); this assembles the complete group list for
  * each new session.
+ *
+ * The manifest is `call` alone (US-1353). Every capability Persephone once advertised as a
+ * separate tool is a path under it.
  */
 export function createMcpServer(): McpServerInstance {
     const { McpServer, z } = requireSdk();
     const server = new McpServer(getServerInfo(), { instructions: SERVER_INSTRUCTIONS });
 
     const ctx = createToolContext(z);
-    const groups = isMcpCallOnlyEnabled(process.env.PERSEPHONE_MCP_CALL_ONLY)
-        ? [callTools(ctx)]
-        : [callTools(ctx), agentTools(ctx)];
-    for (const group of groups) {
-        registerTools(server, group);
-    }
+    registerTools(server, callTools(ctx));
 
     // ── MCP Resources (focused guides) ─────────────────────────────────
     for (const res of resourceFiles) {

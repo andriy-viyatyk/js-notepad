@@ -81,13 +81,6 @@ export async function handleSearchTools(params: McpParams): Promise<McpResponse>
     };
 }
 
-export async function handleExecuteTool(params: McpParams): Promise<McpResponse> {
-    const toolId = asString(params?.toolId);
-    if (!toolId) return { error: { code: -32602, message: "Missing or invalid 'toolId' parameter" } };
-    const { executeToolById } = await import("../tools/tool-executor");
-    return { result: await executeToolById(toolId, params?.args) };
-}
-
 export async function handleRefreshToolset(params: McpParams): Promise<McpResponse> {
     const path = asString(params?.path);
     const { registeredTools } = await import("../tools/registered-tools");
