@@ -10,6 +10,7 @@ const WINDOW_MEMBERS: readonly IAiMember[] = [
     { name: "isMaximized", kind: "property", summary: "Whether the window is maximized; readonly." },
     { name: "menuBarOpen", kind: "property", summary: "Whether the sidebar/menu bar is open; readonly." },
     { name: "menuBar", kind: "property", summary: "The live Menu Bar model with folders, selection, open/close actions, and curated controls.", node: true },
+    { name: "screen", kind: "property", summary: "Persephone's own window accessibility and automation host; use ui.elements for curated shell controls and screen.snapshot() for the complete current tree.", node: true },
     { name: "toggleMenuBar", kind: "method", signature: "toggleMenuBar()", summary: "Toggle the sidebar.", caution: "changes the visible UI" },
     { name: "openMenuBar", kind: "method", signature: "openMenuBar(panelId?: string)", summary: "Legacy sidebar opener; unknown strings still open it without changing selection.", caution: "changes the visible UI" },
     { name: "zoom", kind: "method", signature: "zoom(delta: number)", summary: "Change the window zoom level.", caution: "changes the visible UI" },

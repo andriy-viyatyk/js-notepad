@@ -2,6 +2,7 @@ import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import { TOneState } from "../core/state/state";
 import { MenuBarModel } from "./menu-bar";
+import { WindowScreen } from "./window-screen";
 import { settings } from "./settings";
 import type { IWindow } from "./types/window";
 
@@ -32,6 +33,7 @@ interface WindowState {
 
 export class Window implements IWindow {
     readonly menuBar = new MenuBarModel();
+    readonly screen = new WindowScreen();
     private _windowIndex: number | null = null;
     private _state = new TOneState<WindowState>({
         isMaximized: false,

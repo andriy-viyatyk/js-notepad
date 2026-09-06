@@ -43,7 +43,7 @@ export function describeUserInterface(_instance: unknown): IAiVisionDescriptor {
         members: [...USER_INTERFACE_MEMBERS, ...elements.members],
         provide: elements.provide,
         elements: HEADER_ELEMENTS,
-        help: "Use UI methods only when the requested interaction or visible feedback is intended for the user. Use ui.elements to discover curated shell controls, their purpose, selectors, and live visibility. An individual page tab and its controls are owned by pages[i].tab. For Log View output use pages.logView; scripts also have the global ui facade.",
+        help: "Use UI methods only when the requested interaction or visible feedback is intended for the user. Use ui.elements for curated shell controls with purpose lines, selectors, live visibility, and highlighting; prefer it when you need a named shell control or its purpose. Use window.screen.snapshot() for the complete, purpose-free accessibility tree when you need everything currently on screen, including content or controls not in the curated list. An individual page tab and its controls are owned by pages[i].tab. For Log View output use pages.logView; scripts also have the global ui facade.",
         summarize: () => ({ kind: "UserInterface" }),
     };
 }

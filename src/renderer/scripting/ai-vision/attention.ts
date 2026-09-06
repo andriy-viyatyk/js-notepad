@@ -11,7 +11,7 @@ import { MenusNode, type MenuItemInfo } from "./menus";
 export const PENDING_DIALOG_GRACE_MS = 250;
 
 export const DIALOG_FALLBACK_TEXT =
-    "A blocking dialog is open, but the dialogs node is not available yet; use browser_snapshot/browser_click on pageId \"app\" to inspect and answer it.";
+    "A blocking dialog is open, but the dialogs node is not available yet; use window.screen.snapshot() and window.screen.click(...) to inspect and answer it.";
 
 interface PendingSignal {
     pending: true;

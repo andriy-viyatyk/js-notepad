@@ -10,6 +10,12 @@
  * app.window.zoom(1);  // zoom in
  * await app.window.openNew("C:/file.txt");
  */
+import type {
+    IBrowserElementLocator,
+    IBrowserNetworkRequest,
+    IBrowserScreenshot,
+} from "./browser-editor";
+
 export interface IMenuBarFolder {
     /** Current folder identifier; use this value with `window.menuBar.open()`. */
     readonly id: string;
@@ -46,6 +52,41 @@ export interface IMenuBar {
     close(): void;
 }
 
+/**
+ * Automation host for Persephone's own application window and its active page.
+ * Page opening and switching belongs to `app.pages` and `app.pages.showPage(...)`;
+ * this host intentionally has no browser navigation or tab operations.
+ */
+export interface IWindowScreen {
+    /** Build the complete current app-window accessibility snapshot. */
+    snapshot(options?: { tabId?: string }): Promise<string>;
+    /** Click an app-window element by CSS selector or explicit snapshot ref. */
+    click(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<void>;
+    /** Hover an app-window element by CSS selector or explicit snapshot ref. */
+    hover(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<void>;
+    /** Type into an app-window input, clearing its existing value first. */
+    type(locator: IBrowserElementLocator, text: string, options?: { tabId?: string; slowly?: boolean; submit?: boolean }): Promise<void>;
+    /** Select an app-window option by value. */
+    select(locator: IBrowserElementLocator, values: string | string[], options?: { tabId?: string }): Promise<void>;
+    /** Press a key or compound key in the app window. */
+    pressKey(key: string, options?: { tabId?: string }): Promise<void>;
+    /** Run JavaScript in the app window and return the result. */
+    evaluate(expression: string, options?: { tabId?: string }): Promise<unknown>;
+    /** Wait for exactly one selector, text, textGone, or time condition. */
+    waitFor(options: {
+        selector?: string;
+        text?: string;
+        textGone?: string;
+        time?: number;
+        timeout?: number;
+        tabId?: string;
+    }): Promise<void>;
+    /** Capture the app window as a PNG; unavailable sessions return undefined. */
+    screenshot(options?: { tabId?: string }): Promise<IBrowserScreenshot | undefined>;
+    /** Get recorded network requests for the app-window target. */
+    networkRequests(options?: { tabId?: string }): Promise<IBrowserNetworkRequest[]>;
+}
+
 export interface IWindow {
     // ── Window actions ───────────────────────────────────────────────
 
@@ -76,6 +117,12 @@ export interface IWindow {
 
     /** The live Menu Bar model, including folder discovery, selection, and controls. */
     readonly menuBar: IMenuBar;
+
+    /**
+     * Persephone's own window automation host. Open and switch pages through `pages` and
+     * `pages.showPage(...)`, not browser navigation or tab methods.
+     */
+    readonly screen: IWindowScreen;
 
     /** Toggle the menu bar (sidebar) open/closed. */
     toggleMenuBar(): void;
