@@ -284,7 +284,11 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
   apply, including the private incognito/Tor browser-page guard. No renderer object or method crosses
   the Board port.
   This is the renderer-side, page-scoped tree: `main.*` and `windows[i].*` are MCP-only routing
-  paths and cannot be resolved through the Board bridge.
+  paths and cannot be resolved through the Board bridge. The `boards` namespace exposes local board
+  inventory and lifecycle operations, while `tools` exposes registered Agent Tools; tool execution
+  runs with the user's privileges and returns environment-variable names only. Trust, board
+  registration, and toolset registration remain user-mediated actions, so a call can request them
+  but never silently grants them.
 - `persephone.host.*` — for a **content-host** editor board (`"editorKind": "content-host"` in the
   manifest) Persephone owns the file (pipe, encoding, encryption, auto-save, dirty tracking) and the
   board works with the content instead of a path: `host.getContent()` → `Promise<string>`,

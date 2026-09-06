@@ -220,7 +220,7 @@ These are ordinary tabs, not file editors. `create_page` rejects them; open them
 | `settings-view` | Settings | Menu Bar → gear icon, or `execute_script`: `app.pages.showSettingsPage()` |
 | `about-view` | About / version | Menu Bar → info icon |
 | `tools-hub-view` | Tools & Editors hub — every editor, board and tool, plus the published boards catalog | `+` arrow → *Show All…*, or the Menu Bar category |
-| `mcp-view` | MCP Inspector — connect to any MCP server and exercise its tools, resources and prompts, with request history | `+` arrow, or `app.pages.showMcpInspectorPage({ url })` |
+| `mcp-view` | MCP Inspector — connect to an MCP server using a credential-free URL and exercise its tools, resources and prompts, with request history | `+` arrow, or `app.pages.showMcpInspectorPage({ url })` |
 | `mneme-config` / `mneme-root` | Mneme knowledge base — config/monitoring, and the search + document-tree editor | Tools & Editors → Mneme; or the `.mneme` row's button in File Explorer |
 | `toolset-view`, `board-info`, `storybook-view` | Internal app views | Opened by the app — read them, don't create them |
 

@@ -471,6 +471,10 @@ const folders = await app.call("window.menuBar.folders");
 await app.call("window.menuBar.open", { args: [folders[0].id] });
 const panels = await app.call("page.panels.items");
 if (panels.length) await app.call("page.panels.expand", { args: [panels[0].id] });
+
+// Inspect local boards and search registered Agent Tools
+const boards = await app.call("boards.list");
+const tools = await app.call("tools.search", { args: ["inbox", 5] });
 ```
 
 The path is rooted in the current script's window, so `app.call()` does not resolve the
@@ -481,6 +485,12 @@ for options and examples. For the equivalent API inside a trusted Board, see
 `settings.highlight(key)` opens or activates the Settings page and highlights a supported row.
 `window.menuBar.open(folderId)` requires a current folder ID from `window.menuBar.folders`, and
 `page.panels.expand(panelId)` requires the bare ID from `page.panels.items`.
+
+The object model also exposes board inventory and the Agent Tools registry. `boards.list()` is a
+local, read-only inventory; `tools.search()` and `tools.execute()` operate on registered tools,
+whose scripts run with your user privileges. Toolset creation still requires the registration
+confirmation dialog. See [Boards](./boards.md), [Agent Tools](./agent-tools.md), and the [page API
+reference](./api/page.md#editor-facades) for the available board, toolset, and hub editor facades.
 
 ### Available services
 

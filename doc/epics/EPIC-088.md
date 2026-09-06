@@ -381,7 +381,7 @@ Stop the epic and record why, rather than pushing through, if any of these appea
    `ok`, `logs`, `durationMs` and — on a failure — `error`, `exitCode`, `stderr` and `toolsetRoot`.
    If it matches `execute_tool`, mark its row retirable in the roadmap. A scaffolded, unregistered
    probe toolset is already at
-   `%TEMP%\claude\C--projects-persephone b49c25-e41e-4c5b-b3a8-2bb110bdfc80\scratchpad	oolsets\epic088-probe`
+   `<scratchpad>/toolsets/epic088-probe` (under this session's Temp scratchpad folder)
    with an `echo.js` example tool, if you would rather register that than use a real one.
 
 ## Notes

@@ -74,8 +74,9 @@ if (panels.length) {
 | `options.maxLength` | `number` | Maximum length for a shaped string result. |
 
 `app.call()` is rooted in the current script's window. It can address pages, editor
-facades, and application services exposed to scripts, but it cannot resolve the MCP-only
-`main.*` or `windows[i].*` paths. Failures reject the returned promise with an `Error`.
+facades, and application services exposed to scripts, including the local `boards` inventory and
+the Agent Tools registry. It cannot resolve the MCP-only `main.*` or `windows[i].*` paths.
+Failures reject the returned promise with an `Error`.
 
 `window.menuBar.open()` takes a current folder ID from `window.menuBar.folders`, not a display
 label or disk path. `page.panels.expand()` takes the bare panel ID returned in `items`; use the
@@ -278,6 +279,7 @@ await app.boards.openBoard("C:/work/boards/Existing Board");
 | `createBoard(name, dir)` | `Promise<string>` | Create a blank board named `name` inside container folder `dir` (created if needed). Returns the new board's absolute root path. Throws if a board named `name` already exists in `dir`. |
 | `createDemoBoard(name, dir)` | `Promise<string>` | Same as `createBoard`, but scaffolds from the bundled Demo board template — a full working example of the bridge API, theme contract, and multi-tab layout. Returns the board root. |
 | `openBoard(boardRoot)` | `Promise<void>` | Open an existing board by its absolute root folder path (the folder containing `board-manifest.json`). Opens a new tab or reuses an existing one. Boards created by Persephone open immediately; foreign boards prompt for trust. Throws if `boardRoot` is missing or has no `board-manifest.json`. |
+| `list()` | `Promise<BoardListing[]>` | List local trusted, installed, and open boards. Read-only and does not contact the remote catalog. |
 | `registerBoard(boardRoot)` | `Promise<boolean>` | Trust an existing board on disk — shows the user a trust dialog (a script can never trust a board without that click). Resolves to whether the board ended up trusted (`true` also when already trusted, including via a trusted ancestor folder). Use after downloading/reviewing a board. |
 | `unregisterBoard(boardRoot)` | `Promise<void>` | Untrust a board and remove its pin. No dialog — untrusting only reduces privilege. Idempotent. |
 | `renameBoard(boardRoot, newName)` | `Promise<string>` | Rename a board's folder, carrying its trust, pin, and catalog-install registration to the new path with no dialog, and re-pointing any open page for it. Returns the new root. Throws if the board is busy, not a board, or the new name already exists. |
@@ -310,6 +312,10 @@ await app.boards.uninstallBoard("drawio-viewer");
 | `installPublished(id, opts?)` | `Promise<string \| undefined>` | Interactive install: opens the Board Info page for **Download → Register** (fresh install) or auto-runs a version swap (update/rollback) if `id` is already installed and `opts.version` is given. Resolves the root, or `undefined` if the user abandons it. |
 | `uninstallBoard(id)` | `Promise<boolean>` | Uninstall a catalog-installed board: shows the delete confirmation, then removes its folder, trust, pin, and install-registry entry. |
 | `checkPublishedUpdates(force?)` | `Promise<BoardUpdateInfo[]>` | Refresh the catalog and return installed boards with a compatible newer version available. No dialog. |
+
+`list()` returns one entry per locally known board. Each entry has `root`, optional manifest
+`name`/`description`, `trusted`, optional `installed` metadata (`id`, `version`, and known update
+information), and `openPageIds`. It does not discover boards from the remote catalog.
 
 ---
 

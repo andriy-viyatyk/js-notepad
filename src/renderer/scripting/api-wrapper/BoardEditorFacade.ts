@@ -85,12 +85,12 @@ export class BoardEditorFacade implements IAiVisible, IBoardEditor {
                 kind: "BoardEditor",
                 id: this.id,
                 name: this.name,
-                boardRoot: this.boardRoot,
-                boardName: this.boardName,
+                ...(this.boardRoot !== undefined ? { boardRoot: this.boardRoot } : {}),
+                ...(this.boardName !== undefined ? { boardName: this.boardName } : {}),
                 renderState: this.renderState,
-                frameReady: this.frameReady,
-                busy: this.busy,
-                statusText: this.statusText,
+                ...(this.frameReady !== undefined ? { frameReady: this.frameReady } : {}),
+                ...(this.busy !== undefined ? { busy: this.busy } : {}),
+                ...(this.statusText !== undefined ? { statusText: this.statusText } : {}),
             }),
         };
     }

@@ -41,10 +41,11 @@ function parseTrustedPaths(data: string | undefined): string[] {
 
 interface BoardTrustState {
     paths: string[]; // absolute board-root folder paths, original case
+    loaded: boolean;
 }
 
 class BoardTrust {
-    private readonly state = new TGlobalState<BoardTrustState>({ paths: [] });
+    private readonly state = new TGlobalState<BoardTrustState>({ paths: [], loaded: false });
 
     /** Load the trusted list from disk into reactive state. Lazy, like recent.load(). */
     async load(): Promise<void> {
@@ -53,6 +54,7 @@ class BoardTrust {
         const paths = parseTrustedPaths(data);
         this.state.update((s) => {
             s.paths = paths;
+            s.loaded = true;
         });
     }
 
@@ -75,6 +77,11 @@ class BoardTrust {
     /** All trusted board-root paths (sync, non-reactive). Call `load()` first. */
     listPaths(): string[] {
         return [...this.state.get().paths];
+    }
+
+    /** True after the persisted trust list has been loaded at least once. */
+    isLoaded(): boolean {
+        return this.state.get().loaded;
     }
 
     /**

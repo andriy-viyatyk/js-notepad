@@ -170,6 +170,23 @@ Options:
 await app.pages.showMcpInspectorPage({ url: "http://127.0.0.1:7865/mcp" });
 ```
 
+### showMnemeConfigPage() → `Promise<void>`
+
+Open the Mneme configuration and monitoring page.
+
+```javascript
+await app.pages.showMnemeConfigPage();
+```
+
+### showToolsHubPage(options?) → `Promise<void>`
+
+Open the **Tools & Editors** hub, optionally selecting its `builtin`, `boards`, `search`, or
+`tools` tab.
+
+```javascript
+await app.pages.showToolsHubPage({ tab: "tools" });
+```
+
 ### showBrowserPage(options?) → `Promise<void>`
 
 Open a browser page.

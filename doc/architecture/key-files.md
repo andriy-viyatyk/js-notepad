@@ -114,6 +114,12 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | `ui_push` dialog specs and validation, shared by the tool and the `pages.logView.push` path | `/src/renderer/api/mcp/ui-push-validation.ts` |
 | Folder View editor facade (current root, capped item list) | `/src/renderer/scripting/api-wrapper/FolderViewEditorFacade.ts` |
 | Git Tree editor facade (read-mostly: bounded history, refs, changes; no repository mutation) | `/src/renderer/scripting/api-wrapper/GitTreeEditorFacade.ts` |
+| Board editor facade (board metadata, trust/render state, secondary views, status, busy/frame state, manifest snapshot, and reload; no trust-granting member) | `/src/renderer/scripting/api-wrapper/BoardEditorFacade.ts` |
+| Board Info editor facade (install/properties snapshots and safe install-directory/download controls; lifecycle actions remain on `app.boards`) | `/src/renderer/scripting/api-wrapper/BoardInfoEditorFacade.ts` |
+| Toolset editor facade (registered toolset identity/validation state and open/refresh actions) | `/src/renderer/scripting/api-wrapper/ToolsetEditorFacade.ts` |
+| Tools & Editors hub facade (active tab state and tab selection) | `/src/renderer/scripting/api-wrapper/ToolsHubEditorFacade.ts` |
+| Mneme configuration facade (connection, roots, model, reindex state and model-backed actions) | `/src/renderer/scripting/api-wrapper/MnemeConfigEditorFacade.ts` |
+| Mneme root facade (root/search/filter state, result snapshots and search actions) | `/src/renderer/scripting/api-wrapper/MnemeRootEditorFacade.ts` |
 | Sidebar panel nodes under `page.panels` (live children; reading never provisions a panel) | `/src/renderer/scripting/ai-vision/page-panels.ts` |
 | Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
 | Monaco setup (languages, theme, keybindings, compiler and IntelliSense configuration; construction is delegated to the shared hosts) | `/src/renderer/api/setup/configure-monaco.ts`     |

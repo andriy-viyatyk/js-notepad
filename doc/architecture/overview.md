@@ -188,7 +188,7 @@ See [scripting.md](./scripting.md).
 - TypeScript transpilation via sucrase (lazy-loaded, type stripping only)
 - Full Node.js access for scripts; renderer UI frameworks are not part of the script context
 - API wrappers (AppWrapper, PageWrapper) provide safe, typed access
-- Editor facades (21 operation facades plus GenericEditorFacade) for typed current-editor operations;
+- Editor facades (27 operation facades plus GenericEditorFacade) for typed current-editor operations;
   narrow the union by `page.editor.id`
 - Auto-cleanup of event subscriptions on script completion
 - Monaco IntelliSense via `.d.ts` files

@@ -132,6 +132,11 @@ class BoardInstallRegistry {
         return this.selectInstalledEntries(this.state.get());
     }
 
+    /** True after the persisted install registry has been loaded at least once. */
+    isLoaded(): boolean {
+        return this.state.get().loaded;
+    }
+
     /** Read and validate installed entries without pruning or updating reactive state. */
     async readInstalled(): Promise<InstalledBoardEntry[]> {
         try {

@@ -250,7 +250,10 @@ export class McpInspectorFacade implements IAiVisible {
     }
 
     get url(): string { return this.model.state.get().url; }
-    set url(value: string) { this.model.state.update((state) => { state.url = value; }); }
+    set url(value: string) {
+        assertCredentialFreeUrl(value);
+        this.model.state.update((state) => { state.url = value; });
+    }
 
     // These remain readable for compatibility, but cannot be changed by an agent: with a writable
     // transportType and connect(), a new command line would otherwise spawn an arbitrary process.
@@ -433,5 +436,31 @@ export class McpInspectorFacade implements IAiVisible {
         if (resourcesState.selectedTemplateUri) summary.selectedResourceTemplateUri = resourcesState.selectedTemplateUri;
         if (promptsState.selectedPromptName) summary.selectedPromptName = promptsState.selectedPromptName;
         return summary;
+    }
+}
+
+function assertCredentialFreeUrl(value: string): void {
+    if (/^[a-z][a-z\d+.-]*:\/\/[^/?#]*@/i.test(value)) {
+        throw new Error("MCP URL must not contain embedded userinfo or credentials.");
+    }
+
+    let parsed: URL;
+    try {
+        parsed = new URL(value);
+    } catch {
+        return;
+    }
+
+    // Userinfo only. A fragment is not a credential, and rejecting one would refuse a legitimate
+    // URL for no gain — the guard is here to stop a secret being written into the call transcript,
+    // not to narrow what an MCP endpoint may look like.
+    if (parsed.username || parsed.password) {
+        throw new Error("MCP URL must not contain embedded credentials (user:password@).");
+    }
+
+    for (const key of parsed.searchParams.keys()) {
+        if (/(?:token|secret|password|passwd|credential|api[_-]?key|auth)/i.test(key)) {
+            throw new Error(`MCP URL query parameter "${key}" may contain a secret and is not allowed.`);
+        }
     }
 }

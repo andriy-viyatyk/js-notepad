@@ -23,7 +23,7 @@ ScriptRunner.run(script, page?, language?)
     │       │     ├── PageCollectionWrapper  ← wraps `app.pages`
     │       │     └── Events proxy ← wraps `app.events` (auto-tracks subscriptions)
     │       ├── page = PageWrapper      ← wraps `page` global
-    │       │     └── Editor facades (15 operation + generic)  ← page.editor
+    │       │     └── Editor facades (27 operation + generic)  ← page.editor
     │       ├── io = IoNamespace        ← wraps `io` global (providers, pipes, events)
     │       ├── ai = AiNamespace        ← wraps `ai` global (ClaudeSession)
     │       ├── ui getter (lazy, stack-based on globalThis)
@@ -491,6 +491,12 @@ an operation facade still return a `GenericEditorFacade` with their `id` and dis
 | `page.editor` | `DrawEditorFacade` | `DrawEditor` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
 | `page.editor` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
 | `page.editor` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
+| `page.editor` | `BoardEditorFacade` | `BoardEditorModel` | Board state and reload |
+| `page.editor` | `BoardInfoEditorFacade` | `BoardInfoEditorModel` | Install/properties state |
+| `page.editor` | `ToolsetEditorFacade` | `ToolsetEditorModel` | Registered toolset state/actions |
+| `page.editor` | `ToolsHubEditorFacade` | `ToolsHubEditor` | Hub tab state |
+| `page.editor` | `MnemeConfigEditorFacade` | `MnemeConfigEditorModel` | Mneme configuration/status/actions |
+| `page.editor` | `MnemeRootEditorFacade` | `MnemeRootEditorModel` | Mneme search state/actions |
 | `page.editor` | `ImageEditorFacade` | `ImageEditor` | `savePngToFile()` |
 | `page.editor` | `VideoEditorFacade` | `VideoEditor` | source/player state, live media state, playback, playlist, and visualizer actions |
 | `page.editor` | `FileDiffEditorFacade` | `FileDiffEditor` | selected revisions, staged-state and read-only projection |
@@ -501,6 +507,11 @@ an operation facade still return a `GenericEditorFacade` with their `id` and dis
 | `page.editor` | `LogViewEditorFacade` | `LogViewEditor` | entry snapshots, non-blocking push, dialog read-back, clear |
 | `page.editor` | `RestClientEditorFacade` | `RestClientEditor` | request/response snapshots, request metadata actions, send |
 | `page.editor` | `GenericEditorFacade` | Any registered editor without an operation facade | `id`, `name` only |
+
+The Board and Board Info facades expose observations and screen-local actions only. They do not
+accept secrets or trust decisions, and Board Info leaves lifecycle operations on `app.boards`, where
+trust and registration remain user-mediated. Toolset and Mneme facades expose copied state rather
+than live models; Agent Tool credentials remain outside the scripting surface.
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
 
@@ -693,6 +704,11 @@ results; it does not route `main.*` or `windows[i]`.
 The Board `persephone.call()` surface is similarly page-scoped to the Board's hosting page, checks
 trust for every request, and returns only shaped values. Use the MCP call path for main-process
 diagnostics or the settings-gated `main.script.execute(code)` branch.
+
+The renderer root includes `boards` for local board inventory/lifecycle and published-catalog
+operations, plus a root-only `tools` namespace for registered Agent Tool search, execution, toolset
+inspection, refresh, and user-mediated scaffolding. Tool results expose environment-variable names,
+never values; absent optional fields are omitted during shaping rather than emitted as `undefined`.
 
 ### PageCollectionWrapper
 
@@ -890,6 +906,12 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `window.d.ts` | `IWindow`, `IMenuBar` — window and Menu Bar controls |
 | `common.d.ts` | `IDisposable`, `IEvent`, `Language`, `EditorView` |
 | `boards.d.ts` | `IBoards` — `app.boards` board lifecycle + published-catalog operations |
+| `board-editor.d.ts` | `IBoardEditor` — board metadata, trust/render state, secondary views, and reload |
+| `board-info-editor.d.ts` | `IBoardInfoEditor` — Board Info install/properties snapshots and safe screen-local actions |
+| `toolset-editor.d.ts` | `IToolsetEditor` — registered toolset state and open/refresh actions |
+| `tools-hub-editor.d.ts` | `IToolsHubEditor` — Tools & Editors hub tab state |
+| `mneme-config-editor.d.ts` | `IMnemeConfigEditor` — Mneme service, root, model, and reindex state/actions |
+| `mneme-root-editor.d.ts` | `IMnemeRootEditor` — Mneme root search state and actions |
 | `board-vars.d.ts` | `IBoardVars` — `app.boardVars` admin access to the board secrets store (get/set/list per namespace, unrestricted — unlike a board's own sandboxed `persephone.var.*`) |
 | `text-editor.d.ts` | `ITextEditor` — Monaco editor operations |
 | `grid-editor.d.ts` | `IGridEditor` — grid editor operations |
@@ -940,6 +962,12 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
     ├── FileDiffEditorFacade.ts  # File Diff revision state
     ├── BrowserEditorFacade.ts   # Browser page operations
     ├── McpInspectorFacade.ts    # MCP Inspector connection & troubleshooting
+    ├── BoardEditorFacade.ts     # Board metadata, trust state, panels, and reload
+    ├── BoardInfoEditorFacade.ts # Board Info install/properties state and safe actions
+    ├── ToolsetEditorFacade.ts   # Registered toolset state and open/refresh actions
+    ├── ToolsHubEditorFacade.ts  # Tools & Editors hub tab state
+    ├── MnemeConfigEditorFacade.ts # Mneme configuration and service state/actions
+    ├── MnemeRootEditorFacade.ts # Mneme root search state/actions
     ├── UiFacade.ts              # Log View UI (logging + dialogs + output)
     ├── Progress.ts              # Progress helper class (returned by ui.show.progress)
     ├── Grid.ts                  # Grid helper class (returned by ui.show.grid)
@@ -949,6 +977,11 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
     └── StyledTextBuilder.ts     # Fluent styled text builder + styledText() factory
 
 /src/renderer/scripting/ai-vision/
+├── root.ts                      # Renderer object-model root and root namespaces
+├── namespaces/                  # App namespace descriptors
+│   ├── boards.ts                # Local board inventory and published-catalog namespace
+│   ├── tools.ts                 # Registered Agent Tools search, execution, and toolsets
+│   └── index.ts                 # Namespace registration and descriptor wiring
 └── page-compare.ts              # pages.compare pair projection and controls
 
 /src/renderer/api/types/

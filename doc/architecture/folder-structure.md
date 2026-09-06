@@ -718,6 +718,12 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │       ├── GraphEditorFacade.ts   # IGraphEditor facade (graph query/analysis, designed for MCP)
 │       ├── VideoEditorFacade.ts    # IVideoEditor facade (playback and media state)
 │       ├── FileDiffEditorFacade.ts # IFileDiffEditor facade (revision state)
+│       ├── BoardEditorFacade.ts    # IBoardEditor facade (metadata, trust state, panels, reload)
+│       ├── BoardInfoEditorFacade.ts # IBoardInfoEditor facade (install/properties state)
+│       ├── ToolsetEditorFacade.ts  # IToolsetEditor facade (registered toolset state/actions)
+│       ├── ToolsHubEditorFacade.ts # IToolsHubEditor facade (hub tab state)
+│       ├── MnemeConfigEditorFacade.ts # IMnemeConfigEditor facade (configuration/status/actions)
+│       ├── MnemeRootEditorFacade.ts # IMnemeRootEditor facade (search state/actions)
 │       ├── UiFacade.ts             # Log View UI (logging + dialogs + output)
 │       ├── Progress.ts            # Progress helper class (returned by ui.show.progress)
 │       ├── Grid.ts                # Grid helper class (returned by ui.show.grid)
@@ -728,6 +734,11 @@ vendor island under `editors/draw/`; native global styles are installed by `them
 │   └── ai-vision/           # Renderer AiVision root, call/attention entry points, and descriptors
 │       ├── dialogs/         # ViewId-keyed adapters for renderer dialogs
 │       ├── menus/           # Popup-menu adapter and indexed menus node
+│       ├── namespaces/      # App namespace descriptors, including boards and Agent Tools
+│       │   ├── boards.ts    # Local board inventory and published-catalog namespace
+│       │   ├── tools.ts     # Registered Agent Tools search, execution, and toolsets
+│       │   └── index.ts     # Namespace registration and descriptor wiring
+│       ├── root.ts          # Renderer object-model root
 │       ├── page-compare.ts  # pages.compare pair projection and controls
 │       └── elements.ts      # Curated element visibility and highlight protocol
 │

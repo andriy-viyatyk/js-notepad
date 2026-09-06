@@ -91,9 +91,13 @@ ui.log("Hello");
     - `.exportAsSvg()` / `.exportAsPng(options?)` — Export drawing
   - **[.editor](./page.md#editor-facades)** when `.editor.id === "mcp-view"` — MCP Inspector facade
     - `.connectionStatus` / `.serverName` / `.serverTitle` / `.serverVersion` / `.errorMessage`
-    - `.transportType` / `.url` / `.command` / `.args` / `.connectionName` *(read/write)*
+    - `.transportType` / `.url` / `.connectionName` *(read/write; URL rejects embedded credentials)*
+    - `.command` / `.args` *(read-only)*
     - `.connect()` / `.disconnect()`
     - `.history` / `.historyCount` / `.clearHistory()` / `.showHistory()`
+  - **[.editor](./page.md#editor-facades)** for Boards, toolsets, Tools & Editors, and Mneme pages
+    - `board-view` / `board-info` / `toolset-view` / `tools-hub-view` / `mneme-config` / `mneme-root`
+    - Read state and use the page-specific safe actions described in the [page reference](./page.md#editor-facades)
   - **Generic editor facade** — Other editor IDs expose `.id` and `.name`; no editor-specific methods yet
 
 ---
@@ -115,6 +119,7 @@ ui.log("Hello");
     - `.openLinks(links, title?)` — Create a standalone link collection page → `IPage`
     - `.openDiff(params)` — Diff view for two files
     - `.showAboutPage()` / `.showSettingsPage()` / `.showBrowserPage(options?)` / `.showMcpInspectorPage(options?)`
+    - `.showMnemeConfigPage()` / `.showToolsHubPage(options?)`
     - `.openUrlInBrowserTab(url, options?)`
     - `.showPage(pageId)` / `.showNext()` / `.showPrevious()`
     - `.moveTab(fromId, toId)` / `.pinTab(pageId)` / `.unpinTab(pageId)`
@@ -165,6 +170,7 @@ ui.log("Hello");
     - `.createBoard(name, dir)` — Create a blank board (auto-trusted) → `Promise<string>` (root path)
     - `.createDemoBoard(name, dir)` — Create from the Demo template → `Promise<string>`
     - `.openBoard(boardRoot)` — Open an existing board by root path → `Promise<void>`
+    - `.list()` — Local trusted, installed, and open board inventory
   - **[.boardVars](./app.md#boardvars)** — Admin access to the [board environment-variables store](../boards.md#environment-variables--secrets-outside-the-board-folder) (any namespace)
     - `.namespaceFor(boardRoot)` — Resolve a board's vars namespace → `Promise<string>`
     - `.get(namespace, name, env?)` / `.set(namespace, name, value, env?)` / `.list(namespace, env?)`

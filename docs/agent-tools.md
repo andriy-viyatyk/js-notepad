@@ -95,7 +95,25 @@ A tool script reads its `args` from stdin and returns its result on stdout using
 - **Secrets** live in a `.env` file at the toolset folder root; the manifest lists only the **names** of required variables. Persephone injects the values into the tool's process at run time. `.env` values **never** travel through MCP — `search_tools` reports names only.
 - A toolset is a **self-contained folder** — copy it to another machine and register it there. Each tool's free-text `requirements` field (a Python version, pip packages, a CLI) tells you what to provision on the new machine. Secrets travel only if you copy `.env` along with the folder — delete `.env` when sharing a toolset with someone else.
 
-> **Not available to scripts.** Registering, unregistering, and executing tools are **not** exposed on the `app` object or in the scripting API. A script can't register itself or run a tool — those stay user- and agent-MCP-gated by design.
+### Using the registry from scripts
+
+The registry is not a direct `app.tools` property, but the same live object model is available to
+scripts through [`app.call()`](./api/app.md#callpath-options). A script can search and execute a
+registered tool, refresh the registry, or scaffold a toolset:
+
+```javascript
+const matches = await app.call("tools.search", { args: ["inbox", 5] });
+const result = await app.call("tools.execute", {
+    args: ["mail/get_inbox", { limit: 10 }],
+});
+await app.call("tools.toolsets.refresh");
+```
+
+Tool execution still runs with your user privileges. `tools.createToolset` writes the starter
+files and shows the existing registration confirmation; it never registers or trusts a toolset
+without your approval. Keep credentials in the toolset's `.env` file rather than in `args`, which
+may be recorded in local tool logs. See the [scripting API reference](./api/page.md#editor-facades) for the
+page editor surfaces that let agents inspect the Tools & Editors hub and an individual toolset.
 
 ---
 

@@ -215,7 +215,11 @@ hosting page is stable even if the user activates another tab. Calls always use 
 return a JSON-safe shaped value, and reject `Error` on resolver, transport, timeout, serialization,
 or trust failures. Existing descriptor restrictions still apply, including private browser pages.
 The bridge exposes the renderer-side page/app tree only; process-wide `main.*` and `windows[i].*`
-are MCP call-tool paths and are not available through `persephone.call()`.
+are MCP call-tool paths and are not available through `persephone.call()`. The `boards` namespace
+provides local board inventory and lifecycle operations; `tools` provides registered Agent Tools.
+Tool execution runs with the user's privileges and exposes environment-variable names only. Trust,
+board registration, and toolset registration remain user-mediated, so a call can request those flows
+but never silently grants them.
 
 ```js
 const source = await persephone.call("page.grouped.content");

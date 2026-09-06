@@ -83,12 +83,12 @@ let cachedInstalledEntries: InstalledBoardEntry[] | undefined;
 
 function currentTrustPaths(): string[] {
     const paths = boardTrust.listPaths();
-    return paths.length ? paths : [...(cachedTrustPaths ?? [])];
+    return paths.length || boardTrust.isLoaded() ? paths : [...(cachedTrustPaths ?? [])];
 }
 
 function currentInstalledEntries(): { entries: InstalledBoardEntry[]; fromMemory: boolean } {
     const entries = boardInstallRegistry.listInstalled();
-    return entries.length
+    return entries.length || boardInstallRegistry.isLoaded()
         ? { entries, fromMemory: true }
         : { entries: [...(cachedInstalledEntries ?? [])], fromMemory: false };
 }

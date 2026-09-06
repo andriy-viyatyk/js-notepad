@@ -506,6 +506,7 @@ An AI agent can perform the whole discover → download → review → install �
 
 | Method | Description |
 |--------|-------------|
+| `app.boards.list()` | List local trusted, installed, and open board roots. Read-only; does not query the remote catalog. |
 | `app.boards.searchPublished(query?)` | Search the catalog by name/description/file type; each result is annotated with its install state. Read-only, no dialog. |
 | `app.boards.getPublishedVersions(id)` | A board's full version history. Read-only, no dialog. |
 | `app.boards.downloadPublished(id, opts?)` | Download + verify + extract a board **without trusting it** — the "can I trust this board?" entry point: download it, read its files, then decide. No dialog. |

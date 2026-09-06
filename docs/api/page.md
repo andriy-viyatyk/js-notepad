@@ -43,8 +43,9 @@ await page.tab.highlight("page-tab");
 The operation-bearing ids are `monaco`, `grid-json`, `grid-csv`, `grid-jsonl`, `notebook-view`,
 `rest-client`, `env-vars-view`, `archive-view`, `log-view`, `category-view`, `git-tree`,
 `link-view`, `md-view`, `svg-view`, `html-view`, `mermaid-view`, `graph-view`, `draw-view`,
-`browser-view`, `mcp-view`, `image-view`, `video-view`, and `file-diff`. Each facade also exposes
-its registry `name`.
+`browser-view`, `mcp-view`, `image-view`, `video-view`, `file-diff`, `board-view`, `board-info`,
+`toolset-view`, `tools-hub-view`, `mneme-config`, and `mneme-root`. A custom board secondary view
+uses an id such as `board-editor:details`. Each facade also exposes its registry `name`.
 
 ## `page.editorSwitches`
 
@@ -80,7 +81,19 @@ narrowed:
 - `graph-view`: graph queries, selection, traversal, and analysis.
 - `draw-view`: drawing image insertion and SVG/PNG export.
 - `browser-view`: browser navigation, tabs, inspection, interaction, and evaluation.
-- `mcp-view`: MCP connection parameters, connection status, and request history.
+- `mcp-view`: MCP connection status, server metadata, request history, and copied Tools/Resources/
+  Prompts panel state. `command` and `args` are read-only; the `url` setter rejects embedded
+  credentials, fragments, and credential-like query parameters.
+- `board-view` and `board-editor:<id>`: board identity, trust/render state, manifest, secondary
+  views, busy/frame status, and `reload()` for the open board.
+- `board-info`: published-board matches, install/properties state, version history, and the
+  install-directory picker or download cancellation. Trust and registration remain user actions.
+- `toolset-view`: registered toolset identity, validity and errors, plus `refresh()`, `openFolder()`
+  and `openLog()`.
+- `tools-hub-view`: the active hub tab (`builtin`, `boards`, `search`, or `tools`) and `setTab()`.
+- `mneme-config`: Mneme service, root, reindex, and model state, with refresh/restart, root-config,
+  reindex, and model-update actions.
+- `mneme-root`: Mneme search query, mode, tag/date filters, result state, and search/filter actions.
 - `image-view`: image source, PNG/original save, drawing export, and clipboard copy.
 - `video-view`: video/audio source and playback state, playback controls, next-track and
   visualizer settings, and VLC handoff.
@@ -98,6 +111,32 @@ that state apart from genuinely empty content. Mermaid's `svgUrl` is different b
 means its state-backed diagram has not rendered yet or rendered with an error.
 
 Every facade's `$help` describes access through `page.editor` and gives its id-narrowing example.
+
+### Board, Tools & Editors, and Mneme facades
+
+These pages are available through the same `page.editor` object model used by the built-in editors.
+They return snapshots of live page state; optional values are absent until the corresponding data
+exists. For example:
+
+```javascript
+const editor = page.editor;
+if (editor.id === "board-view") {
+    console.log(editor.boardName, editor.renderState, editor.busy);
+    await editor.reload();
+}
+
+if (editor.id === "mneme-root") {
+    editor.setMode("hybrid");
+    editor.setQuery("deployment notes");
+    await editor.runSearch();
+    console.log(editor.results);
+}
+```
+
+The board and toolset actions do not accept secrets and cannot grant board trust or toolset
+registration. `board-info` can prepare or cancel a download, but registering a downloaded board
+still requires the user's trust-dialog click. See [Boards](../boards.md), [Agent Tools](../agent-tools.md),
+and [Mneme](../mneme.md) for the user workflows.
 
 ### Data editor facades
 
