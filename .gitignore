@@ -116,3 +116,7 @@ crash-reports/
 
 # Persephone project boards (EPIC-034) — local/dogfood projects, never tracked
 .persephone/
+
+# Python bytecode (skill helper scripts)
+__pycache__/
+*.pyc
