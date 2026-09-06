@@ -1,5 +1,6 @@
 ai.d.ts
 app.d.ts
+archive-editor.d.ts
 board-vars.d.ts
 boards.d.ts
 browser-editor.d.ts
@@ -8,6 +9,7 @@ compare.d.ts
 downloads.d.ts
 draw-editor.d.ts
 editors.d.ts
+env-vars-editor.d.ts
 events.d.ts
 file-diff-editor.d.ts
 fs.d.ts

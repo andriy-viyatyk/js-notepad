@@ -1,6 +1,4 @@
-import { app } from "../../api/app";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
-import { createLinkData } from "../../../shared/link-data";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
 import {
     applyPanelAttributes,
@@ -129,13 +127,7 @@ export class ArchiveEditorView extends VanillaView<{ model: EditorModel }> {
     }
 
     private readonly handleItemClick = (item: ITreeProviderItem): void => {
-        const provider = this.model.treeProvider;
-        const url = provider?.getNavigationUrl(item) ?? item.href;
-        const pageId = this.model.page?.id ?? this.model.id;
-        void app.events.openRawLink.sendAsync(createLinkData(url, {
-            pageId,
-            sourceId: this.model.id,
-        }));
+        void this.model.openTreeItem(item);
     };
 
     private readonly handleCollapseAll = (): void => {

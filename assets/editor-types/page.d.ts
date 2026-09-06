@@ -3,6 +3,8 @@ import type { ITextEditor } from "./text-editor";
 import type { IGridEditor } from "./grid-editor";
 import type { INotebookEditor } from "./notebook-editor";
 import type { IRestClientEditor } from "./rest-client-editor";
+import type { IEnvVarsEditor } from "./env-vars-editor";
+import type { IArchiveEditor } from "./archive-editor";
 import type { ILinkEditor } from "./link-editor";
 import type { IBrowserEditor } from "./browser-editor";
 import type { IMarkdownEditor } from "./markdown-editor";
@@ -24,7 +26,7 @@ import type { IPageTab } from "./page-tab";
 export type IFacadeEditorId =
     | "monaco"
     | "grid-json" | "grid-csv" | "grid-jsonl"
-    | "notebook-view" | "rest-client" | "link-view" | "md-view" | "svg-view" | "html-view"
+    | "notebook-view" | "rest-client" | "env-vars-view" | "archive-view" | "link-view" | "md-view" | "svg-view" | "html-view"
     | "mermaid-view" | "graph-view" | "draw-view" | "browser-view" | "mcp-view" | "image-view" | "video-view" | "file-diff";
 
 /** Built-in editors without an operation facade, plus runtime custom board ids. */
@@ -32,7 +34,7 @@ export type IGenericEditorId = Exclude<EditorView, IFacadeEditorId>
     | (string & { readonly __genericEditorId: unique symbol });
 
 export type IEditorFacade =
-    | ITextEditor | IGridEditor | INotebookEditor | IRestClientEditor | ILinkEditor | IBrowserEditor
+    | ITextEditor | IGridEditor | INotebookEditor | IRestClientEditor | IEnvVarsEditor | IArchiveEditor | ILinkEditor | IBrowserEditor
     | IMarkdownEditor | ISvgEditor | IHtmlEditor | IMermaidEditor | IGraphEditor
     | IDrawEditor | IMcpInspectorEditor | IImageEditor | IVideoEditor | IFileDiffEditor | IGenericEditor;
 

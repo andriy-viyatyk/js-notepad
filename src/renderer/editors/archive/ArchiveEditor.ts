@@ -6,7 +6,11 @@ import {
 } from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ArchiveTreeProvider } from "../../content/tree-providers/ArchiveTreeProvider";
-import { fpBasename, isPlainLocalPath } from "../../core/utils/file-path";
+import { fpBasename, isPlainLocalPath, buildArchivePath } from "../../core/utils/file-path";
+import { archiveService, type ArchiveEntry } from "../../api/archive-service";
+import { app } from "../../api/app";
+import { createLinkData } from "../../../shared/link-data";
+import type { ITreeProviderItem } from "../../api/types/io.tree";
 import { ArchiveIcon } from "../../theme/icons";
 import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
@@ -99,6 +103,66 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
         if (this.treeProvider && this.page) {
             this.secondaryView = ["archive-tree"];
         }
+    }
+
+    async listEntries(): Promise<ArchiveEntry[] | undefined> {
+        const provider = this.treeProvider;
+        if (!this.page || !provider) return undefined;
+        const archivePath = provider.sourceUrl;
+        return archiveService.listEntries(archivePath).then(entries => entries.map(entry => ({ ...entry })));
+    }
+
+    async openEntry(innerPath: string): Promise<void> {
+        const provider = this.requireArchiveProvider();
+        const archivePath = provider.sourceUrl;
+        const prefix = `${archivePath}!`;
+        const entryPath = innerPath.startsWith(prefix) ? innerPath.slice(prefix.length) : innerPath;
+        const href = buildArchivePath(archivePath, entryPath);
+        this.selectionState.update((state) => { state.selectedHref = href; });
+
+        const navigationUrl = await provider.getNavigationUrlByHref(entryPath);
+        const url = navigationUrl === entryPath ? href : navigationUrl;
+        await app.events.openRawLink.sendAsync(createLinkData(url, {
+            pageId: this.page?.id ?? this.id,
+            sourceId: this.id,
+        }));
+    }
+
+    /**
+     * The tree click handler, moved here from `ArchiveEditorView` and
+     * `ArchiveSecondaryView` so both views and the facade share one path.
+     *
+     * It asks the provider for the navigation URL rather than rebuilding the
+     * inner path itself: `getNavigationUrl` returns `item.href` for a file and
+     * an encoded category link for a directory (`ArchiveTreeProvider.ts:107-115`),
+     * and that distinction is the provider's to make. Deriving `category/title`
+     * here would silently take the directory branch for every item.
+     *
+     * The guard returns rather than throwing, as both view handlers did: this
+     * runs from a click through `void`, where a throw is an unhandled rejection.
+     * `openEntry` is the path-taking action and keeps its diagnostic throw.
+     */
+    async openTreeItem(item: ITreeProviderItem): Promise<void> {
+        const provider = this.treeProvider;
+        if (!this.page || !provider) return;
+        const url = provider.getNavigationUrl(item) ?? item.href;
+        this.selectionState.update((state) => { state.selectedHref = item.href; });
+        await app.events.openRawLink.sendAsync(createLinkData(url, {
+            pageId: this.page?.id ?? this.id,
+            sourceId: this.id,
+        }));
+    }
+
+    async extractTo(targetDir: string): Promise<void> {
+        const archivePath = this.requireArchiveProvider().sourceUrl;
+        await archiveService.extractTo(archivePath, targetDir);
+    }
+
+    private requireArchiveProvider(): ArchiveTreeProvider {
+        if (!this.page || !this.treeProvider) {
+            throw new Error("Archive action unavailable: no page host or archive loaded.");
+        }
+        return this.treeProvider;
     }
 
     setPage(page: IPageHost | null): void {

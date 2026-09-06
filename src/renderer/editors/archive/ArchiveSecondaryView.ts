@@ -1,5 +1,3 @@
-import { app } from "../../api/app";
-import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import { createPanelElement } from "../../uikit/Panel/panel-style";
 import { IconButtonView } from "../../uikit/IconButton/IconButtonView";
@@ -132,15 +130,8 @@ export default class ArchiveSecondaryView extends VanillaView<SecondaryViewProps
 
     private readonly handleItemClick = (item: ITreeProviderItem): void => {
         const archiveModel = this.archiveModel;
-        const provider = archiveModel?.treeProvider;
-        if (!archiveModel || !provider) return;
-        archiveModel.selectionState.update((state) => { state.selectedHref = item.href; });
-        const url = provider.getNavigationUrl(item) ?? item.href;
-        const pageId = archiveModel.page?.id;
-        void app.events.openRawLink.sendAsync(createLinkData(url, {
-            pageId,
-            sourceId: archiveModel.id,
-        }));
+        if (!archiveModel) return;
+        void archiveModel.openTreeItem(item);
     };
 
     private readonly onCloseClick = (event: MouseEvent): void => {
