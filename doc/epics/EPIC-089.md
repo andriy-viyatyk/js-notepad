@@ -2,9 +2,10 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-09-06
 **Started:** 2026-09-06
+**Completed:** 2026-09-06
 **Roadmap:** [agent-transparency-roadmap.md](../agent-transparency-roadmap.md), epic 6 of 7
 
 ## Overview
@@ -353,13 +354,13 @@ themselves are **not** touched.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-1334](../tasks/US-1334-ref-lifecycle/README.md) | Per-host ref stores, and the automation command bodies made callable from a facade | Implemented |
-| [US-1335](../tasks/US-1335-browser-page-surface/README.md) | The browser page surface — refs, the six missing capabilities, and the chrome/content split | Implemented |
-| [US-1336](../tasks/US-1336-board-page-automation/README.md) | The board page host — the same member set on the board facade, with the readiness gate | Implemented |
-| [US-1337](../tasks/US-1337-window-screen-node/README.md) | `window.screen` — Persephone's own window as an automation host, and its privacy rule | Implemented |
-| [US-1338](../tasks/US-1338-page-open-url/README.md) | `pages.openUrlInBrowserTab` as `open_url`'s replacement, and `pages.openUrl` as the pipeline-routed opener | Implemented |
-| [US-1339](../tasks/US-1339-retire-browser-setting/README.md) | Delete `mcp.browser-tools.enabled`, its mirror, its Settings row, and its guide instructions | Implemented |
-| [US-1340](../tasks/US-1340-browser-acceptance/README.md) | Acceptance run on Haiku; `qa/surfaces/editors/browser.md`; fifteen tools marked retirable | Implemented |
+| [US-1334](../tasks/US-1334-ref-lifecycle/README.md) | Per-host ref stores, and the automation command bodies made callable from a facade | Reviewed |
+| [US-1335](../tasks/US-1335-browser-page-surface/README.md) | The browser page surface — refs, the six missing capabilities, and the chrome/content split | Reviewed |
+| [US-1336](../tasks/US-1336-board-page-automation/README.md) | The board page host — the same member set on the board facade, with the readiness gate | Reviewed |
+| [US-1337](../tasks/US-1337-window-screen-node/README.md) | `window.screen` — Persephone's own window as an automation host, and its privacy rule | Reviewed |
+| [US-1338](../tasks/US-1338-page-open-url/README.md) | `pages.openUrlInBrowserTab` as `open_url`'s replacement, and `pages.openUrl` as the pipeline-routed opener | Reviewed |
+| [US-1339](../tasks/US-1339-retire-browser-setting/README.md) | Delete `mcp.browser-tools.enabled`, its mirror, its Settings row, and its guide instructions | Reviewed |
+| [US-1340](../tasks/US-1340-browser-acceptance/README.md) | Acceptance run on Haiku; `qa/surfaces/editors/browser.md`; fifteen tools marked retirable | Reviewed |
 
 US-1334 is the foundation and blocks US-1335 → US-1337. US-1338 and US-1339 are independent of all
 of them. US-1340 closes and is the gate for every retirement marking.
@@ -454,7 +455,26 @@ Stop and record why, rather than pushing through, if any of these appear:
 
 ## Needs user check
 
-*(none yet — added as they arise)*
+1. **`waitForNavigation()` is not a navigation detector, and aligning it with the tool path would
+   change timing for existing scripts.** Found by `/review` at epic close. It waits on the document
+   loaded *right now*, so after `pages.openUrlInBrowserTab(...)` — which returns before the document
+   is ready — it can resolve against the old, already-complete document. The `browser_navigate` tool
+   path avoids this with a **two-phase wait** (`navigateAndWait`, `automation/operations.ts`) that
+   first watches for the URL to change or `readyState` to leave `"complete"`.
+   **Assumption taken:** documentation, not timing. Every path that recommended `waitForNavigation()`
+   now leads with `waitFor({ selector })` / `waitFor({ text })`, and the method documents its own
+   limit. Runtime behaviour is untouched, deliberately: `openUrlInBrowserTab` returning before load
+   is the behaviour `open_url`'s retirement was verified against, and making the facade's
+   `waitForNavigation` two-phase would add up to two seconds to every call that is *not* navigating
+   and would change what existing user scripts observe.
+   **To decide:** whether `waitForNavigation()` should become the two-phase wait (one implementation,
+   matching the tool, at the cost of latency and a behaviour change), or stay as a document-load wait
+   with `waitFor` as the navigation remedy. EPIC-090 is the natural place, since it revisits both
+   paths anyway.
+
+2. **`execute_tool` remains withheld from EPIC-088, unchanged.** Not this epic's, recorded so it is
+   not lost: its replacement `tools.execute` still needs one real tool run by a human. See EPIC-088's
+   Needs-user-check 2.
 
 ## Notes
 

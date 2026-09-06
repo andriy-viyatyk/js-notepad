@@ -1,3 +1,88 @@
+## EPIC-089 - The browser and the app window through `call`, and the retirement of fifteen tools
+
+Completed 2026-09-06. [Epic document](EPIC-089.md). Epic 6 of 7 in the
+[agent transparency roadmap](../agent-transparency-roadmap.md). All fifteen of its tools are now
+**retirable** - the fourteen `browser_*` tools and `open_url` - and one setting was actually
+**deleted**, which no previous epic in this programme did. Nothing else was removed; EPIC-090 does
+that behind the call-only flag.
+
+**Every surface epic before this one was construction; this one was parity.** The automation layer
+already existed and was good: a Playwright-compatible command set over one adapter interface, with
+three implementations already driving a browser page, a board frame and Persephone's own window, plus
+merged iframe snapshots, a two-phase navigation wait, a documented Electron text-input workaround and
+a privacy guard. `pages[i].editor` on a browser page already returned a hand-written 29-member
+descriptor. What was missing was narrower and sharper than the roadmap's one-line entry implied:
+**only one of the three hosts was reachable from `call`, and the one that was could not use the refs
+its own snapshot produced.** The facade's interaction members were selector-only, so an agent that
+took a snapshot was handed addresses it had no way to spend.
+
+**The epic corrected its own plan four times before writing code**, each time by checking the source
+rather than the table. There are **fourteen** `browser_*` tools, not fifteen - the fifteenth retired
+here is `open_url`. The app-window node is **`window.screen`**, not `window.ui`, because the root
+already has a `ui` node and a second one a level down meaning "the raw DOM of this window" would make
+the root hint ambiguous exactly where an agent chooses between them. **HTML pages get no facade**:
+their previews are iframes inside Persephone's own webContents, which the app-window snapshot already
+merges, so a fourth target would have been a second way to do the same thing with its own bugs. And
+`open_url`'s replacement is `pages.openUrlInBrowserTab`, with `pages.openUrl` added *beside* it as the
+pipeline-routed opener - renaming the browser-only member would have promised routing it does not do.
+
+**The design task the epic was scheduled last for turned out to be small and real.** `ref.ts` kept one
+module-level frame-index map, so `f1-e456` meant "the first iframe of whichever host was snapshotted
+most recently" - a ref could resolve in the wrong CDP session and act on the wrong document. Main-frame
+refs were already per-session; only that map was global. It is now keyed by CDP registration key,
+which is exact for a browser tab, a board frame and the app-window sentinel.
+
+**Two `call`-wide capabilities came out of a surface epic again**, as `MAX_DEPTH` and the absent-key
+rule did in EPIC-088. `call` can now return a real **MCP image block**, without which `screenshot()`
+would have handed back base64 inside JSON - truncated by `maxLength`, invisible to the model - and
+`browser_take_screenshot` could not have been marked. And `pages.showPage` now **refuses an unknown
+page id** instead of silently leaving the previous page active; that was found because
+`window.screen`'s privacy refusal tells the agent to recover with exactly that call, and the advice
+would have looped forever on a typo.
+
+**The surfaces caught two live bugs on their first run, which is what the QA files were promised to
+do.** The browser `elements` list reported `toolbar-tor-info` as visible on a non-Tor page - and it
+was right: `IconButtonView` dropped the `hidden` prop on `update()`, so a "Tor connection info"
+button rendered on every browser page (US-1341). And a board secondary frame that had loaded and then
+been collapsed answered CDP with an **empty** accessibility tree, so `snapshot({ tabId })` returned
+`""` while reporting success - a silent empty, and a pre-existing hole that contradicted the gate's
+own doc comment. Both were found by using the surface, not by reading the code.
+
+**The privacy rule was the epic's most likely regression and was verified rather than argued.**
+`window.screen` refuses while the active page is incognito or Tor, because a whole-window snapshot
+would carry that page's content. It was tested against a real Tor page the user had open: refused,
+then allowed after activating a normal page, with no reload. Its `summarize()` deliberately carries
+host identity only, because the resolver's walk ends before a node's own `restricted()` runs when the
+node itself is the last segment.
+
+**The deleted setting is the epic's most user-visible act, and it was a correction, not a loosening.**
+`mcp.browser-tools.enabled` claimed to control whether an agent could drive the browser, boards and
+Persephone's own window. It never did: neither `call` nor `execute_script` passes through the gate it
+sat on, so the browser facade's `snapshot()` and `click()` had worked with it off since `call`
+shipped. The real boundary is `agent-access.ts`, untouched here. Until EPIC-090 deletes them the
+fourteen tools now appear in every manifest by default - a context cost, recorded rather than hidden.
+
+**Acceptance:** a Haiku agent with `call` alone and no guides opened a page, read it, clicked a link
+and listed the tabs in thirteen calls with one recoverable wrong turn, and never looked for a setting
+to enable
+([qa/runs/2026-09-06-epic-089-browser-surfaces.md](../../qa/runs/2026-09-06-epic-089-browser-surfaces.md)).
+Its one instructive failure: it had refs in the snapshot it had just read and still spent a separate
+`evaluate()` call plus a hand-written CSS selector to click a link. The capability was discoverable
+and not reached, so `snapshot`'s summary now says what refs *replace*, not merely that they exist.
+
+- [x] [US-1334: Per-host ref stores, and the automation command bodies made callable from a facade](../tasks/US-1334-ref-lifecycle/README.md)
+- [x] [US-1335: The browser page surface - refs, the six missing capabilities, and the chrome/content split](../tasks/US-1335-browser-page-surface/README.md)
+- [x] [US-1336: The board page host - the same member set on the board facade, with the readiness gate](../tasks/US-1336-board-page-automation/README.md)
+- [x] [US-1337: `window.screen` - Persephone's own window as an automation host, and its privacy rule](../tasks/US-1337-window-screen-node/README.md)
+- [x] [US-1338: `pages.openUrlInBrowserTab` as `open_url`'s replacement, and `pages.openUrl` as the pipeline-routed opener](../tasks/US-1338-page-open-url/README.md)
+- [x] [US-1339: Delete the `mcp.browser-tools.enabled` setting, its mirror, its Settings row, and its guide instructions](../tasks/US-1339-retire-browser-setting/README.md)
+- [x] [US-1340: Acceptance run on Haiku; the browser surface file; fifteen tools marked retirable](../tasks/US-1340-browser-acceptance/README.md)
+
+**Needs user check:** whether `waitForNavigation()` should adopt the tool path's two-phase wait (one
+implementation, at the cost of latency and a behaviour change for existing scripts) or stay a
+document-load wait with `waitFor` as the navigation remedy - documentation was changed, timing was
+not. EPIC-088's withheld `execute_tool` marking is still outstanding and unaffected.
+
 ## EPIC-088 - Boards and tools through `call`, and the retirement of seven tools
 
 Completed 2026-09-06. [Epic document](EPIC-088.md). Epic 5 of 7 in the
