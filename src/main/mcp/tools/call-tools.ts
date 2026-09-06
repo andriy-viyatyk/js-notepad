@@ -118,7 +118,8 @@ export function callTools(ctx: IToolContext): IMcpToolDef[] {
                 "  path: \"main.script.execute\"             -> settings-gated main-process code execution",
                 "  windows[i].main is invalid: main is process-wide; use root path \"main\".",
                 "",
-                "Paths use the same names as the scripting API (execute_script). Put method arguments in `args` and assignments in `value`; the path itself takes only short JSON literals like pages[2] or pages[\"id\"]. An unknown member returns the valid member list instead of failing.",
+                "Paths use the same names as the scripting API. Put method arguments in `args` and assignments in `value`; the path itself takes only short JSON literals like pages[2] or pages[\"id\"]. An unknown member returns the valid member list instead of failing.",
+                "To CALL a method, pass `args` — even when it takes none: `args: []`. A method path with no `args` only describes the method (writing the parentheses in the path, e.g. \"boards.list()\", calls it too).",
             ].join("\n"),
             schema: {
                 path: z.string().optional().describe("Path into the object model; omit for the overview."),
