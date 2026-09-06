@@ -8,7 +8,15 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-*(no active epic)*
+- **EPIC-088** — [Boards and tools through `call`, and the retirement of seven tools](epics/EPIC-088.md)
+  - [ ] US-1325: The board page surface — trust states, toolbar, secondary views, and `reload()`
+  - [ ] US-1326: The `boards` node completes — enumeration of installed, trusted and open boards
+  - [ ] US-1327: The Board Info surface — install, version, screenshots, and the board-vars question
+  - [ ] US-1328: The `tools` root node — search, execute, toolsets, refresh, and the registration prompt
+  - [ ] US-1329: The toolset editor and the Tools hub
+  - [ ] US-1330: The MCP Inspector surface — elements, and the Tools/Resources/Prompts panels
+  - [ ] US-1331: Mneme config and Mneme root
+  - [ ] US-1332: Acceptance run on Haiku; the two `qa/surfaces/` files; seven tools marked retirable
 
 ## Planned
 
