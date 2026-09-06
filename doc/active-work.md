@@ -8,7 +8,14 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-*(no active epic)*
+- **EPIC-087** — [The data editors through `call`, and the retirement of `ui_push`](epics/EPIC-087.md)
+  - [ ] [US-1318: The grid surface](tasks/US-1318-grid-surface/README.md)
+  - [ ] [US-1319: The notebook surface](tasks/US-1319-notebook-surface/README.md)
+  - [ ] [US-1320: The REST client surface](tasks/US-1320-rest-client-surface/README.md)
+  - [ ] [US-1321: Env vars and archive](tasks/US-1321-env-vars-and-archive/README.md)
+  - [ ] [US-1322: Log View, `pages.logView`, and the `ui_push` replacement path](tasks/US-1322-log-view-surface/README.md)
+  - [ ] [US-1323: Folder View, Git Tree, and the Explorer sidebar panels](tasks/US-1323-navigation-surfaces/README.md)
+  - [ ] [US-1324: Acceptance run and the retirable `ui_push`](tasks/US-1324-data-surface-acceptance/README.md)
 
 ## Planned
 
