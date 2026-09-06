@@ -17,6 +17,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **`page.editor` is no longer a string and is no longer assignable.** Switching editors is done
   through `page.editorSwitches.switchTo("grid-json")`, which also lists the editors compatible with
   the page (`page.editorSwitches.options`) — the same list the toolbar's switch widget shows.
+- **MCP Inspector stdio command and argument setters were removed from the facade.** An agent that
+  previously configured stdio must now open the Inspector and ask the user to enter the command
+  and arguments; this prevents an agent from starting an arbitrary process with the user's
+  privileges.
 
 ### Bug Fixes
 

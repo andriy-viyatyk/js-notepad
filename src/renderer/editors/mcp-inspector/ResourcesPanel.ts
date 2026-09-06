@@ -188,7 +188,7 @@ class ResourceDetailView extends VanillaView<ResourceDetailProps> {
         this.title = createTextElement("", { size: "lg", color: "default", bold: true });
         this.uri = createTextElement("", { size: "sm", color: "primary" });
         top.append(this.title, this.uri);
-        this.button = this.child(new ButtonView({ variant: "primary", size: "sm", onClick: this.read }));
+        this.button = this.child(new ButtonView({ name: "mcp-read-resource", variant: "primary", size: "sm", onClick: this.read }));
         top.append(this.button.root); this.button.mount();
         this.errorText = createTextElement("", { size: "sm", color: "error" }); top.append(this.errorText);
         this.root.append(top);
@@ -207,7 +207,7 @@ class ResourceDetailView extends VanillaView<ResourceDetailProps> {
         this.syncOptional(item.description, item.mimeType);
         if (props.resource) {
             this.argsList?.dispose(); this.argsList = undefined; this.argsHost?.remove(); this.argsHost = undefined;
-            this.button.update({ variant: "primary", size: "sm", onClick: this.read, disabled: state.readLoading, children: state.readLoading ? "Reading…" : "▶ Read Resource" });
+            this.button.update({ name: "mcp-read-resource", variant: "primary", size: "sm", onClick: this.read, disabled: state.readLoading, children: state.readLoading ? "Reading…" : "▶ Read Resource" });
             this.errorText.textContent = state.readError;
             this.syncContent(state.readContent);
         } else {
@@ -218,7 +218,7 @@ class ResourceDetailView extends VanillaView<ResourceDetailProps> {
             this.argsList = new KeyedList(host, { keyOf: (param) => param, create: (param) => { const view = new TemplateArgView({ param, model: props.model }); view.mount(); return view.root; }, update: (element, param) => (element as TemplateArgRoot).view?.update({ param, model: props.model }), remove: (element) => (element as TemplateArgRoot).view?.dispose() });
             }
             this.argsList.update(params);
-            this.button.update({ variant: "primary", size: "sm", onClick: this.readTemplate, disabled: state.templateReadLoading, children: state.templateReadLoading ? "Reading…" : "▶ Read Resource" });
+            this.button.update({ name: "mcp-read-resource", variant: "primary", size: "sm", onClick: this.readTemplate, disabled: state.templateReadLoading, children: state.templateReadLoading ? "Reading…" : "▶ Read Resource" });
             this.errorText.textContent = state.templateReadError;
             this.syncContent(state.templateReadContent);
         }

@@ -2,7 +2,7 @@
  * IMcpInspectorEditor — script interface for MCP Inspector pages.
  *
  * Obtained via `page.editor`. Only available for MCP Inspector pages.
- * Provides connection management and troubleshooting access.
+ * Provides connection management, troubleshooting, and read-only panel state.
  *
  * @example
  * const inspector = page.editor;
@@ -45,21 +45,21 @@ export interface IMcpInspectorEditor {
     /** Transport type: "http" or "stdio". */
     transportType: string;
 
-    /** Server URL (for HTTP transport). */
+    /** Current HTTP endpoint/address. Do not supply embedded credentials through the agent API. */
     url: string;
 
-    /** Command to spawn (for stdio transport). */
-    command: string;
+    /** Current stdio command; it may contain credential-bearing flags. */
+    readonly command: string;
 
-    /** Space-separated arguments (for stdio transport). */
-    args: string;
+    /** Current stdio arguments; they may contain credential-bearing flags. */
+    readonly args: string;
 
     /** Display name for the connection. */
     connectionName: string;
 
     // -- Connection actions --
 
-    /** Connect using current parameters. */
+    /** Connect using current parameters; this contacts a server or starts the configured stdio process. */
     connect(): Promise<void>;
 
     /** Disconnect from the current server. */
@@ -89,4 +89,146 @@ export interface IMcpInspectorEditor {
 
     /** Open history in a new Log View page. */
     showHistory(): Promise<void>;
+
+    // -- Connected panel state (read-only snapshots) --
+
+    /** The active connected panel, or undefined while disconnected. */
+    readonly activePanel: McpPanelId | undefined;
+
+    /** Panels available from the connected server, in selector order. */
+    readonly availablePanels: readonly McpPanelId[] | undefined;
+
+    /** Copied tool metadata, or undefined while disconnected. */
+    readonly tools: readonly IMcpToolSnapshot[] | undefined;
+
+    /** The copied selected tool, or undefined when no tool is selected. */
+    readonly selectedTool: IMcpToolSnapshot | undefined;
+
+    /** The copied selected-tool result, or undefined before a result exists. */
+    readonly toolResult: IMcpToolResultSnapshot | undefined;
+
+    /** Whether the selected tool is being called, or undefined while disconnected. */
+    readonly toolCallLoading: boolean | undefined;
+
+    /** Copied resources, or undefined while disconnected. */
+    readonly resources: readonly IMcpResourceSnapshot[] | undefined;
+
+    /** Copied resource templates, or undefined while disconnected. */
+    readonly resourceTemplates: readonly IMcpResourceTemplateSnapshot[] | undefined;
+
+    /** The copied selected resource, or undefined when no resource is selected. */
+    readonly selectedResource: IMcpResourceSnapshot | undefined;
+
+    /** The copied selected resource template, or undefined when none is selected. */
+    readonly selectedResourceTemplate: IMcpResourceTemplateSnapshot | undefined;
+
+    /** Copied selected-resource content, or undefined before a successful read. */
+    readonly resourceContent: IMcpResourceContentSnapshot | undefined;
+
+    /** Copied selected-template content, or undefined before a successful read. */
+    readonly templateResourceContent: IMcpResourceContentSnapshot | undefined;
+
+    /** Whether the selected resource is being read, or undefined while disconnected. */
+    readonly resourceReadLoading: boolean | undefined;
+
+    /** Whether the selected template is being read, or undefined while disconnected. */
+    readonly templateReadLoading: boolean | undefined;
+
+    /** The selected-resource read error, or undefined when there is none. */
+    readonly resourceReadError: string | undefined;
+
+    /** The selected-template read error, or undefined when there is none. */
+    readonly templateReadError: string | undefined;
+
+    /** Copied prompt metadata, or undefined while disconnected. */
+    readonly prompts: readonly IMcpPromptSnapshot[] | undefined;
+
+    /** The copied selected prompt, or undefined when no prompt is selected. */
+    readonly selectedPrompt: IMcpPromptSnapshot | undefined;
+
+    /** Copied prompt messages, or undefined before a successful get. */
+    readonly promptMessages: readonly IMcpPromptMessageSnapshot[] | undefined;
+
+    /** Whether the selected prompt is loading, or undefined while disconnected. */
+    readonly promptLoading: boolean | undefined;
+
+    /** The selected-prompt error, or undefined when there is none. */
+    readonly promptError: string | undefined;
+}
+
+export type McpPanelId = "info" | "tools" | "resources" | "prompts" | "history";
+
+export interface IMcpToolInputSchemaSnapshot {
+    readonly type: "object";
+    readonly properties?: Readonly<Record<string, unknown>>;
+    readonly required?: readonly string[];
+}
+
+export interface IMcpToolAnnotationsSnapshot {
+    readonly title?: string;
+    readonly readOnlyHint?: boolean;
+    readonly destructiveHint?: boolean;
+}
+
+export interface IMcpToolSnapshot {
+    readonly name: string;
+    readonly description: string;
+    readonly inputSchema: IMcpToolInputSchemaSnapshot;
+    readonly annotations?: IMcpToolAnnotationsSnapshot;
+}
+
+export type IMcpToolResultContentSnapshot =
+    | { readonly type: "text"; readonly text: string }
+    | { readonly type: "image"; readonly data: string; readonly mimeType?: string }
+    | { readonly type: "resource"; readonly resource: IMcpResourceContentSnapshot }
+    | { readonly type: "resource_link"; readonly uri: string; readonly name: string };
+
+export interface IMcpToolResultSnapshot {
+    readonly content: readonly IMcpToolResultContentSnapshot[];
+    readonly isError?: boolean;
+    readonly durationMs: number;
+}
+
+export interface IMcpResourceSnapshot {
+    readonly uri: string;
+    readonly name: string;
+    readonly description: string;
+    readonly mimeType: string;
+}
+
+export interface IMcpResourceTemplateSnapshot {
+    readonly uriTemplate: string;
+    readonly name: string;
+    readonly description: string;
+    readonly mimeType: string;
+}
+
+export interface IMcpResourceContentSnapshot {
+    readonly uri: string;
+    readonly mimeType?: string;
+    readonly text?: string;
+    readonly blob?: string;
+}
+
+export interface IMcpPromptArgSnapshot {
+    readonly name: string;
+    readonly description: string;
+    readonly required: boolean;
+}
+
+export interface IMcpPromptSnapshot {
+    readonly name: string;
+    readonly description: string;
+    readonly arguments: readonly IMcpPromptArgSnapshot[];
+}
+
+export type IMcpPromptMessageContentSnapshot =
+    | { readonly type: "text"; readonly text: string }
+    | { readonly type: "image"; readonly data: string; readonly mimeType?: string }
+    | { readonly type: "resource"; readonly resource: IMcpResourceContentSnapshot }
+    | { readonly type: "resource_link"; readonly uri: string; readonly name: string };
+
+export interface IMcpPromptMessageSnapshot {
+    readonly role: "user" | "assistant";
+    readonly content: readonly IMcpPromptMessageContentSnapshot[];
 }

@@ -169,7 +169,7 @@ const EDITORS: EditorRow[] = [
     // Reached only via showToolsHubPage (the AppBar panel's "Open in new tab" button) —
     // never a file-open target.
     { id: "tools-hub-view", name: "Tools & Editors", load: async () => (await import("./tools-hub")).toolsHubModule },
-    { id: "mcp-view", name: "MCP Inspector", mcpHint: 'Use execute_script with: await app.pages.showMcpInspectorPage() or await app.pages.showMcpInspectorPage({ url: "http://host:port/mcp" })', load: async () => (await import("./mcp-inspector")).mcpModule },
+    { id: "mcp-view", name: "MCP Inspector", mcpHint: 'Open with pages.showMcpInspectorPage() or pages.showMcpInspectorPage({ url: "http://host:port/mcp" }) using a credential-free URL, then use pages[i].editor after narrowing editor.id to "mcp-view" to inspect connection and panel state.', load: async () => (await import("./mcp-inspector")).mcpModule },
     { id: "mneme-config", name: "Mneme", load: async () => (await import("./mneme-config")).mnemeConfigModule },
     // Importer touched for the Storybook editor's .tsx -> .ts native-view conversion.
     { id: "storybook-view", name: "Storybook", load: async () => (await import("./storybook")).storybookModule },

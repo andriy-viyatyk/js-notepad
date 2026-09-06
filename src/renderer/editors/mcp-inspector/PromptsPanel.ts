@@ -211,7 +211,7 @@ class PromptDetailView extends VanillaView<PromptDetailProps> {
             remove: (element) => (element as PromptArgRoot).view?.dispose(),
         });
         this.own(() => this.argsList.dispose());
-        this.button = this.child(new ButtonView({ variant: "primary", size: "sm", onClick: this.getPrompt }));
+        this.button = this.child(new ButtonView({ name: "mcp-get-prompt", variant: "primary", size: "sm", onClick: this.getPrompt }));
         content.append(this.button.root);
         this.button.mount();
         this.errorText = createTextElement("", { size: "sm", color: "error" });
@@ -246,7 +246,7 @@ class PromptDetailView extends VanillaView<PromptDetailProps> {
             if (!this.descriptionText.parentNode) this.root.firstElementChild?.insertBefore(this.descriptionText, this.argsHost);
         } else this.descriptionText?.remove();
         this.argsList.update(prompt.arguments);
-        this.button.update({ variant: "primary", size: "sm", onClick: this.getPrompt, disabled: state.getPromptLoading, children: state.getPromptLoading ? "Loading…" : "Get Prompt" });
+        this.button.update({ name: "mcp-get-prompt", variant: "primary", size: "sm", onClick: this.getPrompt, disabled: state.getPromptLoading, children: state.getPromptLoading ? "Loading…" : "Get Prompt" });
         if (this.errorText) this.errorText.textContent = state.promptError;
         this.syncMessages(state.promptMessages);
     }
