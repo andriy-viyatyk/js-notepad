@@ -1,0 +1,15 @@
+import type { IAiMember } from "../../../shared/ai-vision/types";
+
+/** Shared automation members for browser-like editor hosts. */
+export const BROWSER_AUTOMATION_MEMBERS: readonly IAiMember[] = [
+    { name: "snapshot", kind: "method", signature: "snapshot(options?: { tabId?: string }): Promise<string>", summary: "Get the web page accessibility snapshot. It may begin with # <overlay>; pass returned refs back as { ref: string }. Plain strings remain CSS selectors." },
+    { name: "click", kind: "method", signature: "click(locator: string | { ref: string }, options?: { tabId?: string }): Promise<void>", summary: "Click a web-page element by CSS selector string or explicit { ref: string } snapshot ref. Throws if not found." },
+    { name: "hover", kind: "method", signature: "hover(locator: string | { ref: string }, options?: { tabId?: string }): Promise<void>", summary: "Hover a web-page element by CSS selector string or explicit { ref: string } snapshot ref. Throws if not found." },
+    { name: "type", kind: "method", signature: "type(locator: string | { ref: string }, text: string, options?: { tabId?: string; slowly?: boolean; submit?: boolean }): Promise<void>", summary: "Type into a web-page input by CSS selector string or explicit { ref: string } snapshot ref. Clears existing value first.", caution: "clears/replaces the target value" },
+    { name: "select", kind: "method", signature: "select(locator: string | { ref: string }, values: string | string[], options?: { tabId?: string }): Promise<void>", summary: "Select a web-page option by CSS selector string or explicit { ref: string } snapshot ref." },
+    { name: "pressKey", kind: "method", signature: "pressKey(key: string, options?: { tabId?: string }): Promise<void>", summary: "Press a key or compound key in the web page." },
+    { name: "evaluate", kind: "method", signature: "evaluate(expression: string, options?: { tabId?: string }): Promise<unknown>", summary: "Run JavaScript in the web page and return the result.", caution: "arbitrary page JavaScript can mutate the page" },
+    { name: "waitFor", kind: "method", signature: "waitFor(options: { selector?: string; text?: string; textGone?: string; time?: number; timeout?: number; tabId?: string }): Promise<void>", summary: "Wait for exactly one selector, text, textGone, or time condition." },
+    { name: "screenshot", kind: "method", signature: "screenshot(options?: { tabId?: string }): Promise<IBrowserScreenshot | undefined>", summary: "Capture the web-page host as PNG. Through call, returns metadata text plus an inline image block when available." },
+    { name: "networkRequests", kind: "method", signature: "networkRequests(options?: { tabId?: string }): Promise<IBrowserNetworkRequest[]>", summary: "Get the recorded network requests for the selected browser tab." },
+];

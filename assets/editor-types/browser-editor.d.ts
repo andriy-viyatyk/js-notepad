@@ -21,14 +21,38 @@
  * await browser.waitForNavigation({ tabId: newTab });
  * const title = await browser.getText("h1", { tabId: newTab });
  */
+export type IBrowserElementLocator = string | { ref: string };
+
+export interface IBrowserScreenshot {
+    readonly type: "image";
+    readonly data: string;
+    readonly mimeType: "image/png";
+}
+
+export interface IBrowserNetworkRequest {
+    readonly id: number;
+    readonly url: string;
+    readonly method: string;
+    readonly resourceType: string;
+    readonly referrer: string;
+    readonly timestamp: number;
+    readonly requestHeaders: Record<string, string>;
+    readonly requestBody?: string;
+    readonly statusCode?: number;
+    readonly statusLine?: string;
+    readonly responseHeaders?: Record<string, string[]>;
+    readonly fromCache?: boolean;
+    readonly error?: string;
+}
+
 export interface IBrowserEditor {
     readonly id: "browser-view";
     readonly name: string;
     /** Current URL of the active tab. */
-    readonly url: string;
+    readonly url: string | undefined;
 
     /** Current page title of the active tab. */
-    readonly title: string;
+    readonly title: string | undefined;
 
     // --- Navigation ---
 
@@ -50,13 +74,13 @@ export interface IBrowserEditor {
     readonly tabs: IBrowserTab[];
 
     /** The active (visible) tab. */
-    readonly activeTab: IBrowserTab;
+    readonly activeTab: IBrowserTab | undefined;
 
     /** Open a new tab. Returns the new tab's ID. */
     addTab(url?: string): string;
 
     /** Close a tab. Defaults to active tab. */
-    closeTab(tabId?: string): void;
+    closeTab(tabId?: string): "Tab closed";
 
     /** Switch to a tab (make it active/visible). */
     switchTab(tabId: string): void;
@@ -71,8 +95,9 @@ export interface IBrowserEditor {
 
     /**
      * Get an accessibility snapshot of the page as a YAML-like tree.
-     * Format matches Playwright MCP's browser_snapshot output.
-     * Each interactive element has a ref (e.g., ref=e52) usable for targeting.
+     * Format matches Playwright MCP's browser_snapshot output. It may begin with
+     * `# <overlay>` when a modal covers the page. Pass a returned ref explicitly as
+     * `{ ref: "e52" }`; plain strings are always CSS selectors.
      *
      * @example
      * const snapshot = await browser.snapshot();
@@ -84,35 +109,38 @@ export interface IBrowserEditor {
 
     // --- Query methods ---
 
-    /** Get textContent of an element. Returns null if not found. */
-    getText(selector: string, options?: { tabId?: string }): Promise<string | null>;
+    /** Get textContent by CSS selector or explicit snapshot ref. Returns null if not found. */
+    getText(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<string | null>;
 
-    /** Get the value of an input/textarea/select. Returns null if not found. */
-    getValue(selector: string, options?: { tabId?: string }): Promise<string | null>;
+    /** Get a value by CSS selector or explicit snapshot ref. Returns null if not found. */
+    getValue(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<string | null>;
 
-    /** Get an attribute value. Returns null if element or attribute not found. */
-    getAttribute(selector: string, attribute: string, options?: { tabId?: string }): Promise<string | null>;
+    /** Get an attribute by CSS selector or explicit snapshot ref. Returns null if unavailable. */
+    getAttribute(locator: IBrowserElementLocator, attribute: string, options?: { tabId?: string }): Promise<string | null>;
 
-    /** Get innerHTML of an element. Returns null if not found. */
-    getHtml(selector: string, options?: { tabId?: string }): Promise<string | null>;
+    /** Get innerHTML by CSS selector or explicit snapshot ref. Returns null if not found. */
+    getHtml(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<string | null>;
 
-    /** Check if an element exists on the page. */
-    exists(selector: string, options?: { tabId?: string }): Promise<boolean>;
+    /** Check whether a CSS selector or explicit snapshot ref identifies an element. */
+    exists(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<boolean>;
 
     // --- Interaction methods ---
 
-    /** Click an element. Throws if not found. */
-    click(selector: string, options?: { tabId?: string }): Promise<void>;
+    /** Click by CSS selector or explicit snapshot ref. Throws if not found. */
+    click(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<void>;
+
+    /** Hover by CSS selector or explicit snapshot ref. Throws if not found. */
+    hover(locator: IBrowserElementLocator, options?: { tabId?: string }): Promise<void>;
 
     /**
      * Type text into an input/textarea. Clears existing value first.
      * Dispatches input and change events for framework compatibility.
      * Throws if not found.
      */
-    type(selector: string, text: string, options?: { tabId?: string }): Promise<void>;
+    type(locator: IBrowserElementLocator, text: string, options?: { tabId?: string; slowly?: boolean; submit?: boolean }): Promise<void>;
 
     /** Select an option in a <select> element by value. Throws if not found. */
-    select(selector: string, value: string, options?: { tabId?: string }): Promise<void>;
+    select(locator: IBrowserElementLocator, values: string | string[], options?: { tabId?: string }): Promise<void>;
 
     /** Check a checkbox or radio button. Throws if not found. */
     check(selector: string, options?: { tabId?: string }): Promise<void>;
@@ -122,6 +150,22 @@ export interface IBrowserEditor {
 
     /** Clear the value of an input/textarea. Throws if not found. */
     clear(selector: string, options?: { tabId?: string }): Promise<void>;
+
+    /** Wait for exactly one selector, text, textGone, or time condition. */
+    waitFor(options: {
+        selector?: string;
+        text?: string;
+        textGone?: string;
+        time?: number;
+        timeout?: number;
+        tabId?: string;
+    }): Promise<void>;
+
+    /** Capture the selected tab as a PNG; unavailable sessions return undefined. */
+    screenshot(options?: { tabId?: string }): Promise<IBrowserScreenshot | undefined>;
+
+    /** Get recorded network requests for the selected tab. */
+    networkRequests(options?: { tabId?: string }): Promise<IBrowserNetworkRequest[]>;
 
     // --- Wait methods ---
 
@@ -155,9 +199,9 @@ export interface IBrowserTab {
     /** Internal tab ID (use with tabId option in automation methods). */
     readonly id: string;
     /** Current URL. */
-    readonly url: string;
+    readonly url?: string;
     /** Page title. */
-    readonly title: string;
+    readonly title?: string;
     /** Whether the page is currently loading. */
     readonly loading: boolean;
     /** Whether this is the active (visible) tab. */

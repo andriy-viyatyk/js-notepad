@@ -202,6 +202,34 @@ interface ICallEnvelope {
     hint?: { kind: string; text: string };
 }
 
+interface ICallImage {
+    data: string;
+    mimeType: string;
+}
+
+interface ICallImageResult {
+    image: ICallImage;
+    metadata: unknown;
+}
+
+function callImageResult(value: unknown): ICallImageResult | undefined {
+    if (!value || typeof value !== "object") return undefined;
+    const record = value as Record<string, unknown>;
+    if (record.type === "image" && typeof record.data === "string" && typeof record.mimeType === "string") {
+        const { data: _data, ...metadata } = record;
+        return { image: { data: record.data, mimeType: record.mimeType }, metadata };
+    }
+    const image = record.image;
+    if (!image || typeof image !== "object") return undefined;
+    const imageRecord = image as Record<string, unknown>;
+    if (typeof imageRecord.data !== "string" || typeof imageRecord.mimeType !== "string") return undefined;
+    const { image: _image, ...metadata } = record;
+    return {
+        image: { data: imageRecord.data, mimeType: imageRecord.mimeType },
+        metadata,
+    };
+}
+
 /**
  * Two text blocks instead of one JSON dump: the value (or error) as JSON, then the hint as plain
  * text — a hint is prose for the agent to read, and escaping its newlines inside JSON makes it
@@ -222,8 +250,14 @@ function toCallResult(response: McpResponse): IMcpToolResult {
         content.push({ type: "text", text: `Error: ${rest.error}${where}` });
         if (rest.result !== undefined) content.push({ type: "text", text: JSON.stringify(rest.result, null, 2) });
     } else if (!rest.pending) {
-        const body = typeof rest.result === "string" ? rest.result : JSON.stringify(rest.result ?? null, null, 2);
-        content.push({ type: "text", text: body });
+        const imageResult = callImageResult(rest.result);
+        if (imageResult) {
+            content.push({ type: "text", text: JSON.stringify(imageResult.metadata, null, 2) });
+            content.push({ type: "image", data: imageResult.image.data, mimeType: imageResult.image.mimeType });
+        } else {
+            const body = typeof rest.result === "string" ? rest.result : JSON.stringify(rest.result ?? null, null, 2);
+            content.push({ type: "text", text: body });
+        }
         if (rest.truncated) content.push({ type: "text", text: `[truncated: showing ${(rest.result as string).length} of ${rest.totalLength} chars — raise maxLength or read a narrower path]` });
     }
     if (hint) content.push({ type: "text", text: `--- hint (${hint.kind}) ---\n${hint.text}` });

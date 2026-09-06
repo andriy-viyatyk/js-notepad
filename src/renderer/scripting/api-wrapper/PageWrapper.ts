@@ -267,7 +267,7 @@ export class PageWrapper implements IAiVisible {
             summary.isIncognito = !!state.isIncognito;
             summary.isTor = !!state.isTor;
             if (state.openedByAgent) summary.openedByAgent = true;
-            if (agentMayAccessBrowserPage(state)) summary.url = state.url;
+            if (agentMayAccessBrowserPage(state) && state.url) summary.url = state.url;
         }
         return summary;
     }

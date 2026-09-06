@@ -51,7 +51,7 @@ function toPageSummary(page: NonNullable<ReturnType<typeof pagesModel.findPage>>
         result.isIncognito = !!state?.isIncognito;
         result.isTor = !!state?.isTor;
         if (state?.openedByAgent) result.openedByAgent = true;
-        if (agentMayAccessBrowserPage(state)) result.url = state?.url;
+        if (agentMayAccessBrowserPage(state) && state?.url) result.url = state.url;
     }
 
     if (isBoardEditorId(editor?.editorId)) {

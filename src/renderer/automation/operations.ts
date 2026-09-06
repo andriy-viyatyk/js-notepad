@@ -1,6 +1,7 @@
 /** Shared typed operations for browser, board, and app-window automation targets. */
 const { ipcRenderer } = require("electron"); // eslint-disable-line @typescript-eslint/no-var-requires
 import { BrowserChannel } from "../../ipc/browser-ipc";
+import type { NetworkLogEntry } from "../../ipc/browser-ipc";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
 import { pressKey, typeText } from "./input";
@@ -179,20 +180,22 @@ export async function typeTextInto(
 export async function selectOption(
     target: IBrowserTarget,
     locator: ElementLocator,
-    value: string,
+    value: string | string[],
     tabId?: string,
 ): Promise<void> {
+    const selectedValue = Array.isArray(value) ? value[0] : value;
+    if (selectedValue == null) throw new Error("Missing 'value' or 'values' parameter");
     if ("selector" in locator) {
         const s = JSON.stringify(locator.selector);
         await target.cdp(tabId).evaluate(`(() => {
             const el = document.querySelector(${s});
             if (!el) throw new Error('Element not found: ' + ${s});
-            el.value = ${JSON.stringify(value)};
+            el.value = ${JSON.stringify(selectedValue)};
             el.dispatchEvent(new Event('change', { bubbles: true }));
         })()`);
     } else {
         await callOnRef(target.cdp(tabId), locator.ref,
-            `function() { this.value = ${JSON.stringify(value)}; this.dispatchEvent(new Event('change',{bubbles:true})); }`);
+            `function() { this.value = ${JSON.stringify(selectedValue)}; this.dispatchEvent(new Event('change',{bubbles:true})); }`);
     }
 }
 
@@ -213,6 +216,82 @@ export async function evaluateInTarget(
     tabId?: string,
 ): Promise<unknown> {
     return target.cdp(tabId).evaluate(expression);
+}
+
+/** Read an element's text using a selector or a host-local accessibility ref. */
+export async function getElementText(
+    target: IBrowserTarget,
+    locator: ElementLocator,
+    tabId?: string,
+): Promise<string | null> {
+    if ("selector" in locator) {
+        return target.cdp(tabId).evaluate(
+            `document.querySelector(${JSON.stringify(locator.selector)})?.textContent ?? null`,
+        );
+    }
+    return callOnRef(target.cdp(tabId), locator.ref,
+        "function() { return this.textContent ?? null; }", true);
+}
+
+/** Read an element's value using a selector or a host-local accessibility ref. */
+export async function getElementValue(
+    target: IBrowserTarget,
+    locator: ElementLocator,
+    tabId?: string,
+): Promise<string | null> {
+    if ("selector" in locator) {
+        return target.cdp(tabId).evaluate(
+            `document.querySelector(${JSON.stringify(locator.selector)})?.value ?? null`,
+        );
+    }
+    return callOnRef(target.cdp(tabId), locator.ref,
+        "function() { return this.value ?? null; }", true);
+}
+
+/** Read an element attribute using a selector or a host-local accessibility ref. */
+export async function getElementAttribute(
+    target: IBrowserTarget,
+    locator: ElementLocator,
+    attribute: string,
+    tabId?: string,
+): Promise<string | null> {
+    if ("selector" in locator) {
+        return target.cdp(tabId).evaluate(
+            `document.querySelector(${JSON.stringify(locator.selector)})?.getAttribute(${JSON.stringify(attribute)}) ?? null`,
+        );
+    }
+    return callOnRef(target.cdp(tabId), locator.ref,
+        `function() { return this.getAttribute(${JSON.stringify(attribute)}); }`, true);
+}
+
+/** Read an element's inner HTML using a selector or a host-local accessibility ref. */
+export async function getElementHtml(
+    target: IBrowserTarget,
+    locator: ElementLocator,
+    tabId?: string,
+): Promise<string | null> {
+    if ("selector" in locator) {
+        return target.cdp(tabId).evaluate(
+            `document.querySelector(${JSON.stringify(locator.selector)})?.innerHTML ?? null`,
+        );
+    }
+    return callOnRef(target.cdp(tabId), locator.ref,
+        "function() { return this.innerHTML ?? null; }", true);
+}
+
+/** Check whether a selector or host-local accessibility ref identifies an element. */
+export async function elementExists(
+    target: IBrowserTarget,
+    locator: ElementLocator,
+    tabId?: string,
+): Promise<boolean> {
+    if ("selector" in locator) {
+        return target.cdp(tabId).evaluate(
+            `!!document.querySelector(${JSON.stringify(locator.selector)})`,
+        );
+    }
+    await callOnRef(target.cdp(tabId), locator.ref, "function() { return true; }", true);
+    return true;
 }
 
 export type WaitMode =
@@ -318,16 +397,25 @@ export interface ScreenshotResult {
     mimeType: "image/png";
 }
 
-export async function takeScreenshot(target: IBrowserTarget): Promise<ScreenshotResult> {
-    const { data } = await target.cdp().send("Page.captureScreenshot", { format: "png" });
-    return { type: "image", data, mimeType: "image/png" };
+export async function takeScreenshot(
+    target: IBrowserTarget,
+    tabId?: string,
+    options: { returnUndefinedIfUnavailable?: boolean } = {},
+): Promise<ScreenshotResult | undefined> {
+    try {
+        const { data } = await target.cdp(tabId).send("Page.captureScreenshot", { format: "png" });
+        if (!data) return undefined;
+        return { type: "image", data, mimeType: "image/png" };
+    } catch (error) {
+        if (options.returnUndefinedIfUnavailable) return undefined;
+        throw error;
+    }
 }
 
-export async function networkRequests(target: IBrowserTarget): Promise<unknown> {
-    const activeTab = target.activeTab;
-    if (!activeTab) throw new Error("No active tab");
-    const regKey = `${target.id}/${activeTab.id}`;
-    return ipcRenderer.invoke(BrowserChannel.getNetworkLog, regKey);
+export async function networkRequests(target: IBrowserTarget, tabId?: string): Promise<NetworkLogEntry[]> {
+    const tab = tabId ? target.tabs.find(item => item.id === tabId) : target.activeTab;
+    if (!tab) throw new Error(tabId ? `No tab with id "${tabId}"` : "No active tab");
+    return ipcRenderer.invoke(BrowserChannel.getNetworkLog, target.cdp(tab.id).registrationKey);
 }
 
 export function closeActiveTab(target: IBrowserTarget): string {
